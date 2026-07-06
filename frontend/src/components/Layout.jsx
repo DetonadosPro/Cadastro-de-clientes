@@ -191,7 +191,7 @@ export default function Layout() {
       )}
 
       <main className="layout-conteudo">
-        <Outlet key={location.key} />
+        <Outlet />
       </main>
     </div>
   );
