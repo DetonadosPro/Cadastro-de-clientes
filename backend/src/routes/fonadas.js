@@ -169,6 +169,9 @@ router.post('/', async (req, res) => {
       if (!cliente) {
         return res.status(400).json({ erro: 'Cliente não encontrado.' });
       }
+      if (cliente.bloqueado) {
+        return res.status(403).json({ erro: 'Este cliente está bloqueado. Não é possível criar novos pedidos para ele.' });
+      }
       dados.nome_comprador = cliente.nome;
       dados.comprador_fixo = cliente.fixo;
       dados.comprador_celular = cliente.celular;
@@ -200,8 +203,16 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   try {
-    const existente = await db.query('SELECT id FROM fonadas WHERE id = $1', [req.params.id]);
-    if (existente.rows.length === 0) return res.status(404).json({ erro: 'Registro não encontrado.' });
+    const existenteResultado = await db.query('SELECT id, cliente_id FROM fonadas WHERE id = $1', [req.params.id]);
+    if (existenteResultado.rows.length === 0) return res.status(404).json({ erro: 'Registro não encontrado.' });
+
+    const clienteId = existenteResultado.rows[0].cliente_id;
+    if (clienteId) {
+      const clienteResultado = await db.query('SELECT bloqueado FROM clientes WHERE id = $1', [clienteId]);
+      if (clienteResultado.rows[0]?.bloqueado) {
+        return res.status(403).json({ erro: 'Este cliente está bloqueado. Não é possível editar os pedidos dele.' });
+      }
+    }
 
     const dados = req.body;
     const campos = CAMPOS.filter((c) => dados[c] !== undefined);

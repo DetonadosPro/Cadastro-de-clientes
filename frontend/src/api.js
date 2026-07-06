@@ -144,6 +144,8 @@ export const api = {
       chamar(`/clientes/${destinoId}/mesclar`, { method: 'POST', body: JSON.stringify({ origemId }) }),
     verificarDuplicidade: (nome, nascimento) =>
       chamar(`/clientes/verificar-duplicidade?nome=${encodeURIComponent(nome)}&nascimento=${encodeURIComponent(nascimento)}`),
+    bloquear: (id, bloqueado, motivo) =>
+      chamar(`/clientes/${id}/bloqueio`, { method: 'PUT', body: JSON.stringify({ bloqueado, motivo }) }),
   },
 
   // ---------- Agenda (mensagens de hoje, fonada + ao vivo) ----------

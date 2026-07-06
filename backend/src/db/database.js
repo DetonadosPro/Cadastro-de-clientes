@@ -53,6 +53,8 @@ async function iniciarBanco() {
       complemento TEXT,
       bairro TEXT,
       referencia TEXT,
+      bloqueado BOOLEAN DEFAULT FALSE,
+      bloqueio_motivo TEXT,
       excluido_em TIMESTAMP,
       criado_em TIMESTAMP DEFAULT NOW(),
       atualizado_em TIMESTAMP DEFAULT NOW()
@@ -209,6 +211,8 @@ async function iniciarBanco() {
     { tabela: 'usuarios', coluna: 'nome', tipo: 'TEXT' },
     { tabela: 'usuarios', coluna: 'data_nascimento', tipo: 'TEXT' },
     { tabela: 'fonadas', coluna: 'recall_codigo', tipo: 'TEXT' },
+    { tabela: 'clientes', coluna: 'bloqueado', tipo: 'BOOLEAN DEFAULT FALSE' },
+    { tabela: 'clientes', coluna: 'bloqueio_motivo', tipo: 'TEXT' },
   ];
   for (const { tabela, coluna, tipo } of colunasNovas) {
     await pool.query(`ALTER TABLE ${tabela} ADD COLUMN IF NOT EXISTS ${coluna} ${tipo}`);

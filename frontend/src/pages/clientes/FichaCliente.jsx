@@ -18,6 +18,9 @@ export default function FichaCliente() {
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
+  const [mostrandoBloqueio, setMostrandoBloqueio] = useState(false);
+  const [motivoBloqueio, setMotivoBloqueio] = useState('');
+  const [salvandoBloqueio, setSalvandoBloqueio] = useState(false);
 
   function carregar() {
     setCarregando(true);
@@ -66,11 +69,45 @@ export default function FichaCliente() {
   }
 
   function novoPedidoFonada() {
+    if (cliente.bloqueado) {
+      mostrarToast('Este cliente está bloqueado. Desbloqueie antes de criar um novo pedido.', 'erro');
+      return;
+    }
     navigate(`/fonada/novo?clienteId=${id}`);
   }
 
   function novoPedidoAoVivo() {
+    if (cliente.bloqueado) {
+      mostrarToast('Este cliente está bloqueado. Desbloqueie antes de criar um novo pedido.', 'erro');
+      return;
+    }
     navigate(`/ao-vivo/novo?clienteId=${id}`);
+  }
+
+  async function confirmarBloqueio() {
+    setSalvandoBloqueio(true);
+    try {
+      const atualizado = await api.clientes.bloquear(id, true, motivoBloqueio.trim() || null);
+      setCliente(atualizado);
+      setMostrandoBloqueio(false);
+      setMotivoBloqueio('');
+      mostrarToast('Cliente bloqueado. Não será mais possível criar ou editar pedidos dele.');
+    } catch (err) {
+      mostrarToast('Não foi possível bloquear o cliente. Tente novamente.', 'erro');
+    } finally {
+      setSalvandoBloqueio(false);
+    }
+  }
+
+  async function desbloquear() {
+    if (!confirm(`Desbloquear "${cliente.nome}"? Voltará a ser possível criar e editar pedidos dele normalmente.`)) return;
+    try {
+      const atualizado = await api.clientes.bloquear(id, false);
+      setCliente(atualizado);
+      mostrarToast('Cliente desbloqueado.');
+    } catch (err) {
+      mostrarToast('Não foi possível desbloquear o cliente. Tente novamente.', 'erro');
+    }
   }
 
   function voltar() {
@@ -122,6 +159,15 @@ export default function FichaCliente() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
+          {cliente.bloqueado ? (
+            <button className="btn" onClick={desbloquear}>
+              Desbloquear cliente
+            </button>
+          ) : (
+            <button className="btn perigo" onClick={() => setMostrandoBloqueio(true)}>
+              Bloquear cliente
+            </button>
+          )}
           <button className="btn perigo" onClick={excluirCliente}>
             Excluir cliente
           </button>
@@ -130,6 +176,41 @@ export default function FichaCliente() {
           </button>
         </div>
       </div>
+
+      {cliente.bloqueado && (
+        <div className="aviso-bloqueio">
+          <strong>Cliente bloqueado.</strong> Não é possível criar ou editar pedidos dele em nenhuma tela do sistema.
+          {cliente.bloqueio_motivo && <> Motivo: {cliente.bloqueio_motivo}</>}
+        </div>
+      )}
+
+      {mostrandoBloqueio && (
+        <div className="modal-fundo" onClick={() => setMostrandoBloqueio(false)}>
+          <div className="modal-caixa" onClick={(e) => e.stopPropagation()}>
+            <div className="section-title">Bloquear {cliente.nome}</div>
+            <p className="fs-sm" style={{ color: '#6c757d', marginBottom: 12 }}>
+              Depois de bloqueado, não será possível criar ou editar pedidos deste cliente em nenhuma
+              tela (Fonada, Ao vivo, Cobrança, Agenda), até que seja desbloqueado.
+            </p>
+            <div className="campo">
+              <label>Motivo (opcional)</label>
+              <input
+                value={motivoBloqueio}
+                onChange={(e) => setMotivoBloqueio(e.target.value)}
+                placeholder="Ex: não pagou, pediu para não ligarem mais..."
+              />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+              <button type="button" className="btn secundario" onClick={() => setMostrandoBloqueio(false)}>
+                Cancelar
+              </button>
+              <button type="button" className="btn perigo" onClick={confirmarBloqueio} disabled={salvandoBloqueio}>
+                {salvandoBloqueio ? 'Bloqueando...' : 'Confirmar bloqueio'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="section-box">
         <div className="section-title">

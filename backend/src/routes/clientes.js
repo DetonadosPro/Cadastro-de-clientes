@@ -214,6 +214,36 @@ router.post('/', async (req, res) => {
   }
 });
 
+// PUT /api/clientes/:id/bloqueio — bloqueia ou desbloqueia um cliente.
+// Rota separada da edição normal de dados cadastrais, por ser uma ação
+// com efeito mais amplo (trava pedidos em todo o sistema).
+router.put('/:id/bloqueio', async (req, res) => {
+  try {
+    const existente = await db.query('SELECT id FROM clientes WHERE id = $1', [req.params.id]);
+    if (existente.rows.length === 0) return res.status(404).json({ erro: 'Cliente não encontrado.' });
+
+    const { bloqueado, motivo } = req.body;
+    if (typeof bloqueado !== 'boolean') {
+      return res.status(400).json({ erro: 'Informe se o cliente deve ser bloqueado (true/false).' });
+    }
+
+    await db.query(`
+      UPDATE clientes
+      SET bloqueado = $1, bloqueio_motivo = $2, atualizado_em = NOW()
+      WHERE id = $3
+    `, [bloqueado, bloqueado ? (motivo || null) : null, req.params.id]);
+    // Ao desbloquear, o motivo é limpo — evita ficar um motivo antigo
+    // "fantasma" caso a pessoa seja bloqueada de novo no futuro, sem
+    // reescrever o motivo.
+
+    const atualizado = await db.query('SELECT * FROM clientes WHERE id = $1', [req.params.id]);
+    res.json(atualizado.rows[0]);
+  } catch (erro) {
+    console.error('Erro ao bloquear/desbloquear cliente:', erro);
+    res.status(500).json({ erro: 'Erro ao atualizar bloqueio do cliente.' });
+  }
+});
+
 // PUT /api/clientes/:id
 router.put('/:id', async (req, res) => {
   try {

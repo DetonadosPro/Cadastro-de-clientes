@@ -110,8 +110,16 @@ router.put('/:id/baixa', async (req, res) => {
   try {
     const { pagou, recebi } = req.body;
 
-    const existente = await db.query('SELECT id FROM fonadas WHERE id = $1', [req.params.id]);
-    if (existente.rows.length === 0) return res.status(404).json({ erro: 'Pedido não encontrado.' });
+    const existenteResultado = await db.query('SELECT id, cliente_id FROM fonadas WHERE id = $1', [req.params.id]);
+    if (existenteResultado.rows.length === 0) return res.status(404).json({ erro: 'Pedido não encontrado.' });
+
+    const clienteId = existenteResultado.rows[0].cliente_id;
+    if (clienteId) {
+      const clienteResultado = await db.query('SELECT bloqueado FROM clientes WHERE id = $1', [clienteId]);
+      if (clienteResultado.rows[0]?.bloqueado) {
+        return res.status(403).json({ erro: 'Este cliente está bloqueado. Não é possível dar baixa nos pedidos dele.' });
+      }
+    }
 
     const agora = new Date();
     const dd = String(agora.getDate()).padStart(2, '0');

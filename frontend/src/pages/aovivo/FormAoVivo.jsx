@@ -223,9 +223,17 @@ export default function FormAoVivo() {
     );
   }
 
+  const estaBloqueado = !!cliente?.bloqueado;
+
   return (
     <div className="form-pagina form-compacto">
-      <div className="form-layout">
+      {estaBloqueado && (
+        <div className="aviso-bloqueio" style={{ marginBottom: 16 }}>
+          <strong>Cliente bloqueado.</strong> Este pedido está travado para edição — só é possível visualizar.
+          {cliente.bloqueio_motivo && <> Motivo: {cliente.bloqueio_motivo}</>}
+        </div>
+      )}
+      <div className={`form-layout ${estaBloqueado ? 'form-bloqueado' : ''}`}>
 
         <div>
           <div className="section-box">
@@ -366,7 +374,7 @@ export default function FormAoVivo() {
               {salvando ? 'Salvando...' : 'Salvar'}
             </button>
             <button type="button" className="btn-action" onClick={limpar}>Limpar</button>
-            {editando && cliente && (
+            {editando && cliente && !estaBloqueado && (
               <button type="button" className="btn-action" onClick={() => navigate(`/ao-vivo/novo?clienteId=${cliente.id}`)}>
                 + Novo pedido
               </button>
@@ -374,7 +382,12 @@ export default function FormAoVivo() {
             {editando && (
               <button type="button" className="btn-action perigo-acao" onClick={apagar}>Excluir</button>
             )}
-            <button type="button" className="btn-action fechar-acao" style={{ gridColumn: editando ? undefined : 'span 2' }} onClick={fechar}>
+            <button
+              type="button"
+              className="btn-action fechar-acao"
+              style={{ gridColumn: editando ? undefined : 'span 2', pointerEvents: 'auto' }}
+              onClick={fechar}
+            >
               Fechar
             </button>
           </div>

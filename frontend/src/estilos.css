@@ -1111,6 +1111,22 @@ button.nav-grupo-titulo {
   background: #ffffff;
 }
 
+.aviso-bloqueio {
+  background: #fdf2f0;
+  border: 1.5px solid #f0c4bc;
+  color: #a33627;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 13.5px;
+  margin-bottom: 18px;
+}
+.form-bloqueado {
+  pointer-events: none;
+  opacity: 0.6;
+  filter: grayscale(0.3);
+  user-select: none;
+}
+
 .cartao-diferenca {
   display: flex;
   align-items: center;
