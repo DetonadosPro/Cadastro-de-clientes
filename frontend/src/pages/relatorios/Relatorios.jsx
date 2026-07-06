@@ -62,7 +62,15 @@ export default function Relatorios() {
         </div>
 
         <div style={{ padding: 16 }}>
-          {aba === 'vendas' ? <AbaVendas sistema={sistema} /> : <AbaRecebimentos sistema={sistema} />}
+          {/* Ambas as abas ficam sempre montadas (só uma é exibida por vez).
+              Isso preserva período, dados buscados e estado de cada uma ao
+              navegar entre elas, em vez de resetar tudo a cada troca. */}
+          <div style={{ display: aba === 'vendas' ? 'block' : 'none' }}>
+            <AbaVendas sistema={sistema} />
+          </div>
+          <div style={{ display: aba === 'recebimentos' ? 'block' : 'none' }}>
+            <AbaRecebimentos sistema={sistema} />
+          </div>
         </div>
       </div>
     </div>
