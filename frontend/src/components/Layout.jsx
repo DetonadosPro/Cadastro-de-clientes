@@ -55,6 +55,7 @@ export default function Layout() {
   const nomeExibicao = getNomeExibicao();
   const [menuAberto, setMenuAberto] = useState(false);
   const [alertaAgenda, setAlertaAgenda] = useState(null); // null | 'laranja' | 'vermelho'
+  const [chaveRelatorios, setChaveRelatorios] = useState(0);
   const { rascunhoFonada, rascunhoAoVivo } = useRascunhos();
 
   // Busca a Agenda periodicamente para saber se alguma mensagem fonada de
@@ -145,7 +146,21 @@ export default function Layout() {
             💰 Cobrança
           </NavLink>
 
-          <NavLink to="/relatorios" className="nav-item-direto">
+          <NavLink
+            to="/relatorios"
+            className="nav-item-direto"
+            onClick={(e) => {
+              // Se a pessoa já está em Relatórios e clica de novo no
+              // menu, força o reset da página (limpa aba/filtro da URL
+              // e remonta o componente do zero, sem afetar a navegação
+              // interna entre abas/filtro dentro da própria tela).
+              if (location.pathname === '/relatorios') {
+                e.preventDefault();
+                setChaveRelatorios((v) => v + 1);
+                navigate('/relatorios', { replace: true });
+              }
+            }}
+          >
             📊 Relatórios
           </NavLink>
 
@@ -191,7 +206,7 @@ export default function Layout() {
       )}
 
       <main className="layout-conteudo">
-        <Outlet />
+        <Outlet key={location.pathname === '/relatorios' ? chaveRelatorios : undefined} />
       </main>
     </div>
   );
