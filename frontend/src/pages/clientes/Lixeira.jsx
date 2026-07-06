@@ -9,6 +9,9 @@ export default function Lixeira() {
   const [pagina, setPagina] = useState(1);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
+  const [expandido, setExpandido] = useState(null); // id do cliente com a "pasta" aberta
+  const [pedidosPorCliente, setPedidosPorCliente] = useState({}); // id -> { fonada, aoVivo }
+  const [carregandoPedidos, setCarregandoPedidos] = useState(false);
   const { mostrarToast } = useToast();
 
   const porPagina = 30;
@@ -37,6 +40,25 @@ export default function Lixeira() {
     e.preventDefault();
     setPagina(1);
     carregar(busca, 1);
+  }
+
+  async function alternarExpandido(cliente) {
+    if (expandido === cliente.id) {
+      setExpandido(null);
+      return;
+    }
+    setExpandido(cliente.id);
+    if (!pedidosPorCliente[cliente.id]) {
+      setCarregandoPedidos(true);
+      try {
+        const resp = await api.clientes.pedidosLixeira(cliente.id);
+        setPedidosPorCliente((atual) => ({ ...atual, [cliente.id]: resp }));
+      } catch (err) {
+        mostrarToast('Não foi possível carregar os pedidos deste cliente.', 'erro');
+      } finally {
+        setCarregandoPedidos(false);
+      }
+    }
   }
 
   async function restaurar(cliente) {
@@ -100,37 +122,94 @@ export default function Lixeira() {
               <table className="tabela-lista">
                 <thead>
                   <tr>
+                    <th></th>
                     <th>Nome</th>
                     <th>Nascimento</th>
                     <th>Celular</th>
+                    <th>Pedidos</th>
                     <th>Excluído em</th>
                     <th></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {itens.map((c) => (
-                    <tr key={c.id}>
-                      <td style={{ fontWeight: 700 }}>{c.nome}</td>
-                      <td>{c.nascimento || '—'}</td>
-                      <td>{c.celular || c.fixo || '—'}</td>
-                      <td>{new Date(c.excluido_em).toLocaleString('pt-BR')}</td>
-                      <td>
-                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                          <button type="button" className="btn-small" onClick={() => restaurar(c)}>
-                            Restaurar
-                          </button>
-                          <button
-                            type="button"
-                            className="btn-small"
-                            style={{ color: '#dc3545', borderColor: '#dc3545' }}
-                            onClick={() => apagarDefinitivo(c)}
-                          >
-                            Apagar de vez
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {itens.map((c) => {
+                    const totalPedidos = Number(c.total_fonada || 0) + Number(c.total_aovivo || 0);
+                    const aberto = expandido === c.id;
+                    const pedidos = pedidosPorCliente[c.id];
+                    return (
+                      <React.Fragment key={c.id}>
+                        <tr
+                          onClick={() => alternarExpandido(c)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <td style={{ width: 24, color: '#6c757d' }}>{aberto ? '▾' : '▸'}</td>
+                          <td style={{ fontWeight: 700 }}>{c.nome}</td>
+                          <td>{c.nascimento || '—'}</td>
+                          <td>{c.celular || c.fixo || '—'}</td>
+                          <td>{totalPedidos > 0 ? `${totalPedidos} pedido(s)` : '—'}</td>
+                          <td>{new Date(c.excluido_em).toLocaleString('pt-BR')}</td>
+                          <td>
+                            <div
+                              style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <button type="button" className="btn-small" onClick={() => restaurar(c)}>
+                                Restaurar
+                              </button>
+                              <button
+                                type="button"
+                                className="btn-small"
+                                style={{ color: '#dc3545', borderColor: '#dc3545' }}
+                                onClick={() => apagarDefinitivo(c)}
+                              >
+                                Apagar de vez
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                        {aberto && (
+                          <tr>
+                            <td colSpan={7} style={{ background: '#f8f9fa', padding: '12px 20px' }}>
+                              {!pedidos ? (
+                                <span className="fs-sm" style={{ color: '#6c757d' }}>Carregando pedidos...</span>
+                              ) : totalPedidos === 0 ? (
+                                <span className="fs-sm" style={{ color: '#6c757d' }}>Este cliente não tinha pedidos.</span>
+                              ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                  {pedidos.fonada.length > 0 && (
+                                    <div>
+                                      <div className="fs-xs" style={{ fontWeight: 700, marginBottom: 4, color: '#6c757d' }}>
+                                        FONADA ({pedidos.fonada.length})
+                                      </div>
+                                      {pedidos.fonada.map((p) => (
+                                        <div key={`f-${p.id}`} className="fs-sm" style={{ padding: '4px 0' }}>
+                                          OS {p.senha_os || p.id} — {p.nome_comprador} — {p.data_pedido || '—'}
+                                          {p.valor ? ` — ${Number(p.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}` : ''}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                  {pedidos.aoVivo.length > 0 && (
+                                    <div>
+                                      <div className="fs-xs" style={{ fontWeight: 700, marginBottom: 4, color: '#6c757d' }}>
+                                        AO VIVO ({pedidos.aoVivo.length})
+                                      </div>
+                                      {pedidos.aoVivo.map((p) => (
+                                        <div key={`a-${p.id}`} className="fs-sm" style={{ padding: '4px 0' }}>
+                                          OS {p.numero_os || p.id} — {p.comprador} — {p.dia_entrega || '—'}
+                                          {p.valor ? ` — ${Number(p.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}` : ''}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

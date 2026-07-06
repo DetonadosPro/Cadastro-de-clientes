@@ -139,6 +139,7 @@ export const api = {
     atualizar: (id, dados) => chamar(`/clientes/${id}`, { method: 'PUT', body: JSON.stringify(dados) }),
     excluir: (id) => chamar(`/clientes/${id}`, { method: 'DELETE' }),
     restaurar: (id) => chamar(`/clientes/${id}/restaurar`, { method: 'POST' }),
+    pedidosLixeira: (id) => chamar(`/clientes/${id}/pedidos-lixeira`),
     apagarDefinitivo: (id) => chamar(`/clientes/${id}/definitivo`, { method: 'DELETE' }),
     mesclar: (destinoId, origemId) =>
       chamar(`/clientes/${destinoId}/mesclar`, { method: 'POST', body: JSON.stringify({ origemId }) }),

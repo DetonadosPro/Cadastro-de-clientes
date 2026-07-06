@@ -114,20 +114,23 @@ router.get('/lixeira', async (req, res) => {
     const porPagina = Math.min(parseInt(req.query.porPagina) || 30, 200);
     const offset = (pagina - 1) * porPagina;
 
-    let where = 'WHERE excluido_em IS NOT NULL';
+    let where = 'WHERE c.excluido_em IS NOT NULL';
     let params = [];
     if (busca) {
-      where += ' AND nome LIKE $1';
+      where += ' AND c.nome LIKE $1';
       params = [`%${busca}%`];
     }
 
-    const totalResultado = await db.query(`SELECT COUNT(*) as n FROM clientes ${where}`, params);
+    const totalResultado = await db.query(`SELECT COUNT(*) as n FROM clientes c ${where}`, params);
     const total = parseInt(totalResultado.rows[0].n, 10);
 
     const idxLimit = params.length + 1;
     const idxOffset = params.length + 2;
     const linhasResultado = await db.query(`
-      SELECT * FROM clientes ${where}
+      SELECT c.*,
+        (SELECT COUNT(*) FROM fonadas WHERE cliente_id = c.id AND excluido_em IS NOT NULL) as total_fonada,
+        (SELECT COUNT(*) FROM ao_vivo WHERE cliente_id = c.id AND excluido_em IS NOT NULL) as total_aovivo
+      FROM clientes c ${where}
       ORDER BY excluido_em DESC
       LIMIT $${idxLimit} OFFSET $${idxOffset}
     `, [...params, porPagina, offset]);
@@ -268,6 +271,35 @@ router.put('/:id', async (req, res) => {
   } catch (erro) {
     console.error('Erro ao atualizar cliente:', erro);
     res.status(500).json({ erro: 'Erro ao atualizar cliente.' });
+  }
+});
+
+// GET /api/clientes/:id/pedidos-lixeira
+// Lista os pedidos (fonada + ao vivo) de um cliente que está na lixeira,
+// usados para exibir a "pasta" expandida na tela de Lixeira.
+router.get('/:id/pedidos-lixeira', async (req, res) => {
+  try {
+    const fonadaResultado = await db.query(`
+      SELECT id, senha_os, nome_comprador, data_pedido, valor
+      FROM fonadas
+      WHERE cliente_id = $1 AND excluido_em IS NOT NULL
+      ORDER BY excluido_em DESC
+    `, [req.params.id]);
+
+    const aoVivoResultado = await db.query(`
+      SELECT id, numero_os, comprador, dia_entrega, valor
+      FROM ao_vivo
+      WHERE cliente_id = $1 AND excluido_em IS NOT NULL
+      ORDER BY excluido_em DESC
+    `, [req.params.id]);
+
+    res.json({
+      fonada: fonadaResultado.rows,
+      aoVivo: aoVivoResultado.rows,
+    });
+  } catch (erro) {
+    console.error('Erro ao listar pedidos da lixeira:', erro);
+    res.status(500).json({ erro: 'Não foi possível carregar os pedidos.' });
   }
 });
 
