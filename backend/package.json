@@ -1,0 +1,26 @@
+{
+  "name": "pombo-correio-backend",
+  "version": "1.0.0",
+  "description": "Sistema de cadastro de pedidos - Pombo-Correio",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js",
+    "importar": "node scripts/importar-planilha.js",
+    "vincular-antigos": "node scripts/vincular-clientes-antigos.js",
+    "vincular-antigos:simular": "node scripts/vincular-clientes-antigos.js --simular"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.0",
+    "xlsx": "^0.18.5"
+  }
+}

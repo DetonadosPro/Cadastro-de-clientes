@@ -1,0 +1,19 @@
+# Dependências (reinstaladas via npm install em cada ambiente)
+node_modules/
+
+# Variáveis de ambiente com segredos — NUNCA deve ir pro GitHub
+.env
+.env.local
+.env.production
+
+# Banco de dados local (SQLite antigo, usado só em desenvolvimento)
+backend/data/*.db
+backend/data/*.db-*
+
+# Build do frontend (gerado automaticamente no deploy)
+frontend/dist/
+
+# Arquivos de sistema/editor
+.DS_Store
+Thumbs.db
+*.log
