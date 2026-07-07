@@ -1,23 +1,27 @@
 // src/AgendaAlertaContext.jsx
 //
-// Centraliza a busca periódica da Agenda de hoje (usada para calcular
-// alertas de urgência) em UM único lugar — antes, o Layout (bolinha do
-// menu) e a tela Agenda (borda dos cards) cada um tinha seu próprio
-// temporizador de 30s, começando em instantes diferentes, então a
-// bolinha e a borda podiam mudar de cor em momentos levemente
-// diferentes mesmo usando a mesma regra de 10 minutos.
+// Centraliza os dados da Agenda de hoje (usados para calcular alertas
+// de urgência) em UM único lugar, compartilhado pela bolinha do menu
+// (Layout) e pelas bordas dos cards na tela Agenda — assim os dois
+// ficam sempre exibindo a mesma cor, em vez de cada um calcular por
+// conta própria com timers desalinhados.
 //
-// Com os dois consumindo deste contexto, ambos recalculam a partir do
-// mesmo dado buscado no mesmo instante, ficando sempre sincronizados —
-// e como fica sendo uma única chamada à API (não duas), o custo de
-// rede/servidor cai à metade do que era antes.
+// Dois relógios diferentes, de propósito:
+// - BUSCA DE DADOS (rede): a cada 30s, busca no servidor se há pedidos
+//   novos ou se algum já foi baixado. Não precisa ser mais rápido que
+//   isso — a lista de pedidos do dia não muda a todo instante.
+// - RECÁLCULO LOCAL (sem rede): a cada 1s, apenas relê o relógio do
+//   próprio computador e recalcula as cores a partir dos dados já em
+//   memória. Como não depende de nenhuma resposta de rede, a mudança
+//   de cor é instantânea — sem a pequena espera de uma requisição.
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { api } from './api.js';
 
 const AgendaAlertaContext = createContext(null);
 
-const INTERVALO_VERIFICACAO_MS = 1000;
+const INTERVALO_BUSCA_MS = 30000;
+const INTERVALO_RECALCULO_MS = 1000;
 const LIMIAR_PROXIMA_MINUTOS = 10;
 
 // Diferença em minutos entre um horário "hh:mm" e "agora". Retorna null
@@ -72,11 +76,16 @@ function corAgregada(itensFonada, itensAoVivo) {
 export function AgendaAlertaProvider({ children }) {
   const [fonadaHoje, setFonadaHoje] = useState([]);
   const [aoVivoHoje, setAoVivoHoje] = useState([]);
+  // Só serve para forçar uma nova renderização a cada segundo — o valor
+  // em si não é usado, é apenas o "pulso" que faz o React reavaliar
+  // corAgregada()/statusUrgenciaItem() com o relógio atualizado.
+  const [, forcarRecalculo] = useState(0);
 
+  // Busca os dados no servidor periodicamente (rede).
   useEffect(() => {
     let cancelado = false;
 
-    function verificar() {
+    function buscar() {
       api.agenda.hoje()
         .then((resp) => {
           if (cancelado) return;
@@ -89,12 +98,19 @@ export function AgendaAlertaProvider({ children }) {
         });
     }
 
-    verificar();
-    const intervalo = setInterval(verificar, INTERVALO_VERIFICACAO_MS);
+    buscar();
+    const intervalo = setInterval(buscar, INTERVALO_BUSCA_MS);
     return () => {
       cancelado = true;
       clearInterval(intervalo);
     };
+  }, []);
+
+  // Recalcula localmente a cada 1s, sem nenhuma chamada de rede — só
+  // relê o relógio do computador contra os dados já carregados.
+  useEffect(() => {
+    const intervalo = setInterval(() => forcarRecalculo((n) => n + 1), INTERVALO_RECALCULO_MS);
+    return () => clearInterval(intervalo);
   }, []);
 
   const alertaMenu = corAgregada(fonadaHoje, aoVivoHoje);
