@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App.jsx';
 import { RascunhosProvider } from './RascunhosContext.jsx';
 import { ToastProvider } from './ToastContext.jsx';
+import { AgendaAlertaProvider } from './AgendaAlertaContext.jsx';
 import './estilos.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -11,7 +12,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <RascunhosProvider>
         <ToastProvider>
-          <App />
+          <AgendaAlertaProvider>
+            <App />
+          </AgendaAlertaProvider>
         </ToastProvider>
       </RascunhosProvider>
     </BrowserRouter>

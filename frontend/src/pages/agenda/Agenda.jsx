@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
+import { useAgendaAlerta, statusUrgenciaItem } from '../../AgendaAlertaContext.jsx';
 import { formatarData, formatarHorario } from '../../mascaras.js';
 
 // Data de hoje no mesmo formato usado nos campos do sistema (dd/mm/aa).
@@ -42,10 +43,6 @@ export default function Agenda() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
   const [salvandoBaixa, setSalvandoBaixa] = useState(null);
-  // "Relógio" local, só para forçar o recálculo da urgência (borda
-  // laranja/vermelha) periodicamente — os cards de fonada/ao vivo não
-  // mudam quando isso atualiza, só a cor da borda deles é recalculada.
-  const [agoraTick, setAgoraTick] = useState(() => Date.now());
 
   const [itemRemarcarAberto, setItemRemarcarAberto] = useState(null);
   const [observacao, setObservacao] = useState('');
@@ -55,6 +52,12 @@ export default function Agenda() {
 
   const navigate = useNavigate();
   const { mostrarToast } = useToast();
+  // O contexto compartilhado (mesmo que alimenta a bolinha do menu) é
+  // consumido aqui só para que este componente re-renderize no mesmo
+  // instante em que ele atualiza — assim a cor da borda dos cards muda
+  // exatamente junto com a bolinha, em vez de cada um ter seu próprio
+  // temporizador desalinhado.
+  useAgendaAlerta();
 
   // As ações de "Dar baixa" e "Não atendeu" só fazem sentido para o dia
   // de hoje — em qualquer outro dia, a Agenda serve só para consulta.
@@ -77,13 +80,6 @@ export default function Agenda() {
     carregar(dataSelecionada);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataSelecionada]);
-
-  // Atualiza o "relógio" a cada 30s, para a borda laranja/vermelha virar
-  // sozinha conforme o tempo passa, sem precisar recarregar a página.
-  useEffect(() => {
-    const intervalo = setInterval(() => setAgoraTick(Date.now()), 30000);
-    return () => clearInterval(intervalo);
-  }, []);
 
   function irParaDia(novaData) {
     setSearchParams((atual) => {
@@ -188,25 +184,6 @@ export default function Agenda() {
     });
   }
 
-  // Status de urgência de um horário "hh:mm" comparado com agora, usado
-  // para destacar visualmente mensagens pendentes na Agenda de hoje:
-  // 'atrasada' (já passou da hora), 'proxima' (faltam 10min ou menos),
-  // ou null (sem destaque — ainda falta tempo, ou horário inválido).
-  function statusUrgencia(horarioStr) {
-    const m = String(horarioStr || '').trim().match(/^(\d{1,2}):(\d{2})$/);
-    if (!m) return null;
-    const [, hh, mm] = m;
-
-    const agora = new Date();
-    const minutosAgora = agora.getHours() * 60 + agora.getMinutes();
-    const minutosItem = parseInt(hh, 10) * 60 + parseInt(mm, 10);
-    const diferenca = minutosItem - minutosAgora;
-
-    if (diferenca < 0) return 'atrasada';
-    if (diferenca <= 10) return 'proxima';
-    return null;
-  }
-
   const ESTILO_URGENCIA = {
     atrasada: { border: '2px solid #dc3545' },
     proxima: { border: '2px solid #fd7e14' },
@@ -279,7 +256,7 @@ export default function Agenda() {
                   {fonadaExibida.map((item) => {
                     const chave = `${item.pedidoId}-${item.mensagem}`;
                     const jaPassada = ehHoje && item.passada;
-                    const urgencia = (ehHoje && !jaPassada) ? statusUrgencia(item.horario) : null;
+                    const urgencia = (ehHoje && !jaPassada) ? statusUrgenciaItem(item.horario) : null;
                     return (
                       <div
                         key={chave}
@@ -371,7 +348,7 @@ export default function Agenda() {
                     const chave = `aovivo-${item.id}`;
                     const jaPassada = ehHoje && item.passada;
                     const foiEntregue = Boolean(item.resultado_entrega);
-                    const urgencia = (ehHoje && !jaPassada) ? statusUrgencia(item.horario_entrega) : null;
+                    const urgencia = (ehHoje && !jaPassada) ? statusUrgenciaItem(item.horario_entrega) : null;
                     return (
                       <div
                         key={item.id}

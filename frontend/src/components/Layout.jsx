@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { getUsuarioLogado, getNomeExibicao, limparSessao } from '../api.js';
 import { useRascunhos } from '../RascunhosContext.jsx';
-import { api } from '../api.js';
+import { useAgendaAlerta } from '../AgendaAlertaContext.jsx';
 
 // Converte a chave do rascunho ("novo" ou "editar-123") na rota do formulário correspondente.
 function rotaDoRascunho(prefixoRota, chave) {
@@ -11,77 +11,18 @@ function rotaDoRascunho(prefixoRota, chave) {
   return `${prefixoRota}/${id}`;
 }
 
-// Quantos minutos faltam para um horário "hh:mm" de hoje, a partir de "agora".
-// Negativo significa que já passou.
-function minutosAteHorario(horarioStr, agora) {
-  if (!horarioStr) return null;
-  const m = String(horarioStr).trim().match(/^(\d{1,2}):(\d{2})$/);
-  if (!m) return null;
-  const h = parseInt(m[1], 10);
-  const min = parseInt(m[2], 10);
-  if (h > 23 || min > 59) return null;
-  const alvo = new Date(agora);
-  alvo.setHours(h, min, 0, 0);
-  return Math.round((alvo - agora) / 60000);
-}
-
-// Decide a cor do alerta da Agenda a partir das mensagens fonada de hoje:
-// vermelho se alguma já passou do horário (e ainda não foi baixada),
-// laranja se alguma está a 10 minutos ou menos de começar, senão nada.
-const LIMIAR_PROXIMA_MINUTOS = 10;
-function corAlertaAgenda(itensFonada) {
-  const agora = new Date();
-  let temAtrasada = false;
-  let temProxima = false;
-  for (const item of itensFonada) {
-    const diff = minutosAteHorario(item.horario, agora);
-    if (diff === null) continue;
-    if (diff < 0) temAtrasada = true;
-    else if (diff <= LIMIAR_PROXIMA_MINUTOS) temProxima = true;
-  }
-  if (temAtrasada) return 'vermelho';
-  if (temProxima) return 'laranja';
-  return null;
-}
-
-// Verifica a Agenda a cada 30 segundos para manter a bolinha de alerta
-// atualizada sem sobrecarregar o servidor.
-const INTERVALO_VERIFICACAO_MS = 30000;
-
 export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const usuario = getUsuarioLogado();
   const nomeExibicao = getNomeExibicao();
   const [menuAberto, setMenuAberto] = useState(false);
-  const [alertaAgenda, setAlertaAgenda] = useState(null); // null | 'laranja' | 'vermelho'
   const [chaveRelatorios, setChaveRelatorios] = useState(0);
   const { rascunhoFonada, rascunhoAoVivo } = useRascunhos();
-
-  // Busca a Agenda periodicamente para saber se alguma mensagem fonada de
-  // hoje está próxima do horário (laranja) ou já passou (vermelho), e
-  // mostra isso como uma bolinha ao lado de "Agenda" no menu.
-  useEffect(() => {
-    let cancelado = false;
-
-    function verificar() {
-      api.agenda.hoje()
-        .then((resp) => {
-          if (!cancelado) setAlertaAgenda(corAlertaAgenda(resp.fonada));
-        })
-        .catch(() => {
-          // Falha silenciosa — o alerta é só um indicativo visual, não
-          // deve interromper o uso do resto do sistema se a rede falhar.
-        });
-    }
-
-    verificar();
-    const intervalo = setInterval(verificar, INTERVALO_VERIFICACAO_MS);
-    return () => {
-      cancelado = true;
-      clearInterval(intervalo);
-    };
-  }, []);
+  // A cor da bolinha vem do contexto compartilhado — assim ela e as
+  // bordas de urgência na tela Agenda ficam sempre sincronizadas, já
+  // que ambas partem do mesmo dado buscado no mesmo instante.
+  const { alertaMenu: alertaAgenda } = useAgendaAlerta();
 
   useEffect(() => {
     setMenuAberto(false);
