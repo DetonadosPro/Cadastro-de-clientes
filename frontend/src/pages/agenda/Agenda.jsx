@@ -42,7 +42,6 @@ export default function Agenda() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
   const [salvandoBaixa, setSalvandoBaixa] = useState(null);
-  const [mostrarPassadas, setMostrarPassadas] = useState(false);
 
   const [itemRemarcarAberto, setItemRemarcarAberto] = useState(null);
   const [observacao, setObservacao] = useState('');
@@ -71,7 +70,6 @@ export default function Agenda() {
   }
 
   useEffect(() => {
-    setMostrarPassadas(false);
     carregar(dataSelecionada);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataSelecionada]);
@@ -155,15 +153,18 @@ export default function Agenda() {
     }
   }
 
-  // No dia de hoje, o backend agora manda todos os itens (pendentes e já
-  // passados), marcados com "passada". Por padrão escondemos os já
-  // passados — igual ao comportamento antigo — e só os mostramos (riscados)
-  // quando a pessoa liga o toggle "Mostrar já passadas".
-  const totalFonadaPassadas = fonada.filter((i) => i.passada).length;
-  const fonadaExibida = (ehHoje && !mostrarPassadas) ? fonada.filter((i) => !i.passada) : fonada;
+  // Pendentes primeiro (ordenados por horário), já passados/pagos depois
+  // (também ordenados por horário entre si) — em vez de escondidos, ficam
+  // sempre visíveis no fim da lista, acinzentados.
+  function ordenarPendentesPrimeiro(lista, chaveHorario) {
+    return [...lista].sort((a, b) => {
+      if (a.passada !== b.passada) return a.passada ? 1 : -1;
+      return (a[chaveHorario] || '').localeCompare(b[chaveHorario] || '');
+    });
+  }
 
-  const totalAoVivoPassadas = aoVivo.filter((i) => i.passada).length;
-  const aoVivoExibido = (ehHoje && !mostrarPassadas) ? aoVivo.filter((i) => !i.passada) : aoVivo;
+  const fonadaExibida = ehHoje ? ordenarPendentesPrimeiro(fonada, 'horario') : fonada;
+  const aoVivoExibido = ehHoje ? ordenarPendentesPrimeiro(aoVivo, 'horario_entrega') : aoVivo;
 
   return (
     <div>
@@ -192,22 +193,6 @@ export default function Agenda() {
           <p className="fs-xs" style={{ color: '#dc3545', marginTop: 6 }}>
             Consultando outro dia — só visualização, sem ações de baixa.
           </p>
-        )}
-        {ehHoje && (totalFonadaPassadas + totalAoVivoPassadas) > 0 && (
-          <label
-            className="fs-sm"
-            style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, cursor: 'pointer', userSelect: 'none' }}
-          >
-            <input
-              type="checkbox"
-              checked={mostrarPassadas}
-              onChange={(e) => setMostrarPassadas(e.target.checked)}
-            />
-            Mostrar já passadas
-            <span className="tag ok">
-              {totalFonadaPassadas + totalAoVivoPassadas} de {fonada.length + aoVivo.length} passadas hoje
-            </span>
-          </label>
         )}
       </div>
 
@@ -238,9 +223,7 @@ export default function Agenda() {
             {aba === 'fonada' && (
               fonadaExibida.length === 0 ? (
                 <p className="fs-sm" style={{ color: '#6c757d', textAlign: 'center', padding: '16px 0' }}>
-                  {ehHoje && !mostrarPassadas && fonada.length > 0
-                    ? 'Todas as mensagens de hoje já foram passadas! 🎉'
-                    : `Nenhuma mensagem fonada pendente para ${ehHoje ? 'hoje' : 'esse dia'}.`}
+                  Nenhuma mensagem fonada marcada para {ehHoje ? 'hoje' : 'esse dia'}.
                 </p>
               ) : (
                 <div style={{ display: 'grid', gap: 10 }}>
@@ -326,16 +309,14 @@ export default function Agenda() {
             {aba === 'aovivo' && (
               aoVivoExibido.length === 0 ? (
                 <p className="fs-sm" style={{ color: '#6c757d', textAlign: 'center', padding: '16px 0' }}>
-                  {ehHoje && !mostrarPassadas && aoVivo.length > 0
-                    ? 'Todas as entregas de hoje já foram registradas! 🎉'
-                    : `Nenhuma entrega ao vivo marcada para ${ehHoje ? 'hoje' : 'esse dia'}.`}
+                  Nenhuma mensagem ao vivo marcada para {ehHoje ? 'hoje' : 'esse dia'}.
                 </p>
               ) : (
                 <div style={{ display: 'grid', gap: 10 }}>
                   {aoVivoExibido.map((item) => {
                     const chave = `aovivo-${item.id}`;
                     const jaPassada = ehHoje && item.passada;
-                    const foiEntregue = (item.resultado_entrega || '').startsWith('ENTREGUE');
+                    const foiEntregue = Boolean(item.resultado_entrega);
                     return (
                       <div
                         key={item.id}
@@ -351,11 +332,7 @@ export default function Agenda() {
                             >
                               {item.horario_entrega || '—'}
                             </span>
-                            {(!ehHoje || jaPassada) && item.resultado_entrega && (
-                              <span className={`tag ${foiEntregue ? 'ok' : 'pendente'}`}>
-                                {foiEntregue ? 'Entregue' : 'Não entregue'}
-                              </span>
-                            )}
+                            {foiEntregue && <span className="tag ok">Pago</span>}
                           </div>
                           <div className="grade grade-3">
                             <Info label="Comprador" valor={item.comprador} />
@@ -363,9 +340,6 @@ export default function Agenda() {
                             <Info label="Endereço" valor={item.endereco} />
                             <Info label="Bairro" valor={item.bairro} />
                             <Info label="Referência" valor={item.referencia} />
-                            {(!ehHoje || jaPassada) && item.resultado_entrega && (
-                              <Info label="Resultado" valor={item.resultado_entrega} />
-                            )}
                           </div>
                         </div>
                         <div style={estilos.acoesItem}>
@@ -385,26 +359,15 @@ export default function Agenda() {
                           >
                             Abrir pedido
                           </button>
-                          {ehHoje && !jaPassada && (
-                            <>
-                              <button
-                                type="button"
-                                className="btn-small"
-                                style={{ color: '#dc3545', borderColor: '#dc3545' }}
-                                onClick={() => darBaixaAoVivo(item, false)}
-                                disabled={salvandoBaixa === chave}
-                              >
-                                Não entregue
-                              </button>
-                              <button
-                                type="button"
-                                className="btn"
-                                onClick={() => darBaixaAoVivo(item, true)}
-                                disabled={salvandoBaixa === chave}
-                              >
-                                {salvandoBaixa === chave ? 'Salvando...' : 'Entregue'}
-                              </button>
-                            </>
+                          {!foiEntregue && (
+                            <button
+                              type="button"
+                              className="btn"
+                              onClick={() => darBaixaAoVivo(item, true)}
+                              disabled={salvandoBaixa === chave}
+                            >
+                              {salvandoBaixa === chave ? 'Salvando...' : 'Pagou'}
+                            </button>
                           )}
                         </div>
                       </div>
