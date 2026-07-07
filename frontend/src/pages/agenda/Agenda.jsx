@@ -118,6 +118,20 @@ export default function Agenda() {
     }
   }
 
+  async function desfazerBaixaAoVivo(item) {
+    const chave = `aovivo-desfazer-${item.id}`;
+    setSalvandoBaixa(chave);
+    try {
+      await api.aoVivo.desfazerBaixa(item.id);
+      mostrarToast('Baixa desfeita.');
+      carregar();
+    } catch (err) {
+      mostrarToast('Não foi possível desfazer. Tente novamente.', 'erro');
+    } finally {
+      setSalvandoBaixa(null);
+    }
+  }
+
   function abrirRemarcar(item) {
     setItemRemarcarAberto({ pedidoId: item.pedidoId, mensagem: item.mensagem, nome: item.nome_comprador });
     setObservacao('');
@@ -332,7 +346,20 @@ export default function Agenda() {
                             >
                               {item.horario_entrega || '—'}
                             </span>
-                            {foiEntregue && <span className="tag ok">Pago</span>}
+                            {foiEntregue && (
+                              <>
+                                <span className="tag ok">Pago</span>
+                                <button
+                                  type="button"
+                                  className="btn-small"
+                                  style={{ padding: '2px 8px', fontSize: 12 }}
+                                  onClick={() => desfazerBaixaAoVivo(item)}
+                                  disabled={salvandoBaixa === `aovivo-desfazer-${item.id}`}
+                                >
+                                  {salvandoBaixa === `aovivo-desfazer-${item.id}` ? 'Desfazendo...' : 'Desfazer'}
+                                </button>
+                              </>
+                            )}
                           </div>
                           <div className="grade grade-3">
                             <Info label="Comprador" valor={item.comprador} />
