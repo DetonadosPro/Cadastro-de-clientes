@@ -206,6 +206,50 @@ router.get('/imprimir', async (req, res) => {
   }
 });
 
+// POST /api/ao-vivo/:id/baixa  { entregue: true|false }
+router.post('/:id/baixa', async (req, res) => {
+  try {
+    const { entregue } = req.body;
+    if (typeof entregue !== 'boolean') {
+      return res.status(400).json({ erro: 'Informe se foi entregue (true ou false).' });
+    }
+
+    const existenteResultado = await db.query('SELECT id, cliente_id FROM ao_vivo WHERE id = $1', [req.params.id]);
+    if (existenteResultado.rows.length === 0) return res.status(404).json({ erro: 'Pedido não encontrado.' });
+
+    const clienteId = existenteResultado.rows[0].cliente_id;
+    if (clienteId) {
+      const clienteResultado = await db.query('SELECT bloqueado FROM clientes WHERE id = $1', [clienteId]);
+      if (clienteResultado.rows[0]?.bloqueado) {
+        return res.status(403).json({ erro: 'Este cliente está bloqueado. Não é possível dar baixa nos pedidos dele.' });
+      }
+    }
+
+    const agora = agoraBrasilia();
+    const dd = String(agora.getDate()).padStart(2, '0');
+    const mm = String(agora.getMonth() + 1).padStart(2, '0');
+    const aa = String(agora.getFullYear()).slice(-2);
+    const hh = String(agora.getHours()).padStart(2, '0');
+    const min = String(agora.getMinutes()).padStart(2, '0');
+
+    const usuarioResultado = await db.query('SELECT nome, usuario FROM usuarios WHERE id = $1', [req.usuario.id]);
+    const usuarioLogado = usuarioResultado.rows[0];
+    const nomeExibicao = usuarioLogado ? (usuarioLogado.nome || usuarioLogado.usuario) : req.usuario.usuario;
+
+    const resultado = `${entregue ? 'ENTREGUE' : 'NÃO ENTREGUE'}, ${dd}/${mm}/${aa} às ${hh}:${min} por ${nomeExibicao}`;
+
+    await db.query(
+      'UPDATE ao_vivo SET resultado_entrega = $1, atualizado_em = NOW() WHERE id = $2',
+      [resultado, req.params.id]
+    );
+
+    res.json({ ok: true, resultado });
+  } catch (erro) {
+    console.error('Erro ao dar baixa no ao vivo:', erro);
+    res.status(500).json({ erro: 'Erro ao dar baixa.' });
+  }
+});
+
 router.get('/:id', async (req, res) => {
   try {
     const resultado = await db.query('SELECT * FROM ao_vivo WHERE id = $1', [req.params.id]);
