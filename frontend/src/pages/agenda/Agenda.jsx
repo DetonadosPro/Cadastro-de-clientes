@@ -42,6 +42,10 @@ export default function Agenda() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
   const [salvandoBaixa, setSalvandoBaixa] = useState(null);
+  // "Relógio" local, só para forçar o recálculo da urgência (borda
+  // laranja/vermelha) periodicamente — os cards de fonada/ao vivo não
+  // mudam quando isso atualiza, só a cor da borda deles é recalculada.
+  const [agoraTick, setAgoraTick] = useState(() => Date.now());
 
   const [itemRemarcarAberto, setItemRemarcarAberto] = useState(null);
   const [observacao, setObservacao] = useState('');
@@ -73,6 +77,13 @@ export default function Agenda() {
     carregar(dataSelecionada);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataSelecionada]);
+
+  // Atualiza o "relógio" a cada 30s, para a borda laranja/vermelha virar
+  // sozinha conforme o tempo passa, sem precisar recarregar a página.
+  useEffect(() => {
+    const intervalo = setInterval(() => setAgoraTick(Date.now()), 30000);
+    return () => clearInterval(intervalo);
+  }, []);
 
   function irParaDia(novaData) {
     setSearchParams((atual) => {
