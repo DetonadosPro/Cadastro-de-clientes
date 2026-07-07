@@ -177,6 +177,30 @@ export default function Agenda() {
     });
   }
 
+  // Status de urgência de um horário "hh:mm" comparado com agora, usado
+  // para destacar visualmente mensagens pendentes na Agenda de hoje:
+  // 'atrasada' (já passou da hora), 'proxima' (faltam 10min ou menos),
+  // ou null (sem destaque — ainda falta tempo, ou horário inválido).
+  function statusUrgencia(horarioStr) {
+    const m = String(horarioStr || '').trim().match(/^(\d{1,2}):(\d{2})$/);
+    if (!m) return null;
+    const [, hh, mm] = m;
+
+    const agora = new Date();
+    const minutosAgora = agora.getHours() * 60 + agora.getMinutes();
+    const minutosItem = parseInt(hh, 10) * 60 + parseInt(mm, 10);
+    const diferenca = minutosItem - minutosAgora;
+
+    if (diferenca < 0) return 'atrasada';
+    if (diferenca <= 10) return 'proxima';
+    return null;
+  }
+
+  const ESTILO_URGENCIA = {
+    atrasada: { border: '2px solid #dc3545' },
+    proxima: { border: '2px solid #fd7e14' },
+  };
+
   const fonadaExibida = ehHoje ? ordenarPendentesPrimeiro(fonada, 'horario') : fonada;
   const aoVivoExibido = ehHoje ? ordenarPendentesPrimeiro(aoVivo, 'horario_entrega') : aoVivo;
 
@@ -244,11 +268,16 @@ export default function Agenda() {
                   {fonadaExibida.map((item) => {
                     const chave = `${item.pedidoId}-${item.mensagem}`;
                     const jaPassada = ehHoje && item.passada;
+                    const urgencia = (ehHoje && !jaPassada) ? statusUrgencia(item.horario) : null;
                     return (
                       <div
                         key={chave}
                         className="painel"
-                        style={{ ...estilos.itemAgenda, ...(jaPassada ? estilos.itemPassado : {}) }}
+                        style={{
+                          ...estilos.itemAgenda,
+                          ...(jaPassada ? estilos.itemPassado : {}),
+                          ...(urgencia ? ESTILO_URGENCIA[urgencia] : {}),
+                        }}
                       >
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
@@ -331,11 +360,16 @@ export default function Agenda() {
                     const chave = `aovivo-${item.id}`;
                     const jaPassada = ehHoje && item.passada;
                     const foiEntregue = Boolean(item.resultado_entrega);
+                    const urgencia = (ehHoje && !jaPassada) ? statusUrgencia(item.horario_entrega) : null;
                     return (
                       <div
                         key={item.id}
                         className="painel"
-                        style={{ ...estilos.itemAgenda, ...(jaPassada ? estilos.itemPassado : {}) }}
+                        style={{
+                          ...estilos.itemAgenda,
+                          ...(jaPassada ? estilos.itemPassado : {}),
+                          ...(urgencia ? ESTILO_URGENCIA[urgencia] : {}),
+                        }}
                       >
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
