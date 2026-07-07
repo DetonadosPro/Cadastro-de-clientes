@@ -25,6 +25,23 @@ function dataHoraAtual() {
   return { data: `${dd}/${mm}/${aa}`, horario: `${hh}:${min}` };
 }
 
+// Extrai os 2 dígitos do DDD de um telefone formatado como "(34) 9 9999-9999"
+// ou "(34) 9999-9999". Retorna null se não houver DDD reconhecível.
+function extrairDDD(telefoneFormatado) {
+  const m = String(telefoneFormatado || '').match(/^\((\d{2})\)/);
+  return m ? m[1] : null;
+}
+
+// A 2ª mensagem só é liberada para edição quando pelo menos um dos
+// telefones já preenchidos (fixo ou celular) da 1ª mensagem tiver DDD
+// 34 — região atendida pelo serviço. Sem isso, os campos ficam
+// bloqueados, para não montar uma 2ª mensagem incompatível.
+const DDD_ATENDIDO = '34';
+function segundaMensagemLiberada(dados) {
+  const ddds = [extrairDDD(dados.p1_celular), extrairDDD(dados.p1_fixo)];
+  return ddds.some((ddd) => ddd === DDD_ATENDIDO);
+}
+
 export default function FormFonada() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
@@ -203,6 +220,7 @@ export default function FormFonada() {
   ];
 
   const estaBloqueado = !!cliente?.bloqueado;
+  const segundaLiberada = segundaMensagemLiberada(dados);
 
   return (
     <div className="form-pagina">
@@ -219,7 +237,7 @@ export default function FormFonada() {
             <div className="section-title">Ordem de serviço</div>
             <div className="duas-colunas-mensagem">
               <ColunaOrdemServico numero={1} dados={dados} set={set} setComMascara={setComMascara} onCopiar={copiarEntreMensagens} />
-              <ColunaOrdemServico numero={2} dados={dados} set={set} setComMascara={setComMascara} onCopiar={copiarEntreMensagens} />
+              <ColunaOrdemServico numero={2} dados={dados} set={set} setComMascara={setComMascara} onCopiar={copiarEntreMensagens} bloqueada={!segundaLiberada} />
             </div>
           </div>
 
@@ -227,7 +245,7 @@ export default function FormFonada() {
             <div className="section-title">Transmissão</div>
             <div className="duas-colunas-mensagem">
               <ColunaTransmissao numero={1} dados={dados} set={set} setComMascara={setComMascara} onCopiar={copiarEntreMensagens} />
-              <ColunaTransmissao numero={2} dados={dados} set={set} setComMascara={setComMascara} onCopiar={copiarEntreMensagens} />
+              <ColunaTransmissao numero={2} dados={dados} set={set} setComMascara={setComMascara} onCopiar={copiarEntreMensagens} bloqueada={!segundaLiberada} />
             </div>
           </div>
 
@@ -416,7 +434,7 @@ export default function FormFonada() {
 // trocar de aba para ver a outra mensagem. O botão "P" (copiar) só
 // aparece na coluna da 1ª mensagem, já que o fluxo normal é preencher a
 // 1ª e copiar dali para a 2ª, não o contrário.
-function ColunaOrdemServico({ numero, dados, set, setComMascara, onCopiar }) {
+function ColunaOrdemServico({ numero, dados, set, setComMascara, onCopiar, bloqueada }) {
   const p = numero === 1 ? 'p1' : 'p2';
   const mostrarBotaoP = numero === 1;
 
@@ -425,14 +443,19 @@ function ColunaOrdemServico({ numero, dados, set, setComMascara, onCopiar }) {
       <div className="coluna-mensagem-titulo">
         <span className={`bolinha-status ${dados[`${p}_dia`] ? 'usada' : 'livre'}`} /> {numero}ª mensagem
       </div>
-      <CampoComP label="Tema" nomeCampo="tema" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} />
-      <CampoComP label="Mensagem" nomeCampo="mensagem" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} />
-      <CampoComP label="Para" nomeCampo="para" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} />
+      {bloqueada && (
+        <p className="fs-xs" style={{ color: '#dc3545', marginBottom: 6 }}>
+          Bloqueada: nenhum telefone da 1ª mensagem tem DDD 34.
+        </p>
+      )}
+      <CampoComP label="Tema" nomeCampo="tema" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} />
+      <CampoComP label="Mensagem" nomeCampo="mensagem" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} />
+      <CampoComP label="Para" nomeCampo="para" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} />
       <div className="form-row">
         <label>Fixo:</label>
-        <input value={dados[`${p}_fixo`]} onChange={(e) => setComMascara(`${p}_fixo`, e.target.value, 'fixo')} />
+        <input value={dados[`${p}_fixo`]} onChange={(e) => setComMascara(`${p}_fixo`, e.target.value, 'fixo')} disabled={bloqueada} />
         <label style={{ minWidth: 'auto', marginLeft: 4 }}>Cel.:</label>
-        <input value={dados[`${p}_celular`]} onChange={(e) => setComMascara(`${p}_celular`, e.target.value, 'celular')} />
+        <input value={dados[`${p}_celular`]} onChange={(e) => setComMascara(`${p}_celular`, e.target.value, 'celular')} disabled={bloqueada} />
         {mostrarBotaoP && (
           <BotaoP
             onClick={() => { onCopiar('fixo', numero); onCopiar('celular', numero); }}
@@ -445,7 +468,7 @@ function ColunaOrdemServico({ numero, dados, set, setComMascara, onCopiar }) {
 }
 
 // Mesma ideia para a seção Transmissão.
-function ColunaTransmissao({ numero, dados, set, setComMascara, onCopiar }) {
+function ColunaTransmissao({ numero, dados, set, setComMascara, onCopiar, bloqueada }) {
   const p = numero === 1 ? 'p1' : 'p2';
   const mostrarBotaoP = numero === 1;
 
@@ -453,9 +476,9 @@ function ColunaTransmissao({ numero, dados, set, setComMascara, onCopiar }) {
     <div className="coluna-mensagem">
       <div className="form-row">
         <label>Dia:</label>
-        <input placeholder="dd/mm/aa" value={dados[`${p}_dia`]} onChange={(e) => setComMascara(`${p}_dia`, e.target.value, 'data')} />
+        <input placeholder="dd/mm/aa" value={dados[`${p}_dia`]} onChange={(e) => setComMascara(`${p}_dia`, e.target.value, 'data')} disabled={bloqueada} />
         <label style={{ minWidth: 'auto', marginLeft: 4 }}>Horário:</label>
-        <input placeholder="hh:mm" value={dados[`${p}_horario`]} onChange={(e) => setComMascara(`${p}_horario`, e.target.value, 'horario')} />
+        <input placeholder="hh:mm" value={dados[`${p}_horario`]} onChange={(e) => setComMascara(`${p}_horario`, e.target.value, 'horario')} disabled={bloqueada} />
         {mostrarBotaoP && (
           <BotaoP
             onClick={() => { onCopiar('dia', numero); onCopiar('horario', numero); }}
@@ -463,17 +486,17 @@ function ColunaTransmissao({ numero, dados, set, setComMascara, onCopiar }) {
           />
         )}
       </div>
-      <CampoComP label="Quem oferece" nomeCampo="quem_oferece" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} />
-      <CampoComP label="Resultado" nomeCampo="resultado" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} />
+      <CampoComP label="Quem oferece" nomeCampo="quem_oferece" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} />
+      <CampoComP label="Resultado" nomeCampo="resultado" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} />
     </div>
   );
 }
 
-function CampoComP({ label, nomeCampo, prefixo, numero, dados, set, onCopiar, mostrarBotaoP }) {
+function CampoComP({ label, nomeCampo, prefixo, numero, dados, set, onCopiar, mostrarBotaoP, desabilitado }) {
   return (
     <div className="form-row">
       <label>{label}:</label>
-      <input value={dados[`${prefixo}_${nomeCampo}`]} onChange={(e) => set(`${prefixo}_${nomeCampo}`, e.target.value)} />
+      <input value={dados[`${prefixo}_${nomeCampo}`]} onChange={(e) => set(`${prefixo}_${nomeCampo}`, e.target.value)} disabled={desabilitado} />
       {mostrarBotaoP && (
         <BotaoP onClick={() => onCopiar(nomeCampo, numero)} titulo="Copiar para a 2ª mensagem" />
       )}
