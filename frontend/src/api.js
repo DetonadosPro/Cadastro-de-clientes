@@ -127,6 +127,7 @@ export const api = {
     apagar: (id) => chamar(`/ao-vivo/${id}`, { method: 'DELETE' }),
     buscarParaImpressao: (ids) => chamar(`/ao-vivo/imprimir?ids=${ids.join(',')}`),
     darBaixa: (id, entregue) => chamar(`/ao-vivo/${id}/baixa`, { method: 'POST', body: JSON.stringify({ entregue }) }),
+    desfazerBaixa: (id) => chamar(`/ao-vivo/${id}/desfazer-baixa`, { method: 'POST' }),
   },
 
   // ---------- Clientes (cadastro único, compartilhado) ----------
