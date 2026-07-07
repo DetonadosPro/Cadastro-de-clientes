@@ -24,14 +24,49 @@ export default function ListaCobranca() {
   const [statusBaixa, setStatusBaixa] = useState('');
   const [salvandoBaixa, setSalvandoBaixa] = useState(false);
 
+  // Ordenação da tabela: por padrão vem "os" crescente (mesma ordem que
+  // o backend já devolve), e clicar em O.S./Comprador alterna a direção
+  // — feito no cliente (sem nova busca), já que o volume de uma busca de
+  // cobrança é pequeno o bastante para isso ser instantâneo.
+  const [ordenarPor, setOrdenarPor] = useState('os');
+  const [direcaoOrdenacao, setDirecaoOrdenacao] = useState('asc');
+
   const navigate = useNavigate();
   const { mostrarToast } = useToast();
+
+  function aoClicarOrdenacao(coluna) {
+    if (ordenarPor === coluna) {
+      setDirecaoOrdenacao((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setOrdenarPor(coluna);
+      setDirecaoOrdenacao('asc');
+    }
+  }
+
+  const pedidosOrdenados = [...pedidos].sort((a, b) => {
+    let resultado;
+    if (ordenarPor === 'comprador') {
+      resultado = (a.nome || '').localeCompare(b.nome || '');
+    } else {
+      // "os": compara numericamente quando possível, senão cai para
+      // comparação de texto (mesmo critério de fallback do backend).
+      const numA = parseInt(a.senha_os, 10);
+      const numB = parseInt(b.senha_os, 10);
+      const ambosNumericos = !Number.isNaN(numA) && !Number.isNaN(numB);
+      resultado = ambosNumericos
+        ? numA - numB
+        : String(a.senha_os || '').localeCompare(String(b.senha_os || ''));
+    }
+    return direcaoOrdenacao === 'asc' ? resultado : -resultado;
+  });
 
   async function buscar(e) {
     if (e) e.preventDefault();
     setCarregando(true);
     setErro('');
     setJaBuscou(true);
+    setOrdenarPor('os');
+    setDirecaoOrdenacao('asc');
     try {
       const resp = await api.cobranca.buscar(cobrarDia, pagouFiltro, nome, os);
       setPedidos(resp.pedidos);
@@ -61,7 +96,7 @@ export default function ListaCobranca() {
   }
 
   function imprimir() {
-    const alvo = selecionados.size > 0 ? pedidos.filter((p) => selecionados.has(p.id)) : pedidos;
+    const alvo = selecionados.size > 0 ? pedidosOrdenados.filter((p) => selecionados.has(p.id)) : pedidosOrdenados;
     if (alvo.length === 0) {
       mostrarToast('Não há pedidos para imprimir.', 'erro');
       return;
@@ -190,8 +225,18 @@ export default function ListaCobranca() {
                       title="Selecionar todos"
                     />
                   </th>
-                  <th>O.S.</th>
-                  <th>Comprador</th>
+                  <th
+                    onClick={() => aoClicarOrdenacao('os')}
+                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                  >
+                    O.S.{ordenarPor === 'os' && (direcaoOrdenacao === 'asc' ? ' ▲' : ' ▼')}
+                  </th>
+                  <th
+                    onClick={() => aoClicarOrdenacao('comprador')}
+                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                  >
+                    Comprador{ordenarPor === 'comprador' && (direcaoOrdenacao === 'asc' ? ' ▲' : ' ▼')}
+                  </th>
                   <th>Cobrar dia</th>
                   <th>Forma</th>
                   <th>Valor</th>
@@ -200,7 +245,7 @@ export default function ListaCobranca() {
                 </tr>
               </thead>
               <tbody>
-                {pedidos.map((p) => (
+                {pedidosOrdenados.map((p) => (
                   <tr key={p.id} onClick={() => abrirBaixa(p)}>
                     <td onClick={(e) => e.stopPropagation()}>
                       <input

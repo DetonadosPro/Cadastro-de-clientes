@@ -49,7 +49,9 @@ router.get('/', async (req, res) => {
              comprador_bairro, comprador_referencia, cliente_id
       FROM fonadas
       ${where}
-      ORDER BY cobranca ASC, nome_comprador ASC
+      ORDER BY
+        CASE WHEN senha_os ~ '^\d+$' THEN senha_os::INTEGER END ASC NULLS LAST,
+        senha_os ASC
     `, params);
     const linhas = linhasResultado.rows;
 
