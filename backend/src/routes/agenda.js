@@ -96,13 +96,14 @@ router.get('/hoje', async (req, res) => {
 
     const aoVivoResultado = await db.query(`
       SELECT id, numero_os, comprador, cliente_id, para, dia_entrega, horario_entrega,
-             endereco, bairro, referencia
+             endereco, bairro, referencia, resultado_entrega
       FROM ao_vivo
       WHERE excluido_em IS NULL AND dia_entrega IN ($1, $2)
     `, [curto, longo]);
 
     const itensAoVivo = aoVivoResultado.rows
       .filter((a) => dataCompleta(a.dia_entrega))
+      .map((a) => ({ ...a, passada: Boolean(a.resultado_entrega) }))
       .sort((a, b) => (a.horario_entrega || '').localeCompare(b.horario_entrega || ''));
 
     res.json({ data: curto, consultandoHoje, fonada: itensFonada, aoVivo: itensAoVivo });
