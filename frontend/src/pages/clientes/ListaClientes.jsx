@@ -16,12 +16,21 @@ const MASCARA_POR_FILTRO = {
   celular: formatarCelular,
 };
 
+// Mostra ▲/▼ ao lado do nome da coluna quando ela é o critério de
+// ordenação ativo, para indicar visualmente a direção corrente.
+function indicadorOrdenacao(coluna, ordenarPorAtivo, direcaoAtiva) {
+  if (ordenarPorAtivo !== coluna) return '';
+  return direcaoAtiva === 'asc' ? ' ▲' : ' ▼';
+}
+
 export default function ListaClientes() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const buscaUrl = searchParams.get('busca') || '';
   const campoUrl = searchParams.get('campo') || '';
   const paginaUrl = parseInt(searchParams.get('pagina') || '1', 10);
+  const ordenarPorUrl = searchParams.get('ordenarPor') || 'nome';
+  const direcaoUrl = searchParams.get('direcao') || 'asc';
 
   const [busca, setBusca] = useState(buscaUrl);
   const [campoFiltro, setCampoFiltro] = useState(campoUrl);
@@ -40,11 +49,11 @@ export default function ListaClientes() {
   const porPagina = 30;
   const totalPaginas = Math.max(Math.ceil(total / porPagina), 1);
 
-  const carregar = useCallback(async (termo, pag, campo) => {
+  const carregar = useCallback(async (termo, pag, campo, ordenarPor, direcao) => {
     setCarregando(true);
     setErro('');
     try {
-      const resposta = await api.clientes.listar(termo, pag, campo);
+      const resposta = await api.clientes.listar(termo, pag, campo, ordenarPor, direcao);
       setItens(resposta.clientes);
       setTotal(resposta.total);
     } catch (err) {
@@ -57,25 +66,34 @@ export default function ListaClientes() {
   useEffect(() => {
     setBusca(buscaUrl);
     setCampoFiltro(campoUrl);
-    carregar(buscaUrl, paginaUrl, campoUrl);
+    carregar(buscaUrl, paginaUrl, campoUrl, ordenarPorUrl, direcaoUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [buscaUrl, campoUrl, paginaUrl, carregar]);
+  }, [buscaUrl, campoUrl, paginaUrl, ordenarPorUrl, direcaoUrl, carregar]);
 
-  function montarParams(novaBusca, novoCampo, novaPagina) {
+  function montarParams(novaBusca, novoCampo, novaPagina, novoOrdenarPor, novaDirecao) {
     const params = {};
     if (novaBusca) params.busca = novaBusca;
     if (novoCampo) params.campo = novoCampo;
     params.pagina = String(novaPagina);
+    if (novoOrdenarPor && novoOrdenarPor !== 'nome') params.ordenarPor = novoOrdenarPor;
+    if (novaDirecao && novaDirecao !== 'asc') params.direcao = novaDirecao;
     return params;
   }
 
   function aoSubmeterBusca(e) {
     e.preventDefault();
-    setSearchParams(montarParams(busca, campoFiltro, 1), { replace: true });
+    setSearchParams(montarParams(busca, campoFiltro, 1, ordenarPorUrl, direcaoUrl), { replace: true });
   }
 
   function irParaPagina(novaPagina) {
-    setSearchParams(montarParams(busca, campoFiltro, novaPagina), { replace: true });
+    setSearchParams(montarParams(busca, campoFiltro, novaPagina, ordenarPorUrl, direcaoUrl), { replace: true });
+  }
+
+  // Clicar numa coluna ordenável: se já é a coluna ativa, inverte a
+  // direção; se é uma coluna nova, começa em ordem crescente.
+  function aoClicarOrdenacao(coluna) {
+    const novaDirecao = ordenarPorUrl === coluna && direcaoUrl === 'asc' ? 'desc' : 'asc';
+    setSearchParams(montarParams(busca, campoFiltro, 1, coluna, novaDirecao), { replace: true });
   }
 
   function aoMudarFiltro(novoCampo) {
@@ -148,7 +166,7 @@ export default function ListaClientes() {
     try {
       await api.clientes.mesclar(clienteDestino.id, origemId);
       mostrarToast(`"${origem.nome}" foi mesclado em "${clienteDestino.nome}".`);
-      carregar(buscaUrl, paginaUrl, campoUrl);
+      carregar(buscaUrl, paginaUrl, campoUrl, ordenarPorUrl, direcaoUrl);
     } catch (err) {
       mostrarToast('Não foi possível mesclar. Tente novamente.', 'erro');
     } finally {
@@ -206,12 +224,27 @@ export default function ListaClientes() {
               <table className="tabela-lista">
                 <thead>
                   <tr>
-                    <th>Nome</th>
+                    <th
+                      onClick={() => aoClicarOrdenacao('nome')}
+                      style={estilos.colunaOrdenavel}
+                    >
+                      Nome{indicadorOrdenacao('nome', ordenarPorUrl, direcaoUrl)}
+                    </th>
                     <th>Nascimento</th>
                     <th>Celular</th>
                     <th>Bairro</th>
-                    <th style={{ textAlign: 'center' }}>Fonada</th>
-                    <th style={{ textAlign: 'center' }}>Ao vivo</th>
+                    <th
+                      onClick={() => aoClicarOrdenacao('total_fonada')}
+                      style={{ ...estilos.colunaOrdenavel, textAlign: 'center' }}
+                    >
+                      Fonada{indicadorOrdenacao('total_fonada', ordenarPorUrl, direcaoUrl)}
+                    </th>
+                    <th
+                      onClick={() => aoClicarOrdenacao('total_aovivo')}
+                      style={{ ...estilos.colunaOrdenavel, textAlign: 'center' }}
+                    >
+                      Ao vivo{indicadorOrdenacao('total_aovivo', ordenarPorUrl, direcaoUrl)}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -271,4 +304,5 @@ const estilos = {
   cabecalho: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
   buscaForm: { display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' },
   paginacao: { display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, marginTop: 20 },
+  colunaOrdenavel: { cursor: 'pointer', userSelect: 'none' },
 };

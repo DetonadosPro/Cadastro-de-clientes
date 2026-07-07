@@ -7,6 +7,7 @@
 
 const express = require('express');
 const { db } = require('../db/database');
+const { agoraBrasilia } = require('../utils/dataHora');
 
 const router = express.Router();
 
@@ -121,7 +122,7 @@ router.put('/:id/baixa', async (req, res) => {
       }
     }
 
-    const agora = new Date();
+    const agora = agoraBrasilia();
     const dd = String(agora.getDate()).padStart(2, '0');
     const mm = String(agora.getMonth() + 1).padStart(2, '0');
     const aa = String(agora.getFullYear()).slice(-2);

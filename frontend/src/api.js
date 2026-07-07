@@ -130,8 +130,8 @@ export const api = {
 
   // ---------- Clientes (cadastro único, compartilhado) ----------
   clientes: {
-    listar: (busca = '', pagina = 1, campo = '') =>
-      chamar(`/clientes?busca=${encodeURIComponent(busca)}&pagina=${pagina}&campo=${encodeURIComponent(campo)}`),
+    listar: (busca = '', pagina = 1, campo = '', ordenarPor = '', direcao = '') =>
+      chamar(`/clientes?busca=${encodeURIComponent(busca)}&pagina=${pagina}&campo=${encodeURIComponent(campo)}&ordenarPor=${encodeURIComponent(ordenarPor)}&direcao=${encodeURIComponent(direcao)}`),
     listarLixeira: (busca = '', pagina = 1) =>
       chamar(`/clientes/lixeira?busca=${encodeURIComponent(busca)}&pagina=${pagina}`),
     buscar: (id) => chamar(`/clientes/${id}`),

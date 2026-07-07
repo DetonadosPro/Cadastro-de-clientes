@@ -11,6 +11,7 @@
 
 const express = require('express');
 const { db, pool } = require('../db/database');
+const { agoraBrasilia } = require('../utils/dataHora');
 
 const router = express.Router();
 
@@ -26,7 +27,7 @@ function dataCompleta(valor) {
 }
 
 function hojeEmAmbosFormatos() {
-  const hoje = new Date();
+  const hoje = agoraBrasilia();
   const dd = String(hoje.getDate()).padStart(2, '0');
   const mm = String(hoje.getMonth() + 1).padStart(2, '0');
   const aaaa = String(hoje.getFullYear());
@@ -44,7 +45,7 @@ function ambosFormatosDe(dataBr) {
 }
 
 function agoraFormatado() {
-  const agora = new Date();
+  const agora = agoraBrasilia();
   const dd = String(agora.getDate()).padStart(2, '0');
   const mm = String(agora.getMonth() + 1).padStart(2, '0');
   const aa = String(agora.getFullYear()).slice(-2);

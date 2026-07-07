@@ -10,6 +10,7 @@
 
 const express = require('express');
 const { db } = require('../db/database');
+const { agoraBrasilia } = require('../utils/dataHora');
 
 const router = express.Router();
 
@@ -128,7 +129,7 @@ router.get('/', async (req, res) => {
 // GET /api/fonadas/hoje
 router.get('/hoje', async (req, res) => {
   try {
-    const hoje = new Date();
+    const hoje = agoraBrasilia();
     const dd = String(hoje.getDate()).padStart(2, '0');
     const mm = String(hoje.getMonth() + 1).padStart(2, '0');
     const yy = String(hoje.getFullYear()).slice(-2);
