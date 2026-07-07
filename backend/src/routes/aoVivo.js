@@ -250,6 +250,24 @@ router.post('/:id/baixa', async (req, res) => {
   }
 });
 
+// POST /api/ao-vivo/:id/desfazer-baixa
+router.post('/:id/desfazer-baixa', async (req, res) => {
+  try {
+    const existenteResultado = await db.query('SELECT id FROM ao_vivo WHERE id = $1', [req.params.id]);
+    if (existenteResultado.rows.length === 0) return res.status(404).json({ erro: 'Pedido não encontrado.' });
+
+    await db.query(
+      'UPDATE ao_vivo SET resultado_entrega = NULL, atualizado_em = NOW() WHERE id = $1',
+      [req.params.id]
+    );
+
+    res.json({ ok: true });
+  } catch (erro) {
+    console.error('Erro ao desfazer baixa do ao vivo:', erro);
+    res.status(500).json({ erro: 'Erro ao desfazer.' });
+  }
+});
+
 router.get('/:id', async (req, res) => {
   try {
     const resultado = await db.query('SELECT * FROM ao_vivo WHERE id = $1', [req.params.id]);
