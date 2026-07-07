@@ -17,7 +17,7 @@ import { api } from './api.js';
 
 const AgendaAlertaContext = createContext(null);
 
-const INTERVALO_VERIFICACAO_MS = 5000;
+const INTERVALO_VERIFICACAO_MS = 1000;
 const LIMIAR_PROXIMA_MINUTOS = 10;
 
 // Diferença em minutos entre um horário "hh:mm" e "agora". Retorna null
