@@ -59,7 +59,15 @@ function montarFiltroCliente(campo, termo, indiceInicial) {
   return { where: `${filtro.coluna} LIKE $${indiceInicial}`, params: [padrao] };
 }
 
-// GET /api/clientes?busca=nome&campo=nome&pagina=1
+// Colunas permitidas para ordenação da listagem de clientes — nunca aceitar
+// o valor da query string diretamente no SQL (risco de SQL injection).
+const ORDENACAO_PERMITIDA = {
+  nome: 'c.nome',
+  total_fonada: 'total_fonada',
+  total_aovivo: 'total_aovivo',
+};
+
+// GET /api/clientes?busca=nome&campo=nome&pagina=1&ordenarPor=nome&direcao=asc
 router.get('/', async (req, res) => {
   try {
     const busca = (req.query.busca || '').trim();
@@ -67,6 +75,9 @@ router.get('/', async (req, res) => {
     const pagina = Math.max(parseInt(req.query.pagina) || 1, 1);
     const porPagina = Math.min(parseInt(req.query.porPagina) || 30, 200);
     const offset = (pagina - 1) * porPagina;
+
+    const colunaOrdenacao = ORDENACAO_PERMITIDA[req.query.ordenarPor] || ORDENACAO_PERMITIDA.nome;
+    const direcao = req.query.direcao === 'desc' ? 'DESC' : 'ASC';
 
     let where = 'WHERE excluido_em IS NULL';
     let params = [];
@@ -95,7 +106,7 @@ router.get('/', async (req, res) => {
         (SELECT COUNT(*) FROM ao_vivo WHERE cliente_id = c.id AND excluido_em IS NULL) as total_aovivo
       FROM clientes c
       ${where}
-      ORDER BY c.nome ASC
+      ORDER BY ${colunaOrdenacao} ${direcao}, c.nome ASC
       LIMIT $${idxLimit} OFFSET $${idxOffset}
     `, [...params, porPagina, offset]);
 
