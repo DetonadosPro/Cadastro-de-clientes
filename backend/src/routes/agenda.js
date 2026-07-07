@@ -75,18 +75,20 @@ router.get('/hoje', async (req, res) => {
 
     const itensFonada = [];
     for (const f of fonadasResultado.rows) {
-      if ((f.p1_dia === curto || f.p1_dia === longo) && dataCompleta(f.p1_dia) && (!consultandoHoje || !f.p1_resultado)) {
+      if ((f.p1_dia === curto || f.p1_dia === longo) && dataCompleta(f.p1_dia)) {
         itensFonada.push({
           pedidoId: f.id, mensagem: 1, senha_os: f.senha_os, nome_comprador: f.nome_comprador,
           cliente_id: f.cliente_id, para: f.p1_para, tema: f.p1_tema, horario: f.p1_horario,
           celular: f.p1_celular, fixo: f.p1_fixo, resultado: f.p1_resultado,
+          passada: Boolean(f.p1_resultado),
         });
       }
-      if ((f.p2_dia === curto || f.p2_dia === longo) && dataCompleta(f.p2_dia) && (!consultandoHoje || !f.p2_resultado)) {
+      if ((f.p2_dia === curto || f.p2_dia === longo) && dataCompleta(f.p2_dia)) {
         itensFonada.push({
           pedidoId: f.id, mensagem: 2, senha_os: f.senha_os, nome_comprador: f.nome_comprador,
           cliente_id: f.cliente_id, para: f.p2_para, tema: f.p2_tema, horario: f.p2_horario,
           celular: f.p2_celular, fixo: f.p2_fixo, resultado: f.p2_resultado,
+          passada: Boolean(f.p2_resultado),
         });
       }
     }
@@ -103,7 +105,7 @@ router.get('/hoje', async (req, res) => {
       .filter((a) => dataCompleta(a.dia_entrega))
       .sort((a, b) => (a.horario_entrega || '').localeCompare(b.horario_entrega || ''));
 
-    res.json({ data: curto, fonada: itensFonada, aoVivo: itensAoVivo });
+    res.json({ data: curto, consultandoHoje, fonada: itensFonada, aoVivo: itensAoVivo });
   } catch (erro) {
     console.error('Erro ao buscar agenda:', erro);
     res.status(500).json({ erro: 'Erro ao buscar agenda.' });

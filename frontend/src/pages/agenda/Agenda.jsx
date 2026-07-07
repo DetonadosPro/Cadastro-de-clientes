@@ -42,6 +42,7 @@ export default function Agenda() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
   const [salvandoBaixa, setSalvandoBaixa] = useState(null);
+  const [mostrarPassadas, setMostrarPassadas] = useState(false);
 
   const [itemRemarcarAberto, setItemRemarcarAberto] = useState(null);
   const [observacao, setObservacao] = useState('');
@@ -70,6 +71,7 @@ export default function Agenda() {
   }
 
   useEffect(() => {
+    setMostrarPassadas(false);
     carregar(dataSelecionada);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataSelecionada]);
@@ -139,6 +141,13 @@ export default function Agenda() {
     }
   }
 
+  // No dia de hoje, o backend agora manda todos os itens (pendentes e já
+  // passados), marcados com "passada". Por padrão escondemos os já
+  // passados — igual ao comportamento antigo — e só os mostramos (riscados)
+  // quando a pessoa liga o toggle "Mostrar já passadas".
+  const totalFonadaPassadas = fonada.filter((i) => i.passada).length;
+  const fonadaExibida = (ehHoje && !mostrarPassadas) ? fonada.filter((i) => !i.passada) : fonada;
+
   return (
     <div>
       <div style={{ marginBottom: 20 }}>
@@ -167,6 +176,20 @@ export default function Agenda() {
             Consultando outro dia — só visualização, sem ações de baixa.
           </p>
         )}
+        {ehHoje && totalFonadaPassadas > 0 && (
+          <label
+            className="fs-sm"
+            style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, cursor: 'pointer', userSelect: 'none' }}
+          >
+            <input
+              type="checkbox"
+              checked={mostrarPassadas}
+              onChange={(e) => setMostrarPassadas(e.target.checked)}
+            />
+            Mostrar já passadas
+            <span className="tag ok">{totalFonadaPassadas} de {fonada.length} passadas hoje</span>
+          </label>
+        )}
       </div>
 
       {erro && <p style={{ color: '#dc3545' }}>{erro}</p>}
@@ -181,7 +204,7 @@ export default function Agenda() {
               className={`aba-cliente-botao ${aba === 'fonada' ? 'ativa' : ''}`}
               onClick={() => irParaAba('fonada')}
             >
-              Fonada <span className="aba-contagem">{fonada.length}</span>
+              Fonada <span className="aba-contagem">{fonadaExibida.length}</span>
             </button>
             <button
               type="button"
@@ -194,22 +217,34 @@ export default function Agenda() {
 
           <div style={{ padding: 16 }}>
             {aba === 'fonada' && (
-              fonada.length === 0 ? (
+              fonadaExibida.length === 0 ? (
                 <p className="fs-sm" style={{ color: '#6c757d', textAlign: 'center', padding: '16px 0' }}>
-                  Nenhuma mensagem fonada pendente para {ehHoje ? 'hoje' : 'esse dia'}.
+                  {ehHoje && !mostrarPassadas && fonada.length > 0
+                    ? 'Todas as mensagens de hoje já foram passadas! 🎉'
+                    : `Nenhuma mensagem fonada pendente para ${ehHoje ? 'hoje' : 'esse dia'}.`}
                 </p>
               ) : (
                 <div style={{ display: 'grid', gap: 10 }}>
-                  {fonada.map((item) => {
+                  {fonadaExibida.map((item) => {
                     const chave = `${item.pedidoId}-${item.mensagem}`;
+                    const jaPassada = ehHoje && item.passada;
                     return (
-                      <div key={chave} className="painel" style={estilos.itemAgenda}>
+                      <div
+                        key={chave}
+                        className="painel"
+                        style={{ ...estilos.itemAgenda, ...(jaPassada ? estilos.itemPassado : {}) }}
+                      >
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
                             <span className="carimbo-os carimbo-os-lista">{item.senha_os || item.pedidoId}</span>
-                            <span className="fs-lg" style={{ fontWeight: 700, color: '#004085' }}>{item.horario || '—'}</span>
+                            <span
+                              className="fs-lg"
+                              style={{ fontWeight: 700, color: '#004085', textDecoration: jaPassada ? 'line-through' : 'none' }}
+                            >
+                              {item.horario || '—'}
+                            </span>
                             <span className="tag neutro">{item.mensagem}ª mensagem</span>
-                            {!ehHoje && (
+                            {(!ehHoje || jaPassada) && (
                               <span className={`tag ${item.resultado ? 'ok' : 'pendente'}`}>
                                 {item.resultado ? 'Já passada' : 'Pendente'}
                               </span>
@@ -221,7 +256,7 @@ export default function Agenda() {
                             <Info label="Tema" valor={item.tema} />
                             <Info label="Celular" valor={item.celular} />
                             <Info label="Fixo" valor={item.fixo} />
-                            {!ehHoje && item.resultado && <Info label="Resultado" valor={item.resultado} />}
+                            {(!ehHoje || jaPassada) && item.resultado && <Info label="Resultado" valor={item.resultado} />}
                           </div>
                         </div>
                         <div style={estilos.acoesItem}>
@@ -241,7 +276,7 @@ export default function Agenda() {
                           >
                             Abrir pedido
                           </button>
-                          {ehHoje && (
+                          {ehHoje && !jaPassada && (
                             <>
                               <button
                                 type="button"
@@ -390,6 +425,9 @@ const estilos = {
     alignItems: 'flex-start',
     gap: 14,
     flexWrap: 'wrap',
+  },
+  itemPassado: {
+    opacity: 0.55,
   },
   acoesItem: {
     display: 'flex',
