@@ -106,6 +106,20 @@ export default function Agenda() {
     }
   }
 
+  async function darBaixaAoVivo(item, entregue) {
+    const chave = `aovivo-${item.id}`;
+    setSalvandoBaixa(chave);
+    try {
+      await api.aoVivo.darBaixa(item.id, entregue);
+      mostrarToast(entregue ? 'Entrega registrada com sucesso.' : 'Registrado como não entregue.');
+      carregar();
+    } catch (err) {
+      mostrarToast('Não foi possível registrar. Tente novamente.', 'erro');
+    } finally {
+      setSalvandoBaixa(null);
+    }
+  }
+
   function abrirRemarcar(item) {
     setItemRemarcarAberto({ pedidoId: item.pedidoId, mensagem: item.mensagem, nome: item.nome_comprador });
     setObservacao('');
@@ -148,6 +162,9 @@ export default function Agenda() {
   const totalFonadaPassadas = fonada.filter((i) => i.passada).length;
   const fonadaExibida = (ehHoje && !mostrarPassadas) ? fonada.filter((i) => !i.passada) : fonada;
 
+  const totalAoVivoPassadas = aoVivo.filter((i) => i.passada).length;
+  const aoVivoExibido = (ehHoje && !mostrarPassadas) ? aoVivo.filter((i) => !i.passada) : aoVivo;
+
   return (
     <div>
       <div style={{ marginBottom: 20 }}>
@@ -176,7 +193,7 @@ export default function Agenda() {
             Consultando outro dia — só visualização, sem ações de baixa.
           </p>
         )}
-        {ehHoje && totalFonadaPassadas > 0 && (
+        {ehHoje && (totalFonadaPassadas + totalAoVivoPassadas) > 0 && (
           <label
             className="fs-sm"
             style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, cursor: 'pointer', userSelect: 'none' }}
@@ -187,7 +204,9 @@ export default function Agenda() {
               onChange={(e) => setMostrarPassadas(e.target.checked)}
             />
             Mostrar já passadas
-            <span className="tag ok">{totalFonadaPassadas} de {fonada.length} passadas hoje</span>
+            <span className="tag ok">
+              {totalFonadaPassadas + totalAoVivoPassadas} de {fonada.length + aoVivo.length} passadas hoje
+            </span>
           </label>
         )}
       </div>
@@ -211,7 +230,7 @@ export default function Agenda() {
               className={`aba-cliente-botao ${aba === 'aovivo' ? 'ativa' : ''}`}
               onClick={() => irParaAba('aovivo')}
             >
-              Ao vivo <span className="aba-contagem">{aoVivo.length}</span>
+              Ao vivo <span className="aba-contagem">{aoVivoExibido.length}</span>
             </button>
           </div>
 
@@ -305,47 +324,92 @@ export default function Agenda() {
             )}
 
             {aba === 'aovivo' && (
-              aoVivo.length === 0 ? (
+              aoVivoExibido.length === 0 ? (
                 <p className="fs-sm" style={{ color: '#6c757d', textAlign: 'center', padding: '16px 0' }}>
-                  Nenhuma entrega ao vivo marcada para {ehHoje ? 'hoje' : 'esse dia'}.
+                  {ehHoje && !mostrarPassadas && aoVivo.length > 0
+                    ? 'Todas as entregas de hoje já foram registradas! 🎉'
+                    : `Nenhuma entrega ao vivo marcada para ${ehHoje ? 'hoje' : 'esse dia'}.`}
                 </p>
               ) : (
                 <div style={{ display: 'grid', gap: 10 }}>
-                  {aoVivo.map((item) => (
-                    <div key={item.id} className="painel" style={estilos.itemAgenda}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
-                          <span className="carimbo-os carimbo-os-lista">{item.numero_os || item.id}</span>
-                          <span className="fs-lg" style={{ fontWeight: 700, color: '#004085' }}>{item.horario_entrega || '—'}</span>
+                  {aoVivoExibido.map((item) => {
+                    const chave = `aovivo-${item.id}`;
+                    const jaPassada = ehHoje && item.passada;
+                    const foiEntregue = (item.resultado_entrega || '').startsWith('ENTREGUE');
+                    return (
+                      <div
+                        key={item.id}
+                        className="painel"
+                        style={{ ...estilos.itemAgenda, ...(jaPassada ? estilos.itemPassado : {}) }}
+                      >
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
+                            <span className="carimbo-os carimbo-os-lista">{item.numero_os || item.id}</span>
+                            <span
+                              className="fs-lg"
+                              style={{ fontWeight: 700, color: '#004085', textDecoration: jaPassada ? 'line-through' : 'none' }}
+                            >
+                              {item.horario_entrega || '—'}
+                            </span>
+                            {(!ehHoje || jaPassada) && item.resultado_entrega && (
+                              <span className={`tag ${foiEntregue ? 'ok' : 'pendente'}`}>
+                                {foiEntregue ? 'Entregue' : 'Não entregue'}
+                              </span>
+                            )}
+                          </div>
+                          <div className="grade grade-3">
+                            <Info label="Comprador" valor={item.comprador} />
+                            <Info label="Para" valor={item.para} />
+                            <Info label="Endereço" valor={item.endereco} />
+                            <Info label="Bairro" valor={item.bairro} />
+                            <Info label="Referência" valor={item.referencia} />
+                            {(!ehHoje || jaPassada) && item.resultado_entrega && (
+                              <Info label="Resultado" valor={item.resultado_entrega} />
+                            )}
+                          </div>
                         </div>
-                        <div className="grade grade-3">
-                          <Info label="Comprador" valor={item.comprador} />
-                          <Info label="Para" valor={item.para} />
-                          <Info label="Endereço" valor={item.endereco} />
-                          <Info label="Bairro" valor={item.bairro} />
-                          <Info label="Referência" valor={item.referencia} />
-                        </div>
-                      </div>
-                      <div style={estilos.acoesItem}>
-                        {item.cliente_id && (
+                        <div style={estilos.acoesItem}>
+                          {item.cliente_id && (
+                            <button
+                              type="button"
+                              className="btn-small"
+                              onClick={() => navigate(`/clientes/${item.cliente_id}`)}
+                            >
+                              Ver cliente
+                            </button>
+                          )}
                           <button
                             type="button"
                             className="btn-small"
-                            onClick={() => navigate(`/clientes/${item.cliente_id}`)}
+                            onClick={() => navigate(`/ao-vivo/${item.id}`)}
                           >
-                            Ver cliente
+                            Abrir pedido
                           </button>
-                        )}
-                        <button
-                          type="button"
-                          className="btn-small"
-                          onClick={() => navigate(`/ao-vivo/${item.id}`)}
-                        >
-                          Abrir pedido
-                        </button>
+                          {ehHoje && !jaPassada && (
+                            <>
+                              <button
+                                type="button"
+                                className="btn-small"
+                                style={{ color: '#dc3545', borderColor: '#dc3545' }}
+                                onClick={() => darBaixaAoVivo(item, false)}
+                                disabled={salvandoBaixa === chave}
+                              >
+                                Não entregue
+                              </button>
+                              <button
+                                type="button"
+                                className="btn"
+                                onClick={() => darBaixaAoVivo(item, true)}
+                                disabled={salvandoBaixa === chave}
+                              >
+                                {salvandoBaixa === chave ? 'Salvando...' : 'Entregue'}
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )
             )}
