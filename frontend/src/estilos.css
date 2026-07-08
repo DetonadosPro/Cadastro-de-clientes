@@ -1762,3 +1762,20 @@ button.nav-grupo-titulo {
     padding: 0.9rem 1.3rem;
   }
 }
+
+/* ============================================================
+   TEXTO EM MAIÚSCULAS — aplicado globalmente por preferência
+   visual. Isso transforma apenas a APARÊNCIA do texto na tela;
+   os dados continuam salvos no banco exatamente como foram
+   digitados (nomes, endereços, etc.), só a exibição muda.
+   ============================================================ */
+body {
+  text-transform: uppercase;
+}
+
+/* Campos de senha ficam de fora: não faz sentido visualmente
+   "maiusculizar" algo que já aparece oculto (••••), e evita qualquer
+   confusão sobre o que está sendo digitado. */
+input[type="password"] {
+  text-transform: none;
+}
