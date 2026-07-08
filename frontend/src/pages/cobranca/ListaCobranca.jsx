@@ -155,8 +155,8 @@ export default function ListaCobranca() {
       </div>
 
       <form onSubmit={buscar} className="painel nao-imprimir" style={estilos.formBusca}>
-        <div className="grade grade-4">
-          <div className="campo">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 14px' }}>
+          <div className="campo" style={{ flex: '0 0 110px' }}>
             <label>Cobrar dia</label>
             <input
               className="campo-data"
@@ -165,7 +165,7 @@ export default function ListaCobranca() {
               onChange={(e) => setCobrarDia(formatarData(e.target.value))}
             />
           </div>
-          <div className="campo">
+          <div className="campo" style={{ flex: '0 0 160px' }}>
             <label>Pagou</label>
             <select value={pagouFiltro} onChange={(e) => setPagouFiltro(e.target.value)}>
               <option value="NAO">Não pagou</option>
@@ -173,11 +173,11 @@ export default function ListaCobranca() {
               <option value="TODOS">Todos</option>
             </select>
           </div>
-          <div className="campo">
+          <div className="campo" style={{ flex: '1 1 200px' }}>
             <label>Nome</label>
             <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do comprador" />
           </div>
-          <div className="campo">
+          <div className="campo" style={{ flex: '0 0 140px' }}>
             <label>O.S.</label>
             <input value={os} onChange={(e) => setOs(e.target.value)} placeholder="Número exato" />
           </div>
