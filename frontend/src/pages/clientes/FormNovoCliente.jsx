@@ -48,6 +48,14 @@ export default function FormNovoCliente() {
       setErro('O nome é obrigatório.');
       return;
     }
+    if (!dados.nascimento.trim()) {
+      setErro('O nascimento é obrigatório.');
+      return;
+    }
+    if (!dados.celular.trim() && !dados.fixo.trim()) {
+      setErro('Preencha pelo menos um telefone (celular ou fixo).');
+      return;
+    }
 
     if (duplicados === null && dados.nascimento.trim()) {
       setSalvando(true);
@@ -111,7 +119,7 @@ export default function FormNovoCliente() {
       )}
 
       {!duplicados && (
-        <div className="painel">
+        <div className="painel" style={{ maxWidth: 700 }}>
           <div className="section-title">Dados do cliente</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 14px' }}>
             <div className="campo" style={{ flex: '1 1 300px' }}>
@@ -119,10 +127,13 @@ export default function FormNovoCliente() {
               <input value={dados.nome} onChange={(e) => set('nome', e.target.value)} autoFocus />
             </div>
             <div className="campo" style={{ flex: '0 0 110px' }}>
-              <label>Nascimento</label>
+              <label>Nascimento *</label>
               <input className="campo-nascimento" placeholder="dd/mm/aa" value={dados.nascimento} onChange={(e) => setComMascara('nascimento', e.target.value, 'data')} />
             </div>
           </div>
+          <p className="fs-xs" style={{ color: '#6c757d', margin: '0 0 8px' }}>
+            Preencha pelo menos um dos telefones abaixo.
+          </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 14px' }}>
             <div className="campo" style={{ flex: '0 0 auto' }}>
               <label>Telefone fixo</label>
@@ -138,15 +149,15 @@ export default function FormNovoCliente() {
             <input value={dados.endereco} onChange={(e) => set('endereco', e.target.value)} />
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 14px' }}>
-            <div className="campo" style={{ flex: '1 1 220px' }}>
+            <div className="campo" style={{ flex: '1 1 145px' }}>
               <label>Complemento</label>
               <input value={dados.complemento} onChange={(e) => set('complemento', e.target.value)} />
             </div>
-            <div className="campo" style={{ flex: '1 1 180px' }}>
+            <div className="campo" style={{ flex: '0 0 auto' }}>
               <label>Bairro</label>
               <input className="campo-bairro" value={dados.bairro} onChange={(e) => set('bairro', e.target.value)} />
             </div>
-            <div className="campo" style={{ flex: '1 1 220px' }}>
+            <div className="campo" style={{ flex: '1 1 145px' }}>
               <label>Referência</label>
               <input value={dados.referencia} onChange={(e) => set('referencia', e.target.value)} />
             </div>
