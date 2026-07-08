@@ -1773,6 +1773,16 @@ body {
   text-transform: uppercase;
 }
 
+/* Campos de formulário (caixas de texto, área de texto, seletores) não
+   herdam automaticamente o text-transform do body em todos os
+   navegadores — aplicado explicitamente para garantir consistência,
+   inclusive no texto digitado em tempo real. */
+input,
+textarea,
+select {
+  text-transform: uppercase;
+}
+
 /* Campos de senha ficam de fora: não faz sentido visualmente
    "maiusculizar" algo que já aparece oculto (••••), e evita qualquer
    confusão sobre o que está sendo digitado. */
