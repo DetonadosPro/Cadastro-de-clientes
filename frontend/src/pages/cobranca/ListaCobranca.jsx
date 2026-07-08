@@ -159,6 +159,7 @@ export default function ListaCobranca() {
           <div className="campo">
             <label>Cobrar dia</label>
             <input
+              className="campo-data"
               placeholder="dd/mm/aa"
               value={cobrarDia}
               onChange={(e) => setCobrarDia(formatarData(e.target.value))}

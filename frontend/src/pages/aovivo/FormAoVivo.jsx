@@ -271,17 +271,17 @@ export default function FormAoVivo() {
             <div className="form-row">
               <label>Dia Evento:</label>
               <input
+                className="campo-data"
                 placeholder="dd/mm/aa"
                 value={dados.dia_entrega}
                 onChange={(e) => setComMascara('dia_entrega', e.target.value, 'data')}
-                style={{ maxWidth: 90, flex: '0 0 auto' }}
               />
               <label style={{ minWidth: 'auto', marginLeft: 4 }}>Horário:</label>
               <input
+                className="campo-horario"
                 placeholder="hh:mm"
                 value={dados.horario_entrega}
                 onChange={(e) => setComMascara('horario_entrega', e.target.value, 'horario')}
-                style={{ maxWidth: 70, flex: '0 0 auto' }}
               />
             </div>
             <div className="form-row">
@@ -300,9 +300,9 @@ export default function FormAoVivo() {
             </div>
             <div className="form-row">
               <label>Fixo local:</label>
-              <input value={dados.fixo_local} onChange={(e) => setComMascara('fixo_local', e.target.value, 'fixo')} />
+              <input className="campo-fixo" value={dados.fixo_local} onChange={(e) => setComMascara('fixo_local', e.target.value, 'fixo')} />
               <label style={{ minWidth: 'auto', marginLeft: 4 }}>Cel. local:</label>
-              <input value={dados.celular_local} onChange={(e) => setComMascara('celular_local', e.target.value, 'celular')} />
+              <input className="campo-celular" value={dados.celular_local} onChange={(e) => setComMascara('celular_local', e.target.value, 'celular')} />
             </div>
           </div>
 

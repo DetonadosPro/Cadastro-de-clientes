@@ -1796,3 +1796,31 @@ input[type="password"] {
 .pagina-fonada-ampliada {
   zoom: 1.1;
 }
+
+/* ============================================================
+   CAMPOS DE FORMATO FIXO — largura reduzida e consistente para
+   campos cujo conteúdo tem um tamanho previsível (data, horário,
+   valor em dinheiro, telefones), em vez de ocuparem a largura
+   inteira da linha do formulário. Usadas em Fonada, Ao Vivo,
+   Cobrança e Relatórios.
+   ============================================================ */
+.campo-data {
+  max-width: 90px;
+  flex: 0 0 auto;
+}
+.campo-horario {
+  max-width: 70px;
+  flex: 0 0 auto;
+}
+.campo-valor {
+  max-width: 110px;
+  flex: 0 0 auto;
+}
+.campo-celular {
+  max-width: 150px;
+  flex: 0 0 auto;
+}
+.campo-fixo {
+  max-width: 135px;
+  flex: 0 0 auto;
+}

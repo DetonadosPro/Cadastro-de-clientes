@@ -415,7 +415,7 @@ export default function Agenda() {
                               onClick={() => darBaixaAoVivo(item, true)}
                               disabled={salvandoBaixa === chave}
                             >
-                              {salvandoBaixa === chave ? 'Salvando...' : 'Pagou'}
+                              {salvandoBaixa === chave ? 'Salvando...' : 'Dar baixa'}
                             </button>
                           )}
                         </div>

@@ -256,12 +256,13 @@ export default function FormFonada() {
               <input
                 type="text"
                 inputMode="numeric"
+                className="campo-valor"
                 value={dados.valor}
                 onChange={(e) => set('valor', formatarValorMonetario(e.target.value))}
                 style={{ fontWeight: 700 }}
               />
               <label style={{ minWidth: 'auto', marginLeft: 8 }}>Cob. dia:</label>
-              <input placeholder="dd/mm/aa" value={dados.cobranca} onChange={(e) => setComMascara('cobranca', e.target.value, 'data')} />
+              <input className="campo-data" placeholder="dd/mm/aa" value={dados.cobranca} onChange={(e) => setComMascara('cobranca', e.target.value, 'data')} />
             </div>
             <div className="form-row">
               <label>Período:</label>
@@ -460,9 +461,9 @@ function ColunaOrdemServico({ numero, dados, set, setComMascara, onCopiar, bloqu
       <CampoComP label="Para" nomeCampo="para" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} />
       <div className="form-row">
         <label>Fixo:</label>
-        <input value={dados[`${p}_fixo`]} onChange={(e) => setComMascara(`${p}_fixo`, e.target.value, 'fixo')} disabled={bloqueada} />
+        <input className="campo-fixo" value={dados[`${p}_fixo`]} onChange={(e) => setComMascara(`${p}_fixo`, e.target.value, 'fixo')} disabled={bloqueada} />
         <label style={{ minWidth: 'auto', marginLeft: 4 }}>Cel.:</label>
-        <input value={dados[`${p}_celular`]} onChange={(e) => setComMascara(`${p}_celular`, e.target.value, 'celular')} disabled={bloqueada} />
+        <input className="campo-celular" value={dados[`${p}_celular`]} onChange={(e) => setComMascara(`${p}_celular`, e.target.value, 'celular')} disabled={bloqueada} />
         {mostrarBotaoP && (
           <BotaoP
             onClick={() => { onCopiar('fixo', numero); onCopiar('celular', numero); }}
@@ -483,9 +484,9 @@ function ColunaTransmissao({ numero, dados, set, setComMascara, onCopiar, bloque
     <div className="coluna-mensagem">
       <div className="form-row">
         <label>Dia:</label>
-        <input placeholder="dd/mm/aa" value={dados[`${p}_dia`]} onChange={(e) => setComMascara(`${p}_dia`, e.target.value, 'data')} disabled={bloqueada} />
+        <input className="campo-data" placeholder="dd/mm/aa" value={dados[`${p}_dia`]} onChange={(e) => setComMascara(`${p}_dia`, e.target.value, 'data')} disabled={bloqueada} />
         <label style={{ minWidth: 'auto', marginLeft: 4 }}>Horário:</label>
-        <input placeholder="hh:mm" value={dados[`${p}_horario`]} onChange={(e) => setComMascara(`${p}_horario`, e.target.value, 'horario')} disabled={bloqueada} />
+        <input className="campo-horario" placeholder="hh:mm" value={dados[`${p}_horario`]} onChange={(e) => setComMascara(`${p}_horario`, e.target.value, 'horario')} disabled={bloqueada} />
         {mostrarBotaoP && (
           <BotaoP
             onClick={() => { onCopiar('dia', numero); onCopiar('horario', numero); }}

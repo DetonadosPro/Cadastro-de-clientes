@@ -267,11 +267,11 @@ function FormularioPeriodo({ inicio, fim, setInicio, setFim, onSubmit, carregand
     <form onSubmit={onSubmit} className="form-periodo-relatorio">
       <div className="campo">
         <label>Data inicial</label>
-        <input placeholder="dd/mm/aa" value={inicio} onChange={(e) => setInicio(e.target.value)} />
+        <input className="campo-data" placeholder="dd/mm/aa" value={inicio} onChange={(e) => setInicio(e.target.value)} />
       </div>
       <div className="campo">
         <label>Data final (opcional)</label>
-        <input placeholder="dd/mm/aa" value={fim} onChange={(e) => setFim(e.target.value)} />
+        <input className="campo-data" placeholder="dd/mm/aa" value={fim} onChange={(e) => setFim(e.target.value)} />
       </div>
       <button type="submit" className="btn" disabled={carregando}>
         {carregando ? 'Buscando...' : 'Buscar'}
