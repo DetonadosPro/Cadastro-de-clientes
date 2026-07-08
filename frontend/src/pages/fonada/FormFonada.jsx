@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../../api.js';
 import { useRascunhos } from '../../RascunhosContext.jsx';
 import { useToast } from '../../ToastContext.jsx';
-import { formatarCelular, formatarFixo, formatarData, formatarHorario, formatarCodigoNumerico } from '../../mascaras.js';
+import { formatarCelular, formatarFixo, formatarData, formatarHorario, formatarCodigoNumerico, formatarValorMonetario, valorMonetarioParaNumero, numeroParaValorMonetario } from '../../mascaras.js';
 
 const VAZIO = {
   senha_os: '', cliente_id: null, data_pedido: '', horario_pedido: '', nascimento: '', tipo: '', recall: 'NÃO', recall_codigo: '',
@@ -98,6 +98,7 @@ export default function FormFonada() {
       .then((pedido) => {
         const normalizado = { ...VAZIO };
         Object.keys(VAZIO).forEach((campo) => { normalizado[campo] = pedido[campo] ?? ''; });
+        normalizado.valor = numeroParaValorMonetario(pedido.valor);
         setDados(normalizado);
         if (pedido.cliente_id) {
           api.clientes.buscar(pedido.cliente_id).then((resp) => setCliente(resp.cliente));
@@ -149,7 +150,7 @@ export default function FormFonada() {
     }
     setSalvando(true);
     try {
-      const payload = { ...dados, valor: dados.valor === '' ? null : parseFloat(dados.valor) };
+      const payload = { ...dados, valor: valorMonetarioParaNumero(dados.valor) };
       if (editando) {
         await api.fonada.atualizar(id, payload);
         limparRascunhoFonada();
@@ -252,7 +253,13 @@ export default function FormFonada() {
           <div className="section-box">
             <div className="form-row">
               <label>Valor R$:</label>
-              <input type="number" step="0.01" value={dados.valor} onChange={(e) => set('valor', e.target.value)} style={{ fontWeight: 700 }} />
+              <input
+                type="text"
+                inputMode="numeric"
+                value={dados.valor}
+                onChange={(e) => set('valor', formatarValorMonetario(e.target.value))}
+                style={{ fontWeight: 700 }}
+              />
               <label style={{ minWidth: 'auto', marginLeft: 8 }}>Cob. dia:</label>
               <input placeholder="dd/mm/aa" value={dados.cobranca} onChange={(e) => setComMascara('cobranca', e.target.value, 'data')} />
             </div>

@@ -43,3 +43,36 @@ export function formatarHorario(valor) {
 export function formatarCodigoNumerico(valor, maxDigitos) {
   return apenasNumeros(valor).slice(0, maxDigitos);
 }
+
+// Formata valor monetário como "R$ 1.234,56" enquanto o usuário digita
+// — funciona como campo de banco/PIX: os dígitos digitados preenchem
+// da direita para a esquerda (sempre os 2 últimos são os centavos), sem
+// precisar digitar vírgula. Ex: "5" → "R$ 0,05", "50" → "R$ 0,50",
+// "100" → "R$ 1,00", "10050" → "R$ 100,50".
+export function formatarValorMonetario(valor) {
+  const n = apenasNumeros(valor).replace(/^0+(?=\d)/, '');
+  if (!n) return '';
+  const centavos = n.padStart(3, '0');
+  const inteiro = centavos.slice(0, -2);
+  const decimais = centavos.slice(-2);
+  const inteiroComPontos = inteiro.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return `R$ ${inteiroComPontos},${decimais}`;
+}
+
+// Converte o texto de um campo formatado com formatarValorMonetario de
+// volta para número puro (ex: "R$ 1.234,56" → 1234.56), pronto para
+// enviar ao backend. Retorna null se o campo estiver vazio.
+export function valorMonetarioParaNumero(valorFormatado) {
+  const n = apenasNumeros(valorFormatado);
+  if (!n) return null;
+  return parseInt(n, 10) / 100;
+}
+
+// Converte um número (vindo do backend) para o texto já formatado, para
+// preencher o campo ao abrir um pedido existente para edição.
+export function numeroParaValorMonetario(numero) {
+  if (numero === null || numero === undefined || numero === '') return '';
+  const centavos = Math.round(parseFloat(numero) * 100);
+  if (isNaN(centavos)) return '';
+  return formatarValorMonetario(String(centavos));
+}

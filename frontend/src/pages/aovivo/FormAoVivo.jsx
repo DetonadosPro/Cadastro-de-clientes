@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../../api.js';
 import { useRascunhos } from '../../RascunhosContext.jsx';
 import { useToast } from '../../ToastContext.jsx';
-import { formatarCelular, formatarFixo, formatarData, formatarHorario } from '../../mascaras.js';
+import { formatarCelular, formatarFixo, formatarData, formatarHorario, formatarValorMonetario, valorMonetarioParaNumero, numeroParaValorMonetario } from '../../mascaras.js';
 
 const VAZIO = {
   numero_os: '', cliente_id: null, data_pedido: '', horario_pedido: '', dia_entrega: '', horario_entrega: '',
@@ -106,6 +106,7 @@ export default function FormAoVivo() {
       .then((pedido) => {
         const normalizado = { ...VAZIO };
         Object.keys(VAZIO).forEach((campo) => { normalizado[campo] = pedido[campo] ?? ''; });
+        normalizado.valor = numeroParaValorMonetario(pedido.valor);
         setDados(normalizado);
         setQtdMensagens(contarMensagensPreenchidas(normalizado));
         setQtdMusicas(contarPreenchidos(normalizado, 'musica', MIN_MUSICAS, MAX_MUSICAS));
@@ -170,7 +171,7 @@ export default function FormAoVivo() {
     }
     setSalvando(true);
     try {
-      const payload = { ...dados, valor: dados.valor === '' ? null : parseFloat(dados.valor) };
+      const payload = { ...dados, valor: valorMonetarioParaNumero(dados.valor) };
       if (editando) {
         await api.aoVivo.atualizar(id, payload);
         limparRascunhoAoVivo();
@@ -269,9 +270,19 @@ export default function FormAoVivo() {
             </div>
             <div className="form-row">
               <label>Dia Evento:</label>
-              <input placeholder="dd/mm/aa" value={dados.dia_entrega} onChange={(e) => setComMascara('dia_entrega', e.target.value, 'data')} />
+              <input
+                placeholder="dd/mm/aa"
+                value={dados.dia_entrega}
+                onChange={(e) => setComMascara('dia_entrega', e.target.value, 'data')}
+                style={{ maxWidth: 90, flex: '0 0 auto' }}
+              />
               <label style={{ minWidth: 'auto', marginLeft: 4 }}>Horário:</label>
-              <input placeholder="hh:mm" value={dados.horario_entrega} onChange={(e) => setComMascara('horario_entrega', e.target.value, 'horario')} />
+              <input
+                placeholder="hh:mm"
+                value={dados.horario_entrega}
+                onChange={(e) => setComMascara('horario_entrega', e.target.value, 'horario')}
+                style={{ maxWidth: 70, flex: '0 0 auto' }}
+              />
             </div>
             <div className="form-row">
               <label>Oferecimento:</label>
@@ -300,9 +311,17 @@ export default function FormAoVivo() {
             {Array.from({ length: qtdMensagens }, (_, i) => i + 1).map((n) => (
               <div className="form-row" key={n}>
                 <label>{qtdMensagens > 1 ? `Tema ${n}:` : 'Tema:'}</label>
-                <input value={dados[`tema_${n}`]} onChange={(e) => set(`tema_${n}`, e.target.value)} />
-                <label style={{ minWidth: 'auto', marginLeft: 4 }}>Código:</label>
-                <input value={dados[`mensagem_codigo_${n}`]} onChange={(e) => set(`mensagem_codigo_${n}`, e.target.value)} style={{ maxWidth: 80, flex: 'none' }} />
+                <input
+                  value={dados[`tema_${n}`]}
+                  onChange={(e) => set(`tema_${n}`, e.target.value)}
+                  style={{ maxWidth: '33%', flex: '0 0 auto' }}
+                />
+                <label style={{ minWidth: 'auto', marginLeft: 2 }}>Código:</label>
+                <input
+                  value={dados[`mensagem_codigo_${n}`]}
+                  onChange={(e) => set(`mensagem_codigo_${n}`, e.target.value)}
+                  style={{ maxWidth: 80, flex: 'none', marginLeft: -2 }}
+                />
               </div>
             ))}
             <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
@@ -345,7 +364,13 @@ export default function FormAoVivo() {
             <div className="section-title">Financeiro e brinde</div>
             <div className="form-row">
               <label>Valor R$:</label>
-              <input type="number" step="0.01" value={dados.valor} onChange={(e) => set('valor', e.target.value)} style={{ fontWeight: 700 }} />
+              <input
+                type="text"
+                inputMode="numeric"
+                value={dados.valor}
+                onChange={(e) => set('valor', formatarValorMonetario(e.target.value))}
+                style={{ fontWeight: 700 }}
+              />
               <label style={{ minWidth: 'auto', marginLeft: 4 }}>Pagamento:</label>
               <input value={dados.pagamento} onChange={(e) => set('pagamento', e.target.value)} />
             </div>
