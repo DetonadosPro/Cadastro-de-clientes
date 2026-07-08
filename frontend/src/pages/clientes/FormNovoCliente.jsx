@@ -113,22 +113,22 @@ export default function FormNovoCliente() {
       {!duplicados && (
         <div className="painel">
           <div className="section-title">Dados do cliente</div>
-          <div className="grade grade-2">
-            <div className="campo">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 14px' }}>
+            <div className="campo" style={{ flex: '1 1 300px' }}>
               <label>Nome *</label>
               <input value={dados.nome} onChange={(e) => set('nome', e.target.value)} autoFocus />
             </div>
-            <div className="campo">
+            <div className="campo" style={{ flex: '0 0 110px' }}>
               <label>Nascimento</label>
               <input className="campo-nascimento" placeholder="dd/mm/aa" value={dados.nascimento} onChange={(e) => setComMascara('nascimento', e.target.value, 'data')} />
             </div>
           </div>
-          <div className="grade grade-2">
-            <div className="campo">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 14px' }}>
+            <div className="campo" style={{ flex: '0 0 auto' }}>
               <label>Telefone fixo</label>
               <input className="campo-fixo" value={dados.fixo} onChange={(e) => setComMascara('fixo', e.target.value, 'fixo')} />
             </div>
-            <div className="campo">
+            <div className="campo" style={{ flex: '0 0 auto' }}>
               <label>Celular</label>
               <input className="campo-celular" value={dados.celular} onChange={(e) => setComMascara('celular', e.target.value, 'celular')} />
             </div>
@@ -137,16 +137,16 @@ export default function FormNovoCliente() {
             <label>Endereço</label>
             <input value={dados.endereco} onChange={(e) => set('endereco', e.target.value)} />
           </div>
-          <div className="grade grade-3">
-            <div className="campo">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 14px' }}>
+            <div className="campo" style={{ flex: '1 1 220px' }}>
               <label>Complemento</label>
               <input value={dados.complemento} onChange={(e) => set('complemento', e.target.value)} />
             </div>
-            <div className="campo">
+            <div className="campo" style={{ flex: '1 1 180px' }}>
               <label>Bairro</label>
               <input className="campo-bairro" value={dados.bairro} onChange={(e) => set('bairro', e.target.value)} />
             </div>
-            <div className="campo">
+            <div className="campo" style={{ flex: '1 1 220px' }}>
               <label>Referência</label>
               <input value={dados.referencia} onChange={(e) => set('referencia', e.target.value)} />
             </div>

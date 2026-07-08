@@ -232,22 +232,22 @@ export default function FichaCliente() {
           </div>
         ) : (
           <>
-            <div className="grade grade-2">
-              <div className="campo">
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 14px' }}>
+              <div className="campo" style={{ flex: '1 1 300px' }}>
                 <label>Nome</label>
                 <input value={dadosEdicao.nome} onChange={(e) => setEdicao('nome', e.target.value)} />
               </div>
-              <div className="campo">
+              <div className="campo" style={{ flex: '0 0 110px' }}>
                 <label>Nascimento</label>
                 <input className="campo-nascimento" placeholder="dd/mm/aa" value={dadosEdicao.nascimento || ''} onChange={(e) => setEdicaoComMascara('nascimento', e.target.value, 'data')} />
               </div>
             </div>
-            <div className="grade grade-2">
-              <div className="campo">
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 14px' }}>
+              <div className="campo" style={{ flex: '0 0 auto' }}>
                 <label>Telefone fixo</label>
                 <input className="campo-fixo" value={dadosEdicao.fixo || ''} onChange={(e) => setEdicaoComMascara('fixo', e.target.value, 'fixo')} />
               </div>
-              <div className="campo">
+              <div className="campo" style={{ flex: '0 0 auto' }}>
                 <label>Celular</label>
                 <input className="campo-celular" value={dadosEdicao.celular || ''} onChange={(e) => setEdicaoComMascara('celular', e.target.value, 'celular')} />
               </div>
@@ -256,16 +256,16 @@ export default function FichaCliente() {
               <label>Endereço</label>
               <input value={dadosEdicao.endereco || ''} onChange={(e) => setEdicao('endereco', e.target.value)} />
             </div>
-            <div className="grade grade-3">
-              <div className="campo">
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 14px' }}>
+              <div className="campo" style={{ flex: '1 1 220px' }}>
                 <label>Complemento</label>
                 <input value={dadosEdicao.complemento || ''} onChange={(e) => setEdicao('complemento', e.target.value)} />
               </div>
-              <div className="campo">
+              <div className="campo" style={{ flex: '1 1 180px' }}>
                 <label>Bairro</label>
                 <input className="campo-bairro" value={dadosEdicao.bairro || ''} onChange={(e) => setEdicao('bairro', e.target.value)} />
               </div>
-              <div className="campo">
+              <div className="campo" style={{ flex: '1 1 220px' }}>
                 <label>Referência</label>
                 <input value={dadosEdicao.referencia || ''} onChange={(e) => setEdicao('referencia', e.target.value)} />
               </div>
