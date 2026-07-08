@@ -1789,3 +1789,10 @@ select {
 input[type="password"] {
   text-transform: none;
 }
+
+/* Página de pedido Fonada — aumentada em 10% (efeito Ctrl++ do
+   navegador), só nesta tela. "zoom" é suportado nos navegadores
+   baseados em Chromium (o que cobre o uso normal deste sistema). */
+.pagina-fonada-ampliada {
+  zoom: 1.1;
+}

@@ -223,7 +223,7 @@ export default function FormFonada() {
   const segundaLiberada = segundaMensagemLiberada(dados);
 
   return (
-    <div className="form-pagina">
+    <div className="form-pagina pagina-fonada-ampliada">
       {estaBloqueado && (
         <div className="aviso-bloqueio" style={{ marginBottom: 16 }}>
           <strong>Cliente bloqueado.</strong> Este pedido está travado para edição — só é possível visualizar.
