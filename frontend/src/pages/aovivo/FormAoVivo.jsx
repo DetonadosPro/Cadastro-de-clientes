@@ -294,7 +294,7 @@ export default function FormAoVivo() {
             </div>
             <div className="form-row">
               <label>Bairro:</label>
-              <input value={dados.bairro} onChange={(e) => set('bairro', e.target.value)} />
+              <input className="campo-bairro" value={dados.bairro} onChange={(e) => set('bairro', e.target.value)} />
               <label style={{ minWidth: 'auto', marginLeft: 4 }}>Ref.:</label>
               <input value={dados.referencia} onChange={(e) => set('referencia', e.target.value)} />
             </div>
@@ -367,6 +367,7 @@ export default function FormAoVivo() {
               <input
                 type="text"
                 inputMode="numeric"
+                className="campo-valor"
                 value={dados.valor}
                 onChange={(e) => set('valor', formatarValorMonetario(e.target.value))}
                 style={{ fontWeight: 700 }}

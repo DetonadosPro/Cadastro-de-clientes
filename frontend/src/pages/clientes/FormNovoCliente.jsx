@@ -120,17 +120,17 @@ export default function FormNovoCliente() {
             </div>
             <div className="campo">
               <label>Nascimento</label>
-              <input placeholder="dd/mm/aa" value={dados.nascimento} onChange={(e) => setComMascara('nascimento', e.target.value, 'data')} />
+              <input className="campo-nascimento" placeholder="dd/mm/aa" value={dados.nascimento} onChange={(e) => setComMascara('nascimento', e.target.value, 'data')} />
             </div>
           </div>
           <div className="grade grade-2">
             <div className="campo">
               <label>Telefone fixo</label>
-              <input value={dados.fixo} onChange={(e) => setComMascara('fixo', e.target.value, 'fixo')} />
+              <input className="campo-fixo" value={dados.fixo} onChange={(e) => setComMascara('fixo', e.target.value, 'fixo')} />
             </div>
             <div className="campo">
               <label>Celular</label>
-              <input value={dados.celular} onChange={(e) => setComMascara('celular', e.target.value, 'celular')} />
+              <input className="campo-celular" value={dados.celular} onChange={(e) => setComMascara('celular', e.target.value, 'celular')} />
             </div>
           </div>
           <div className="campo">
@@ -144,7 +144,7 @@ export default function FormNovoCliente() {
             </div>
             <div className="campo">
               <label>Bairro</label>
-              <input value={dados.bairro} onChange={(e) => set('bairro', e.target.value)} />
+              <input className="campo-bairro" value={dados.bairro} onChange={(e) => set('bairro', e.target.value)} />
             </div>
             <div className="campo">
               <label>Referência</label>

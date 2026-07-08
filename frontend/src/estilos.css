@@ -1824,3 +1824,11 @@ input[type="password"] {
   max-width: 135px;
   flex: 0 0 auto;
 }
+.campo-bairro {
+  max-width: 50%;
+  flex: 0 0 auto;
+}
+.campo-nascimento {
+  max-width: 90px;
+  flex: 0 0 auto;
+}

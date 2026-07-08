@@ -239,17 +239,17 @@ export default function FichaCliente() {
               </div>
               <div className="campo">
                 <label>Nascimento</label>
-                <input placeholder="dd/mm/aa" value={dadosEdicao.nascimento || ''} onChange={(e) => setEdicaoComMascara('nascimento', e.target.value, 'data')} />
+                <input className="campo-nascimento" placeholder="dd/mm/aa" value={dadosEdicao.nascimento || ''} onChange={(e) => setEdicaoComMascara('nascimento', e.target.value, 'data')} />
               </div>
             </div>
             <div className="grade grade-2">
               <div className="campo">
                 <label>Telefone fixo</label>
-                <input value={dadosEdicao.fixo || ''} onChange={(e) => setEdicaoComMascara('fixo', e.target.value, 'fixo')} />
+                <input className="campo-fixo" value={dadosEdicao.fixo || ''} onChange={(e) => setEdicaoComMascara('fixo', e.target.value, 'fixo')} />
               </div>
               <div className="campo">
                 <label>Celular</label>
-                <input value={dadosEdicao.celular || ''} onChange={(e) => setEdicaoComMascara('celular', e.target.value, 'celular')} />
+                <input className="campo-celular" value={dadosEdicao.celular || ''} onChange={(e) => setEdicaoComMascara('celular', e.target.value, 'celular')} />
               </div>
             </div>
             <div className="campo">
@@ -263,7 +263,7 @@ export default function FichaCliente() {
               </div>
               <div className="campo">
                 <label>Bairro</label>
-                <input value={dadosEdicao.bairro || ''} onChange={(e) => setEdicao('bairro', e.target.value)} />
+                <input className="campo-bairro" value={dadosEdicao.bairro || ''} onChange={(e) => setEdicao('bairro', e.target.value)} />
               </div>
               <div className="campo">
                 <label>Referência</label>
