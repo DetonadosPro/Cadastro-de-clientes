@@ -95,9 +95,9 @@ export default function ImpressaoAoVivo({ pedido }) {
       </div>
 
       <div className="impresso-linha">
-        <Campo label="Evento:" valor={pedido.dia_entrega} grow={1} />
-        <Campo label="Horário:" valor={pedido.horario_entrega} grow={1} />
-        <Campo label="Brinde:" valor={pedido.brinde} grow={1.4} />
+        <Campo label="Evento:" valor={pedido.dia_entrega} largura={11} />
+        <Campo label="Horário:" valor={pedido.horario_entrega} largura={9} />
+        <Campo label="Brinde:" valor={pedido.brinde} grow={1} />
       </div>
 
       <div className="impresso-linha">
@@ -109,8 +109,8 @@ export default function ImpressaoAoVivo({ pedido }) {
       </div>
 
       <div className="impresso-linha">
-        <Campo label="Bairro:" valor={pedido.bairro} grow={1.5} />
-        <Campo label="Referência:" valor={pedido.referencia} grow={1} />
+        <Campo label="Bairro:" valor={pedido.bairro} grow={0.75} />
+        <Campo label="Referência:" valor={pedido.referencia} grow={1.75} />
       </div>
 
       <div className="impresso-linha">
@@ -121,23 +121,23 @@ export default function ImpressaoAoVivo({ pedido }) {
       <div className="impresso-secao-titulo">MENSAGENS</div>
 
       <div className="impresso-linha">
-        <Campo label="Msg 1:" valor={juntarTemaEMensagem(pedido.tema1, pedido.msg1)} largura={25} />
+        <Campo label="Msg 1:" valor={juntarTemaEMensagem(pedido.tema1, pedido.msg1)} largura={33} />
       </div>
       <div className="impresso-linha">
-        <Campo label="Msg 2:" valor={juntarTemaEMensagem(pedido.tema2, pedido.msg2)} largura={25} />
+        <Campo label="Msg 2:" valor={juntarTemaEMensagem(pedido.tema2, pedido.msg2)} largura={33} />
       </div>
 
       <div className="impresso-linha">
-        <Campo label="M1:" valor={pedido.musicas[0]} largura={33} />
+        <Campo label="M1:" valor={pedido.musicas[0]} largura={66} />
       </div>
       <div className="impresso-linha">
-        <Campo label="M2:" valor={pedido.musicas[1]} largura={33} />
+        <Campo label="M2:" valor={pedido.musicas[1]} largura={66} />
       </div>
       <div className="impresso-linha">
-        <Campo label="M3:" valor={pedido.musicas[2]} largura={33} />
+        <Campo label="M3:" valor={pedido.musicas[2]} largura={66} />
       </div>
       <div className="impresso-linha">
-        <Campo label="M4:" valor={pedido.musicas[3]} largura={33} />
+        <Campo label="M4:" valor={pedido.musicas[3]} largura={66} />
       </div>
 
       <div className="impresso-rotulo impresso-rotulo-oferecimento">Oferecimento:</div>
