@@ -16,7 +16,7 @@ export default function Login() {
     try {
       const resposta = await api.login(usuario, senha);
       setToken(resposta.token, resposta.usuario, resposta.nome);
-      navigate('/fonada');
+      navigate('/agenda');
     } catch (err) {
       setErro(err.message);
     } finally {
