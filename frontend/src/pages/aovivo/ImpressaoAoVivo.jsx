@@ -95,8 +95,8 @@ export default function ImpressaoAoVivo({ pedido }) {
       </div>
 
       <div className="impresso-linha">
-        <Campo label="Evento:" valor={pedido.dia_entrega} largura={11} />
-        <Campo label="Horário:" valor={pedido.horario_entrega} largura={9} />
+        <Campo label="Evento:" valor={pedido.dia_entrega} largura={20} />
+        <Campo label="Horário:" valor={pedido.horario_entrega} largura={18} />
         <Campo label="Brinde:" valor={pedido.brinde} grow={1} />
       </div>
 
