@@ -17,9 +17,9 @@ const VAZIO = {
 };
 
 const MIN_MENSAGENS = 1;
-const MAX_MENSAGENS = 4;
+const MAX_MENSAGENS = 2;
 const MIN_MUSICAS = 2;
-const MAX_MUSICAS = 6;
+const MAX_MUSICAS = 4;
 
 function dataHoraAtual() {
   const agora = new Date();
@@ -271,22 +271,27 @@ export default function FormAoVivo() {
             <div className="form-row">
               <label>Dia Evento:</label>
               <input
-                className="campo-data"
                 placeholder="dd/mm/aa"
                 value={dados.dia_entrega}
                 onChange={(e) => setComMascara('dia_entrega', e.target.value, 'data')}
+                style={{ maxWidth: 90, flex: '0 0 auto' }}
               />
               <label style={{ minWidth: 'auto', marginLeft: 4 }}>Horário:</label>
               <input
-                className="campo-horario"
                 placeholder="hh:mm"
                 value={dados.horario_entrega}
                 onChange={(e) => setComMascara('horario_entrega', e.target.value, 'horario')}
+                style={{ maxWidth: 70, flex: '0 0 auto' }}
               />
             </div>
             <div className="form-row">
               <label>Oferecimento:</label>
-              <input value={dados.oferecimento} onChange={(e) => set('oferecimento', e.target.value)} />
+              <textarea
+                value={dados.oferecimento}
+                onChange={(e) => set('oferecimento', e.target.value)}
+                rows={3}
+                style={{ fontSize: 13, resize: 'vertical', flex: 1 }}
+              />
             </div>
             <div className="form-row">
               <label>End.:</label>
@@ -294,15 +299,15 @@ export default function FormAoVivo() {
             </div>
             <div className="form-row">
               <label>Bairro:</label>
-              <input className="campo-bairro" value={dados.bairro} onChange={(e) => set('bairro', e.target.value)} />
+              <input value={dados.bairro} onChange={(e) => set('bairro', e.target.value)} />
               <label style={{ minWidth: 'auto', marginLeft: 4 }}>Ref.:</label>
               <input value={dados.referencia} onChange={(e) => set('referencia', e.target.value)} />
             </div>
             <div className="form-row">
               <label>Fixo local:</label>
-              <input className="campo-fixo" value={dados.fixo_local} onChange={(e) => setComMascara('fixo_local', e.target.value, 'fixo')} />
+              <input value={dados.fixo_local} onChange={(e) => setComMascara('fixo_local', e.target.value, 'fixo')} />
               <label style={{ minWidth: 'auto', marginLeft: 4 }}>Cel. local:</label>
-              <input className="campo-celular" value={dados.celular_local} onChange={(e) => setComMascara('celular_local', e.target.value, 'celular')} />
+              <input value={dados.celular_local} onChange={(e) => setComMascara('celular_local', e.target.value, 'celular')} />
             </div>
           </div>
 
@@ -367,7 +372,6 @@ export default function FormAoVivo() {
               <input
                 type="text"
                 inputMode="numeric"
-                className="campo-valor"
                 value={dados.valor}
                 onChange={(e) => set('valor', formatarValorMonetario(e.target.value))}
                 style={{ fontWeight: 700 }}
