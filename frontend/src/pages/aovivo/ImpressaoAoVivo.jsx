@@ -121,23 +121,23 @@ export default function ImpressaoAoVivo({ pedido }) {
       <div className="impresso-secao-titulo">MENSAGENS</div>
 
       <div className="impresso-linha">
-        <Campo label="Msg 1:" valor={juntarTemaEMensagem(pedido.tema1, pedido.msg1)} grow={1} />
+        <Campo label="Msg 1:" valor={juntarTemaEMensagem(pedido.tema1, pedido.msg1)} largura={25} />
       </div>
       <div className="impresso-linha">
-        <Campo label="Msg 2:" valor={juntarTemaEMensagem(pedido.tema2, pedido.msg2)} grow={1} />
+        <Campo label="Msg 2:" valor={juntarTemaEMensagem(pedido.tema2, pedido.msg2)} largura={25} />
       </div>
 
       <div className="impresso-linha">
-        <Campo label="M1:" valor={pedido.musicas[0]} grow={1} />
+        <Campo label="M1:" valor={pedido.musicas[0]} largura={33} />
       </div>
       <div className="impresso-linha">
-        <Campo label="M2:" valor={pedido.musicas[1]} grow={1} />
+        <Campo label="M2:" valor={pedido.musicas[1]} largura={33} />
       </div>
       <div className="impresso-linha">
-        <Campo label="M3:" valor={pedido.musicas[2]} grow={1} />
+        <Campo label="M3:" valor={pedido.musicas[2]} largura={33} />
       </div>
       <div className="impresso-linha">
-        <Campo label="M4:" valor={pedido.musicas[3]} grow={1} />
+        <Campo label="M4:" valor={pedido.musicas[3]} largura={33} />
       </div>
 
       <div className="impresso-rotulo impresso-rotulo-oferecimento">Oferecimento:</div>
@@ -175,9 +175,12 @@ export default function ImpressaoAoVivo({ pedido }) {
   );
 }
 
-function Campo({ label, valor, grow, destaque }) {
+function Campo({ label, valor, grow, largura, destaque }) {
+  const estiloFlex = largura
+    ? { flex: `0 0 ${largura}%`, maxWidth: `${largura}%` }
+    : { flexGrow: grow, flexBasis: 0 };
   return (
-    <div className="impresso-campo-grupo" style={{ flexGrow: grow, flexBasis: 0 }}>
+    <div className="impresso-campo-grupo" style={estiloFlex}>
       <span className={`impresso-rotulo ${destaque ? 'impresso-rotulo-destaque' : ''}`}>{label}</span>
       <span className="impresso-campo">{valor || ''}</span>
     </div>
