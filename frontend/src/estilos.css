@@ -624,7 +624,7 @@ input, select, textarea {
     grid-column: 1;
     grid-row: 3;
   }
-  .tabela-lista.tabela-fonada td[data-label="Data"] {
+  .tabela-lista.tabela-fonada td[data-label="Venda"] {
     grid-column: 2;
     grid-row: 3;
     font-size: 0.72rem;

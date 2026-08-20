@@ -187,7 +187,7 @@ export default function ListaFonada() {
                   <th className="col-somente-desktop">Destinatário 1</th>
                   <th className="col-somente-desktop">Destinatário 2</th>
                   <th>Mensagens</th>
-                  <th>Data</th>
+                  <th>Venda</th>
                   <th>Recall</th>
                   <th>Valor</th>
                   <th>Pagou</th>
@@ -228,7 +228,7 @@ export default function ListaFonada() {
                         </span>
                       </span>
                     </td>
-                    <td data-label="Data">{p.data_pedido || '—'}</td>
+                    <td data-label="Venda">{p.data_pedido || '—'}</td>
                     <td data-label="Recall">
                       <span className={`tag ${p.recall === 'SIM' ? 'ok' : 'neutro'}`}>
                         {p.recall === 'SIM' ? 'Sim' : 'Não'}
