@@ -498,29 +498,15 @@ export default function FormFonada() {
                       Nasc.: {cliente.nascimento || '—'}
                     </span>
                   </div>
-                  <div className="info-linha">
-                    <span className="info-label">Fixo</span>
-                    <span className="info-valor">{cliente.fixo || '—'}</span>
+                  <div className="grade grade-3" style={{ marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid var(--papel-alt)' }}>
+                    <InfoGrupo label="Fixo" valor={cliente.fixo} />
+                    <InfoGrupo label="Celular" valor={cliente.celular} />
+                    <InfoGrupo label="WhatsApp" valor={cliente.whatsapp} />
                   </div>
-                  <div className="info-linha">
-                    <span className="info-label">Celular</span>
-                    <span className="info-valor">{cliente.celular || '—'}</span>
-                  </div>
-                  <div className="info-linha">
-                    <span className="info-label">WhatsApp</span>
-                    <span className="info-valor">{cliente.whatsapp || '—'}</span>
-                  </div>
-                  <div className="info-linha">
-                    <span className="info-label">Bairro</span>
-                    <span className="info-valor">{cliente.bairro || '—'}</span>
-                  </div>
-                  <div className="info-linha">
-                    <span className="info-label">Endereço</span>
-                    <span className="info-valor">{[cliente.endereco, cliente.complemento].filter(Boolean).join(' — ') || '—'}</span>
-                  </div>
-                  <div className="info-linha">
-                    <span className="info-label">Referência</span>
-                    <span className="info-valor">{cliente.referencia || '—'}</span>
+                  <div className="grade grade-3">
+                    <InfoGrupo label="Bairro" valor={cliente.bairro} />
+                    <InfoGrupo label="Endereço" valor={[cliente.endereco, cliente.complemento].filter(Boolean).join(' — ')} />
+                    <InfoGrupo label="Referência" valor={cliente.referencia} />
                   </div>
                 </>
               ) : (
@@ -831,6 +817,15 @@ function InfoLinha({ label, valor }) {
     <div className="info-linha">
       <span className="info-label">{label}</span>
       <span className="info-valor">{valor || '—'}</span>
+    </div>
+  );
+}
+
+function InfoGrupo({ label, valor }) {
+  return (
+    <div>
+      <div className="info-label" style={{ fontSize: 11, marginBottom: 3 }}>{label}</div>
+      <div className="info-valor" style={{ fontSize: 13 }}>{valor || '—'}</div>
     </div>
   );
 }
