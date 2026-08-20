@@ -592,7 +592,6 @@ export default function FormAoVivo() {
                   <IconeMaisPequeno /> Novo pedido
                 </button>
               )}
-              <button type="button" className="btn-action" onClick={limpar}><IconeLimpar /> Limpar</button>
               {editando && (
                 <button type="button" className="btn-action perigo-acao" onClick={apagar}><IconeExcluir /> Excluir</button>
               )}
