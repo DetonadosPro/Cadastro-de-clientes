@@ -451,23 +451,25 @@ export default function FormFonada() {
             <button type="button" className="btn-action destaque" onClick={salvar} disabled={salvando || algumaDataNoPassado}>
               <IconeSalvar /> {salvando ? 'Salvando...' : 'Salvar'}
             </button>
-            <button type="button" className="btn-action" onClick={limpar}><IconeLimpar /> Limpar</button>
-            {editando && cliente && !estaBloqueado && (
-              <button type="button" className="btn-action" onClick={() => navigate(`/fonada/novo?clienteId=${cliente.id}`)}>
-                <IconeMaisPequeno /> Novo pedido
+            <div className="acoes-secundarias-mobile">
+              {editando && cliente && !estaBloqueado && (
+                <button type="button" className="btn-action" onClick={() => navigate(`/fonada/novo?clienteId=${cliente.id}`)}>
+                  <IconeMaisPequeno /> Novo pedido
+                </button>
+              )}
+              <button type="button" className="btn-action" onClick={limpar}><IconeLimpar /> Limpar</button>
+              {editando && (
+                <button type="button" className="btn-action perigo-acao" onClick={apagar}><IconeExcluir /> Excluir</button>
+              )}
+              <button
+                type="button"
+                className="btn-action fechar-acao"
+                style={{ gridColumn: editando ? undefined : 'span 2', pointerEvents: 'auto' }}
+                onClick={fechar}
+              >
+                <IconeFechar /> Fechar
               </button>
-            )}
-            {editando && (
-              <button type="button" className="btn-action perigo-acao" onClick={apagar}><IconeExcluir /> Excluir</button>
-            )}
-            <button
-              type="button"
-              className="btn-action fechar-acao"
-              style={{ gridColumn: editando ? undefined : 'span 2', pointerEvents: 'auto' }}
-              onClick={fechar}
-            >
-              <IconeFechar /> Fechar
-            </button>
+            </div>
           </div>
 
           <div className="section-box">
