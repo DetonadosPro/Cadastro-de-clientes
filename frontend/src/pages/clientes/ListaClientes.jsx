@@ -381,7 +381,7 @@ export default function ListaClientes() {
         <>
           <div className="painel" style={{ padding: 0, overflow: 'hidden' }}>
             <div style={{ overflowX: 'auto' }}>
-              <table className="tabela-lista">
+              <table className="tabela-lista tabela-clientes">
                 <thead>
                   <tr>
                     <th
@@ -390,9 +390,9 @@ export default function ListaClientes() {
                     >
                       Nome{indicadorOrdenacao('nome', ordenarPorUrl, direcaoUrl)}
                     </th>
-                    <th>Nascimento</th>
                     <th>Celular</th>
                     <th>WhatsApp</th>
+                    <th>Nascimento</th>
                     <th>Bairro</th>
                     <th
                       onClick={() => aoClicarOrdenacao('total_fonada')}
@@ -424,18 +424,18 @@ export default function ListaClientes() {
                         (sobreId === c.id ? 'linha-soltar-aqui' : '')
                       }
                     >
-                      <td style={{ fontWeight: 700 }}>
+                      <td style={{ fontWeight: 700 }} data-label="Nome">
                         <span className="alca-arrastar" title="Arraste para mesclar com outro cliente"><IconeAlca /></span>
                         {c.nome}
                       </td>
-                      <td>{c.nascimento || '—'}</td>
-                      <td>{c.celular || c.fixo || '—'}</td>
-                      <td>{c.whatsapp || '—'}</td>
-                      <td>{c.bairro || '—'}</td>
-                      <td style={{ textAlign: 'center' }}>
+                      <td data-label="Celular">{c.celular || c.fixo || '—'}</td>
+                      <td data-label="WhatsApp">{c.whatsapp || '—'}</td>
+                      <td data-label="Nascimento">{c.nascimento || '—'}</td>
+                      <td data-label="Bairro">{c.bairro || '—'}</td>
+                      <td style={{ textAlign: 'center' }} data-label="Fonada">
                         <span className="contagem-pedidos">{c.total_fonada || 0}</span>
                       </td>
-                      <td style={{ textAlign: 'center' }}>
+                      <td style={{ textAlign: 'center' }} data-label="Ao vivo">
                         <span className="contagem-pedidos">{c.total_aovivo || 0}</span>
                       </td>
                     </tr>
