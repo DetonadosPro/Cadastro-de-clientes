@@ -166,7 +166,7 @@ input, select, textarea {
   gap: 10px 14px;
 }
 .grade-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.grade-comprador-lateral { grid-template-columns: 1.7fr 1fr; }
+.grade-comprador-lateral { grid-template-columns: 1.4fr 1fr; align-items: stretch; }
 @media (max-width: 900px) {
   .grade-comprador-lateral { grid-template-columns: 1fr; }
 }

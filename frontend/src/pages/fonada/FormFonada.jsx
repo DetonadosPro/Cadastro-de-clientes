@@ -480,7 +480,7 @@ export default function FormFonada() {
             </div>
           </div>
 
-          <div className="grade grade-comprador-lateral" style={{ alignItems: 'start' }}>
+          <div className="grade grade-comprador-lateral">
             <div className="section-box">
               <div className="section-title">
                 <span>Comprador</span>
@@ -514,18 +514,16 @@ export default function FormFonada() {
               )}
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div className="section-box">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, height: '100%' }}>
+              <div className="section-box" style={{ flex: 1 }}>
                 <div className="section-title">Lançamento</div>
-                <InfoSomenteLeitura label="Pagou" valor={dados.pagou === 'SIM' ? 'Sim' : 'Não'} />
-                <div style={{ marginTop: 8 }}>
+                <div className="grade grade-2" style={{ marginBottom: 10 }}>
+                  <InfoSomenteLeitura label="Pagou" valor={dados.pagou === 'SIM' ? 'Sim' : 'Não'} />
                   <InfoSomenteLeitura label="Data do pagamento" valor={dados.data_pagamento} />
                 </div>
-                <div style={{ marginTop: 8 }}>
-                  <InfoSomenteLeitura label="Status" valor={dados.recebi} />
-                </div>
+                <InfoSomenteLeitura label="Status" valor={dados.recebi} />
               </div>
-              <div className="section-box">
+              <div className="section-box" style={{ flex: 1 }}>
                 <div className="section-title">Registro do pedido</div>
                 <div className="info-linha">
                   <span className="info-label">Data</span>
@@ -756,7 +754,9 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
 
       {editando && diaPreenchido && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 8, borderTop: '1px dashed var(--papel-alt)' }}>
-          <span className="fs-xs" style={{ color: 'var(--tinta-suave)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Ação</span>
+          <span className="fs-xs" style={{ color: 'var(--tinta-suave)' }}>
+            {jaProcessada ? 'Situação da entrega' : 'Marcar entrega desta mensagem'}
+          </span>
           {jaProcessada ? (
             <span className="tag ok">Passada</span>
           ) : (
