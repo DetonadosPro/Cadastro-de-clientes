@@ -480,37 +480,63 @@ export default function FormFonada() {
             </div>
           </div>
 
-          <div className="section-box">
-            <div className="section-title">
-              <span>Comprador</span>
-              {cliente && (
-                <button type="button" className="btn-small" onClick={() => navigate(`/clientes/${cliente.id}`)}>
-                  Ver/editar cliente
-                </button>
+          <div className="grade grade-comprador-lateral" style={{ alignItems: 'start' }}>
+            <div className="section-box">
+              <div className="section-title">
+                <span>Comprador</span>
+                {cliente && (
+                  <button type="button" className="btn-small" onClick={() => navigate(`/clientes/${cliente.id}`)}>
+                    Ver/editar cliente
+                  </button>
+                )}
+              </div>
+              {cliente ? (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
+                    <span className="fs-lg" style={{ fontWeight: 700 }}>{cliente.nome}</span>
+                    <span className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>
+                      Nasc.: {cliente.nascimento || '—'}
+                    </span>
+                  </div>
+                  <div className="grade grade-3" style={{ marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid var(--papel-alt)' }}>
+                    <InfoSomenteLeitura label="Fixo" valor={cliente.fixo} />
+                    <InfoSomenteLeitura label="Celular" valor={cliente.celular} />
+                    <InfoSomenteLeitura label="WhatsApp" valor={cliente.whatsapp} />
+                  </div>
+                  <div className="grade grade-3">
+                    <InfoSomenteLeitura label="Endereço" valor={[cliente.endereco, cliente.complemento].filter(Boolean).join(' — ')} />
+                    <InfoSomenteLeitura label="Bairro" valor={cliente.bairro} />
+                    <InfoSomenteLeitura label="Referência" valor={cliente.referencia} />
+                  </div>
+                </>
+              ) : (
+                <p className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Nenhum cliente vinculado.</p>
               )}
             </div>
-            {cliente ? (
-              <>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
-                  <span className="fs-lg" style={{ fontWeight: 700 }}>{cliente.nome}</span>
-                  <span className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>
-                    Nasc.: {cliente.nascimento || '—'}
-                  </span>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div className="section-box">
+                <div className="section-title">Lançamento</div>
+                <InfoSomenteLeitura label="Pagou" valor={dados.pagou === 'SIM' ? 'Sim' : 'Não'} />
+                <div style={{ marginTop: 8 }}>
+                  <InfoSomenteLeitura label="Data do pagamento" valor={dados.data_pagamento} />
                 </div>
-                <div className="grade grade-3" style={{ marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid var(--papel-alt)' }}>
-                  <InfoSomenteLeitura label="Fixo" valor={cliente.fixo} />
-                  <InfoSomenteLeitura label="Celular" valor={cliente.celular} />
-                  <InfoSomenteLeitura label="WhatsApp" valor={cliente.whatsapp} />
+                <div style={{ marginTop: 8 }}>
+                  <InfoSomenteLeitura label="Status" valor={dados.recebi} />
                 </div>
-                <div className="grade grade-3">
-                  <InfoSomenteLeitura label="Endereço" valor={[cliente.endereco, cliente.complemento].filter(Boolean).join(' — ')} />
-                  <InfoSomenteLeitura label="Bairro" valor={cliente.bairro} />
-                  <InfoSomenteLeitura label="Referência" valor={cliente.referencia} />
+              </div>
+              <div className="section-box">
+                <div className="section-title">Registro do pedido</div>
+                <div className="info-linha">
+                  <span className="info-label">Data</span>
+                  <span className="info-valor">{dados.data_pedido || '—'}</span>
                 </div>
-              </>
-            ) : (
-              <p className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Nenhum cliente vinculado.</p>
-            )}
+                <div className="info-linha">
+                  <span className="info-label">Horário</span>
+                  <span className="info-valor">{dados.horario_pedido || '—'}</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           {editando && (tentativas.length > 0 || dados.p1_resultado || dados.p2_resultado) && (
@@ -584,27 +610,6 @@ export default function FormFonada() {
               >
                 <IconeFechar /> Fechar
               </button>
-            </div>
-          </div>
-
-          <div className="section-box">
-            <div className="section-title">Lançamento</div>
-            <div className="grade grade-2">
-              <InfoSomenteLeitura label="Pagou" valor={dados.pagou === 'SIM' ? 'Sim' : 'Não'} />
-              <InfoSomenteLeitura label="Data do pagamento" valor={dados.data_pagamento} />
-            </div>
-            <InfoSomenteLeitura label="Status" valor={dados.recebi} />
-          </div>
-
-          <div className="section-box">
-            <div className="section-title">Registro do pedido</div>
-            <div className="info-linha">
-              <span className="info-label">Data</span>
-              <span className="info-valor">{dados.data_pedido || '—'}</span>
-            </div>
-            <div className="info-linha">
-              <span className="info-label">Horário</span>
-              <span className="info-valor">{dados.horario_pedido || '—'}</span>
             </div>
           </div>
         </div>
