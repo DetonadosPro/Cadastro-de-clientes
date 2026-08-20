@@ -342,7 +342,7 @@ export default function FormAoVivo() {
   const diaEventoNoPassado = diaEventoDigitado && diaEventoDigitado.getTime() < hojeSemHora().getTime();
 
   return (
-    <div className="form-pagina form-compacto">
+    <div className="form-pagina form-compacto pagina-aovivo-ampliada">
       {estaBloqueado && (
         <div className="aviso-bloqueio" style={{ marginBottom: 16 }}>
           <strong>Cliente bloqueado.</strong> Este pedido está travado para edição — só é possível visualizar.

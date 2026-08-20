@@ -890,14 +890,14 @@ input, select, textarea {
 }
 .form-layout {
   display: grid;
-  grid-template-columns: 1fr 280px;
+  grid-template-columns: 1fr 240px;
   gap: 16px;
   align-items: start;
 }
 
 @media (min-width: 901px) {
   .form-layout {
-    grid-template-columns: 1fr clamp(230px, 18vw, 300px);
+    grid-template-columns: 1fr clamp(200px, 14vw, 250px);
     gap: 1.2rem;
   }
   .actions-grid {
@@ -2612,9 +2612,17 @@ input[type="password"] {
   text-transform: none;
 }
 
-/* Página de pedido Fonada — aumentada em 10% (efeito Ctrl++ do
-   navegador), só nesta tela. "zoom" é suportado nos navegadores
-   baseados em Chromium (o que cobre o uso normal deste sistema). */
+/* Página de pedido Fonada — aumentada (efeito Ctrl++ do navegador),
+   só nesta tela. "zoom" é suportado nos navegadores baseados em
+   Chromium (o que cobre o uso normal deste sistema). Aumentado para
+   ajudar a leitura de quem tem mais dificuldade de visão. */
 .pagina-fonada-ampliada {
-  zoom: 1.1;
+  zoom: 1.2;
+}
+
+/* Página de pedido Ao Vivo — mesmo princípio, zoom um pouco menor
+   porque a tela já é mais densa (mais campos) e precisa continuar
+   cabendo sem cortar o financeiro. */
+.pagina-aovivo-ampliada {
+  zoom: 1.12;
 }
