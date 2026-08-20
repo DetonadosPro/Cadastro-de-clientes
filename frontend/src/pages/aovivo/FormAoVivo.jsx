@@ -556,17 +556,23 @@ export default function FormAoVivo() {
               )}
             </div>
             {cliente ? (
-              <div className="grade grade-2">
-                <InfoSomenteLeitura label="Nome" valor={cliente.nome} />
-                <InfoSomenteLeitura label="Nascimento" valor={cliente.nascimento} />
-                <InfoSomenteLeitura label="Fixo" valor={cliente.fixo} />
-                <InfoSomenteLeitura label="WhatsApp" valor={cliente.whatsapp} />
-                <InfoSomenteLeitura label="Celular" valor={cliente.celular} />
-                <InfoSomenteLeitura label="Endereço" valor={cliente.endereco} />
-                <InfoSomenteLeitura label="Complemento" valor={cliente.complemento} />
-                <InfoSomenteLeitura label="Bairro" valor={cliente.bairro} />
-                <InfoSomenteLeitura label="Referência" valor={cliente.referencia} />
-              </div>
+              <>
+                <div className="fs-lg" style={{ fontWeight: 700, marginBottom: 10 }}>{cliente.nome}</div>
+                <div className="grade grade-3">
+                  <InfoSomenteLeitura label="Nascimento" valor={cliente.nascimento} />
+                  <InfoSomenteLeitura label="Celular" valor={cliente.celular} />
+                  <InfoSomenteLeitura label="WhatsApp" valor={cliente.whatsapp} />
+                  <InfoSomenteLeitura label="Fixo" valor={cliente.fixo} />
+                  <InfoSomenteLeitura label="Bairro" valor={cliente.bairro} />
+                  <InfoSomenteLeitura label="Referência" valor={cliente.referencia} />
+                </div>
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--papel-alt)' }}>
+                  <InfoSomenteLeitura
+                    label="Endereço"
+                    valor={[cliente.endereco, cliente.complemento].filter(Boolean).join(' — ')}
+                  />
+                </div>
+              </>
             ) : (
               <p className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Nenhum cliente vinculado.</p>
             )}
