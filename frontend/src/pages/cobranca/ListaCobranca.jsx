@@ -226,7 +226,7 @@ export default function ListaCobranca() {
       ) : (
         <div className="painel nao-imprimir" style={{ padding: 0, overflow: 'hidden' }}>
           <div style={{ overflowX: 'auto' }}>
-            <table className="tabela-lista">
+            <table className="tabela-lista tabela-cobranca">
               <thead>
                 <tr>
                   <th style={{ width: 36 }}>
@@ -249,38 +249,38 @@ export default function ListaCobranca() {
                   >
                     Comprador{ordenarPor === 'comprador' && (direcaoOrdenacao === 'asc' ? ' ▲' : ' ▼')}
                   </th>
+                  <th>Pagou</th>
                   <th>Cobrar dia</th>
                   <th>Forma</th>
                   <th>Valor</th>
-                  <th>Pagou</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
                 {pedidosOrdenados.map((p) => (
                   <tr key={p.id} onClick={() => abrirBaixa(p)}>
-                    <td onClick={(e) => e.stopPropagation()}>
+                    <td data-label="Selecionar" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
                         checked={selecionados.has(p.id)}
                         onChange={(e) => alternarSelecao(p.id, e)}
                       />
                     </td>
-                    <td><span className="carimbo-os carimbo-os-lista">{p.senha_os || p.id}</span></td>
-                    <td>{p.nome}</td>
-                    <td>{p.cobranca || '—'}</td>
-                    <td>
-                      <span className={`tag ${p.formaPagamento === 'PIX' ? 'ok' : 'neutro'}`}>
-                        {p.formaPagamento === 'PIX' ? 'PIX' : 'PRESENCIAL'}
-                      </span>
-                    </td>
-                    <td>{p.valor != null ? formatarReais(p.valor) : '—'}</td>
-                    <td>
+                    <td data-label="O.S."><span className="carimbo-os carimbo-os-lista">{p.senha_os || p.id}</span></td>
+                    <td data-label="Comprador">{p.nome}</td>
+                    <td data-label="Pagou">
                       <span className={`tag ${p.pagou === 'SIM' ? 'ok' : 'pendente'}`}>
                         {p.pagou === 'SIM' ? 'Pago' : 'Pendente'}
                       </span>
                     </td>
-                    <td>
+                    <td data-label="Cobrar dia">{p.cobranca || '—'}</td>
+                    <td data-label="Forma">
+                      <span className={`tag ${p.formaPagamento === 'PIX' ? 'ok' : 'neutro'}`}>
+                        {p.formaPagamento === 'PIX' ? 'PIX' : 'PRESENCIAL'}
+                      </span>
+                    </td>
+                    <td data-label="Valor">{p.valor != null ? formatarReais(p.valor) : '—'}</td>
+                    <td data-label="Ação">
                       <button type="button" className="btn-small" onClick={(e) => { e.stopPropagation(); abrirBaixa(p); }}>
                         Dar baixa
                       </button>
