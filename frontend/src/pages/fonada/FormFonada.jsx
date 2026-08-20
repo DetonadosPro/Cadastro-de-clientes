@@ -498,15 +498,17 @@ export default function FormFonada() {
                       Nasc.: {cliente.nascimento || '—'}
                     </span>
                   </div>
-                  <div className="grade grade-3" style={{ marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid var(--papel-alt)' }}>
-                    <InfoSomenteLeitura label="Fixo" valor={cliente.fixo} />
-                    <InfoSomenteLeitura label="Celular" valor={cliente.celular} />
-                    <InfoSomenteLeitura label="WhatsApp" valor={cliente.whatsapp} />
+                  <div className="grade grade-2" style={{ marginBottom: 6 }}>
+                    <InfoLinha label="Fixo" valor={cliente.fixo} />
+                    <InfoLinha label="Celular" valor={cliente.celular} />
                   </div>
-                  <div className="grade grade-3">
-                    <InfoSomenteLeitura label="Endereço" valor={[cliente.endereco, cliente.complemento].filter(Boolean).join(' — ')} />
-                    <InfoSomenteLeitura label="Bairro" valor={cliente.bairro} />
-                    <InfoSomenteLeitura label="Referência" valor={cliente.referencia} />
+                  <div className="grade grade-2" style={{ marginBottom: 6 }}>
+                    <InfoLinha label="WhatsApp" valor={cliente.whatsapp} />
+                    <InfoLinha label="Bairro" valor={cliente.bairro} />
+                  </div>
+                  <div className="grade grade-2">
+                    <InfoLinha label="Endereço" valor={[cliente.endereco, cliente.complemento].filter(Boolean).join(' — ')} />
+                    <InfoLinha label="Referência" valor={cliente.referencia} />
                   </div>
                 </>
               ) : (
@@ -517,11 +519,9 @@ export default function FormFonada() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, height: '100%' }}>
               <div className="section-box" style={{ flex: 1 }}>
                 <div className="section-title">Lançamento</div>
-                <div className="grade grade-2" style={{ marginBottom: 10 }}>
-                  <InfoSomenteLeitura label="Pagou" valor={dados.pagou === 'SIM' ? 'Sim' : 'Não'} />
-                  <InfoSomenteLeitura label="Data do pagamento" valor={dados.data_pagamento} />
-                </div>
-                <InfoSomenteLeitura label="Status" valor={dados.recebi} />
+                <InfoLinha label="Pagou" valor={dados.pagou === 'SIM' ? 'Sim' : 'Não'} />
+                <InfoLinha label="Data do pagamento" valor={dados.data_pagamento} />
+                <InfoLinha label="Status" valor={dados.recebi} />
               </div>
               <div className="section-box" style={{ flex: 1 }}>
                 <div className="section-title">Registro do pedido</div>
@@ -811,6 +811,15 @@ function BotaoP({ onClick, titulo }) {
     <button type="button" className="btn-small" title={titulo} onClick={onClick} style={{ flexShrink: 0 }}>
       P
     </button>
+  );
+}
+
+function InfoLinha({ label, valor }) {
+  return (
+    <div className="info-linha">
+      <span className="info-label">{label}</span>
+      <span className="info-valor">{valor || '—'}</span>
+    </div>
   );
 }
 
