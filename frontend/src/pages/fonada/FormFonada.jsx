@@ -404,20 +404,21 @@ export default function FormFonada() {
             </div>
             {cliente ? (
               <>
-                <div className="fs-lg" style={{ fontWeight: 700, marginBottom: 10 }}>{cliente.nome}</div>
-                <div className="grade grade-3">
-                  <InfoSomenteLeitura label="Nascimento" valor={cliente.nascimento} />
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
+                  <span className="fs-lg" style={{ fontWeight: 700 }}>{cliente.nome}</span>
+                  <span className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>
+                    Nasc.: {cliente.nascimento || '—'}
+                  </span>
+                </div>
+                <div className="grade grade-3" style={{ marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid var(--papel-alt)' }}>
+                  <InfoSomenteLeitura label="Fixo" valor={cliente.fixo} />
                   <InfoSomenteLeitura label="Celular" valor={cliente.celular} />
                   <InfoSomenteLeitura label="WhatsApp" valor={cliente.whatsapp} />
-                  <InfoSomenteLeitura label="Fixo" valor={cliente.fixo} />
+                </div>
+                <div className="grade grade-3">
+                  <InfoSomenteLeitura label="Endereço" valor={[cliente.endereco, cliente.complemento].filter(Boolean).join(' — ')} />
                   <InfoSomenteLeitura label="Bairro" valor={cliente.bairro} />
                   <InfoSomenteLeitura label="Referência" valor={cliente.referencia} />
-                </div>
-                <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--papel-alt)' }}>
-                  <InfoSomenteLeitura
-                    label="Endereço"
-                    valor={[cliente.endereco, cliente.complemento].filter(Boolean).join(' — ')}
-                  />
                 </div>
               </>
             ) : (
