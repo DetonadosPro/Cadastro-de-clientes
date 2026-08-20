@@ -95,6 +95,7 @@ export default function ListaAoVivo() {
   const [selecionados, setSelecionados] = useState(new Set());
   const [pedidosImpressao, setPedidosImpressao] = useState(null);
   const [imprimindo, setImprimindo] = useState(false);
+  const [ultimoSelecionado, setUltimoSelecionado] = useState(null);
   const navigate = useNavigate();
   const { mostrarToast } = useToast();
 
@@ -122,6 +123,19 @@ export default function ListaAoVivo() {
     carregar(buscaUrl, paginaUrl, campoUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [buscaUrl, campoUrl, paginaUrl, carregar]);
+
+  // Ao voltar da tela de um pedido, destaca e rola até o item em que a
+  // pessoa clicou por último, para retomar de onde parou na lista.
+  useEffect(() => {
+    if (carregando || itens.length === 0) return;
+    const idSalvo = sessionStorage.getItem('ultimoAoVivoSelecionado');
+    if (!idSalvo) return;
+    setUltimoSelecionado(idSalvo);
+    const elemento = document.getElementById(`aovivo-${idSalvo}`);
+    if (elemento) {
+      elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [carregando, itens]);
 
   function montarParams(novaBusca, novoCampo, novaPagina) {
     const params = {};
@@ -263,7 +277,15 @@ export default function ListaAoVivo() {
               </thead>
               <tbody>
                 {itens.map((p) => (
-                  <tr key={p.id} onClick={() => navigate(`/ao-vivo/${p.id}`)}>
+                  <tr
+                    key={p.id}
+                    id={`aovivo-${p.id}`}
+                    className={ultimoSelecionado === String(p.id) ? 'linha-ultimo-selecionado' : ''}
+                    onClick={() => {
+                      sessionStorage.setItem('ultimoAoVivoSelecionado', String(p.id));
+                      navigate(`/ao-vivo/${p.id}`);
+                    }}
+                  >
                     <td data-label="Selecionar" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"

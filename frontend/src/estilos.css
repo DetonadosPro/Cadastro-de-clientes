@@ -1637,6 +1637,13 @@ button.nav-grupo-titulo {
 .tabela-lista tbody tr:hover {
   background: var(--carimbo-suave);
 }
+.linha-ultimo-selecionado {
+  background: var(--carimbo-suave) !important;
+  box-shadow: inset 3px 0 0 var(--carimbo);
+}
+.linha-ultimo-selecionado:hover {
+  background: var(--carimbo-suave) !important;
+}
 
 /* ---------- Arrastar cliente para mesclar (lista de Clientes) ---------- */
 .alca-arrastar {

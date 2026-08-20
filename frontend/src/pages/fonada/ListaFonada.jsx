@@ -56,6 +56,7 @@ export default function ListaFonada() {
   const [total, setTotal] = useState(0);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
+  const [ultimoSelecionado, setUltimoSelecionado] = useState(null);
   const navigate = useNavigate();
 
   const porPagina = 30;
@@ -81,6 +82,19 @@ export default function ListaFonada() {
     carregar(buscaUrl, paginaUrl, campoUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [buscaUrl, campoUrl, paginaUrl, carregar]);
+
+  // Ao voltar da tela de um pedido, destaca e rola até o item em que a
+  // pessoa clicou por último, para retomar de onde parou na lista.
+  useEffect(() => {
+    if (carregando || itens.length === 0) return;
+    const idSalvo = sessionStorage.getItem('ultimoFonadaSelecionado');
+    if (!idSalvo) return;
+    setUltimoSelecionado(idSalvo);
+    const elemento = document.getElementById(`fonada-${idSalvo}`);
+    if (elemento) {
+      elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [carregando, itens]);
 
   function montarParams(novaBusca, novoCampo, novaPagina) {
     const params = {};
@@ -181,7 +195,15 @@ export default function ListaFonada() {
               </thead>
               <tbody>
                 {itens.map((p) => (
-                  <tr key={p.id} onClick={() => navigate(`/fonada/${p.id}`)}>
+                  <tr
+                    key={p.id}
+                    id={`fonada-${p.id}`}
+                    className={ultimoSelecionado === String(p.id) ? 'linha-ultimo-selecionado' : ''}
+                    onClick={() => {
+                      sessionStorage.setItem('ultimoFonadaSelecionado', String(p.id));
+                      navigate(`/fonada/${p.id}`);
+                    }}
+                  >
                     <td data-label="O.S.">
                       <span className="carimbo-os carimbo-os-lista">
                         {p.senha_os || p.id}
