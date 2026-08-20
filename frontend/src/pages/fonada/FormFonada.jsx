@@ -424,39 +424,6 @@ export default function FormFonada() {
 
           <div className="grade grade-comprador-lateral">
             <div className="section-box">
-              <div className="section-title">
-                <span>Comprador</span>
-                {cliente && (
-                  <button type="button" className="btn-small" onClick={() => navigate(`/clientes/${cliente.id}`)}>
-                    Ver/editar cliente
-                  </button>
-                )}
-              </div>
-              {cliente ? (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 4 }}>
-                    <span className="fs-lg" style={{ fontWeight: 700 }}>{cliente.nome}</span>
-                    <span className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>
-                      Nasc.: {cliente.nascimento || '—'}
-                    </span>
-                  </div>
-                  <div className="grade grade-3" style={{ marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid var(--papel-alt)' }}>
-                    <InfoGrupo label="Fixo" valor={cliente.fixo} />
-                    <InfoGrupo label="Celular" valor={cliente.celular} />
-                    <InfoGrupo label="WhatsApp" valor={cliente.whatsapp} />
-                  </div>
-                  <div className="grade grade-3">
-                    <InfoGrupo label="Bairro" valor={cliente.bairro} />
-                    <InfoGrupo label="Endereço" valor={[cliente.endereco, cliente.complemento].filter(Boolean).join(' — ')} />
-                    <InfoGrupo label="Referência" valor={cliente.referencia} />
-                  </div>
-                </>
-              ) : (
-                <p className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Nenhum cliente vinculado.</p>
-              )}
-            </div>
-
-            <div className="section-box">
               <div className="form-row">
                 <label>Valor R$:</label>
                 <input
@@ -514,6 +481,39 @@ export default function FormFonada() {
                   style={{ maxWidth: 90, marginLeft: 4 }}
                 />
               </div>
+            </div>
+
+            <div className="section-box">
+              <div className="section-title">
+                <span>Comprador</span>
+                {cliente && (
+                  <button type="button" className="btn-small" onClick={() => navigate(`/clientes/${cliente.id}`)}>
+                    Ver/editar cliente
+                  </button>
+                )}
+              </div>
+              {cliente ? (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 4 }}>
+                    <span className="fs-lg" style={{ fontWeight: 700 }}>{cliente.nome}</span>
+                    <span className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>
+                      Nasc.: {cliente.nascimento || '—'}
+                    </span>
+                  </div>
+                  <div className="grade grade-3" style={{ marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid var(--papel-alt)' }}>
+                    <InfoGrupo label="Fixo" valor={cliente.fixo} />
+                    <InfoGrupo label="Celular" valor={cliente.celular} />
+                    <InfoGrupo label="WhatsApp" valor={cliente.whatsapp} />
+                  </div>
+                  <div className="grade grade-3">
+                    <InfoGrupo label="Bairro" valor={cliente.bairro} />
+                    <InfoGrupo label="Endereço" valor={[cliente.endereco, cliente.complemento].filter(Boolean).join(' — ')} />
+                    <InfoGrupo label="Referência" valor={cliente.referencia} />
+                  </div>
+                </>
+              ) : (
+                <p className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Nenhum cliente vinculado.</p>
+              )}
             </div>
           </div>
 
