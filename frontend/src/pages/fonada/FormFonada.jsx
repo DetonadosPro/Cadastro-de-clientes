@@ -118,6 +118,27 @@ export default function FormFonada() {
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
+  const [salvandoBaixa, setSalvandoBaixa] = useState(null);
+  const [remarcarAberto, setRemarcarAberto] = useState(null);
+  const [remarcadoDia, setRemarcadoDia] = useState('');
+  const [remarcadoHorario, setRemarcadoHorario] = useState('');
+  const [observacaoRemarcar, setObservacaoRemarcar] = useState('');
+  const [salvandoRemarcacao, setSalvandoRemarcacao] = useState(false);
+
+  function carregarPedido() {
+    return api.fonada.buscar(id)
+      .then((pedido) => {
+        const normalizado = { ...VAZIO };
+        Object.keys(VAZIO).forEach((campo) => { normalizado[campo] = pedido[campo] ?? ''; });
+        normalizado.valor = numeroParaValorMonetario(pedido.valor);
+        setDados(normalizado);
+        if (pedido.cliente_id) {
+          api.clientes.buscar(pedido.cliente_id).then((resp) => setCliente(resp.cliente));
+        }
+        api.agenda.buscarTentativas(id).then((resp) => setTentativas(resp.tentativas)).catch(() => {});
+      })
+      .catch((err) => setErro(err.message));
+  }
 
   useEffect(() => {
     if (rascunhoFonada && rascunhoFonada.chave === chaveRascunho) {
@@ -168,6 +189,54 @@ export default function FormFonada() {
       .finally(() => setCarregando(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, editando, clienteIdUrl]);
+
+  async function darBaixaMensagem(mensagem) {
+    setSalvandoBaixa(mensagem);
+    try {
+      await api.agenda.darBaixaFonada(id, mensagem);
+      mostrarToast('Baixa registrada com sucesso.');
+      await carregarPedido();
+    } catch (err) {
+      mostrarToast('Não foi possível registrar a baixa. Tente novamente.', 'erro');
+    } finally {
+      setSalvandoBaixa(null);
+    }
+  }
+
+  function abrirRemarcarMensagem(mensagem) {
+    setRemarcarAberto(mensagem);
+    setObservacaoRemarcar('');
+    setRemarcadoDia('');
+    setRemarcadoHorario('');
+  }
+
+  function cancelarRemarcarMensagem() {
+    setRemarcarAberto(null);
+  }
+
+  async function confirmarRemarcarMensagem() {
+    if (!remarcadoDia.trim() || !remarcadoHorario.trim()) {
+      mostrarToast('Informe o novo dia e horário para remarcar.', 'erro');
+      return;
+    }
+    setSalvandoRemarcacao(true);
+    try {
+      await api.agenda.naoAtendeuFonada(
+        id,
+        remarcarAberto,
+        observacaoRemarcar.trim() || null,
+        remarcadoDia.trim(),
+        remarcadoHorario.trim()
+      );
+      mostrarToast('Tentativa registrada e mensagem remarcada.');
+      setRemarcarAberto(null);
+      await carregarPedido();
+    } catch (err) {
+      mostrarToast('Não foi possível registrar. Tente novamente.', 'erro');
+    } finally {
+      setSalvandoRemarcacao(false);
+    }
+  }
 
   function set(campo, valor) {
     const novo = { ...dados, [campo]: valor };
@@ -500,6 +569,31 @@ export default function FormFonada() {
             </div>
           </div>
 
+          {editando && (
+            <div className="section-box">
+              <div className="section-title">Entrega das mensagens</div>
+              <ItemEntregaMensagem
+                numero={1}
+                dia={dados.p1_dia}
+                horario={dados.p1_horario}
+                resultado={dados.p1_resultado}
+                salvando={salvandoBaixa === 1}
+                onDarBaixa={() => darBaixaMensagem(1)}
+                onNaoAtendeu={() => abrirRemarcarMensagem(1)}
+              />
+              <ItemEntregaMensagem
+                numero={2}
+                dia={dados.p2_dia}
+                horario={dados.p2_horario}
+                resultado={dados.p2_resultado}
+                salvando={salvandoBaixa === 2}
+                onDarBaixa={() => darBaixaMensagem(2)}
+                onNaoAtendeu={() => abrirRemarcarMensagem(2)}
+                comBorda
+              />
+            </div>
+          )}
+
           <div className="section-box">
             <div className="section-title">Lançamento</div>
             <div className="grade grade-2">
@@ -523,6 +617,51 @@ export default function FormFonada() {
         </div>
 
       </div>
+
+      {remarcarAberto && (
+        <div className="modal-fundo" onClick={cancelarRemarcarMensagem}>
+          <div className="modal-caixa" onClick={(e) => e.stopPropagation()}>
+            <div className="section-title">Não atendeu — {remarcarAberto}ª mensagem</div>
+            <p className="fs-sm" style={{ color: 'var(--tinta-suave)', marginBottom: 10 }}>
+              A tentativa fica registrada no horário atual do sistema. Escolha o novo dia e horário
+              para remarcar a {remarcarAberto}ª mensagem.
+            </p>
+            <div className="grade grade-2">
+              <div className="campo">
+                <label>Novo dia *</label>
+                <CampoData
+                  placeholder="dd/mm/aa"
+                  value={remarcadoDia}
+                  onChange={(v) => setRemarcadoDia(formatarData(v))}
+                  autoFocus
+                />
+              </div>
+              <div className="campo">
+                <label>Novo horário *</label>
+                <input
+                  placeholder="hh:mm"
+                  value={remarcadoHorario}
+                  onChange={(e) => setRemarcadoHorario(formatarHorario(e.target.value))}
+                />
+              </div>
+            </div>
+            <div className="campo">
+              <label>Observação (opcional)</label>
+              <input
+                placeholder="Ex: caixa postal, número errado..."
+                value={observacaoRemarcar}
+                onChange={(e) => setObservacaoRemarcar(e.target.value)}
+              />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+              <button type="button" className="btn secundario" onClick={cancelarRemarcarMensagem}>Cancelar</button>
+              <button type="button" className="btn" onClick={confirmarRemarcarMensagem} disabled={salvandoRemarcacao}>
+                {salvandoRemarcacao ? 'Salvando...' : 'Registrar e remarcar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -640,6 +779,47 @@ function BotaoP({ onClick, titulo }) {
     <button type="button" className="btn-small" title={titulo} onClick={onClick} style={{ flexShrink: 0 }}>
       P
     </button>
+  );
+}
+
+function ItemEntregaMensagem({ numero, dia, horario, resultado, salvando, onDarBaixa, onNaoAtendeu, comBorda }) {
+  const existe = Boolean(dia);
+  const jaProcessada = Boolean(resultado);
+
+  return (
+    <div style={comBorda ? { marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--papel-alt)' } : undefined}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: existe && !jaProcessada ? 8 : 0 }}>
+        <div>
+          <div className="fs-sm" style={{ fontWeight: 700 }}>{numero}ª mensagem</div>
+          <div className="fs-xs" style={{ color: 'var(--tinta-suave)' }}>
+            {existe ? `${dia}${horario ? ` — ${horario}` : ''}` : 'Ainda não marcada'}
+          </div>
+        </div>
+        {jaProcessada && <span className="tag ok">Passada</span>}
+      </div>
+      {existe && !jaProcessada && (
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button
+            type="button"
+            className="btn-action perigo-acao"
+            style={{ flex: 1, fontSize: 12, padding: '7px 8px' }}
+            onClick={onNaoAtendeu}
+            disabled={salvando}
+          >
+            Não atendeu
+          </button>
+          <button
+            type="button"
+            className="btn-action"
+            style={{ flex: 1, fontSize: 12, padding: '7px 8px', background: 'var(--carimbo)', color: 'var(--branco)', borderColor: 'var(--carimbo)' }}
+            onClick={onDarBaixa}
+            disabled={salvando}
+          >
+            {salvando ? 'Salvando...' : 'Marcar passada'}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
