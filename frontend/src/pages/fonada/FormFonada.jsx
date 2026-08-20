@@ -412,10 +412,12 @@ export default function FormFonada() {
               <ColunaMensagem
                 numero={1} dados={dados} set={set} setComMascara={setComMascara} onCopiar={copiarEntreMensagens}
                 editando={editando} dataNoPassado={p1DiaNoPassado}
+                salvandoBaixa={salvandoBaixa} onDarBaixa={darBaixaMensagem} onNaoAtendeu={abrirRemarcarMensagem}
               />
               <ColunaMensagem
                 numero={2} dados={dados} set={set} setComMascara={setComMascara} onCopiar={copiarEntreMensagens}
                 bloqueada={!segundaLiberada} editando={editando} dataNoPassado={p2DiaNoPassado}
+                salvandoBaixa={salvandoBaixa} onDarBaixa={darBaixaMensagem} onNaoAtendeu={abrirRemarcarMensagem}
               />
             </div>
           </div>
@@ -585,29 +587,6 @@ export default function FormFonada() {
             </div>
           </div>
 
-          {editando && (
-            <div className="section-box">
-              <div className="section-title">Entrega das mensagens</div>
-              <ItemEntregaMensagem
-                numero={1}
-                dia={dados.p1_dia}
-                resultado={dados.p1_resultado}
-                salvando={salvandoBaixa === 1}
-                onDarBaixa={() => darBaixaMensagem(1)}
-                onNaoAtendeu={() => abrirRemarcarMensagem(1)}
-              />
-              <ItemEntregaMensagem
-                numero={2}
-                dia={dados.p2_dia}
-                resultado={dados.p2_resultado}
-                salvando={salvandoBaixa === 2}
-                onDarBaixa={() => darBaixaMensagem(2)}
-                onNaoAtendeu={() => abrirRemarcarMensagem(2)}
-                comBorda
-              />
-            </div>
-          )}
-
           <div className="section-box">
             <div className="section-title">Lançamento</div>
             <div className="grade grade-2">
@@ -687,9 +666,11 @@ export default function FormFonada() {
 // a 1ª e copiar dali para a 2ª, não o contrário. Reúne o que antes
 // eram duas seções separadas ("Ordem de serviço" e "Transmissão") —
 // na prática é a mesma ordem de serviço, só com campos diferentes.
-function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada, editando, dataNoPassado }) {
+function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada, editando, dataNoPassado, salvandoBaixa, onDarBaixa, onNaoAtendeu }) {
   const p = numero === 1 ? 'p1' : 'p2';
   const mostrarBotaoP = numero === 1;
+  const diaPreenchido = Boolean(dados[`${p}_dia`]);
+  const jaProcessada = Boolean(dados[`${p}_resultado`]);
 
   return (
     <div className="coluna-mensagem">
@@ -767,6 +748,38 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
       )}
       <CampoComP label="Quem oferece" nomeCampo="quem_oferece" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} negrito />
       <CampoComP label="Resultado" nomeCampo="resultado" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} negrito cor="var(--selo)" />
+
+      {editando && diaPreenchido && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 8, borderTop: '1px dashed var(--papel-alt)' }}>
+          <span className="fs-xs" style={{ color: 'var(--tinta-suave)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Ação</span>
+          {jaProcessada ? (
+            <span className="tag ok">Passada</span>
+          ) : (
+            <div style={{ display: 'flex', gap: 5 }}>
+              <button
+                type="button"
+                className="btn-action perigo-acao"
+                style={{ width: 30, height: 30, padding: 0 }}
+                onClick={() => onNaoAtendeu(numero)}
+                disabled={salvandoBaixa === numero}
+                title="Não atendeu"
+              >
+                <IconeNaoAtendeuMensagem />
+              </button>
+              <button
+                type="button"
+                className="btn-action"
+                style={{ width: 30, height: 30, padding: 0, background: 'var(--carimbo)', color: 'var(--branco)', borderColor: 'var(--carimbo)' }}
+                onClick={() => onDarBaixa(numero)}
+                disabled={salvandoBaixa === numero}
+                title="Marcar passada"
+              >
+                <IconeCheckMensagem />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -793,54 +806,6 @@ function BotaoP({ onClick, titulo }) {
     <button type="button" className="btn-small" title={titulo} onClick={onClick} style={{ flexShrink: 0 }}>
       P
     </button>
-  );
-}
-
-function ItemEntregaMensagem({ numero, dia, resultado, salvando, onDarBaixa, onNaoAtendeu, comBorda }) {
-  const existe = Boolean(dia);
-  const jaProcessada = Boolean(resultado);
-
-  return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: comBorda ? '8px 0 4px' : '0 0 6px',
-        marginTop: comBorda ? 8 : 0,
-        borderTop: comBorda ? '1px solid var(--papel-alt)' : undefined,
-      }}
-    >
-      <span className="fs-sm" style={{ fontWeight: 700 }}>{numero}ª mensagem</span>
-      {jaProcessada ? (
-        <span className="tag ok">Passada</span>
-      ) : existe ? (
-        <div style={{ display: 'flex', gap: 5 }}>
-          <button
-            type="button"
-            className="btn-action perigo-acao"
-            style={{ width: 34, height: 34, padding: 0 }}
-            onClick={onNaoAtendeu}
-            disabled={salvando}
-            title="Não atendeu"
-          >
-            <IconeNaoAtendeuMensagem />
-          </button>
-          <button
-            type="button"
-            className="btn-action"
-            style={{ width: 34, height: 34, padding: 0, background: 'var(--carimbo)', color: 'var(--branco)', borderColor: 'var(--carimbo)' }}
-            onClick={onDarBaixa}
-            disabled={salvando}
-            title="Marcar passada"
-          >
-            <IconeCheckMensagem />
-          </button>
-        </div>
-      ) : (
-        <span className="fs-xs" style={{ color: 'var(--tinta-suave)' }}>Não marcada</span>
-      )}
-    </div>
   );
 }
 
