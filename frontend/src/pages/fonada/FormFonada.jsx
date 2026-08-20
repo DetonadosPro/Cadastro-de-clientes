@@ -492,21 +492,17 @@ export default function FormFonada() {
               </div>
               {cliente ? (
                 <>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 4 }}>
                     <span className="fs-lg" style={{ fontWeight: 700 }}>{cliente.nome}</span>
                     <span className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>
                       Nasc.: {cliente.nascimento || '—'}
                     </span>
                   </div>
-                  <div className="grade grade-2" style={{ marginBottom: 6 }}>
+                  <div className="grade grade-2" style={{ gap: 0 }}>
                     <InfoLinha label="Fixo" valor={cliente.fixo} />
                     <InfoLinha label="Celular" valor={cliente.celular} />
-                  </div>
-                  <div className="grade grade-2" style={{ marginBottom: 6 }}>
                     <InfoLinha label="WhatsApp" valor={cliente.whatsapp} />
                     <InfoLinha label="Bairro" valor={cliente.bairro} />
-                  </div>
-                  <div className="grade grade-2">
                     <InfoLinha label="Endereço" valor={[cliente.endereco, cliente.complemento].filter(Boolean).join(' — ')} />
                     <InfoLinha label="Referência" valor={cliente.referencia} />
                   </div>
@@ -516,7 +512,7 @@ export default function FormFonada() {
               )}
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, height: '100%' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, height: '100%' }}>
               <div className="section-box" style={{ flex: 1 }}>
                 <div className="section-title">Lançamento</div>
                 <InfoLinha label="Pagou" valor={dados.pagou === 'SIM' ? 'Sim' : 'Não'} />
