@@ -170,11 +170,13 @@ export default function ListaFonada() {
                 <tr>
                   <th>O.S.</th>
                   <th>Comprador</th>
-                  <th>Pagou</th>
+                  <th className="col-somente-desktop">Destinatário 1</th>
+                  <th className="col-somente-desktop">Destinatário 2</th>
                   <th>Mensagens</th>
                   <th>Data</th>
                   <th>Recall</th>
                   <th>Valor</th>
+                  <th>Pagou</th>
                 </tr>
               </thead>
               <tbody>
@@ -186,11 +188,8 @@ export default function ListaFonada() {
                       </span>
                     </td>
                     <td data-label="Comprador">{p.nome_comprador}</td>
-                    <td data-label="Pagou">
-                      <span className={`tag ${p.pagou === 'SIM' ? 'ok' : 'pendente'}`}>
-                        {p.pagou === 'SIM' ? 'Pago' : 'Pendente'}
-                      </span>
-                    </td>
+                    <td data-label="Destinatário 1" className="col-somente-desktop">{p.p1_para || '—'}</td>
+                    <td data-label="Destinatário 2" className="col-somente-desktop">{p.p2_para || '—'}</td>
                     <td data-label="Mensagens">
                       <span className="indicador-msgs">
                         <span
@@ -214,6 +213,11 @@ export default function ListaFonada() {
                       </span>
                     </td>
                     <td data-label="Valor">{p.valor != null ? formatarReais(p.valor) : '—'}</td>
+                    <td data-label="Pagou">
+                      <span className={`tag ${p.pagou === 'SIM' ? 'ok' : 'pendente'}`}>
+                        {p.pagou === 'SIM' ? 'Pago' : 'Pendente'}
+                      </span>
+                    </td>
                   </tr>
                 ))}
               </tbody>
