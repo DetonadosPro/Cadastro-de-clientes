@@ -6,11 +6,11 @@ import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
 
 const OPCOES_FILTRO = [
   { valor: '', label: 'Nome' },
-  { valor: 'nascimento', label: 'Data de aniversário' },
   { valor: 'celular', label: 'Celular' },
-  { valor: 'whatsapp', label: 'WhatsApp' },
-  { valor: 'fixo', label: 'Telefone fixo' },
+  { valor: 'nascimento', label: 'Data de aniversário' },
   { valor: 'endereco', label: 'Endereço' },
+  { valor: 'fixo', label: 'Telefone fixo' },
+  { valor: 'whatsapp', label: 'WhatsApp' },
 ];
 
 const MASCARA_POR_FILTRO = {

@@ -14,18 +14,18 @@ function IconeInfo() {
 
 const OPCOES_FILTRO = [
   { valor: '', label: 'Todos os campos' },
-  { valor: 'os', label: 'O.S.' },
-  { valor: 'nome_comprador', label: 'Nome do comprador' },
-  { valor: 'destinatario', label: 'Destinatário' },
-  { valor: 'fixo_comprador', label: 'Telefone fixo do comprador' },
-  { valor: 'whatsapp_comprador', label: 'WhatsApp do comprador' },
-  { valor: 'celular_comprador', label: 'Celular do comprador' },
-  { valor: 'fixo_destinatario', label: 'Telefone fixo do destinatário' },
-  { valor: 'celular_destinatario', label: 'Celular do destinatário' },
-  { valor: 'endereco', label: 'Endereço' },
   { valor: 'aniversario', label: 'Aniversário' },
+  { valor: 'celular_comprador', label: 'Celular do comprador' },
+  { valor: 'celular_destinatario', label: 'Celular do destinatário' },
   { valor: 'data_pedido', label: 'Data do pedido' },
+  { valor: 'destinatario', label: 'Destinatário' },
   { valor: 'dia_mensagem', label: 'Dia da mensagem' },
+  { valor: 'endereco', label: 'Endereço' },
+  { valor: 'nome_comprador', label: 'Nome do comprador' },
+  { valor: 'os', label: 'O.S.' },
+  { valor: 'fixo_comprador', label: 'Telefone fixo do comprador' },
+  { valor: 'fixo_destinatario', label: 'Telefone fixo do destinatário' },
+  { valor: 'whatsapp_comprador', label: 'WhatsApp do comprador' },
 ];
 
 const MASCARA_POR_FILTRO = {

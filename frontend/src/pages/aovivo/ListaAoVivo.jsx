@@ -7,17 +7,17 @@ import PaginaImpressaoAoVivo from './PaginaImpressaoAoVivo.jsx';
 
 const OPCOES_FILTRO = [
   { valor: '', label: 'Todos os campos' },
-  { valor: 'os', label: 'O.S.' },
-  { valor: 'comprador', label: 'Comprador' },
-  { valor: 'destinatario', label: 'Destinatário' },
-  { valor: 'celular_comprador', label: 'Celular do comprador' },
-  { valor: 'whatsapp_comprador', label: 'WhatsApp do comprador' },
-  { valor: 'fixo_local', label: 'Telefone fixo do local' },
-  { valor: 'celular_local', label: 'Celular do local' },
-  { valor: 'endereco', label: 'Endereço' },
   { valor: 'aniversario', label: 'Aniversário' },
+  { valor: 'celular_comprador', label: 'Celular do comprador' },
+  { valor: 'celular_local', label: 'Celular do local' },
+  { valor: 'comprador', label: 'Comprador' },
   { valor: 'data_pedido', label: 'Data do pedido' },
+  { valor: 'destinatario', label: 'Destinatário' },
   { valor: 'dia_mensagem', label: 'Dia da mensagem' },
+  { valor: 'endereco', label: 'Endereço' },
+  { valor: 'os', label: 'O.S.' },
+  { valor: 'fixo_local', label: 'Telefone fixo do local' },
+  { valor: 'whatsapp_comprador', label: 'WhatsApp do comprador' },
 ];
 
 const MASCARA_POR_FILTRO = {
