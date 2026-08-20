@@ -494,8 +494,7 @@ input, select, textarea {
   }
   .tabela-lista.tabela-clientes tbody tr {
     display: grid;
-    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 0.85fr) minmax(0, 0.85fr);
-    grid-template-rows: auto auto auto;
+    grid-template-columns: 1fr 1fr;
     row-gap: 2px;
     padding: 10px 12px;
     border-bottom: 1px solid var(--papel-alt);
@@ -504,20 +503,25 @@ input, select, textarea {
     padding: 2px 0;
     border-bottom: none;
     font-size: 0.85rem;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .tabela-lista.tabela-clientes td[data-label="Nome"] {
-    grid-column: 1 / 5;
+    grid-column: 1 / 3;
     grid-row: 1;
     font-size: 0.95rem;
+    white-space: normal;
   }
   .tabela-lista.tabela-clientes td[data-label="Celular"] {
-    grid-column: 1 / 3;
+    grid-column: 1;
     grid-row: 2;
     font-weight: 600;
     color: var(--carimbo);
   }
   .tabela-lista.tabela-clientes td[data-label="WhatsApp"] {
-    grid-column: 3 / 5;
+    grid-column: 2;
     grid-row: 2;
     font-weight: 600;
     color: var(--carimbo);
@@ -531,28 +535,31 @@ input, select, textarea {
     content: "💬 ";
     font-size: 0.7em;
   }
-  .tabela-lista.tabela-clientes td[data-label="Nascimento"],
-  .tabela-lista.tabela-clientes td[data-label="Bairro"],
-  .tabela-lista.tabela-clientes td[data-label="Fonada"],
-  .tabela-lista.tabela-clientes td[data-label="Ao vivo"] {
+  .tabela-lista.tabela-clientes td[data-label="Nascimento"] {
+    grid-column: 1;
     grid-row: 3;
     font-size: 0.72rem;
     color: var(--tinta-suave);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .tabela-lista.tabela-clientes td[data-label="Nascimento"] {
-    grid-column: 1;
   }
   .tabela-lista.tabela-clientes td[data-label="Bairro"] {
     grid-column: 2;
+    grid-row: 3;
+    font-size: 0.72rem;
+    color: var(--tinta-suave);
+    text-align: right;
   }
   .tabela-lista.tabela-clientes td[data-label="Fonada"] {
-    grid-column: 3;
+    grid-column: 1;
+    grid-row: 4;
+    font-size: 0.72rem;
+    color: var(--tinta-suave);
   }
   .tabela-lista.tabela-clientes td[data-label="Ao vivo"] {
-    grid-column: 4;
+    grid-column: 2;
+    grid-row: 4;
+    font-size: 0.72rem;
+    color: var(--tinta-suave);
+    text-align: right;
   }
   .tabela-lista.tabela-clientes td[data-label="Fonada"]::before {
     content: "Fonada ";
@@ -569,6 +576,72 @@ input, select, textarea {
     font-weight: 700;
     font-size: 0.72rem;
     color: var(--tinta);
+  }
+
+  /* Tabela de fonada vira lista de cards compactos no mobile */
+  .tabela-lista.tabela-fonada thead {
+    display: none;
+  }
+  .tabela-lista.tabela-fonada,
+  .tabela-lista.tabela-fonada tbody {
+    display: block;
+    width: 100%;
+  }
+  .tabela-lista.tabela-fonada tbody tr {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    row-gap: 4px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--papel-alt);
+  }
+  .tabela-lista.tabela-fonada td {
+    padding: 2px 0;
+    border-bottom: none;
+    font-size: 0.85rem;
+    min-width: 0;
+  }
+  .tabela-lista.tabela-fonada td[data-label="O.S."] {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .tabela-lista.tabela-fonada td[data-label="Comprador"] {
+    grid-column: 1 / 3;
+    grid-row: 2;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tabela-lista.tabela-fonada td[data-label="Pagou"] {
+    grid-column: 2;
+    grid-row: 1;
+    text-align: right;
+  }
+  .tabela-lista.tabela-fonada td[data-label="Mensagens"] {
+    grid-column: 1;
+    grid-row: 3;
+  }
+  .tabela-lista.tabela-fonada td[data-label="Data"] {
+    grid-column: 2;
+    grid-row: 3;
+    font-size: 0.72rem;
+    color: var(--tinta-suave);
+    text-align: right;
+  }
+  .tabela-lista.tabela-fonada td[data-label="Recall"] {
+    grid-column: 1;
+    grid-row: 4;
+  }
+  .tabela-lista.tabela-fonada td[data-label="Valor"] {
+    grid-column: 2;
+    grid-row: 4;
+    font-size: 0.72rem;
+    color: var(--tinta-suave);
+    text-align: right;
+  }
+  .tabela-lista.tabela-fonada .tag {
+    font-size: 0.68rem;
+    padding: 2px 8px;
   }
 }
 

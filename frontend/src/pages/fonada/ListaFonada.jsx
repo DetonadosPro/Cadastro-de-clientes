@@ -165,30 +165,33 @@ export default function ListaFonada() {
         <>
           <div className="painel" style={{ padding: 0, overflow: 'hidden' }}>
             <div style={{ overflowX: 'auto' }}>
-            <table className="tabela-lista">
+            <table className="tabela-lista tabela-fonada">
               <thead>
                 <tr>
                   <th>O.S.</th>
                   <th>Comprador</th>
-                  <th>Para (1ª msg)</th>
+                  <th>Pagou</th>
                   <th>Mensagens</th>
                   <th>Data</th>
                   <th>Recall</th>
                   <th>Valor</th>
-                  <th>Pagou</th>
                 </tr>
               </thead>
               <tbody>
                 {itens.map((p) => (
                   <tr key={p.id} onClick={() => navigate(`/fonada/${p.id}`)}>
-                    <td>
+                    <td data-label="O.S.">
                       <span className="carimbo-os carimbo-os-lista">
                         {p.senha_os || p.id}
                       </span>
                     </td>
-                    <td>{p.nome_comprador}</td>
-                    <td>{p.p1_para || '—'}</td>
-                    <td>
+                    <td data-label="Comprador">{p.nome_comprador}</td>
+                    <td data-label="Pagou">
+                      <span className={`tag ${p.pagou === 'SIM' ? 'ok' : 'pendente'}`}>
+                        {p.pagou === 'SIM' ? 'Pago' : 'Pendente'}
+                      </span>
+                    </td>
+                    <td data-label="Mensagens">
                       <span className="indicador-msgs">
                         <span
                           className={`ponto-msg ${p.p1_dia ? 'usada' : 'livre'}`}
@@ -204,18 +207,13 @@ export default function ListaFonada() {
                         </span>
                       </span>
                     </td>
-                    <td>{p.data_pedido || '—'}</td>
-                    <td>
+                    <td data-label="Data">{p.data_pedido || '—'}</td>
+                    <td data-label="Recall">
                       <span className={`tag ${p.recall === 'SIM' ? 'ok' : 'neutro'}`}>
                         {p.recall === 'SIM' ? 'Sim' : 'Não'}
                       </span>
                     </td>
-                    <td>{p.valor != null ? formatarReais(p.valor) : '—'}</td>
-                    <td>
-                      <span className={`tag ${p.pagou === 'SIM' ? 'ok' : 'pendente'}`}>
-                        {p.pagou === 'SIM' ? 'Pago' : 'Pendente'}
-                      </span>
-                    </td>
+                    <td data-label="Valor">{p.valor != null ? formatarReais(p.valor) : '—'}</td>
                   </tr>
                 ))}
               </tbody>
