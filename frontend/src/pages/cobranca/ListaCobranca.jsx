@@ -4,6 +4,17 @@ import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarData } from '../../mascaras.js';
 import PaginaImpressaoRecibos from './PaginaImpressaoRecibos.jsx';
+import CampoData from '../../components/CampoData.jsx';
+
+function IconeImpressora() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M6 9V3h12v6" />
+      <rect x="4" y="9" width="16" height="8" rx="1.5" />
+      <path d="M6 14h12v7H6z" />
+    </svg>
+  );
+}
 
 export default function ListaCobranca() {
   const [cobrarDia, setCobrarDia] = useState('');
@@ -141,31 +152,31 @@ export default function ListaCobranca() {
       <div className="nao-imprimir" style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h1 style={{ marginBottom: 2 }}>Cobrança</h1>
-          <p className="fs-sm" style={{ color: '#6c757d', margin: 0 }}>
+          <p className="fs-sm" style={{ color: 'var(--tinta-suave)', margin: 0 }}>
             Busque pelo dia em que o cobrador passa para receber
           </p>
         </div>
         {pedidos.length > 0 && (
-          <button type="button" className="btn" onClick={imprimir}>
+          <button type="button" className="btn" onClick={imprimir} style={{ gap: 8 }}>
+            <IconeImpressora />
             {selecionados.size > 0
-              ? `🖨 Imprimir selecionados (${selecionados.size})`
-              : `🖨 Imprimir tudo (${pedidos.length})`}
+              ? `Imprimir selecionados (${selecionados.size})`
+              : `Imprimir tudo (${pedidos.length})`}
           </button>
         )}
       </div>
 
       <form onSubmit={buscar} className="painel nao-imprimir" style={estilos.formBusca}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 14px' }}>
-          <div className="campo" style={{ flex: '0 0 110px' }}>
+        <div className="grade grade-4">
+          <div className="campo">
             <label>Cobrar dia</label>
-            <input
-              className="campo-data"
+            <CampoData
               placeholder="dd/mm/aa"
               value={cobrarDia}
-              onChange={(e) => setCobrarDia(formatarData(e.target.value))}
+              onChange={(v) => setCobrarDia(formatarData(v))}
             />
           </div>
-          <div className="campo" style={{ flex: '0 0 160px' }}>
+          <div className="campo">
             <label>Pagou</label>
             <select value={pagouFiltro} onChange={(e) => setPagouFiltro(e.target.value)}>
               <option value="NAO">Não pagou</option>
@@ -173,11 +184,11 @@ export default function ListaCobranca() {
               <option value="TODOS">Todos</option>
             </select>
           </div>
-          <div className="campo" style={{ flex: '1 1 200px' }}>
+          <div className="campo">
             <label>Nome</label>
             <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do comprador" />
           </div>
-          <div className="campo" style={{ flex: '0 0 140px' }}>
+          <div className="campo">
             <label>O.S.</label>
             <input value={os} onChange={(e) => setOs(e.target.value)} placeholder="Número exato" />
           </div>
@@ -189,7 +200,7 @@ export default function ListaCobranca() {
         </div>
       </form>
 
-      {erro && <p className="nao-imprimir" style={{ color: '#dc3545' }}>{erro}</p>}
+      {erro && <p className="nao-imprimir" style={{ color: 'var(--selo)' }}>{erro}</p>}
 
       {resumo && (
         <div className="section-box nao-imprimir">
@@ -203,13 +214,13 @@ export default function ListaCobranca() {
       )}
 
       {!jaBuscou ? (
-        <div className="painel nao-imprimir" style={{ textAlign: 'center', color: '#6c757d' }}>
+        <div className="painel nao-imprimir" style={{ textAlign: 'center', color: 'var(--tinta-suave)' }}>
           Escolha os filtros acima e clique em Buscar.
         </div>
       ) : carregando ? (
-        <p className="nao-imprimir" style={{ color: '#6c757d' }}>Carregando...</p>
+        <p className="nao-imprimir" style={{ color: 'var(--tinta-suave)' }}>Carregando...</p>
       ) : pedidos.length === 0 ? (
-        <div className="painel nao-imprimir" style={{ textAlign: 'center', color: '#6c757d' }}>
+        <div className="painel nao-imprimir" style={{ textAlign: 'center', color: 'var(--tinta-suave)' }}>
           Nenhum pedido encontrado com esses filtros.
         </div>
       ) : (
@@ -294,12 +305,13 @@ export default function ListaCobranca() {
               <InfoSomenteLeitura label="Forma" valor={itemBaixaAberto.formaPagamento === 'PIX' ? 'PIX' : 'PRESENCIAL'} />
               <InfoSomenteLeitura label="Celular" valor={itemBaixaAberto.celular} />
               <InfoSomenteLeitura label="Fixo" valor={itemBaixaAberto.fixo} />
+              <InfoSomenteLeitura label="WhatsApp" valor={itemBaixaAberto.whatsapp} />
               <InfoSomenteLeitura label="Endereço" valor={itemBaixaAberto.endereco} />
               <InfoSomenteLeitura label="Bairro" valor={itemBaixaAberto.bairro} />
               <InfoSomenteLeitura label="Referência" valor={itemBaixaAberto.referencia} />
             </div>
 
-            <div className="campo">
+            <div className="campo" style={{ maxWidth: 110 }}>
               <label>Pagou</label>
               <select value={pagouBaixa} onChange={(e) => setPagouBaixa(e.target.value)}>
                 <option value="SIM">Sim</option>
@@ -345,7 +357,7 @@ export default function ListaCobranca() {
 function InfoSomenteLeitura({ label, valor }) {
   return (
     <div>
-      <div className="fs-xs" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', color: '#6c757d', marginBottom: 2 }}>
+      <div className="fs-xs" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--tinta-suave)', marginBottom: 2 }}>
         {label}
       </div>
       <div className="fs-md">{valor || '—'}</div>

@@ -4,6 +4,29 @@ import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
 
+function IconeVoltar() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 12H5M12 19l-7-7 7-7" />
+    </svg>
+  );
+}
+function IconeMais() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+function IconeEditar() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  );
+}
+
 export default function FichaCliente() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -138,7 +161,7 @@ export default function FichaCliente() {
   }
 
   if (carregando) return <p style={{ color: 'var(--tinta-suave)' }}>Carregando...</p>;
-  if (erro) return <p style={{ color: '#dc3545' }}>{erro}</p>;
+  if (erro) return <p style={{ color: 'var(--selo)' }}>{erro}</p>;
   if (!cliente) return null;
 
   const totalFonada = pedidosFonada.reduce((soma, p) => soma + (p.valor || 0), 0);
@@ -153,8 +176,11 @@ export default function FichaCliente() {
     <div className="form-pagina">
       <div style={estilos.cabecalho}>
         <div>
-          <h1 style={{ marginBottom: 4 }}>{cliente.nome}</h1>
-          <p className="fs-sm" style={{ color: '#6c757d', margin: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <h1 style={{ marginBottom: 4 }}>{cliente.nome}</h1>
+            {cliente.bloqueado && <span className="tag pendente" style={{ marginBottom: 4 }}>Bloqueado</span>}
+          </div>
+          <p className="fs-sm" style={{ color: 'var(--tinta-suave)', margin: 0 }}>
             Cliente desde {new Date(cliente.criado_em).toLocaleDateString('pt-BR')}
           </p>
         </div>
@@ -171,8 +197,8 @@ export default function FichaCliente() {
           <button className="btn perigo" onClick={excluirCliente}>
             Excluir cliente
           </button>
-          <button className="btn secundario" onClick={voltar}>
-            ← Voltar
+          <button className="btn secundario" onClick={voltar} style={{ gap: 6 }}>
+            <IconeVoltar /> Voltar
           </button>
         </div>
       </div>
@@ -188,7 +214,7 @@ export default function FichaCliente() {
         <div className="modal-fundo" onClick={() => setMostrandoBloqueio(false)}>
           <div className="modal-caixa" onClick={(e) => e.stopPropagation()}>
             <div className="section-title">Bloquear {cliente.nome}</div>
-            <p className="fs-sm" style={{ color: '#6c757d', marginBottom: 12 }}>
+            <p className="fs-sm" style={{ color: 'var(--tinta-suave)', marginBottom: 12 }}>
               Depois de bloqueado, não será possível criar ou editar pedidos deste cliente em nenhuma
               tela (Fonada, Ao vivo, Cobrança, Agenda), até que seja desbloqueado.
             </p>
@@ -216,7 +242,9 @@ export default function FichaCliente() {
         <div className="section-title">
           <span>Dados do cliente</span>
           {!editando && (
-            <button type="button" className="btn-small" onClick={iniciarEdicao}>Editar</button>
+            <button type="button" className="btn-small" onClick={iniciarEdicao} style={{ gap: 5 }}>
+              <IconeEditar /> Editar
+            </button>
           )}
         </div>
 
@@ -224,6 +252,7 @@ export default function FichaCliente() {
           <div className="grade grade-3">
             <Info label="Nascimento" valor={cliente.nascimento} />
             <Info label="Telefone fixo" valor={cliente.fixo} />
+            <Info label="WhatsApp" valor={cliente.whatsapp} />
             <Info label="Celular" valor={cliente.celular} />
             <Info label="Endereço" valor={cliente.endereco} />
             <Info label="Complemento" valor={cliente.complemento} />
@@ -232,40 +261,44 @@ export default function FichaCliente() {
           </div>
         ) : (
           <>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 14px' }}>
-              <div className="campo" style={{ flex: '1 1 300px' }}>
+            <div className="grade grade-2">
+              <div className="campo">
                 <label>Nome</label>
                 <input value={dadosEdicao.nome} onChange={(e) => setEdicao('nome', e.target.value)} />
               </div>
-              <div className="campo" style={{ flex: '0 0 110px' }}>
+              <div className="campo">
                 <label>Nascimento</label>
-                <input className="campo-nascimento" placeholder="dd/mm/aa" value={dadosEdicao.nascimento || ''} onChange={(e) => setEdicaoComMascara('nascimento', e.target.value, 'data')} />
+                <input placeholder="dd/mm/aa" value={dadosEdicao.nascimento || ''} onChange={(e) => setEdicaoComMascara('nascimento', e.target.value, 'data')} />
               </div>
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 14px' }}>
-              <div className="campo" style={{ flex: '0 0 auto' }}>
+            <div className="grade grade-3">
+              <div className="campo">
                 <label>Telefone fixo</label>
-                <input className="campo-fixo" value={dadosEdicao.fixo || ''} onChange={(e) => setEdicaoComMascara('fixo', e.target.value, 'fixo')} />
+                <input value={dadosEdicao.fixo || ''} onChange={(e) => setEdicaoComMascara('fixo', e.target.value, 'fixo')} />
               </div>
-              <div className="campo" style={{ flex: '0 0 auto' }}>
+              <div className="campo">
+                <label>WhatsApp</label>
+                <input value={dadosEdicao.whatsapp || ''} onChange={(e) => setEdicaoComMascara('whatsapp', e.target.value, 'celular')} />
+              </div>
+              <div className="campo">
                 <label>Celular</label>
-                <input className="campo-celular" value={dadosEdicao.celular || ''} onChange={(e) => setEdicaoComMascara('celular', e.target.value, 'celular')} />
+                <input value={dadosEdicao.celular || ''} onChange={(e) => setEdicaoComMascara('celular', e.target.value, 'celular')} />
               </div>
             </div>
             <div className="campo">
               <label>Endereço</label>
               <input value={dadosEdicao.endereco || ''} onChange={(e) => setEdicao('endereco', e.target.value)} />
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 14px' }}>
-              <div className="campo" style={{ flex: '1 1 220px' }}>
+            <div className="grade grade-3">
+              <div className="campo">
                 <label>Complemento</label>
                 <input value={dadosEdicao.complemento || ''} onChange={(e) => setEdicao('complemento', e.target.value)} />
               </div>
-              <div className="campo" style={{ flex: '1 1 180px' }}>
+              <div className="campo">
                 <label>Bairro</label>
-                <input className="campo-bairro" value={dadosEdicao.bairro || ''} onChange={(e) => setEdicao('bairro', e.target.value)} />
+                <input value={dadosEdicao.bairro || ''} onChange={(e) => setEdicao('bairro', e.target.value)} />
               </div>
-              <div className="campo" style={{ flex: '1 1 220px' }}>
+              <div className="campo">
                 <label>Referência</label>
                 <input value={dadosEdicao.referencia || ''} onChange={(e) => setEdicao('referencia', e.target.value)} />
               </div>
@@ -307,9 +340,9 @@ export default function FichaCliente() {
           </button>
           <div className="abas-cliente-acao">
             {aba === 'fonada' ? (
-              <button type="button" className="btn" onClick={novoPedidoFonada}>+ Novo pedido</button>
+              <button type="button" className="btn" onClick={novoPedidoFonada} style={{ gap: 6 }}><IconeMais /> Novo pedido</button>
             ) : (
-              <button type="button" className="btn" onClick={novoPedidoAoVivo}>+ Novo pedido</button>
+              <button type="button" className="btn" onClick={novoPedidoAoVivo} style={{ gap: 6 }}><IconeMais /> Novo pedido</button>
             )}
           </div>
         </div>
@@ -318,14 +351,14 @@ export default function FichaCliente() {
           {aba === 'fonada' && (
             <>
               {pedidosFonada.length === 0 ? (
-                <p className="fs-sm" style={{ color: '#6c757d', textAlign: 'center', padding: '20px 0' }}>
+                <p className="fs-sm" style={{ color: 'var(--tinta-suave)', textAlign: 'center', padding: '20px 0' }}>
                   Nenhum pedido de mensagem fonada ainda.
                 </p>
               ) : (
                 <div style={{ overflowX: 'auto' }}>
-                  <div className="fs-xs" style={{ display: 'flex', gap: 14, marginBottom: 10, color: '#6c757d' }}>
-                    <span><span className="bolinha-status usada" /> já foi marcada</span>
-                    <span><span className="bolinha-status livre" /> ainda disponível</span>
+                  <div className="fs-xs" style={{ display: 'flex', gap: 14, marginBottom: 10, color: 'var(--tinta-suave)' }}>
+                    <span><span className="bolinha-status usada" /> MARCADA</span>
+                    <span><span className="bolinha-status livre" /> DISPONÍVEL</span>
                   </div>
                   <table className="tabela-lista">
                     <thead>
@@ -359,7 +392,7 @@ export default function FichaCliente() {
                             />
                             {p.p2_para || '—'}
                           </td>
-                          <td>{p.valor != null ? `R$ ${p.valor.toFixed(2)}` : '—'}</td>
+                          <td>{p.valor != null ? formatarReais(p.valor) : '—'}</td>
                           <td>
                             <span className={`tag ${p.pagou === 'SIM' ? 'ok' : 'pendente'}`}>
                               {p.pagou === 'SIM' ? 'Pago' : 'Pendente'}
@@ -377,7 +410,7 @@ export default function FichaCliente() {
           {aba === 'aovivo' && (
             <>
               {pedidosAoVivo.length === 0 ? (
-                <p className="fs-sm" style={{ color: '#6c757d', textAlign: 'center', padding: '20px 0' }}>
+                <p className="fs-sm" style={{ color: 'var(--tinta-suave)', textAlign: 'center', padding: '20px 0' }}>
                   Nenhum pedido de mensagem ao vivo ainda.
                 </p>
               ) : (
@@ -399,7 +432,7 @@ export default function FichaCliente() {
                           <td>{p.data_pedido || '—'}</td>
                           <td>{p.dia_entrega || '—'}</td>
                           <td>{p.para || '—'}</td>
-                          <td>{p.valor != null ? `R$ ${p.valor.toFixed(2)}` : '—'}</td>
+                          <td>{p.valor != null ? formatarReais(p.valor) : '—'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -417,7 +450,7 @@ export default function FichaCliente() {
 function Info({ label, valor }) {
   return (
     <div>
-      <div className="fs-xs" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', color: '#6c757d', marginBottom: 2 }}>
+      <div className="fs-xs" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--tinta-suave)', marginBottom: 2 }}>
         {label}
       </div>
       <div className="fs-md">{valor || '—'}</div>

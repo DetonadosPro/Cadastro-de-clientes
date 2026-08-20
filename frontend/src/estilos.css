@@ -5,26 +5,32 @@
    ============================================================ */
 
 :root {
-  /* Paleta */
-  --papel: #F2F2F2;
-  --papel-alt: #EAEAEA;
-  --tinta: #222222;
-  --tinta-suave: #6c757d;
-  --carimbo: #004085;
-  --carimbo-claro: #0056b3;
-  --selo: #dc3545;
-  --selo-suave: #f8d7da;
-  --ok: #2f6844;
-  --ok-suave: #d4edda;
-  --borda: #dddddd;
+  /* Paleta — "carimbo e selo" levado a sério: papel quente (não cinza
+     morto), tinta quase preta, azul de carimbo postal mais profundo,
+     vermelho de selo mais terroso que um vermelho de erro genérico. */
+  --papel: #FAF8F3;
+  --papel-alt: #F1EEE6;
+  --tinta: #1C1B19;
+  --tinta-suave: #6B6A63;
+  --carimbo: #1D4E89;
+  --carimbo-claro: #2C63A6;
+  --carimbo-suave: #E6EEF7;
+  --selo: #C0392B;
+  --selo-suave: #FBEAE7;
+  --ok: #2D6A4F;
+  --ok-suave: #E4F1EB;
+  --aviso: #A9720C;
+  --aviso-suave: #FBF0DD;
+  --borda: #E4E1D7;
   --branco: #ffffff;
 
-  /* Tipografia */
+  /* Tipografia — sans limpo para leitura corrida, mono para os
+     "carimbos de data": números de O.S., horários, protocolos. */
   --fonte-display: 'Inter', system-ui, -apple-system, sans-serif;
   --fonte-corpo: 'Inter', system-ui, -apple-system, sans-serif;
-  --fonte-mono: 'Courier New', monospace;
+  --fonte-mono: 'JetBrains Mono', 'Courier New', monospace;
 
-  --radius: 8px;
+  --radius: 10px;
 }
 
 * {
@@ -78,13 +84,15 @@ input, select, textarea {
   color: var(--branco);
   font-weight: 600;
   font-size: 14px;
-  transition: transform 0.06s ease, background 0.15s ease;
+  transition: transform 0.06s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 .btn:hover {
   background: var(--carimbo-claro);
+  box-shadow: 0 2px 8px rgba(29, 78, 137, 0.25);
 }
 .btn:active {
   transform: translateY(1px);
+  box-shadow: none;
 }
 .btn:focus-visible {
   outline: 2px solid var(--selo);
@@ -95,7 +103,8 @@ input, select, textarea {
   color: var(--carimbo);
 }
 .btn.secundario:hover {
-  background: var(--papel-alt);
+  background: var(--carimbo-suave);
+  box-shadow: none;
 }
 .btn.perigo {
   background: var(--branco);
@@ -104,10 +113,12 @@ input, select, textarea {
 }
 .btn.perigo:hover {
   background: var(--selo-suave);
+  box-shadow: none;
 }
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 /* ---------- Campos de formulário ---------- */
@@ -180,15 +191,16 @@ input, select, textarea {
   font-size: 18px;
   color: var(--carimbo);
   border: 2px solid var(--carimbo);
-  border-radius: 999px;
-  padding: 6px 18px;
-  letter-spacing: 0.02em;
-  background: rgba(0, 64, 133, 0.05);
+  border-radius: 6px;
+  padding: 6px 14px;
+  letter-spacing: 0.03em;
+  background: var(--carimbo-suave);
 }
 .carimbo-os-lista {
-  font-size: 14px;
-  padding: 4px 12px;
+  font-size: 13px;
+  padding: 3px 10px;
   border-width: 1.5px;
+  border-radius: 5px;
 }
 
 /* ---------- Cartão/painel ---------- */
@@ -196,45 +208,81 @@ input, select, textarea {
   background: var(--branco);
   border: 1px solid var(--borda);
   border-radius: 12px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
-  padding: 20px;
+  box-shadow: 0 1px 2px rgba(28, 27, 25, 0.04);
+  padding: 18px;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
-/* ---------- Etiquetas de status ---------- */
+/* Cartão com faixa de urgência lateral — usado na Agenda no lugar de
+   uma borda grossa ao redor inteiro, que pesava visualmente demais. */
+.painel-urgencia {
+  border-left-width: 4px;
+  border-top-left-radius: 3px;
+  border-bottom-left-radius: 3px;
+}
+.painel-urgencia.atrasada { border-left-color: var(--selo); }
+.painel-urgencia.proxima { border-left-color: var(--aviso); }
+
+/* ---------- Etiquetas de status (carimbo de data) ---------- */
 .tag {
   display: inline-flex;
   align-items: center;
-  padding: 2px 9px;
-  border-radius: 999px;
+  font-family: var(--fonte-mono);
+  padding: 3px 10px;
+  border-radius: 6px;
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
 }
 .tag.ok { background: var(--ok-suave); color: var(--ok); }
 .tag.pendente { background: var(--selo-suave); color: var(--selo); }
-.tag.neutro { background: var(--papel-alt); color: var(--tinta-suave); }
+.tag.aviso { background: var(--aviso-suave); color: var(--aviso); }
+.tag.neutro { background: var(--papel-alt); color: var(--tinta-suave); font-family: var(--fonte-corpo); font-weight: 600; }
 
 /* ---------- Layout denso (cartões com sombra, estilo de referência) ---------- */
 .section-box {
   background: var(--branco);
-  border-radius: var(--radius);
+  border-radius: 12px;
   border: 1px solid var(--borda);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
-  padding: 12px;
+  box-shadow: 0 1px 2px rgba(28, 27, 25, 0.04);
+  padding: 16px;
   margin-bottom: 12px;
 }
 .section-title {
-  font-size: 14px;
-  font-weight: 800;
-  color: #222222;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--tinta);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #eeeeee;
-  padding-bottom: 5px;
+  border-bottom: 1px solid var(--papel-alt);
+  padding-bottom: 8px;
   margin-bottom: 12px;
   text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+/* Subdivisão dentro de uma mesma section-box, quando ela agrupa mais
+   de um bloco de conteúdo relacionado (ex: Mensagem + Músicas dentro
+   de "Catálogo") — mais leve que um section-title novo, sem abrir
+   outra caixa inteira só para separar visualmente. */
+.subsecao-titulo {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--tinta-suave);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+/* Input de valor em destaque (ex: Valor R$ em Financeiro), usado na
+   mesma linha dos campos vizinhos — mais compacto que um bloco
+   próprio, mas ainda visualmente diferenciado por cor e fonte mono. */
+.input-valor-destaque {
+  font-family: var(--fonte-mono) !important;
+  font-weight: 700 !important;
+  color: var(--carimbo) !important;
+  background: var(--carimbo-suave) !important;
+  border-color: var(--borda) !important;
 }
 .form-row {
   display: flex;
@@ -257,21 +305,22 @@ input, select, textarea {
   flex: 1;
   min-width: 0;
   padding: 5px 8px;
-  border: 1px solid #cccccc;
+  border: 1px solid var(--borda);
   border-radius: 6px;
   font-size: 12px;
   background: var(--branco);
   color: var(--tinta);
   outline: none;
-  transition: border 0.3s;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .form-row input:focus,
 .form-row select:focus {
-  border-color: var(--carimbo-claro);
+  border-color: var(--carimbo);
+  box-shadow: 0 0 0 3px var(--carimbo-suave);
 }
 .form-row input[readonly],
 .form-row input:disabled {
-  background: #e9ecef;
+  background: var(--papel-alt);
   color: var(--tinta-suave);
   font-weight: bold;
 }
@@ -283,7 +332,7 @@ input, select, textarea {
   gap: 14px;
 }
 .coluna-mensagem {
-  border-left: 1px solid #eeeeee;
+  border-left: 1px solid var(--papel-alt);
   padding-left: 12px;
   min-width: 0;
 }
@@ -300,7 +349,7 @@ input, select, textarea {
   align-items: center;
   gap: 6px;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
 }
 .coluna-mensagem .form-row {
   gap: 4px;
@@ -321,7 +370,7 @@ input, select, textarea {
   .coluna-mensagem {
     border-left: none;
     padding-left: 0;
-    border-top: 1px solid #eeeeee;
+    border-top: 1px solid var(--papel-alt);
     padding-top: 12px;
     margin-top: 4px;
   }
@@ -342,18 +391,21 @@ input, select, textarea {
 }
 
 .btn-small {
-  background: #eeeeee;
-  border: 1px solid #cccccc;
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 10px;
-  font-weight: bold;
-  color: #222222;
+  background: var(--papel-alt);
+  border: 1px solid var(--borda);
+  border-radius: 5px;
+  padding: 2px 7px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--tinta);
   cursor: pointer;
+  transition: background 0.12s ease;
 }
 .btn-small:hover {
-  background: #dddddd;
+  background: var(--carimbo-suave);
+  color: var(--carimbo);
 }
+
 .campo-data-agenda {
   padding: 6px 10px;
   border: 1.5px solid var(--borda);
@@ -368,27 +420,27 @@ input, select, textarea {
 .actions-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 8px;
 }
 .btn-action {
   background: var(--branco);
-  border: 1px solid #dddddd;
+  border: 1px solid var(--borda);
   border-radius: var(--radius);
   padding: 10px;
   font-size: 12px;
   font-weight: 700;
-  color: #222222;
+  color: var(--tinta);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  transition: transform 0.1s, box-shadow 0.1s;
+  box-shadow: 0 1px 2px rgba(28, 27, 25, 0.05);
+  transition: transform 0.08s ease, box-shadow 0.15s ease, background 0.12s ease;
 }
 .btn-action:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(28, 27, 25, 0.08);
 }
 .btn-action:active {
   transform: translateY(0);
@@ -406,6 +458,7 @@ input, select, textarea {
 }
 .btn-action.destaque:hover {
   background: var(--carimbo-claro);
+  box-shadow: 0 3px 10px rgba(29, 78, 137, 0.28);
 }
 .btn-action.perigo-acao {
   color: var(--selo);
@@ -416,7 +469,7 @@ input, select, textarea {
 }
 .btn-action.fechar-acao {
   grid-column: span 2;
-  color: var(--selo);
+  color: var(--tinta-suave);
 }
 
 /* ---------- Formulários: página cheia, layout responsivo ---------- */
@@ -478,12 +531,12 @@ input, select, textarea {
 }
 
 .layout-sidebar {
-  width: 220px;
-  background: #004085;
+  width: 224px;
+  background: var(--carimbo);
   color: #ffffff;
   display: flex;
   flex-direction: column;
-  padding: 20px 14px 0;
+  padding: 22px 14px 0;
   flex-shrink: 0;
   height: 100vh;
   overflow: hidden;
@@ -503,16 +556,17 @@ input, select, textarea {
   padding: 9px 14px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.22);
   color: #ffffff;
   font-family: inherit;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 13px;
   cursor: pointer;
   text-align: center;
+  transition: background 0.15s ease;
 }
 .btn-sair-menu:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.16);
 }
 .nav-grupo {
   margin-bottom: 24px;
@@ -553,58 +607,63 @@ button.nav-grupo-titulo {
 /* ---------- Seções do menu lateral: título de categoria e itens diretos ---------- */
 .nav-secao-titulo {
   font-size: 10.5px;
-  font-weight: 800;
-  letter-spacing: 0.07em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.45);
   padding: 0 12px 8px;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 .nav-divisor {
   height: 1px;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.14);
   margin: 14px 6px 16px;
 }
 .nav-item-direto {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 10px;
   width: 100%;
   padding: 10px 12px;
   border-radius: 8px;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
   text-decoration: none;
   background: transparent;
   border: none;
   cursor: pointer;
   font-family: inherit;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 14px;
-  color: #c9d9ec;
+  color: #C9D9EC;
   text-align: left;
+  transition: background 0.12s ease, color 0.12s ease;
 }
 .nav-item-direto:hover {
   color: #ffffff;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.07);
 }
 .nav-item-direto.active,
 .nav-item-direto.ativo {
   color: #ffffff;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.14);
+}
+.nav-item-direto svg {
+  flex-shrink: 0;
+  opacity: 0.85;
 }
 
 /* ---------- Bloco de destaque: Agenda + Clientes, isolado do resto do menu ---------- */
 .nav-destaque-duo {
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
   padding: 6px;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 .nav-item-destaque {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 10px;
   width: 100%;
   padding: 12px 12px;
   border-radius: 7px;
@@ -613,10 +672,11 @@ button.nav-grupo-titulo {
   border: none;
   cursor: pointer;
   font-family: inherit;
-  font-weight: 800;
+  font-weight: 700;
   font-size: 15px;
   color: #ffffff;
   text-align: left;
+  transition: background 0.12s ease, color 0.12s ease;
 }
 .nav-item-destaque:not(:last-child) {
   margin-bottom: 2px;
@@ -629,6 +689,9 @@ button.nav-grupo-titulo {
   background: #ffffff;
   color: var(--carimbo);
 }
+.nav-item-destaque svg {
+  flex-shrink: 0;
+}
 
 /* ---------- Bolinha de alerta ao lado de "Agenda" no menu ---------- */
 .bolinha-alerta-agenda {
@@ -639,20 +702,20 @@ button.nav-grupo-titulo {
   flex-shrink: 0;
 }
 .bolinha-alerta-agenda.laranja {
-  background: #d97706;
+  background: var(--aviso);
   animation: bolinha-alerta-pulso-laranja 1.6s ease-in-out infinite;
 }
 .bolinha-alerta-agenda.vermelho {
-  background: #dc3545;
+  background: var(--selo);
   animation: bolinha-alerta-pulso-vermelho 1.6s ease-in-out infinite;
 }
 @keyframes bolinha-alerta-pulso-laranja {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.5); }
-  50% { box-shadow: 0 0 0 5px rgba(217, 119, 6, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(169, 114, 12, 0.5); }
+  50% { box-shadow: 0 0 0 5px rgba(169, 114, 12, 0); }
 }
 @keyframes bolinha-alerta-pulso-vermelho {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.5); }
-  50% { box-shadow: 0 0 0 5px rgba(220, 53, 69, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0.5); }
+  50% { box-shadow: 0 0 0 5px rgba(192, 57, 43, 0); }
 }
 .nav-grupo-titulo-expansivel {
   display: flex !important;
@@ -684,15 +747,15 @@ button.nav-grupo-titulo {
   font-weight: 700;
   font-size: 13px;
   color: #ffffff;
-  background: #d97706;
+  background: var(--aviso);
   animation: nav-continuar-pulso 2s ease-in-out infinite;
 }
 .nav-continuar:hover {
-  background: #b45309;
+  background: #8a5c09;
 }
 @keyframes nav-continuar-pulso {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0.4); }
-  50% { box-shadow: 0 0 0 5px rgba(217, 119, 6, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(169, 114, 12, 0.4); }
+  50% { box-shadow: 0 0 0 5px rgba(169, 114, 12, 0); }
 }
 .layout-hamburguer {
   display: none;
@@ -725,7 +788,7 @@ button.nav-grupo-titulo {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: #004085;
+    background: var(--carimbo);
     color: #ffffff;
     padding: 14px 16px;
     position: sticky;
@@ -793,19 +856,19 @@ button.nav-grupo-titulo {
   justify-content: space-between;
   align-items: center;
   padding: 6px 0;
-  border-bottom: 1px solid #eeeeee;
+  border-bottom: 1px solid var(--papel-alt);
 }
 .info-linha:last-child {
   border-bottom: none;
 }
 .historico-sucesso {
-  background: #e6f4ea;
-  border: 1px solid #a8d5b5;
+  background: var(--ok-suave);
+  border: 1px solid #BEDAC9;
   border-radius: 8px;
   padding: 8px 10px !important;
 }
 .historico-sucesso .fs-sm {
-  color: #1e5e2f;
+  color: var(--ok);
 }
 .info-label {
   font-weight: 700;
@@ -813,9 +876,10 @@ button.nav-grupo-titulo {
   color: var(--carimbo);
 }
 .info-valor {
+  font-family: var(--fonte-mono);
   font-size: 13px;
   color: var(--tinta);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 ::-webkit-scrollbar {
@@ -827,18 +891,274 @@ button.nav-grupo-titulo {
   border-radius: 5px;
 }
 
+/* ---------- Calendário popover (seletor de dia nos campos de data) ---------- */
+/* O container assume a aparência visual completa de um campo de texto
+   normal (borda, fundo, padding, foco) — o <input> por dentro fica sem
+   decoração própria, herdando o espaço do pai. Isso faz o componente
+   CampoData se comportar, de fora, exatamente como um <input> cru
+   dentro de .form-row/.campo: flex, width e className aplicados no
+   container têm o mesmo efeito que teriam num input normal. */
+.campo-data-raiz {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--borda);
+  border-radius: 6px;
+  background: var(--branco);
+  padding: 0 26px 0 8px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.campo-data-raiz:focus-within {
+  border-color: var(--carimbo);
+  box-shadow: 0 0 0 3px var(--carimbo-suave);
+}
+.campo-data-raiz input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 5px 0;
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: inherit;
+  color: var(--tinta);
+  outline: none;
+}
+.campo-data-raiz input:disabled {
+  color: var(--tinta-suave);
+}
+.campo-data-botao-icone {
+  position: absolute;
+  right: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  padding: 3px;
+  cursor: pointer;
+  color: var(--tinta-suave);
+  display: flex;
+  align-items: center;
+  line-height: 0;
+  border-radius: 4px;
+}
+.campo-data-botao-icone:hover {
+  color: var(--carimbo);
+  background: var(--carimbo-suave);
+}
+.campo-data-botao-icone:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ---------- Campo de texto com sugestões clicáveis (substitui datalist nativo) ---------- */
+.campo-sugestoes-raiz {
+  position: relative;
+  display: inline-flex;
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--borda);
+  border-radius: 6px;
+  background: var(--branco);
+  padding: 0 8px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.campo-sugestoes-raiz:focus-within {
+  border-color: var(--carimbo);
+  box-shadow: 0 0 0 3px var(--carimbo-suave);
+}
+.campo-sugestoes-raiz input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 5px 0;
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--tinta);
+  outline: none;
+}
+.campo-sugestoes-raiz input[readonly] {
+  background: transparent;
+  color: var(--tinta);
+  font-weight: normal;
+}
+.sugestoes-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 200;
+  background: var(--branco);
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(28, 27, 25, 0.16);
+  padding: 4px;
+  min-width: 160px;
+}
+.sugestoes-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 13px;
+  color: var(--tinta);
+  cursor: pointer;
+}
+.sugestoes-item:hover {
+  background: var(--carimbo-suave);
+  color: var(--carimbo);
+}
+.sugestoes-item.selecionado {
+  color: var(--carimbo);
+  font-weight: 700;
+}
+
+.calendario-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 200;
+  background: var(--branco);
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(28, 27, 25, 0.16);
+  padding: 10px;
+  width: 232px;
+}
+.calendario-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--tinta);
+}
+.calendario-cabecalho button {
+  background: transparent;
+  border: none;
+  color: var(--carimbo);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 5px;
+  line-height: 1;
+}
+.calendario-cabecalho button:hover {
+  background: var(--carimbo-suave);
+}
+.calendario-grade {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.calendario-dias-semana {
+  margin-bottom: 4px;
+}
+.calendario-dias-semana span {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--tinta-suave);
+  padding: 2px 0;
+}
+.calendario-dia {
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 0;
+  font-size: 12px;
+  font-family: var(--fonte-mono);
+  color: var(--tinta);
+  cursor: pointer;
+  text-align: center;
+}
+.calendario-dia:hover {
+  background: var(--carimbo-suave);
+}
+.calendario-dia.hoje {
+  color: var(--carimbo);
+  font-weight: 700;
+  border: 1.5px solid var(--carimbo);
+  border-radius: 50%;
+}
+.calendario-dia.selecionado {
+  background: var(--carimbo);
+  color: #ffffff;
+  font-weight: 700;
+}
+.calendario-dia.desabilitado {
+  color: var(--tinta-suave);
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.calendario-dia.desabilitado:hover {
+  background: transparent;
+}
+
+.campo-data-raiz.campo-data-agenda {
+  padding: 0 26px 0 10px;
+  width: 110px;
+  flex: 0 0 auto;
+}
+.campo-data-raiz.campo-data-agenda input {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--carimbo);
+}
+
+/* ---------- Chip de legenda informativa (ex: acima da lista de Fonada) ---------- */
+.legenda-chip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  background: var(--papel-alt);
+  border-radius: 8px;
+  padding: 8px 14px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  color: var(--tinta-suave);
+}
+.legenda-chip svg {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+.legenda-chip span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 /* ---------- Busca e tabelas de listagem ---------- */
 .busca-input {
   flex: 1;
   padding: 10px 12px;
-  border: 1.5px solid #dddddd;
+  border: 1.5px solid var(--borda);
   border-radius: 8px;
   font-size: 14px;
   background: #ffffff;
+  color: var(--tinta);
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.busca-input:focus {
+  outline: none;
+  border-color: var(--carimbo);
+  box-shadow: 0 0 0 3px var(--carimbo-suave);
 }
 .busca-select {
   padding: 10px 12px;
-  border: 1.5px solid #dddddd;
+  border: 1.5px solid var(--borda);
   border-radius: 8px;
   font-size: 14px;
   background: #ffffff;
@@ -859,38 +1179,45 @@ button.nav-grupo-titulo {
   text-align: left;
   padding: 10px 14px;
   font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #6c757d;
-  border-bottom: 2px solid #dddddd;
-  background: #eeeeee;
+  letter-spacing: 0.05em;
+  color: var(--tinta-suave);
+  border-bottom: 2px solid var(--borda);
+  background: var(--papel-alt);
 }
 .tabela-lista td {
   padding: 10px 14px;
   font-size: 13.5px;
-  border-bottom: 1px solid #eeeeee;
+  border-bottom: 1px solid var(--papel-alt);
 }
 .tabela-lista tbody tr {
   cursor: pointer;
+  transition: background 0.1s ease;
 }
 .tabela-lista tbody tr:hover {
-  background: #f7f7f7;
+  background: var(--carimbo-suave);
 }
 
 /* ---------- Arrastar cliente para mesclar (lista de Clientes) ---------- */
 .alca-arrastar {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   margin-right: 8px;
-  color: #b0b0b0;
+  color: var(--tinta-suave);
+  opacity: 0.55;
   cursor: grab;
-  font-size: 15px;
-  user-select: none;
+  vertical-align: middle;
+  transition: opacity 0.12s ease;
+}
+tr:hover .alca-arrastar {
+  opacity: 1;
 }
 .linha-arrastando {
   opacity: 0.4;
 }
 .linha-soltar-aqui {
-  background: rgba(0, 64, 133, 0.12) !important;
+  background: var(--carimbo-suave) !important;
   outline: 2px dashed var(--carimbo);
   outline-offset: -2px;
 }
@@ -902,7 +1229,7 @@ button.nav-grupo-titulo {
   height: 22px;
   padding: 0 8px;
   border-radius: 999px;
-  background: #eeeeee;
+  background: var(--papel-alt);
   color: var(--tinta);
   font-size: 12px;
   font-weight: 700;
@@ -931,9 +1258,9 @@ button.nav-grupo-titulo {
   color: #ffffff;
 }
 .ponto-msg.livre {
-  background: #f2f2f2;
-  border-color: #cccccc;
-  color: #6c757d;
+  background: var(--papel-alt);
+  border-color: var(--borda);
+  color: var(--tinta-suave);
 }
 
 /* Bolinha pequena de status, usada nas abas "1ª msg"/"2ª msg" do formulário */
@@ -958,6 +1285,19 @@ button.nav-grupo-titulo {
   align-items: center;
   border-bottom: 2px solid #eeeeee;
   background: #fafafa;
+}
+/* Usada nas telas onde a section-box tem padding 0 e as abas ficam
+   coladas no topo do card (Agenda, Relatórios). Antes usava
+   overflow:hidden no container inteiro para arredondar os cantos da
+   faixa de abas — mas isso também cortava qualquer coisa que
+   "vazasse" da caixa, como o popover do calendário. Arredondar só a
+   própria faixa de abas resolve o visual sem cortar nada abaixo. */
+.secao-relatorios {
+  padding: 0;
+}
+.secao-relatorios > .abas-cliente:first-child {
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
 }
 .abas-cliente-acao {
   flex: 0 0 auto;
@@ -987,7 +1327,7 @@ button.nav-grupo-titulo {
   border-bottom: 3px solid transparent;
   font-size: 14px;
   font-weight: 700;
-  color: #6c757d;
+  color: var(--tinta-suave);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1011,8 +1351,8 @@ button.nav-grupo-titulo {
   height: 20px;
   padding: 0 6px;
   border-radius: 999px;
-  background: #eeeeee;
-  color: #6c757d;
+  background: var(--papel-alt);
+  color: var(--tinta-suave);
   font-size: 11px;
   font-weight: 700;
 }
@@ -1026,23 +1366,24 @@ button.nav-grupo-titulo {
   gap: 12px;
 }
 .cartao-valor {
-  background: #f7f9fb;
+  background: var(--papel-alt);
   border: 1.5px solid var(--borda);
   border-radius: 10px;
   padding: 14px 16px;
   text-align: center;
 }
 .cartao-valor-label {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #6c757d;
+  letter-spacing: 0.05em;
+  color: var(--tinta-suave);
   margin-bottom: 6px;
 }
 .cartao-valor-numero {
-  font-size: 20px;
-  font-weight: 800;
+  font-family: var(--fonte-mono);
+  font-size: 19px;
+  font-weight: 700;
   color: var(--tinta);
 }
 .cartao-valor.destaque {
@@ -1082,16 +1423,16 @@ button.nav-grupo-titulo {
   border-radius: 10px;
   padding: 14px 16px;
   margin-bottom: 14px;
-  background: #fcfcfc;
+  background: var(--papel);
 }
 .bloco-sistema:last-child {
   margin-bottom: 0;
 }
 .bloco-sistema-titulo {
-  font-size: 13px;
-  font-weight: 800;
+  font-size: 12.5px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   margin-bottom: 12px;
   color: var(--tinta);
 }
@@ -1112,9 +1453,9 @@ button.nav-grupo-titulo {
 }
 
 .aviso-bloqueio {
-  background: #fdf2f0;
-  border: 1.5px solid #f0c4bc;
-  color: #a33627;
+  background: var(--selo-suave);
+  border: 1.5px solid #E6BFB6;
+  color: var(--selo);
   border-radius: 10px;
   padding: 12px 16px;
   font-size: 13.5px;
@@ -1135,18 +1476,18 @@ button.nav-grupo-titulo {
   padding: 12px 16px;
   border-radius: 10px;
   border: 1.5px solid var(--borda);
-  background: #f7f9fb;
+  background: var(--papel-alt);
   color: var(--tinta);
 }
 .cartao-diferenca.positiva {
-  background: #fdf2f0;
-  border-color: #f0c4bc;
-  color: #a33627;
+  background: var(--selo-suave);
+  border-color: #E6BFB6;
+  color: var(--selo);
 }
 .cartao-diferenca.neutra {
-  background: #f0f8f2;
-  border-color: #bfe3c8;
-  color: #1e6b34;
+  background: var(--ok-suave);
+  border-color: #BEDAC9;
+  color: var(--ok);
 }
 
 /* ---------- Classes utilitárias de tamanho de texto (escalam no desktop) ---------- */

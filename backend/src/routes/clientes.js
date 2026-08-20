@@ -11,11 +11,11 @@
 // em conexões diferentes e a transação não teria efeito nenhum.
 
 const express = require('express');
-const { db, pool } = require('../db/database');
+const { db, pool, unaccentEstaDisponivel } = require('../db/database');
 
 const router = express.Router();
 
-const CAMPOS = ['nome', 'nascimento', 'fixo', 'celular', 'endereco', 'complemento', 'bairro', 'referencia'];
+const CAMPOS = ['nome', 'nascimento', 'fixo', 'whatsapp', 'celular', 'endereco', 'complemento', 'bairro', 'referencia'];
 
 function normalizarNome(nome) {
   return String(nome || '')
@@ -25,26 +25,70 @@ function normalizarNome(nome) {
     .trim();
 }
 
+// Extrai só "dd/mm" de uma data no formato "dd/mm" ou "dd/mm/aa" — o
+// cadastro aceita as duas formas (o ano de nascimento nem sempre é
+// conhecido), então duas pessoas com o mesmo dia/mês de aniversário
+// devem ser tratadas como o mesmo aniversário na checagem de
+// duplicidade, com ou sem o ano preenchido. Retorna null se o formato
+// não for reconhecível.
+function diaMesDaData(data) {
+  const m = String(data || '').trim().match(/^(\d{2})\/(\d{2})(?:\/\d{2,4})?$/);
+  return m ? `${m[1]}/${m[2]}` : null;
+}
+
+// Data/hora de registro do pedido mais recente de um cliente, entre
+// Fonada e Ao Vivo (pedidos ativos, não excluídos) — usado para
+// decidir automaticamente qual cadastro é "o mais atual" quando o
+// sistema sugere uma mesclagem por duplicidade.
+async function pedidoMaisRecenteDoCliente(client, clienteId) {
+  const resultado = await client.query(`
+    SELECT criado_em FROM (
+      SELECT criado_em FROM fonadas WHERE cliente_id = $1 AND excluido_em IS NULL
+      UNION ALL
+      SELECT criado_em FROM ao_vivo WHERE cliente_id = $1 AND excluido_em IS NULL
+    ) todos
+    ORDER BY criado_em DESC
+    LIMIT 1
+  `, [clienteId]);
+  return resultado.rows[0] ? resultado.rows[0].criado_em : null;
+}
+
+// Palavras que não ajudam a identificar uma pessoa por serem comuns
+// demais em nomes brasileiros — contá-las como "palavra em comum"
+// gerava falsos positivos como "JACIARA CAVALCANTE DA SILVA" batendo
+// com "MARINETE ELIAS DA SILVA" só por compartilharem "DA" e "SILVA".
+const PALAVRAS_IGNORADAS_NOME = new Set([
+  'DA', 'DE', 'DO', 'DAS', 'DOS', 'E', 'DI', 'VAN', 'VON',
+  'SILVA', 'SANTOS', 'SOUZA', 'SOUSA', 'OLIVEIRA', 'PEREIRA', 'FERREIRA',
+  'ALVES', 'RIBEIRO', 'COSTA', 'RODRIGUES', 'ALMEIDA', 'NASCIMENTO', 'CARVALHO',
+  'GOMES', 'MARTINS', 'ARAUJO', 'MELO', 'BARBOSA', 'LIMA',
+]);
+
 function nomesParecidos(nomeA, nomeB) {
   const a = normalizarNome(nomeA);
   const b = normalizarNome(nomeB);
   if (!a || !b) return false;
   if (a === b) return true;
-  if (a.includes(b) || b.includes(a)) return true;
 
-  const palavrasA = new Set(a.split(' ').filter((p) => p.length > 1));
-  const palavrasB = new Set(b.split(' ').filter((p) => p.length > 1));
+  const palavrasA = new Set(a.split(' ').filter((p) => p.length > 1 && !PALAVRAS_IGNORADAS_NOME.has(p)));
+  const palavrasB = new Set(b.split(' ').filter((p) => p.length > 1 && !PALAVRAS_IGNORADAS_NOME.has(p)));
+  // Se depois de remover conectivos/sobrenomes comuns não sobrar
+  // nenhuma palavra distintiva de um dos lados, não dá para comparar
+  // com confiança — mais seguro não sugerir do que sugerir à toa.
   if (palavrasA.size === 0 || palavrasB.size === 0) return false;
+
   let comuns = 0;
   for (const p of palavrasA) if (palavrasB.has(p)) comuns++;
   const proporcao = comuns / Math.min(palavrasA.size, palavrasB.size);
-  return proporcao >= 0.5;
+  return proporcao >= 0.7;
 }
 
 const FILTROS_CLIENTE = {
   nome: { coluna: 'nome', tipo: 'texto' },
   nascimento: { coluna: 'nascimento', tipo: 'data' },
   celular: { coluna: 'celular', tipo: 'texto' },
+  whatsapp: { coluna: 'whatsapp', tipo: 'texto' },
+  fixo: { coluna: 'fixo', tipo: 'texto' },
   endereco: { coluna: 'endereco', tipo: 'texto' },
 };
 
@@ -52,11 +96,28 @@ const FILTROS_CLIENTE = {
 // número do próximo placeholder $N disponível — precisa ser passado
 // porque essa cláusula pode vir depois de outras já montadas na mesma
 // query (ex: WHERE excluido_em IS NULL AND <filtro>).
+// Monta a condição de comparação de texto para busca: sempre ignora
+// maiúsculas/minúsculas (ILIKE); ignora acentos também quando a
+// extensão "unaccent" está disponível no banco (ver iniciarBanco em
+// db/database.js — alguns provedores gerenciados não permitem criar
+// extensões, então isso é best-effort).
+function condicaoTexto(coluna, indice) {
+  if (unaccentEstaDisponivel()) {
+    return `unaccent(${coluna}) ILIKE unaccent($${indice})`;
+  }
+  return `${coluna} ILIKE $${indice}`;
+}
+
 function montarFiltroCliente(campo, termo, indiceInicial) {
   const filtro = FILTROS_CLIENTE[campo];
   if (!filtro) return null;
   const padrao = filtro.tipo === 'data' ? `${termo}%` : `%${termo}%`;
-  return { where: `${filtro.coluna} LIKE $${indiceInicial}`, params: [padrao] };
+  // Datas não têm noção de maiúsculas/minúsculas/acento — LIKE comum
+  // já é suficiente e mais rápido (evita a função unaccent à toa).
+  const where = filtro.tipo === 'data'
+    ? `${filtro.coluna} LIKE $${indiceInicial}`
+    : condicaoTexto(filtro.coluna, indiceInicial);
+  return { where, params: [padrao] };
 }
 
 // Colunas permitidas para ordenação da listagem de clientes — nunca aceitar
@@ -89,7 +150,7 @@ router.get('/', async (req, res) => {
         params = filtro.params;
       }
     } else if (busca) {
-      where += ' AND nome LIKE $1';
+      where += ` AND ${condicaoTexto('nome', 1)}`;
       params = [`%${busca}%`];
     }
 
@@ -163,16 +224,185 @@ router.get('/verificar-duplicidade', async (req, res) => {
       return res.json({ possiveisDuplicados: [] });
     }
 
+    const diaMesBuscado = diaMesDaData(nascimento);
+    if (!diaMesBuscado) {
+      return res.json({ possiveisDuplicados: [] });
+    }
+
+    // Busca todos os clientes ativos cujo nascimento comece com o
+    // mesmo dd/mm — cobre tanto "dd/mm" puro quanto "dd/mm/aa" com
+    // qualquer ano, já que o formato sempre começa com dd/mm.
     const resultado = await db.query(
-      'SELECT * FROM clientes WHERE excluido_em IS NULL AND nascimento = $1',
-      [nascimento]
+      `SELECT * FROM clientes WHERE excluido_em IS NULL AND nascimento LIKE $1`,
+      [`${diaMesBuscado}%`]
     );
-    const possiveisDuplicados = resultado.rows.filter((c) => nomesParecidos(c.nome, nome));
+    // Filtro extra em JS (não só no SQL) para garantir que o "%" do
+    // LIKE não casou por acidente com um dia/mês diferente que só
+    // compartilha o prefixo textual (ex: nunca aconteceria aqui, já
+    // que dd/mm tem tamanho fixo, mas mantém a checagem exata como
+    // segurança caso o formato mude no futuro).
+    const possiveisDuplicados = resultado.rows.filter((c) => {
+      return diaMesDaData(c.nascimento) === diaMesBuscado && nomesParecidos(c.nome, nome);
+    });
 
     res.json({ possiveisDuplicados });
   } catch (erro) {
     console.error('Erro ao verificar duplicidade:', erro);
     res.status(500).json({ erro: 'Erro ao verificar duplicidade.' });
+  }
+});
+
+// GET /api/clientes/possiveis-duplicatas
+//
+// Varre a base de clientes ativos procurando pares com nome parecido
+// e o mesmo dia/mês de aniversário (mesma regra usada no cadastro de
+// cliente novo). Usado para sugerir mesclagem na Lista de Clientes —
+// diferente da mesclagem manual por arrastar, aqui a pessoa só
+// confirma, e o sistema decide sozinho qual cadastro vence (o do
+// pedido mais recente).
+//
+// Precisa vir ANTES de GET /:id no arquivo — senão o Express
+// interpretaria "possiveis-duplicatas" como um valor de :id.
+router.get('/possiveis-duplicatas', async (req, res) => {
+  try {
+    const resultado = await db.query(`
+      SELECT id, nome, nascimento, fixo, whatsapp, celular
+      FROM clientes
+      WHERE excluido_em IS NULL AND nascimento IS NOT NULL AND nascimento != ''
+      ORDER BY id
+    `);
+
+    const descartadosResultado = await db.query('SELECT cliente_menor_id, cliente_maior_id FROM duplicatas_descartadas');
+    const descartados = new Set(
+      descartadosResultado.rows.map((d) => `${d.cliente_menor_id}-${d.cliente_maior_id}`)
+    );
+
+    // Agrupa por dia/mês de aniversário primeiro (rápido, em memória),
+    // depois só compara nomes dentro de cada grupo — evita comparar
+    // todo mundo com todo mundo (custo O(n²) desnecessário) quando a
+    // base tem milhares de clientes.
+    const porDiaMes = new Map();
+    for (const c of resultado.rows) {
+      const diaMes = diaMesDaData(c.nascimento);
+      if (!diaMes) continue;
+      if (!porDiaMes.has(diaMes)) porDiaMes.set(diaMes, []);
+      porDiaMes.get(diaMes).push(c);
+    }
+
+    const pares = [];
+    for (const grupo of porDiaMes.values()) {
+      if (grupo.length < 2) continue;
+      for (let i = 0; i < grupo.length; i++) {
+        for (let j = i + 1; j < grupo.length; j++) {
+          if (!nomesParecidos(grupo[i].nome, grupo[j].nome)) continue;
+          const menor = Math.min(grupo[i].id, grupo[j].id);
+          const maior = Math.max(grupo[i].id, grupo[j].id);
+          if (descartados.has(`${menor}-${maior}`)) continue;
+          pares.push({ a: grupo[i], b: grupo[j] });
+        }
+      }
+    }
+
+    res.json({ pares });
+  } catch (erro) {
+    console.error('Erro ao buscar possíveis duplicatas:', erro);
+    res.status(500).json({ erro: 'Erro ao buscar possíveis duplicatas.' });
+  }
+});
+
+// POST /api/clientes/descartar-duplicata
+//
+// Registra permanentemente que um par de clientes NÃO é a mesma
+// pessoa, mesmo batendo no critério de nome parecido + mesmo dia/mês
+// de aniversário — a sugestão para de aparecer para esse par
+// especificamente em buscas futuras.
+router.post('/descartar-duplicata', async (req, res) => {
+  const { clienteAId, clienteBId } = req.body;
+  if (!clienteAId || !clienteBId) {
+    return res.status(400).json({ erro: 'Informe clienteAId e clienteBId.' });
+  }
+  try {
+    const menor = Math.min(clienteAId, clienteBId);
+    const maior = Math.max(clienteAId, clienteBId);
+    await db.query(
+      `INSERT INTO duplicatas_descartadas (cliente_menor_id, cliente_maior_id)
+       VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+      [menor, maior]
+    );
+    res.json({ ok: true });
+  } catch (erro) {
+    console.error('Erro ao descartar duplicata:', erro);
+    res.status(500).json({ erro: 'Erro ao descartar duplicata.' });
+  }
+});
+
+// POST /api/clientes/mesclar-automatico
+//
+// Mescla dois clientes decidindo sozinho qual cadastro vence: o dono
+// do pedido (Fonada ou Ao Vivo) mais recente entre os dois. Usado
+// pela sugestão de duplicatas da Lista de Clientes — diferente de
+// POST /:id/mesclar (mesclagem manual por arrastar), onde a pessoa
+// escolhe ativamente qual card vence.
+router.post('/mesclar-automatico', async (req, res) => {
+  const { clienteAId, clienteBId } = req.body;
+  if (!clienteAId || !clienteBId) {
+    return res.status(400).json({ erro: 'Informe clienteAId e clienteBId.' });
+  }
+  if (String(clienteAId) === String(clienteBId)) {
+    return res.status(400).json({ erro: 'Não é possível mesclar um cliente com ele mesmo.' });
+  }
+
+  const client = await pool.connect();
+  try {
+    const resultadoA = await client.query('SELECT * FROM clientes WHERE id = $1 AND excluido_em IS NULL', [clienteAId]);
+    const resultadoB = await client.query('SELECT * FROM clientes WHERE id = $1 AND excluido_em IS NULL', [clienteBId]);
+    const clienteA = resultadoA.rows[0];
+    const clienteB = resultadoB.rows[0];
+    if (!clienteA || !clienteB) {
+      client.release();
+      return res.status(404).json({ erro: 'Um dos clientes não foi encontrado.' });
+    }
+
+    const recenteA = await pedidoMaisRecenteDoCliente(client, clienteAId);
+    const recenteB = await pedidoMaisRecenteDoCliente(client, clienteBId);
+
+    // Quem tem o pedido mais recente vence e permanece como o
+    // registro principal; o outro é mesclado dentro dele. Em caso de
+    // nenhum dos dois ter pedidos ainda (ambos null), ou empate,
+    // mantém A como vencedor por padrão — mas isso é raro na prática,
+    // já que a sugestão só aparece para clientes com histórico.
+    const aVence = !recenteB || (recenteA && new Date(recenteA) >= new Date(recenteB));
+    const vencedor = aVence ? clienteA : clienteB;
+    const perdedor = aVence ? clienteB : clienteA;
+
+    await client.query('BEGIN');
+    await client.query('UPDATE fonadas SET cliente_id = $1 WHERE cliente_id = $2', [vencedor.id, perdedor.id]);
+    await client.query('UPDATE ao_vivo SET cliente_id = $1 WHERE cliente_id = $2', [vencedor.id, perdedor.id]);
+
+    // Diferente da mesclagem manual: aqui os dados do VENCEDOR (dono
+    // do pedido mais recente) prevalecem — mas só nos campos que ele
+    // realmente tem preenchidos. Um campo vazio no vencedor ainda
+    // pode ser complementado pelo perdedor, para não perder
+    // informação útil (ex: vencedor sem endereço cadastrado, perdedor
+    // com endereço).
+    const campos = ['nome', 'nascimento', 'fixo', 'whatsapp', 'celular', 'endereco', 'complemento', 'bairro', 'referencia'];
+    const valoresFinais = campos.map((c) => vencedor[c] || perdedor[c]);
+    const setClause = campos.map((c, i) => `${c} = $${i + 1}`).join(', ');
+    await client.query(
+      `UPDATE clientes SET ${setClause}, atualizado_em = NOW() WHERE id = $${campos.length + 1}`,
+      [...valoresFinais, vencedor.id]
+    );
+    await client.query('UPDATE clientes SET excluido_em = NOW() WHERE id = $1', [perdedor.id]);
+    await client.query('COMMIT');
+
+    const atualizado = await client.query('SELECT * FROM clientes WHERE id = $1', [vencedor.id]);
+    res.json({ cliente: atualizado.rows[0], vencedorId: vencedor.id, perdedorId: perdedor.id });
+  } catch (erro) {
+    await client.query('ROLLBACK');
+    console.error('Erro ao mesclar automaticamente:', erro);
+    res.status(500).json({ erro: 'Não foi possível mesclar os clientes.' });
+  } finally {
+    client.release();
   }
 });
 
@@ -434,23 +664,12 @@ router.post('/:id/mesclar', async (req, res) => {
     await client.query('UPDATE fonadas SET cliente_id = $1 WHERE cliente_id = $2', [destinoId, origemId]);
     await client.query('UPDATE ao_vivo SET cliente_id = $1 WHERE cliente_id = $2', [destinoId, origemId]);
 
-    // Preenche campos vazios do destino com dados do cliente mesclado,
-    // sem sobrescrever o que já existe.
-    const campos = ['nascimento', 'fixo', 'celular', 'endereco', 'complemento', 'bairro', 'referencia'];
-    const atualizacoes = {};
-    for (const campo of campos) {
-      if (!destino[campo] && origem[campo]) atualizacoes[campo] = origem[campo];
-    }
-    if (Object.keys(atualizacoes).length > 0) {
-      const chaves = Object.keys(atualizacoes);
-      const setClause = chaves.map((c, i) => `${c} = $${i + 1}`).join(', ');
-      const valores = Object.values(atualizacoes);
-      const idxId = chaves.length + 1;
-      await client.query(
-        `UPDATE clientes SET ${setClause}, atualizado_em = NOW() WHERE id = $${idxId}`,
-        [...valores, destinoId]
-      );
-    }
+    // Mesclagem manual (arrastar-e-soltar na lista): o card de DESTINO
+    // (onde o outro foi solto em cima) vence — mantém seus próprios
+    // dados de cadastro (nome, telefone, endereço etc.) sem nenhuma
+    // alteração. Só os pedidos da origem são migrados para o destino;
+    // o registro de origem é arquivado (soft delete) sem que seus
+    // dados de cadastro sejam copiados para lugar nenhum.
     await client.query('UPDATE clientes SET excluido_em = NOW() WHERE id = $1', [origemId]);
     await client.query('COMMIT');
 

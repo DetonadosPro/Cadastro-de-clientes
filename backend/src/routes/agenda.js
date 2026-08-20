@@ -103,10 +103,32 @@ router.get('/hoje', async (req, res) => {
 
     const itensAoVivo = aoVivoResultado.rows
       .filter((a) => dataCompleta(a.dia_entrega))
-      .map((a) => ({ ...a, passada: Boolean(a.resultado_entrega) }))
+      .map((a) => ({ ...a, passada: Boolean(a.resultado_entrega), ehCobranca: false }))
       .sort((a, b) => (a.horario_entrega || '').localeCompare(b.horario_entrega || ''));
 
-    res.json({ data: curto, consultandoHoje, fonada: itensFonada, aoVivo: itensAoVivo });
+    // Pedidos cuja entrega é outro dia (ou já passou), mas cujo
+    // pagamento "PRAZO" prevê cobrança justamente para o dia
+    // consultado — a Agenda mostra isso separado, com
+    // ehCobranca: true, para não ser confundido com uma
+    // mensagem/entrega marcada para o dia. O formato salvo é sempre
+    // "PRAZO - DIA dd/mm/aa[...]", nunca digitado livremente (ver
+    // FormAoVivo.jsx), então o LIKE é confiável.
+    const cobrancaResultado = await db.query(`
+      SELECT id, numero_os, comprador, cliente_id, para, dia_entrega, horario_entrega,
+             endereco, bairro, referencia, resultado_entrega, pagou
+      FROM ao_vivo
+      WHERE excluido_em IS NULL
+        AND (pagamento LIKE 'PRAZO - DIA ' || $1 || '%' OR pagamento LIKE 'PRAZO - DIA ' || $2 || '%')
+    `, [curto, longo]);
+
+    const idsJaListados = new Set(itensAoVivo.map((a) => a.id));
+    const itensCobranca = cobrancaResultado.rows
+      .filter((a) => !idsJaListados.has(a.id))
+      .map((a) => ({ ...a, passada: false, ehCobranca: true }));
+
+    const itensAoVivoTotal = [...itensAoVivo, ...itensCobranca];
+
+    res.json({ data: curto, consultandoHoje, fonada: itensFonada, aoVivo: itensAoVivoTotal });
   } catch (erro) {
     console.error('Erro ao buscar agenda:', erro);
     res.status(500).json({ erro: 'Erro ao buscar agenda.' });

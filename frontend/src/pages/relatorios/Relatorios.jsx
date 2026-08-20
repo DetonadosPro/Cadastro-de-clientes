@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../../api.js';
 import { formatarData } from '../../mascaras.js';
+import CampoData from '../../components/CampoData.jsx';
 
 export default function Relatorios() {
   // Aba e filtro de sistema ficam na URL — assim, ao abrir um pedido a
@@ -31,12 +32,12 @@ export default function Relatorios() {
     <div>
       <div style={{ marginBottom: 20 }}>
         <h1 style={{ marginBottom: 2 }}>Relatórios</h1>
-        <p className="fs-sm" style={{ color: '#6c757d', margin: 0 }}>
+        <p className="fs-sm" style={{ color: 'var(--tinta-suave)', margin: 0 }}>
           Valores por período — vendas realizadas e pagamentos recebidos
         </p>
       </div>
 
-      <div className="section-box" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="section-box secao-relatorios">
         <div className="abas-cliente abas-relatorio">
           <button
             type="button"
@@ -131,12 +132,12 @@ function AbaVendas({ sistema }) {
         onSubmit={buscar} carregando={carregando}
       />
 
-      {erro && <p className="fs-sm" style={{ color: '#dc3545' }}>{erro}</p>}
+      {erro && <p className="fs-sm" style={{ color: 'var(--selo)' }}>{erro}</p>}
 
       {!jaBuscou ? (
         <EstadoVazio texto="Escolha o período e clique em Buscar." />
       ) : carregando ? (
-        <p className="fs-sm" style={{ color: '#6c757d' }}>Carregando...</p>
+        <p className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Carregando...</p>
       ) : dados && (
         <>
           <div className="cartao-valor destaque" style={{ marginBottom: 16, textAlign: 'center' }}>
@@ -150,12 +151,12 @@ function AbaVendas({ sistema }) {
               <div className="grade grade-4">
                 <CartaoValor label="Total de pedidos" valor={dados.fonada.quantidade} />
                 <CartaoValor label="PIX" valor={dados.fonada.totalPix} sub={`${dados.fonada.percentualPix}%`} />
-                <CartaoValor label="Presencial" valor={dados.fonada.totalRecibo} sub={`${dados.fonada.percentualRecibo}%`} />
+                <CartaoValor label="Outros" valor={dados.fonada.totalRecibo} sub={`${dados.fonada.percentualRecibo}%`} />
                 <CartaoValor label="Valor total" valor={formatarReais(dados.fonada.valorTotal)} />
               </div>
               <div className="grade grade-2" style={{ marginTop: 10 }}>
                 <CartaoValor label="Recall" valor={dados.fonada.totalRecall} sub={`${dados.fonada.percentualRecall}%`} />
-                <CartaoValor label="Outros" valor={dados.fonada.totalOutros} sub={`${dados.fonada.percentualOutros}%`} />
+                <CartaoValor label="Clientes" valor={dados.fonada.totalOutros} sub={`${dados.fonada.percentualOutros}%`} />
               </div>
             </BlocoSistema>
           )}
@@ -212,12 +213,12 @@ function AbaRecebimentos({ sistema }) {
         onSubmit={buscar} carregando={carregando}
       />
 
-      {erro && <p className="fs-sm" style={{ color: '#dc3545' }}>{erro}</p>}
+      {erro && <p className="fs-sm" style={{ color: 'var(--selo)' }}>{erro}</p>}
 
       {!jaBuscou ? (
         <EstadoVazio texto="Escolha o período e clique em Buscar." />
       ) : carregando ? (
-        <p className="fs-sm" style={{ color: '#6c757d' }}>Carregando...</p>
+        <p className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Carregando...</p>
       ) : dados && (
         <>
           <div className="cartao-valor destaque" style={{ marginBottom: 16, textAlign: 'center' }}>
@@ -243,7 +244,7 @@ function AbaRecebimentos({ sistema }) {
               <div className="grade grade-3">
                 <CartaoValor label="Total de pedidos" valor={dados.fonada.quantidade} />
                 <CartaoValor label="PIX" valor={dados.fonada.totalPix} sub={`${dados.fonada.percentualPix}%`} />
-                <CartaoValor label="Presencial" valor={dados.fonada.totalRecibo} sub={`${dados.fonada.percentualRecibo}%`} />
+                <CartaoValor label="Outros" valor={dados.fonada.totalRecibo} sub={`${dados.fonada.percentualRecibo}%`} />
               </div>
             </BlocoSistema>
           )}
@@ -267,11 +268,11 @@ function FormularioPeriodo({ inicio, fim, setInicio, setFim, onSubmit, carregand
     <form onSubmit={onSubmit} className="form-periodo-relatorio">
       <div className="campo">
         <label>Data inicial</label>
-        <input className="campo-data" placeholder="dd/mm/aa" value={inicio} onChange={(e) => setInicio(e.target.value)} />
+        <CampoData placeholder="dd/mm/aa" value={inicio} onChange={setInicio} />
       </div>
       <div className="campo">
         <label>Data final (opcional)</label>
-        <input className="campo-data" placeholder="dd/mm/aa" value={fim} onChange={(e) => setFim(e.target.value)} />
+        <CampoData placeholder="dd/mm/aa" value={fim} onChange={setFim} />
       </div>
       <button type="submit" className="btn" disabled={carregando}>
         {carregando ? 'Buscando...' : 'Buscar'}
@@ -291,7 +292,7 @@ function BlocoSistema({ titulo, cor, children }) {
 
 function EstadoVazio({ texto }) {
   return (
-    <p className="fs-sm" style={{ color: '#6c757d', textAlign: 'center', padding: '28px 0' }}>
+    <p className="fs-sm" style={{ color: 'var(--tinta-suave)', textAlign: 'center', padding: '28px 0' }}>
       {texto}
     </p>
   );

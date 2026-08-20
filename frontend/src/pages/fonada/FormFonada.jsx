@@ -4,6 +4,7 @@ import { api } from '../../api.js';
 import { useRascunhos } from '../../RascunhosContext.jsx';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData, formatarHorario, formatarCodigoNumerico, formatarValorMonetario, valorMonetarioParaNumero, numeroParaValorMonetario } from '../../mascaras.js';
+import CampoData from '../../components/CampoData.jsx';
 
 const VAZIO = {
   senha_os: '', cliente_id: null, data_pedido: '', horario_pedido: '', nascimento: '', tipo: '', recall: 'NÃO', recall_codigo: '',
@@ -23,6 +24,64 @@ function dataHoraAtual() {
   const hh = String(agora.getHours()).padStart(2, '0');
   const min = String(agora.getMinutes()).padStart(2, '0');
   return { data: `${dd}/${mm}/${aa}`, horario: `${hh}:${min}` };
+}
+
+// Data de hoje sem componente de hora, para comparar com outras datas
+// "no nível do dia" (sem hora atrapalhar a comparação).
+function hojeSemHora() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+// Converte "dd/mm/aa" para Date, ou null se incompleta/inválida —
+// usado na validação de data mínima ao digitar manualmente.
+function textoParaData(texto) {
+  const m = String(texto || '').trim().match(/^(\d{2})\/(\d{2})\/(\d{2})$/);
+  if (!m) return null;
+  const [, dd, mm, aa] = m;
+  const data = new Date(2000 + parseInt(aa, 10), parseInt(mm, 10) - 1, parseInt(dd, 10));
+  if (data.getDate() !== parseInt(dd, 10) || data.getMonth() !== parseInt(mm, 10) - 1) return null;
+  return data;
+}
+
+function IconeSalvar() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" />
+      <path d="M17 21v-8H7v8M7 3v5h8" />
+    </svg>
+  );
+}
+function IconeLimpar() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-.9 13.1a2 2 0 0 1-2 1.9H7.9a2 2 0 0 1-2-1.9L5 6" />
+    </svg>
+  );
+}
+function IconeMaisPequeno() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+function IconeExcluir() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 7h16" />
+      <path d="M9 7V5c0-.6.4-1 1-1h4c.6 0 1 .4 1 1v2" />
+      <path d="M6 7l1 12.5c0 .8.7 1.5 1.5 1.5h7c.8 0 1.5-.7 1.5-1.5L18 7" />
+    </svg>
+  );
+}
+function IconeFechar() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M18 6 6 18M6 6l12 12" />
+    </svg>
+  );
 }
 
 // Extrai os 2 dígitos do DDD de um telefone formatado como "(34) 9 9999-9999"
@@ -111,11 +170,9 @@ export default function FormFonada() {
   }, [id, editando, clienteIdUrl]);
 
   function set(campo, valor) {
-    setDados((d) => {
-      const novo = { ...d, [campo]: valor };
-      setRascunhoFonada({ chave: chaveRascunho, dados: novo, cliente });
-      return novo;
-    });
+    const novo = { ...dados, [campo]: valor };
+    setDados(novo);
+    setRascunhoFonada({ chave: chaveRascunho, dados: novo, cliente });
   }
 
   function setComMascara(campo, valorBruto, tipoMascara) {
@@ -147,6 +204,21 @@ export default function FormFonada() {
     if (!dados.cliente_id) {
       setErro('Nenhum cliente vinculado a este pedido.');
       return;
+    }
+    if (!editando) {
+      const hoje = hojeSemHora();
+      const camposData = [
+        { campo: 'p1_dia', rotulo: 'Dia da 1ª mensagem' },
+        { campo: 'p2_dia', rotulo: 'Dia da 2ª mensagem' },
+        { campo: 'cobranca', rotulo: 'Dia de cobrança' },
+      ];
+      for (const { campo, rotulo } of camposData) {
+        const data = textoParaData(dados[campo]);
+        if (data && data.getTime() < hoje.getTime()) {
+          setErro(`${rotulo} não pode ser uma data anterior a hoje.`);
+          return;
+        }
+      }
     }
     setSalvando(true);
     try {
@@ -200,7 +272,7 @@ export default function FormFonada() {
   if (erro && !dados.cliente_id) {
     return (
       <div className="painel" style={{ maxWidth: 480 }}>
-        <p className="fs-sm" style={{ color: '#dc3545', marginBottom: 12 }}>{erro}</p>
+        <p className="fs-sm" style={{ color: 'var(--selo)', marginBottom: 12 }}>{erro}</p>
         <button className="btn" onClick={() => navigate('/clientes')}>Ir para Clientes</button>
       </div>
     );
@@ -223,6 +295,21 @@ export default function FormFonada() {
   const estaBloqueado = !!cliente?.bloqueado;
   const segundaLiberada = segundaMensagemLiberada(dados);
 
+  // Validação em tempo real (não só ao salvar): se a data ficar
+  // completa e for anterior a hoje, o aviso aparece na hora, sem
+  // precisar clicar em Salvar para descobrir. Só se aplica ao criar um
+  // pedido novo — editar um pedido existente com data passada é normal.
+  const hoje = hojeSemHora();
+  function dataNoPassado(texto) {
+    if (editando) return false;
+    const data = textoParaData(texto);
+    return data && data.getTime() < hoje.getTime();
+  }
+  const p1DiaNoPassado = dataNoPassado(dados.p1_dia);
+  const p2DiaNoPassado = dataNoPassado(dados.p2_dia);
+  const cobrancaNoPassado = dataNoPassado(dados.cobranca);
+  const algumaDataNoPassado = p1DiaNoPassado || p2DiaNoPassado || cobrancaNoPassado;
+
   return (
     <div className="form-pagina pagina-fonada-ampliada">
       {estaBloqueado && (
@@ -235,37 +322,52 @@ export default function FormFonada() {
 
         <div>
           <div className="section-box">
-            <div className="section-title">Ordem de serviço</div>
-            <div className="duas-colunas-mensagem">
-              <ColunaOrdemServico numero={1} dados={dados} set={set} setComMascara={setComMascara} onCopiar={copiarEntreMensagens} />
-              <ColunaOrdemServico numero={2} dados={dados} set={set} setComMascara={setComMascara} onCopiar={copiarEntreMensagens} bloqueada={!segundaLiberada} />
-            </div>
-          </div>
-
-          <div className="section-box">
             <div className="section-title">Transmissão</div>
             <div className="duas-colunas-mensagem">
-              <ColunaTransmissao numero={1} dados={dados} set={set} setComMascara={setComMascara} onCopiar={copiarEntreMensagens} />
-              <ColunaTransmissao numero={2} dados={dados} set={set} setComMascara={setComMascara} onCopiar={copiarEntreMensagens} bloqueada={!segundaLiberada} />
+              <ColunaMensagem
+                numero={1} dados={dados} set={set} setComMascara={setComMascara} onCopiar={copiarEntreMensagens}
+                editando={editando} dataNoPassado={p1DiaNoPassado}
+              />
+              <ColunaMensagem
+                numero={2} dados={dados} set={set} setComMascara={setComMascara} onCopiar={copiarEntreMensagens}
+                bloqueada={!segundaLiberada} editando={editando} dataNoPassado={p2DiaNoPassado}
+              />
             </div>
           </div>
 
-          <div className="section-box">
+          <div className="section-box" style={{ width: 'fit-content', maxWidth: '100%' }}>
             <div className="form-row">
               <label>Valor R$:</label>
               <input
                 type="text"
                 inputMode="numeric"
+                className="input-valor-destaque"
                 value={dados.valor}
                 onChange={(e) => set('valor', formatarValorMonetario(e.target.value))}
-                style={{ fontWeight: 700 }}
+                placeholder="0,00"
+                style={{ maxWidth: 90, flex: '0 0 auto' }}
               />
               <label style={{ minWidth: 'auto', marginLeft: 8 }}>Cob. dia:</label>
-              <input placeholder="dd/mm/aa" value={dados.cobranca} onChange={(e) => setComMascara('cobranca', e.target.value, 'data')} />
+              <CampoData
+                placeholder="dd/mm/aa"
+                value={dados.cobranca}
+                onChange={(v) => setComMascara('cobranca', v, 'data')}
+                minimo={!editando ? hojeSemHora() : undefined}
+                style={{ maxWidth: 118, flex: '0 0 auto' }}
+              />
             </div>
+            {cobrancaNoPassado && (
+              <p className="fs-xs" style={{ color: 'var(--selo)', marginTop: -4, marginBottom: 8 }}>
+                O dia de cobrança não pode ser anterior a hoje.
+              </p>
+            )}
             <div className="form-row">
               <label>Período:</label>
-              <input value={dados.periodo} onChange={(e) => set('periodo', e.target.value)} />
+              <input
+                value={dados.periodo}
+                onChange={(e) => set('periodo', e.target.value)}
+                style={{ width: 292, flex: '0 0 auto' }}
+              />
             </div>
           </div>
 
@@ -283,6 +385,7 @@ export default function FormFonada() {
                 <InfoSomenteLeitura label="Nome" valor={cliente.nome} />
                 <InfoSomenteLeitura label="Nascimento" valor={cliente.nascimento} />
                 <InfoSomenteLeitura label="Fixo" valor={cliente.fixo} />
+                <InfoSomenteLeitura label="WhatsApp" valor={cliente.whatsapp} />
                 <InfoSomenteLeitura label="Celular" valor={cliente.celular} />
                 <InfoSomenteLeitura label="Endereço" valor={cliente.endereco} />
                 <InfoSomenteLeitura label="Complemento" valor={cliente.complemento} />
@@ -290,7 +393,7 @@ export default function FormFonada() {
                 <InfoSomenteLeitura label="Referência" valor={cliente.referencia} />
               </div>
             ) : (
-              <p className="fs-sm" style={{ color: '#6c757d' }}>Nenhum cliente vinculado.</p>
+              <p className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Nenhum cliente vinculado.</p>
             )}
           </div>
 
@@ -320,10 +423,10 @@ export default function FormFonada() {
                         <span className="tag pendente">Não atendeu</span>
                       </div>
                       {item.observacao && (
-                        <span className="fs-xs" style={{ color: '#6c757d' }}>Obs.: {item.observacao}</span>
+                        <span className="fs-xs" style={{ color: 'var(--tinta-suave)' }}>Obs.: {item.observacao}</span>
                       )}
                       {item.remarcado_dia && (
-                        <span className="fs-xs" style={{ color: '#6c757d' }}>
+                        <span className="fs-xs" style={{ color: 'var(--tinta-suave)' }}>
                           Remarcado para {item.remarcado_dia} às {item.remarcado_horario}
                         </span>
                       )}
@@ -342,20 +445,20 @@ export default function FormFonada() {
               : <span className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Calculando O.S...</span>}
           </div>
 
-          {erro && <p className="fs-sm" style={{ color: '#dc3545', marginBottom: 10 }}>{erro}</p>}
+          {erro && <p className="fs-sm" style={{ color: 'var(--selo)', marginBottom: 10 }}>{erro}</p>}
 
           <div className="section-box actions-grid">
-            <button type="button" className="btn-action destaque" onClick={salvar} disabled={salvando}>
-              {salvando ? 'Salvando...' : 'Salvar'}
+            <button type="button" className="btn-action destaque" onClick={salvar} disabled={salvando || algumaDataNoPassado}>
+              <IconeSalvar /> {salvando ? 'Salvando...' : 'Salvar'}
             </button>
-            <button type="button" className="btn-action" onClick={limpar}>Limpar</button>
+            <button type="button" className="btn-action" onClick={limpar}><IconeLimpar /> Limpar</button>
             {editando && cliente && !estaBloqueado && (
               <button type="button" className="btn-action" onClick={() => navigate(`/fonada/novo?clienteId=${cliente.id}`)}>
-                + Novo pedido
+                <IconeMaisPequeno /> Novo pedido
               </button>
             )}
             {editando && (
-              <button type="button" className="btn-action perigo-acao" onClick={apagar}>Excluir</button>
+              <button type="button" className="btn-action perigo-acao" onClick={apagar}><IconeExcluir /> Excluir</button>
             )}
             <button
               type="button"
@@ -363,7 +466,7 @@ export default function FormFonada() {
               style={{ gridColumn: editando ? undefined : 'span 2', pointerEvents: 'auto' }}
               onClick={fechar}
             >
-              Fechar
+              <IconeFechar /> Fechar
             </button>
           </div>
 
@@ -394,30 +497,13 @@ export default function FormFonada() {
                 <option value="SIM">Sim</option>
                 <option value="NÃO">Não</option>
               </select>
-              <label style={{ minWidth: 'auto', marginLeft: 4 }}>Código:</label>
               <input
                 placeholder="00000"
                 value={dados.recall_codigo}
                 disabled={dados.recall !== 'SIM'}
                 onChange={(e) => set('recall_codigo', formatarCodigoNumerico(e.target.value, 5))}
-                style={{ maxWidth: 90 }}
+                style={{ maxWidth: 90, marginLeft: 4 }}
               />
-            </div>
-            <div className="form-row">
-              <label style={{ minWidth: 'auto' }}>Tipo:</label>
-              <select value={dados.tipo} onChange={(e) => set('tipo', e.target.value)}>
-                <option value="">—</option>
-                <option value="ANI.">ANIVERSÁRIO</option>
-                <option value="OUT.">OUTRO</option>
-              </select>
-            </div>
-            <div className="form-row">
-              <label style={{ minWidth: 'auto' }}>Vender:</label>
-              <select value={dados.vender} onChange={(e) => set('vender', e.target.value)}>
-                <option value="">—</option>
-                <option value="SIM">Sim</option>
-                <option value="NÃO">Não</option>
-              </select>
             </div>
           </div>
 
@@ -436,12 +522,14 @@ export default function FormFonada() {
   );
 }
 
-// Uma coluna com os campos da Ordem de serviço de uma mensagem específica
-// (1ª ou 2ª) — as duas colunas ficam visíveis lado a lado, sem precisar
+// Uma coluna com todos os campos de uma mensagem específica (1ª ou
+// 2ª) — as duas colunas ficam visíveis lado a lado, sem precisar
 // trocar de aba para ver a outra mensagem. O botão "P" (copiar) só
-// aparece na coluna da 1ª mensagem, já que o fluxo normal é preencher a
-// 1ª e copiar dali para a 2ª, não o contrário.
-function ColunaOrdemServico({ numero, dados, set, setComMascara, onCopiar, bloqueada }) {
+// aparece na coluna da 1ª mensagem, já que o fluxo normal é preencher
+// a 1ª e copiar dali para a 2ª, não o contrário. Reúne o que antes
+// eram duas seções separadas ("Ordem de serviço" e "Transmissão") —
+// na prática é a mesma ordem de serviço, só com campos diferentes.
+function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada, editando, dataNoPassado }) {
   const p = numero === 1 ? 'p1' : 'p2';
   const mostrarBotaoP = numero === 1;
 
@@ -449,14 +537,33 @@ function ColunaOrdemServico({ numero, dados, set, setComMascara, onCopiar, bloqu
     <div className="coluna-mensagem">
       <div className="coluna-mensagem-titulo">
         <span className={`bolinha-status ${dados[`${p}_dia`] ? 'usada' : 'livre'}`} /> {numero}ª mensagem
+        {bloqueada && (
+          <span className="fs-xs" style={{ color: 'var(--selo)', fontWeight: 700, marginLeft: 6, whiteSpace: 'nowrap' }}>
+            — INTERURBANO
+          </span>
+        )}
       </div>
-      {bloqueada && (
-        <p className="fs-xs" style={{ color: '#dc3545', marginBottom: 6 }}>
-          Bloqueada: nenhum telefone da 1ª mensagem tem DDD 34.
-        </p>
-      )}
-      <CampoComP label="Tema" nomeCampo="tema" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} />
-      <CampoComP label="Mensagem" nomeCampo="mensagem" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} />
+      <div className="form-row">
+        <label>Tema:</label>
+        <input
+          value={dados[`${p}_tema`]}
+          onChange={(e) => set(`${p}_tema`, e.target.value)}
+          disabled={bloqueada}
+        />
+        <label style={{ minWidth: 'auto', marginLeft: 6 }}>Nº:</label>
+        <input
+          value={dados[`${p}_mensagem`]}
+          onChange={(e) => set(`${p}_mensagem`, e.target.value)}
+          disabled={bloqueada}
+          style={{ maxWidth: 56, flex: '0 0 auto' }}
+        />
+        {mostrarBotaoP && (
+          <BotaoP
+            onClick={() => { onCopiar('tema', numero); onCopiar('mensagem', numero); }}
+            titulo="Copiar tema/nº para a 2ª mensagem"
+          />
+        )}
+      </div>
       <CampoComP label="Para" nomeCampo="para" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} />
       <div className="form-row">
         <label>Fixo:</label>
@@ -470,22 +577,24 @@ function ColunaOrdemServico({ numero, dados, set, setComMascara, onCopiar, bloqu
           />
         )}
       </div>
-    </div>
-  );
-}
-
-// Mesma ideia para a seção Transmissão.
-function ColunaTransmissao({ numero, dados, set, setComMascara, onCopiar, bloqueada }) {
-  const p = numero === 1 ? 'p1' : 'p2';
-  const mostrarBotaoP = numero === 1;
-
-  return (
-    <div className="coluna-mensagem">
       <div className="form-row">
         <label>Dia:</label>
-        <input placeholder="dd/mm/aa" value={dados[`${p}_dia`]} onChange={(e) => setComMascara(`${p}_dia`, e.target.value, 'data')} disabled={bloqueada} style={{ fontWeight: 700 }} />
-        <label style={{ minWidth: 'auto', marginLeft: 4 }}>Horário:</label>
-        <input placeholder="hh:mm" value={dados[`${p}_horario`]} onChange={(e) => setComMascara(`${p}_horario`, e.target.value, 'horario')} disabled={bloqueada} style={{ fontWeight: 700 }} />
+        <CampoData
+          placeholder="dd/mm/aa"
+          value={dados[`${p}_dia`]}
+          onChange={(v) => setComMascara(`${p}_dia`, v, 'data')}
+          disabled={bloqueada}
+          style={{ fontWeight: 700, flex: '1 1 60px', minWidth: 0 }}
+          minimo={!editando ? hojeSemHora() : undefined}
+        />
+        <label style={{ minWidth: 'auto', marginLeft: 6 }}>Horário:</label>
+        <input
+          placeholder="hh:mm"
+          value={dados[`${p}_horario`]}
+          onChange={(e) => setComMascara(`${p}_horario`, e.target.value, 'horario')}
+          disabled={bloqueada}
+          style={{ fontWeight: 700, flex: '1 1 45px', minWidth: 0 }}
+        />
         {mostrarBotaoP && (
           <BotaoP
             onClick={() => { onCopiar('dia', numero); onCopiar('horario', numero); }}
@@ -493,13 +602,18 @@ function ColunaTransmissao({ numero, dados, set, setComMascara, onCopiar, bloque
           />
         )}
       </div>
+      {dataNoPassado && (
+        <p className="fs-xs" style={{ color: 'var(--selo)', marginTop: -4, marginBottom: 6 }}>
+          O dia não pode ser anterior a hoje.
+        </p>
+      )}
       <CampoComP label="Quem oferece" nomeCampo="quem_oferece" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} negrito />
-      <CampoComP label="Resultado" nomeCampo="resultado" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} negrito />
+      <CampoComP label="Resultado" nomeCampo="resultado" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} negrito cor="var(--selo)" />
     </div>
   );
 }
 
-function CampoComP({ label, nomeCampo, prefixo, numero, dados, set, onCopiar, mostrarBotaoP, desabilitado, negrito }) {
+function CampoComP({ label, nomeCampo, prefixo, numero, dados, set, onCopiar, mostrarBotaoP, desabilitado, negrito, cor }) {
   return (
     <div className="form-row">
       <label>{label}:</label>
@@ -507,7 +621,7 @@ function CampoComP({ label, nomeCampo, prefixo, numero, dados, set, onCopiar, mo
         value={dados[`${prefixo}_${nomeCampo}`]}
         onChange={(e) => set(`${prefixo}_${nomeCampo}`, e.target.value)}
         disabled={desabilitado}
-        style={negrito ? { fontWeight: 700 } : undefined}
+        style={{ ...(negrito ? { fontWeight: 700 } : {}), ...(cor ? { color: cor } : {}) }}
       />
       {mostrarBotaoP && (
         <BotaoP onClick={() => onCopiar(nomeCampo, numero)} titulo="Copiar para a 2ª mensagem" />
@@ -527,7 +641,7 @@ function BotaoP({ onClick, titulo }) {
 function InfoSomenteLeitura({ label, valor }) {
   return (
     <div>
-      <div className="fs-xs" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', color: '#6c757d', marginBottom: 2 }}>
+      <div className="fs-xs" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--tinta-suave)', marginBottom: 2 }}>
         {label}
       </div>
       <div className="fs-md">{valor || '—'}</div>

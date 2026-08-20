@@ -4,6 +4,7 @@ import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { useAgendaAlerta, statusUrgenciaItem } from '../../AgendaAlertaContext.jsx';
 import { formatarData, formatarHorario } from '../../mascaras.js';
+import CampoData from '../../components/CampoData.jsx';
 
 // Data de hoje no mesmo formato usado nos campos do sistema (dd/mm/aa).
 function hojeFormatado() {
@@ -139,6 +140,20 @@ export default function Agenda() {
     }
   }
 
+  async function marcarPagouAoVivo(item, pagou) {
+    const chave = `aovivo-pagou-${item.id}`;
+    setSalvandoBaixa(chave);
+    try {
+      await api.aoVivo.marcarPagou(item.id, pagou);
+      mostrarToast(pagou === 'SIM' ? 'Pagamento registrado como recebido.' : 'Registrado como não recebido.');
+      carregar();
+    } catch (err) {
+      mostrarToast('Não foi possível registrar. Tente novamente.', 'erro');
+    } finally {
+      setSalvandoBaixa(null);
+    }
+  }
+
   function abrirRemarcar(item) {
     setItemRemarcarAberto({ pedidoId: item.pedidoId, mensagem: item.mensagem, nome: item.nome_comprador });
     setObservacao('');
@@ -184,11 +199,6 @@ export default function Agenda() {
     });
   }
 
-  const ESTILO_URGENCIA = {
-    atrasada: { border: '2px solid #dc3545' },
-    proxima: { border: '2px solid #fd7e14' },
-  };
-
   const fonadaExibida = ehHoje ? ordenarPendentesPrimeiro(fonada, 'horario') : fonada;
   const aoVivoExibido = ehHoje ? ordenarPendentesPrimeiro(aoVivo, 'horario_entrega') : aoVivo;
 
@@ -200,11 +210,11 @@ export default function Agenda() {
           <button type="button" className="btn-small" onClick={() => irParaDia(somarDias(dataSelecionada, -1))}>
             ← Dia anterior
           </button>
-          <input
+          <CampoData
             className="campo-data-agenda"
             placeholder="dd/mm/aa"
             value={dataSelecionada}
-            onChange={(e) => irParaDia(formatarData(e.target.value))}
+            onChange={(v) => irParaDia(formatarData(v))}
           />
           {!ehHoje && (
             <button type="button" className="btn-small" onClick={() => irParaDia(hojeFormatado())}>
@@ -216,18 +226,18 @@ export default function Agenda() {
           </button>
         </div>
         {!ehHoje && (
-          <p className="fs-xs" style={{ color: '#dc3545', marginTop: 6 }}>
+          <p className="fs-xs" style={{ color: 'var(--selo)', marginTop: 6 }}>
             Consultando outro dia — só visualização, sem ações de baixa.
           </p>
         )}
       </div>
 
-      {erro && <p style={{ color: '#dc3545' }}>{erro}</p>}
+      {erro && <p style={{ color: 'var(--selo)' }}>{erro}</p>}
 
       {carregando ? (
-        <p style={{ color: '#6c757d' }}>Carregando...</p>
+        <p style={{ color: 'var(--tinta-suave)' }}>Carregando...</p>
       ) : (
-        <div className="section-box" style={{ padding: 0, overflow: 'hidden' }}>
+        <div className="section-box secao-relatorios">
           <div className="abas-cliente">
             <button
               type="button"
@@ -248,7 +258,7 @@ export default function Agenda() {
           <div style={{ padding: 16 }}>
             {aba === 'fonada' && (
               fonadaExibida.length === 0 ? (
-                <p className="fs-sm" style={{ color: '#6c757d', textAlign: 'center', padding: '16px 0' }}>
+                <p className="fs-sm" style={{ color: 'var(--tinta-suave)', textAlign: 'center', padding: '16px 0' }}>
                   Nenhuma mensagem fonada marcada para {ehHoje ? 'hoje' : 'esse dia'}.
                 </p>
               ) : (
@@ -260,26 +270,32 @@ export default function Agenda() {
                     return (
                       <div
                         key={chave}
-                        className="painel"
+                        className={`painel ${urgencia ? `painel-urgencia ${urgencia}` : ''}`}
                         style={{
                           ...estilos.itemAgenda,
                           ...(jaPassada ? estilos.itemPassado : {}),
-                          ...(urgencia ? ESTILO_URGENCIA[urgencia] : {}),
                         }}
                       >
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
                             <span className="carimbo-os carimbo-os-lista">{item.senha_os || item.pedidoId}</span>
                             <span
-                              className="fs-lg"
-                              style={{ fontWeight: 700, color: '#004085', textDecoration: jaPassada ? 'line-through' : 'none' }}
+                              style={{
+                                fontFamily: 'var(--fonte-mono)',
+                                fontSize: 16,
+                                fontWeight: 700,
+                                color: 'var(--carimbo)',
+                                textDecoration: jaPassada ? 'line-through' : 'none',
+                              }}
                             >
                               {item.horario || '—'}
                             </span>
                             <span className="tag neutro">{item.mensagem}ª mensagem</span>
+                            {urgencia === 'atrasada' && <span className="tag pendente">Atrasado</span>}
+                            {urgencia === 'proxima' && <span className="tag aviso">Chegando</span>}
                             {(!ehHoje || jaPassada) && (
                               <span className={`tag ${item.resultado ? 'ok' : 'pendente'}`}>
-                                {item.resultado ? 'Já passada' : 'Pendente'}
+                                {item.resultado ? 'Passada' : 'Pendente'}
                               </span>
                             )}
                           </div>
@@ -314,7 +330,7 @@ export default function Agenda() {
                               <button
                                 type="button"
                                 className="btn-small"
-                                style={{ color: '#dc3545', borderColor: '#dc3545' }}
+                                style={{ color: 'var(--selo)', borderColor: 'var(--selo)' }}
                                 onClick={() => abrirRemarcar(item)}
                               >
                                 Não atendeu
@@ -325,7 +341,7 @@ export default function Agenda() {
                                 onClick={() => darBaixa(item)}
                                 disabled={salvandoBaixa === chave}
                               >
-                                {salvandoBaixa === chave ? 'Salvando...' : 'Dar baixa'}
+                                {salvandoBaixa === chave ? 'Salvando...' : 'Marcar como passada'}
                               </button>
                             </>
                           )}
@@ -339,7 +355,7 @@ export default function Agenda() {
 
             {aba === 'aovivo' && (
               aoVivoExibido.length === 0 ? (
-                <p className="fs-sm" style={{ color: '#6c757d', textAlign: 'center', padding: '16px 0' }}>
+                <p className="fs-sm" style={{ color: 'var(--tinta-suave)', textAlign: 'center', padding: '16px 0' }}>
                   Nenhuma mensagem ao vivo marcada para {ehHoje ? 'hoje' : 'esse dia'}.
                 </p>
               ) : (
@@ -348,29 +364,44 @@ export default function Agenda() {
                     const chave = `aovivo-${item.id}`;
                     const jaPassada = ehHoje && item.passada;
                     const foiEntregue = Boolean(item.resultado_entrega);
-                    const urgencia = (ehHoje && !jaPassada) ? statusUrgenciaItem(item.horario_entrega) : null;
+                    // Itens de cobrança (ehCobranca) não têm horário de entrega
+                    // válido para esse dia — são só um lembrete de que o prazo
+                    // de pagamento vence aqui, então não entram na lógica de
+                    // "atrasado"/"chegando" que é sobre o horário do evento.
+                    const urgencia = (ehHoje && !jaPassada && !item.ehCobranca) ? statusUrgenciaItem(item.horario_entrega) : null;
                     return (
                       <div
                         key={item.id}
-                        className="painel"
+                        className={`painel ${urgencia ? `painel-urgencia ${urgencia}` : ''}`}
                         style={{
                           ...estilos.itemAgenda,
                           ...(jaPassada ? estilos.itemPassado : {}),
-                          ...(urgencia ? ESTILO_URGENCIA[urgencia] : {}),
                         }}
                       >
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
                             <span className="carimbo-os carimbo-os-lista">{item.numero_os || item.id}</span>
-                            <span
-                              className="fs-lg"
-                              style={{ fontWeight: 700, color: '#004085', textDecoration: jaPassada ? 'line-through' : 'none' }}
-                            >
-                              {item.horario_entrega || '—'}
-                            </span>
-                            {foiEntregue && (
+                            {item.ehCobranca ? (
+                              <span className="tag aviso">Cobrança prevista — não é entrega</span>
+                            ) : (
+                              <span
+                                style={{
+                                  fontFamily: 'var(--fonte-mono)',
+                                  fontSize: 16,
+                                  fontWeight: 700,
+                                  color: 'var(--carimbo)',
+                                  textDecoration: jaPassada ? 'line-through' : 'none',
+                                }}
+                              >
+                                {item.horario_entrega || '—'}
+                              </span>
+                            )}
+                            {urgencia === 'atrasada' && <span className="tag pendente">Atrasado</span>}
+                            {urgencia === 'proxima' && <span className="tag aviso">Chegando</span>}
+                            {item.ehCobranca && item.pagou === 'SIM' && <span className="tag ok">Recebido</span>}
+                            {!item.ehCobranca && foiEntregue && (
                               <>
-                                <span className="tag ok">Pago</span>
+                                <span className="tag ok">Entregue</span>
                                 <button
                                   type="button"
                                   className="btn-small"
@@ -408,14 +439,34 @@ export default function Agenda() {
                           >
                             Abrir pedido
                           </button>
-                          {!foiEntregue && (
+                          {!item.ehCobranca && !foiEntregue && (
                             <button
                               type="button"
                               className="btn"
                               onClick={() => darBaixaAoVivo(item, true)}
                               disabled={salvandoBaixa === chave}
                             >
-                              {salvandoBaixa === chave ? 'Salvando...' : 'Dar baixa'}
+                              {salvandoBaixa === chave ? 'Salvando...' : 'Confirmar entrega'}
+                            </button>
+                          )}
+                          {item.ehCobranca && item.pagou !== 'SIM' && (
+                            <button
+                              type="button"
+                              className="btn"
+                              onClick={() => marcarPagouAoVivo(item, 'SIM')}
+                              disabled={salvandoBaixa === `aovivo-pagou-${item.id}`}
+                            >
+                              {salvandoBaixa === `aovivo-pagou-${item.id}` ? 'Salvando...' : 'Recebido'}
+                            </button>
+                          )}
+                          {item.ehCobranca && item.pagou === 'SIM' && (
+                            <button
+                              type="button"
+                              className="btn-small"
+                              onClick={() => marcarPagouAoVivo(item, null)}
+                              disabled={salvandoBaixa === `aovivo-pagou-${item.id}`}
+                            >
+                              {salvandoBaixa === `aovivo-pagou-${item.id}` ? 'Desfazendo...' : 'Desfazer'}
                             </button>
                           )}
                         </div>
@@ -433,17 +484,17 @@ export default function Agenda() {
         <div className="modal-fundo" onClick={cancelarRemarcar}>
           <div className="modal-caixa" onClick={(e) => e.stopPropagation()}>
             <div className="section-title">Não atendeu — {itemRemarcarAberto.nome}</div>
-            <p className="fs-sm" style={{ color: '#6c757d', marginBottom: 10 }}>
+            <p className="fs-sm" style={{ color: 'var(--tinta-suave)', marginBottom: 10 }}>
               A tentativa fica registrada no horário atual do sistema. Escolha o novo dia e horário
               para remarcar a {itemRemarcarAberto.mensagem}ª mensagem.
             </p>
             <div className="grade grade-2">
               <div className="campo">
                 <label>Novo dia *</label>
-                <input
+                <CampoData
                   placeholder="dd/mm/aa"
                   value={remarcadoDia}
-                  onChange={(e) => setRemarcadoDia(formatarData(e.target.value))}
+                  onChange={(v) => setRemarcadoDia(formatarData(v))}
                   autoFocus
                 />
               </div>
@@ -480,7 +531,7 @@ export default function Agenda() {
 function Info({ label, valor }) {
   return (
     <div>
-      <div className="fs-xs" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', color: '#6c757d', marginBottom: 2 }}>
+      <div className="fs-xs" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--tinta-suave)', marginBottom: 2 }}>
         {label}
       </div>
       <div className="fs-md">{valor || '—'}</div>

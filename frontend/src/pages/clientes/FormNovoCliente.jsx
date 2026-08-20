@@ -4,8 +4,24 @@ import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
 
+function IconeAviso() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M12 9v4M12 17h.01" />
+      <path d="M10.3 3.9 2.3 18a1.8 1.8 0 0 0 1.5 2.7h16.4a1.8 1.8 0 0 0 1.5-2.7l-8-14.1a1.8 1.8 0 0 0-3.1 0Z" />
+    </svg>
+  );
+}
+function IconeOk() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
+}
+
 const VAZIO = {
-  nome: '', nascimento: '', fixo: '', celular: '',
+  nome: '', nascimento: '', fixo: '', whatsapp: '', celular: '',
   endereco: '', complemento: '', bairro: '', referencia: '',
 };
 
@@ -48,14 +64,6 @@ export default function FormNovoCliente() {
       setErro('O nome é obrigatório.');
       return;
     }
-    if (!dados.nascimento.trim()) {
-      setErro('O nascimento é obrigatório.');
-      return;
-    }
-    if (!dados.celular.trim() && !dados.fixo.trim()) {
-      setErro('Preencha pelo menos um telefone (celular ou fixo).');
-      return;
-    }
 
     if (duplicados === null && dados.nascimento.trim()) {
       setSalvando(true);
@@ -84,32 +92,42 @@ export default function FormNovoCliente() {
         <h1 style={{ marginBottom: 0 }}>Novo cliente</h1>
       </div>
 
-      {erro && <p className="fs-sm" style={{ color: '#dc3545', marginBottom: 12 }}>{erro}</p>}
+      {erro && <p className="fs-sm" style={{ color: 'var(--selo)', marginBottom: 12 }}>{erro}</p>}
 
       {duplicados && duplicados.length > 0 && (
         <div className="painel" style={estilos.avisoDuplicado}>
-          <div style={{ fontWeight: 700, marginBottom: 8 }}>
-            ⚠ Já existe cliente parecido com o mesmo aniversário
+          <div style={{ fontWeight: 700, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--aviso)' }}>
+            <IconeAviso /> Já existe cliente parecido com o mesmo aniversário
           </div>
-          <p className="fs-sm" style={{ marginBottom: 12 }}>
+          <p className="fs-sm" style={{ marginBottom: 12, color: 'var(--tinta-suave)' }}>
             Confira se não é a mesma pessoa antes de cadastrar de novo:
           </p>
-          <ul style={{ margin: '0 0 14px', paddingLeft: 18 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
             {duplicados.map((c) => (
-              <li key={c.id} style={{ marginBottom: 6 }}>
+              <div
+                key={c.id}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                  background: '#ffffff', border: '1px solid var(--borda)', borderRadius: 8, padding: '10px 14px',
+                }}
+              >
+                <div>
+                  <strong>{c.nome}</strong>
+                  <span className="fs-sm" style={{ color: 'var(--tinta-suave)', marginLeft: 8 }}>
+                    nascimento {c.nascimento}{c.celular && ` · ${c.celular}`}
+                  </span>
+                </div>
                 <button
                   type="button"
-                  className="btn-small"
+                  className="btn secundario"
                   onClick={() => navigate(`/clientes/${c.id}`)}
-                  style={{ marginRight: 8 }}
+                  style={{ flexShrink: 0 }}
                 >
                   Abrir
                 </button>
-                <strong>{c.nome}</strong> — nascimento {c.nascimento}
-                {c.celular && ` — ${c.celular}`}
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button type="button" className="btn secundario" onClick={() => setDuplicados([])}>
               É pessoa diferente, cadastrar assim mesmo
@@ -119,45 +137,46 @@ export default function FormNovoCliente() {
       )}
 
       {!duplicados && (
-        <div className="painel" style={{ maxWidth: 700 }}>
+        <div className="painel">
           <div className="section-title">Dados do cliente</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 14px' }}>
-            <div className="campo" style={{ flex: '1 1 300px' }}>
+          <div className="grade grade-2">
+            <div className="campo">
               <label>Nome *</label>
               <input value={dados.nome} onChange={(e) => set('nome', e.target.value)} autoFocus />
             </div>
-            <div className="campo" style={{ flex: '0 0 110px' }}>
-              <label>Nascimento *</label>
-              <input className="campo-nascimento" placeholder="dd/mm/aa" value={dados.nascimento} onChange={(e) => setComMascara('nascimento', e.target.value, 'data')} />
+            <div className="campo">
+              <label>Nascimento</label>
+              <input placeholder="dd/mm/aa" value={dados.nascimento} onChange={(e) => setComMascara('nascimento', e.target.value, 'data')} />
             </div>
           </div>
-          <p className="fs-xs" style={{ color: '#6c757d', margin: '0 0 8px' }}>
-            Preencha pelo menos um dos telefones abaixo.
-          </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 14px' }}>
-            <div className="campo" style={{ flex: '0 0 auto' }}>
+          <div className="grade grade-3">
+            <div className="campo">
               <label>Telefone fixo</label>
-              <input className="campo-fixo" value={dados.fixo} onChange={(e) => setComMascara('fixo', e.target.value, 'fixo')} />
+              <input value={dados.fixo} onChange={(e) => setComMascara('fixo', e.target.value, 'fixo')} />
             </div>
-            <div className="campo" style={{ flex: '0 0 auto' }}>
+            <div className="campo">
+              <label>WhatsApp</label>
+              <input value={dados.whatsapp} onChange={(e) => setComMascara('whatsapp', e.target.value, 'celular')} />
+            </div>
+            <div className="campo">
               <label>Celular</label>
-              <input className="campo-celular" value={dados.celular} onChange={(e) => setComMascara('celular', e.target.value, 'celular')} />
+              <input value={dados.celular} onChange={(e) => setComMascara('celular', e.target.value, 'celular')} />
             </div>
           </div>
           <div className="campo">
             <label>Endereço</label>
             <input value={dados.endereco} onChange={(e) => set('endereco', e.target.value)} />
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 14px' }}>
-            <div className="campo" style={{ flex: '1 1 145px' }}>
+          <div className="grade grade-3">
+            <div className="campo">
               <label>Complemento</label>
               <input value={dados.complemento} onChange={(e) => set('complemento', e.target.value)} />
             </div>
-            <div className="campo" style={{ flex: '0 0 auto' }}>
+            <div className="campo">
               <label>Bairro</label>
-              <input className="campo-bairro" value={dados.bairro} onChange={(e) => set('bairro', e.target.value)} />
+              <input value={dados.bairro} onChange={(e) => set('bairro', e.target.value)} />
             </div>
-            <div className="campo" style={{ flex: '1 1 145px' }}>
+            <div className="campo">
               <label>Referência</label>
               <input value={dados.referencia} onChange={(e) => set('referencia', e.target.value)} />
             </div>
@@ -174,8 +193,8 @@ export default function FormNovoCliente() {
 
       {duplicados && duplicados.length === 0 && (
         <div className="painel">
-          <p className="fs-sm" style={{ color: '#2f6844', marginBottom: 12 }}>
-            Nenhuma duplicidade encontrada. Pode confirmar o cadastro.
+          <p className="fs-sm" style={{ color: 'var(--ok)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <IconeOk /> Nenhuma duplicidade encontrada. Pode confirmar o cadastro.
           </p>
           <div style={estilos.rodapeBotoes}>
             <button type="button" className="btn secundario" onClick={cancelar}>Cancelar</button>
@@ -193,8 +212,8 @@ const estilos = {
   barraTopo: { marginBottom: 18 },
   rodapeBotoes: { display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 16 },
   avisoDuplicado: {
-    borderLeft: '4px solid #d97706',
-    background: '#fff8e1',
+    borderLeft: '4px solid var(--aviso)',
+    background: 'var(--aviso-suave)',
     marginBottom: 16,
   },
 };

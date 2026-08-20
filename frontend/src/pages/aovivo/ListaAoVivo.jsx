@@ -11,6 +11,7 @@ const OPCOES_FILTRO = [
   { valor: 'comprador', label: 'Comprador' },
   { valor: 'destinatario', label: 'Destinatário' },
   { valor: 'celular_comprador', label: 'Celular do comprador' },
+  { valor: 'whatsapp_comprador', label: 'WhatsApp do comprador' },
   { valor: 'fixo_local', label: 'Telefone fixo do local' },
   { valor: 'celular_local', label: 'Celular do local' },
   { valor: 'endereco', label: 'Endereço' },
@@ -21,12 +22,62 @@ const OPCOES_FILTRO = [
 
 const MASCARA_POR_FILTRO = {
   celular_comprador: formatarCelular,
+  whatsapp_comprador: formatarCelular,
   celular_local: formatarCelular,
   fixo_local: formatarFixo,
   aniversario: formatarData,
   data_pedido: formatarData,
   dia_mensagem: formatarData,
 };
+
+// Converte "dd/mm/aa" ou "dd/mm/aaaa" num Date para comparação. Datas
+// mal formatadas ou vazias retornam null (tratadas como "sem data").
+function paraData(dataBr) {
+  if (!dataBr) return null;
+  const m = String(dataBr).trim().match(/^(\d{2})\/(\d{2})\/(\d{2}|\d{4})$/);
+  if (!m) return null;
+  const [, dd, mm, anoStr] = m;
+  const ano = anoStr.length === 2 ? 2000 + parseInt(anoStr, 10) : parseInt(anoStr, 10);
+  return new Date(ano, parseInt(mm, 10) - 1, parseInt(dd, 10));
+}
+
+function formatarReais(v) {
+  return (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+// Status de entrega de um pedido ao vivo, para o indicador visual na
+// listagem: 'futuro' (data ainda não chegou, sem indicador), 'entregue'
+// (confirmado), ou 'pendente' (data já passou — hoje ou antes — e não
+// há confirmação de entrega, incluindo o caso de nunca ter recebido
+// baixa nenhuma).
+function statusEntrega(pedido) {
+  const dataEntrega = paraData(pedido.dia_entrega);
+  if (!dataEntrega) return 'futuro';
+
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  dataEntrega.setHours(0, 0, 0, 0);
+
+  if (dataEntrega > hoje) return 'futuro';
+
+  const foiEntregue = (pedido.resultado_entrega || '').startsWith('ENTREGUE');
+  return foiEntregue ? 'entregue' : 'pendente';
+}
+
+// Indicador visual de status de entrega, usado na coluna da listagem.
+// Usa a mesma linguagem de "carimbo de data" das outras telas: tag
+// compacta em fonte mono, cor por significado (verde = entregue,
+// vermelho = pendente/atrasado). 'futuro' não mostra nada — a data
+// ainda não chegou, não há o que indicar.
+function IndicadorEntrega({ status }) {
+  if (status === 'entregue') {
+    return <span className="tag ok">Entregue</span>;
+  }
+  if (status === 'pendente') {
+    return <span className="tag pendente">Pendente</span>;
+  }
+  return null;
+}
 
 export default function ListaAoVivo() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -202,6 +253,7 @@ export default function ListaAoVivo() {
                     />
                   </th>
                   <th>O.S.</th>
+                  <th>Status</th>
                   <th>Comprador</th>
                   <th>Para</th>
                   <th>Data</th>
@@ -224,11 +276,14 @@ export default function ListaAoVivo() {
                         {p.numero_os || p.id}
                       </span>
                     </td>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <IndicadorEntrega status={statusEntrega(p)} />
+                    </td>
                     <td>{p.comprador}</td>
                     <td>{p.para || '—'}</td>
                     <td>{p.dia_entrega} {p.horario_entrega ? `— ${p.horario_entrega}` : ''}</td>
                     <td>{p.bairro || '—'}</td>
-                    <td>{p.valor != null ? `R$ ${p.valor.toFixed(2)}` : '—'}</td>
+                    <td>{p.valor != null ? formatarReais(p.valor) : '—'}</td>
                   </tr>
                 ))}
               </tbody>

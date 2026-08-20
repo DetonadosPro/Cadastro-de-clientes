@@ -1,29 +1,26 @@
 // scripts/importar-planilha.js
 //
-// Migrado para PostgreSQL. Lê o arquivo cadastro.XLSM (planilha
-// original) e importa os dados para o banco de PRODUÇÃO no Railway,
-// respeitando os dois sistemas separados do negócio: mensagem FONADA
-// (telefone) e mensagem AO VIVO (carro de som).
+// ⚠️ AVISO IMPORTANTE (migração para PostgreSQL/Railway):
+// Este script ainda usa a sintaxe antiga do SQLite (node:sqlite,
+// db.prepare com "?"). O restante do backend já foi migrado para
+// PostgreSQL, mas este script de importação ainda NÃO — ele precisa
+// ser adaptado (mesma lógica de placeholders $1/$2... e await nas
+// consultas) antes de rodar contra o banco novo. Combinado: quando
+// você tiver a planilha atualizada em mãos, migramos este script
+// junto, na mesma sessão.
 //
-// ⚠️ ATENÇÃO — ESTE SCRIPT APAGA TUDO ANTES DE IMPORTAR:
-// Por decisão explícita, antes de importar os dados novos, este script
-// esvazia completamente as tabelas usuarios, fonadas, ao_vivo e
-// tentativas_contato (TRUNCATE). Isso é IRREVERSÍVEL — qualquer dado
-// criado/editado depois da última migração (pedidos novos, bloqueios de
-// cliente, baixas de pagamento, etc.) será perdido. A tabela "clientes"
-// é preenchida à parte pelo script vincular-clientes-antigos.js, que
-// deve rodar logo em seguida.
+// Lê o arquivo cadastro.XLSM (planilha antiga) e importa os dados
+// para o banco novo (SQLite), respeitando os dois sistemas separados
+// do negócio: mensagem FONADA (telefone) e mensagem AO VIVO (carro
+// de som).
 //
-// Como usar (rode isso NO SEU COMPUTADOR, com a planilha em mãos):
+// Como usar:
 //   1. Coloque o arquivo cadastro.XLSM dentro da pasta backend/scripts/
 //      (ou passe o caminho: node scripts/importar-planilha.js "C:\caminho\cadastro.xlsm")
-//   2. Defina a DATABASE_URL pública do Postgres do Railway:
-//        $env:DATABASE_URL="postgresql://..."
-//   3. Rode: node scripts/importar-planilha.js
+//   2. Rode: npm run importar
 //
 // O que esse script faz:
-//   - Esvazia usuarios, fonadas, ao_vivo, tentativas_contato
-//   - Lê a aba "usuario" e recria um login para cada usuário antigo
+//   - Lê a aba "usuario" e cria um login para cada usuário antigo
 //   - Lê a aba "BD" (fonadas) e importa os pacotes de mensagem por
 //     telefone. IMPORTANTE: a aba BD tem uma área lateral (colunas
 //     131 em diante) que é apenas resultado temporário de uma busca
@@ -35,13 +32,7 @@
 const path = require('path');
 const xlsx = require('xlsx');
 const bcrypt = require('bcryptjs');
-const { pool, iniciarBanco } = require('../src/db/database');
-
-if (!process.env.DATABASE_URL) {
-  console.error('❌ Defina a variável DATABASE_URL antes de rodar este script.');
-  console.error('   Exemplo (PowerShell): $env:DATABASE_URL="postgresql://..."');
-  process.exit(1);
-}
+const { db, iniciarBanco } = require('../src/db/database');
 
 const CAMINHO_PLANILHA = process.argv[2] || path.join(__dirname, 'cadastro.XLSM');
 
@@ -63,7 +54,7 @@ function txt(v) {
 // ------------------------------------------------------------------
 // USUÁRIOS
 // ------------------------------------------------------------------
-async function importarUsuarios(planilha) {
+function importarUsuarios(planilha) {
   const aba = planilha.Sheets['usuario'];
   if (!aba) {
     console.log('⚠️  Aba "usuario" não encontrada — pulando importação de logins.');
@@ -71,17 +62,16 @@ async function importarUsuarios(planilha) {
   }
   const linhas = xlsx.utils.sheet_to_json(aba, { header: 1 });
 
+  const inserir = db.prepare('INSERT OR IGNORE INTO usuarios (usuario, senha_hash) VALUES (?, ?)');
   let count = 0;
+
   for (let i = 1; i < linhas.length; i++) {
     const [usuario, senha] = linhas[i];
     if (vazio(usuario)) continue;
     const senhaOriginal = vazio(senha) ? 'trocar123' : String(senha);
     const hash = bcrypt.hashSync(senhaOriginal, 10);
-    const resultado = await pool.query(
-      'INSERT INTO usuarios (usuario, senha_hash) VALUES ($1, $2) ON CONFLICT (usuario) DO NOTHING',
-      [String(usuario).trim(), hash]
-    );
-    if (resultado.rowCount > 0) count++;
+    const resultado = inserir.run(String(usuario).trim(), hash);
+    if (resultado.changes > 0) count++;
   }
   console.log(`✅ ${count} usuário(s) importado(s) da aba "usuario".`);
 }
@@ -104,29 +94,33 @@ const COLUNAS_BD = [
 // horário em que o pedido foi feito/atendido — mapeada para "horario_pedido"
 // no banco novo.
 
-const CAMPOS_FONADA = [
-  'senha_os', 'nome_comprador', 'data_pedido', 'horario_pedido', 'nascimento', 'tipo', 'recall',
-  'p1_dia', 'p1_para', 'p1_tema', 'p1_mensagem', 'p1_fixo', 'p1_celular', 'p1_horario', 'p1_quem_oferece', 'p1_resultado',
-  'p2_dia', 'p2_para', 'p2_tema', 'p2_mensagem', 'p2_fixo', 'p2_celular', 'p2_horario', 'p2_quem_oferece', 'p2_resultado',
-  'comprador_fixo', 'comprador_celular', 'comprador_endereco', 'comprador_complemento', 'comprador_bairro', 'comprador_referencia',
-  'valor', 'cobranca', 'periodo', 'pagou', 'recebi', 'vender', 'status', 'impresso',
-];
-
-async function importarFonadas(planilha) {
+function importarFonadas(planilha) {
   const aba = planilha.Sheets['BD'];
   if (!aba) throw new Error('Aba "BD" não encontrada na planilha.');
 
   const linhas = xlsx.utils.sheet_to_json(aba, { header: 1, defval: null });
-  const linhasDados = linhas.slice(1); // pula cabeçalho
 
-  const placeholders = CAMPOS_FONADA.map((_, i) => `$${i + 1}`).join(', ');
-  const sqlInserir = `INSERT INTO fonadas (${CAMPOS_FONADA.join(', ')}) VALUES (${placeholders})`;
+  const inserir = db.prepare(`
+    INSERT INTO fonadas (
+      senha_os, nome_comprador, data_pedido, horario_pedido, nascimento, tipo, recall,
+      p1_dia, p1_para, p1_tema, p1_mensagem, p1_fixo, p1_celular, p1_horario, p1_quem_oferece, p1_resultado,
+      p2_dia, p2_para, p2_tema, p2_mensagem, p2_fixo, p2_celular, p2_horario, p2_quem_oferece, p2_resultado,
+      comprador_fixo, comprador_celular, comprador_endereco, comprador_complemento, comprador_bairro, comprador_referencia,
+      valor, cobranca, periodo, pagou, recebi, vender, status, impresso
+    ) VALUES (
+      @senha_os, @nome_comprador, @data_pedido, @horario_pedido, @nascimento, @tipo, @recall,
+      @p1_dia, @p1_para, @p1_tema, @p1_mensagem, @p1_fixo, @p1_celular, @p1_horario, @p1_quem_oferece, @p1_resultado,
+      @p2_dia, @p2_para, @p2_tema, @p2_mensagem, @p2_fixo, @p2_celular, @p2_horario, @p2_quem_oferece, @p2_resultado,
+      @comprador_fixo, @comprador_celular, @comprador_endereco, @comprador_complemento, @comprador_bairro, @comprador_referencia,
+      @valor, @cobranca, @periodo, @pagou, @recebi, @vender, @status, @impresso
+    )
+  `);
 
   let totalImportado = 0;
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
+  const linhasDados = linhas.slice(1); // pula cabeçalho
 
+  db.exec('BEGIN');
+  try {
     for (const linha of linhasDados) {
       // Apenas o bloco principal (colunas 0-38). Blocos em outras
       // posições da mesma linha são resultado de busca — ignorados.
@@ -135,7 +129,7 @@ async function importarFonadas(planilha) {
 
       if (vazio(bloco.nome_comprador)) continue;
 
-      const valores = {
+      inserir.run({
         senha_os: txt(bloco.senha_os),
         nome_comprador: String(bloco.nome_comprador).trim(),
         data_pedido: txt(bloco.data_pedido),
@@ -179,19 +173,13 @@ async function importarFonadas(planilha) {
         vender: txt(bloco.vender),
         status: txt(bloco.status),
         impresso: txt(bloco.impresso),
-      };
-
-      const params = CAMPOS_FONADA.map((campo) => valores[campo]);
-      await client.query(sqlInserir, params);
+      });
       totalImportado++;
     }
-
-    await client.query('COMMIT');
+    db.exec('COMMIT');
   } catch (err) {
-    await client.query('ROLLBACK');
+    db.exec('ROLLBACK');
     throw err;
-  } finally {
-    client.release();
   }
 
   console.log(`✅ ${totalImportado} pacote(s) de mensagem fonada importado(s) da aba "BD".`);
@@ -219,17 +207,7 @@ const COLUNAS_AOVIVO = [
 // de contato é sempre o que fica perto do campo "comprador" (celular),
 // conforme confirmado com o dono do negócio.
 
-const CAMPOS_AOVIVO = [
-  'numero_os', 'data_pedido', 'horario_pedido', 'dia_entrega', 'horario_entrega',
-  'comprador', 'para', 'oferecimento',
-  'endereco', 'bairro', 'referencia',
-  'fixo_local', 'celular_local', 'celular', 'celular2',
-  'tema_1', 'mensagem_codigo_1', 'tema_2', 'mensagem_codigo_2', 'tema_3', 'mensagem_codigo_3',
-  'musica_1', 'musica_2', 'musica_3', 'musica_4', 'musica_5', 'musica_6',
-  'aniversario', 'valor', 'pagamento', 'brinde',
-];
-
-async function importarAoVivo(planilha) {
+function importarAoVivo(planilha) {
   const aba = planilha.Sheets['aovivo'];
   if (!aba) {
     console.log('⚠️  Aba "aovivo" não encontrada — pulando importação de mensagens ao vivo.');
@@ -237,16 +215,32 @@ async function importarAoVivo(planilha) {
   }
 
   const linhas = xlsx.utils.sheet_to_json(aba, { header: 1, defval: null });
-  const linhasDados = linhas.slice(1); // pula cabeçalho
 
-  const placeholders = CAMPOS_AOVIVO.map((_, i) => `$${i + 1}`).join(', ');
-  const sqlInserir = `INSERT INTO ao_vivo (${CAMPOS_AOVIVO.join(', ')}) VALUES (${placeholders})`;
+  const inserir = db.prepare(`
+    INSERT INTO ao_vivo (
+      numero_os, data_pedido, horario_pedido, dia_entrega, horario_entrega,
+      comprador, para, oferecimento,
+      endereco, bairro, referencia,
+      fixo_local, celular_local, celular, celular2,
+      tema_1, mensagem_codigo_1, tema_2, mensagem_codigo_2, tema_3, mensagem_codigo_3,
+      musica_1, musica_2, musica_3, musica_4, musica_5, musica_6,
+      aniversario, valor, pagamento, brinde
+    ) VALUES (
+      @numero_os, @data_pedido, @horario_pedido, @dia_entrega, @horario_entrega,
+      @comprador, @para, @oferecimento,
+      @endereco, @bairro, @referencia,
+      @fixo_local, @celular_local, @celular, @celular2,
+      @tema_1, @mensagem_codigo_1, @tema_2, @mensagem_codigo_2, @tema_3, @mensagem_codigo_3,
+      @musica_1, @musica_2, @musica_3, @musica_4, @musica_5, @musica_6,
+      @aniversario, @valor, @pagamento, @brinde
+    )
+  `);
 
   let totalImportado = 0;
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
+  const linhasDados = linhas.slice(1); // pula cabeçalho
 
+  db.exec('BEGIN');
+  try {
     for (const linha of linhasDados) {
       const bloco = {};
       COLUNAS_AOVIVO.forEach((campo, i) => {
@@ -255,7 +249,7 @@ async function importarAoVivo(planilha) {
 
       if (vazio(bloco.comprador)) continue; // comprador é obrigatório
 
-      const valores = {
+      inserir.run({
         numero_os: txt(bloco.numero_os),
         data_pedido: txt(bloco.data_pedido),
         horario_pedido: txt(bloco.horario_pedido),
@@ -293,50 +287,34 @@ async function importarAoVivo(planilha) {
         valor: limparValorMonetario(bloco.valor),
         pagamento: txt(bloco.pagamento),
         brinde: txt(bloco.brinde),
-      };
-
-      const params = CAMPOS_AOVIVO.map((campo) => valores[campo]);
-      await client.query(sqlInserir, params);
+      });
       totalImportado++;
     }
-
-    await client.query('COMMIT');
+    db.exec('COMMIT');
   } catch (err) {
-    await client.query('ROLLBACK');
+    db.exec('ROLLBACK');
     throw err;
-  } finally {
-    client.release();
   }
 
   console.log(`✅ ${totalImportado} pedido(s) de mensagem ao vivo importado(s) da aba "aovivo".`);
 }
 
 // ------------------------------------------------------------------
-async function main() {
+function main() {
   console.log(`\n📂 Lendo planilha: ${CAMINHO_PLANILHA}\n`);
 
-  await iniciarBanco();
-
-  console.log('🗑️  Apagando dados existentes (usuarios, fonadas, ao_vivo, tentativas_contato)...');
-  await pool.query('TRUNCATE TABLE tentativas_contato, fonadas, ao_vivo, usuarios RESTART IDENTITY CASCADE');
-  console.log('   Concluído.\n');
+  iniciarBanco();
 
   const planilha = xlsx.readFile(CAMINHO_PLANILHA, { cellDates: false });
 
-  await importarUsuarios(planilha);
-  await importarFonadas(planilha);
-  await importarAoVivo(planilha);
+  importarUsuarios(planilha);
+  importarFonadas(planilha);
+  importarAoVivo(planilha);
 
   console.log(`\n⚠️  IMPORTANTE: os usuários importados da planilha antiga ficaram`);
   console.log(`   com a mesma senha que tinham antes (ou "trocar123" se não tinham).`);
   console.log(`   Por segurança, troque essas senhas assim que possível.\n`);
-  console.log('🎉 Importação concluída! Rode agora vincular-clientes-antigos.js para criar');
-  console.log('   os clientes e vincular os pedidos a eles.\n');
-
-  await pool.end();
+  console.log('🎉 Importação concluída!\n');
 }
 
-main().catch((erro) => {
-  console.error('\n❌ Erro durante a importação:', erro.message);
-  process.exit(1);
-});
+main();

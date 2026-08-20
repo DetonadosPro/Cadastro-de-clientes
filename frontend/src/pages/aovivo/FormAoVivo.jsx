@@ -4,6 +4,9 @@ import { api } from '../../api.js';
 import { useRascunhos } from '../../RascunhosContext.jsx';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData, formatarHorario, formatarValorMonetario, valorMonetarioParaNumero, numeroParaValorMonetario } from '../../mascaras.js';
+import CampoData from '../../components/CampoData.jsx';
+import CampoComSugestoes from '../../components/CampoComSugestoes.jsx';
+import CampoSelecao from '../../components/CampoSelecao.jsx';
 
 const VAZIO = {
   numero_os: '', cliente_id: null, data_pedido: '', horario_pedido: '', dia_entrega: '', horario_entrega: '',
@@ -29,6 +32,105 @@ function dataHoraAtual() {
   const hh = String(agora.getHours()).padStart(2, '0');
   const min = String(agora.getMinutes()).padStart(2, '0');
   return { data: `${dd}/${mm}/${aa}`, horario: `${hh}:${min}` };
+}
+
+// Data de hoje sem componente de hora, para comparar com outras datas
+// "no nível do dia" (sem hora atrapalhar a comparação).
+function hojeSemHora() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+// Converte "dd/mm/aa" para Date, ou null se incompleta/inválida —
+// usado na validação de data mínima ao digitar manualmente.
+function textoParaData(texto) {
+  const m = String(texto || '').trim().match(/^(\d{2})\/(\d{2})\/(\d{2})$/);
+  if (!m) return null;
+  const [, dd, mm, aa] = m;
+  const data = new Date(2000 + parseInt(aa, 10), parseInt(mm, 10) - 1, parseInt(dd, 10));
+  if (data.getDate() !== parseInt(dd, 10) || data.getMonth() !== parseInt(mm, 10) - 1) return null;
+  return data;
+}
+
+// O campo de pagamento continua sendo salvo como um texto único (sem
+// mudar o schema do banco), mas agora montado a partir de escolhas
+// clicáveis em vez de digitado livremente. Essas funções convertem
+// entre o texto salvo e as partes que a interface mostra.
+//
+// Formatos possíveis:
+//   "PIX" / "DINHEIRO"
+//   "CARTÃO - CRÉDITO" / "CARTÃO - DÉBITO"
+//   "PRAZO - DIA 15 - MP - PIX" (dia de pagamento + forma do MP)
+//
+// Pedidos antigos com texto livre não batem em nenhum desses padrões
+// — nesse caso, forma fica null (nenhuma pílula marcada) e o texto
+// original não é mexido até a pessoa escolher uma opção nova.
+function parsearPagamento(texto) {
+  const t = String(texto || '').trim();
+  if (t === 'PIX' || t === 'DINHEIRO') {
+    return { forma: t, tipoCartao: '', diaPag: '', formaMp: '' };
+  }
+  const matchCartao = t.match(/^CARTÃO(?: - (CRÉDITO|DÉBITO))?$/);
+  if (matchCartao) {
+    return { forma: 'CARTÃO', tipoCartao: matchCartao[1] || '', diaPag: '', formaMp: '' };
+  }
+  const matchPrazo = t.match(/^PRAZO(?: - DIA ([\d/]*))?(?: - MP - (PIX|DINHEIRO|CARTÃO))?$/);
+  if (matchPrazo) {
+    return { forma: 'PRAZO', tipoCartao: '', diaPag: matchPrazo[1] || '', formaMp: matchPrazo[2] || '' };
+  }
+  return { forma: '', tipoCartao: '', diaPag: '', formaMp: '', textoOriginal: t };
+}
+
+function montarPagamento({ forma, tipoCartao, diaPag, formaMp }) {
+  if (forma === 'PIX' || forma === 'DINHEIRO') return forma;
+  if (forma === 'CARTÃO') return tipoCartao ? `CARTÃO - ${tipoCartao}` : 'CARTÃO';
+  if (forma === 'PRAZO') {
+    let partes = ['PRAZO'];
+    if (diaPag) partes.push(`DIA ${diaPag}`);
+    if (formaMp) partes.push('MP', formaMp);
+    return partes.join(' - ');
+  }
+  return '';
+}
+
+function IconeSalvar() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" />
+      <path d="M17 21v-8H7v8M7 3v5h8" />
+    </svg>
+  );
+}
+function IconeLimpar() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-.9 13.1a2 2 0 0 1-2 1.9H7.9a2 2 0 0 1-2-1.9L5 6" />
+    </svg>
+  );
+}
+function IconeMaisPequeno() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+function IconeExcluir() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 7h16" />
+      <path d="M9 7V5c0-.6.4-1 1-1h4c.6 0 1 .4 1 1v2" />
+      <path d="M6 7l1 12.5c0 .8.7 1.5 1.5 1.5h7c.8 0 1.5-.7 1.5-1.5L18 7" />
+    </svg>
+  );
+}
+function IconeFechar() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M18 6 6 18M6 6l12 12" />
+    </svg>
+  );
 }
 
 export default function FormAoVivo() {
@@ -120,11 +222,9 @@ export default function FormAoVivo() {
   }, [id, editando, clienteIdUrl]);
 
   function set(campo, valor) {
-    setDados((d) => {
-      const novo = { ...d, [campo]: valor };
-      setRascunhoAoVivo({ chave: chaveRascunho, dados: novo, cliente });
-      return novo;
-    });
+    const novo = { ...dados, [campo]: valor };
+    setDados(novo);
+    setRascunhoAoVivo({ chave: chaveRascunho, dados: novo, cliente });
   }
 
   function setComMascara(campo, valorBruto, tipoMascara) {
@@ -168,6 +268,13 @@ export default function FormAoVivo() {
     if (!dados.cliente_id) {
       setErro('Nenhum cliente vinculado a este pedido.');
       return;
+    }
+    if (!editando) {
+      const diaEvento = textoParaData(dados.dia_entrega);
+      if (diaEvento && diaEvento.getTime() < hojeSemHora().getTime()) {
+        setErro('O dia do evento não pode ser uma data anterior a hoje.');
+        return;
+      }
     }
     setSalvando(true);
     try {
@@ -218,13 +325,21 @@ export default function FormAoVivo() {
   if (erro && !dados.cliente_id) {
     return (
       <div className="painel" style={{ maxWidth: 480 }}>
-        <p className="fs-sm" style={{ color: '#dc3545', marginBottom: 12 }}>{erro}</p>
+        <p className="fs-sm" style={{ color: 'var(--selo)', marginBottom: 12 }}>{erro}</p>
         <button className="btn" onClick={() => navigate('/clientes')}>Ir para Clientes</button>
       </div>
     );
   }
 
   const estaBloqueado = !!cliente?.bloqueado;
+  const pagamentoParseado = parsearPagamento(dados.pagamento);
+
+  // Validação em tempo real (não só ao salvar): se a pessoa digitar uma
+  // data passada manualmente — sem usar o calendário, que já bloqueia
+  // isso visualmente — o aviso aparece assim que a data fica completa,
+  // sem precisar clicar em Salvar para descobrir.
+  const diaEventoDigitado = !editando ? textoParaData(dados.dia_entrega) : null;
+  const diaEventoNoPassado = diaEventoDigitado && diaEventoDigitado.getTime() < hojeSemHora().getTime();
 
   return (
     <div className="form-pagina form-compacto">
@@ -238,31 +353,6 @@ export default function FormAoVivo() {
 
         <div>
           <div className="section-box">
-            <div className="section-title">
-              <span>Comprador</span>
-              {cliente && (
-                <button type="button" className="btn-small" onClick={() => navigate(`/clientes/${cliente.id}`)}>
-                  Ver/editar cliente
-                </button>
-              )}
-            </div>
-            {cliente ? (
-              <div className="grade grade-2">
-                <InfoSomenteLeitura label="Nome" valor={cliente.nome} />
-                <InfoSomenteLeitura label="Nascimento" valor={cliente.nascimento} />
-                <InfoSomenteLeitura label="Fixo" valor={cliente.fixo} />
-                <InfoSomenteLeitura label="Celular" valor={cliente.celular} />
-                <InfoSomenteLeitura label="Endereço" valor={cliente.endereco} />
-                <InfoSomenteLeitura label="Complemento" valor={cliente.complemento} />
-                <InfoSomenteLeitura label="Bairro" valor={cliente.bairro} />
-                <InfoSomenteLeitura label="Referência" valor={cliente.referencia} />
-              </div>
-            ) : (
-              <p className="fs-sm" style={{ color: '#6c757d' }}>Nenhum cliente vinculado.</p>
-            )}
-          </div>
-
-          <div className="section-box">
             <div className="section-title">Homenageado</div>
             <div className="form-row">
               <label>Para:</label>
@@ -270,11 +360,12 @@ export default function FormAoVivo() {
             </div>
             <div className="form-row">
               <label>Dia Evento:</label>
-              <input
+              <CampoData
                 placeholder="dd/mm/aa"
                 value={dados.dia_entrega}
-                onChange={(e) => setComMascara('dia_entrega', e.target.value, 'data')}
-                style={{ maxWidth: 90, flex: '0 0 auto' }}
+                onChange={(v) => setComMascara('dia_entrega', v, 'data')}
+                style={{ maxWidth: 110, flex: '0 0 auto' }}
+                minimo={!editando ? hojeSemHora() : undefined}
               />
               <label style={{ minWidth: 'auto', marginLeft: 4 }}>Horário:</label>
               <input
@@ -284,6 +375,11 @@ export default function FormAoVivo() {
                 style={{ maxWidth: 70, flex: '0 0 auto' }}
               />
             </div>
+            {diaEventoNoPassado && (
+              <p className="fs-xs" style={{ color: 'var(--selo)', marginTop: -6, marginBottom: 8 }}>
+                O dia do evento não pode ser uma data anterior a hoje.
+              </p>
+            )}
             <div className="form-row">
               <label>Oferecimento:</label>
               <textarea
@@ -305,88 +401,175 @@ export default function FormAoVivo() {
             </div>
             <div className="form-row">
               <label>Fixo local:</label>
-              <input value={dados.fixo_local} onChange={(e) => setComMascara('fixo_local', e.target.value, 'fixo')} />
-              <label style={{ minWidth: 'auto', marginLeft: 4 }}>Cel. local:</label>
-              <input value={dados.celular_local} onChange={(e) => setComMascara('celular_local', e.target.value, 'celular')} />
-            </div>
-          </div>
-
-          <div className="section-box">
-            <div className="section-title">Mensagem (catálogo)</div>
-            {Array.from({ length: qtdMensagens }, (_, i) => i + 1).map((n) => (
-              <div className="form-row" key={n}>
-                <label>{qtdMensagens > 1 ? `Tema ${n}:` : 'Tema:'}</label>
-                <input
-                  value={dados[`tema_${n}`]}
-                  onChange={(e) => set(`tema_${n}`, e.target.value)}
-                  style={{ maxWidth: '33%', flex: '0 0 auto' }}
-                />
-                <label style={{ minWidth: 'auto', marginLeft: 2 }}>Código:</label>
-                <input
-                  value={dados[`mensagem_codigo_${n}`]}
-                  onChange={(e) => set(`mensagem_codigo_${n}`, e.target.value)}
-                  style={{ maxWidth: 80, flex: 'none', marginLeft: -2 }}
-                />
-              </div>
-            ))}
-            <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-              {qtdMensagens < MAX_MENSAGENS && (
-                <button type="button" className="btn-small" onClick={adicionarMensagem}>
-                  + Adicionar
-                </button>
-              )}
-              {qtdMensagens > MIN_MENSAGENS && (
-                <button type="button" className="btn-small" onClick={removerUltimaMensagem}>
-                  − Remover última
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="section-box">
-            <div className="section-title">Músicas</div>
-            {Array.from({ length: qtdMusicas }, (_, i) => i + 1).map((n) => (
-              <div className="form-row" key={n}>
-                <label>Música {n}:</label>
-                <input value={dados[`musica_${n}`]} onChange={(e) => set(`musica_${n}`, e.target.value)} />
-              </div>
-            ))}
-            <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-              {qtdMusicas < MAX_MUSICAS && (
-                <button type="button" className="btn-small" onClick={adicionarMusica}>
-                  + Adicionar
-                </button>
-              )}
-              {qtdMusicas > MIN_MUSICAS && (
-                <button type="button" className="btn-small" onClick={removerUltimaMusica}>
-                  − Remover última
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="section-box">
-            <div className="section-title">Financeiro e brinde</div>
-            <div className="form-row">
-              <label>Valor R$:</label>
               <input
-                type="text"
-                inputMode="numeric"
-                value={dados.valor}
-                onChange={(e) => set('valor', formatarValorMonetario(e.target.value))}
-                style={{ fontWeight: 700 }}
+                value={dados.fixo_local}
+                onChange={(e) => setComMascara('fixo_local', e.target.value, 'fixo')}
+                style={{ maxWidth: 118, flex: '0 0 auto' }}
               />
-              <label style={{ minWidth: 'auto', marginLeft: 4 }}>Pagamento:</label>
-              <input value={dados.pagamento} onChange={(e) => set('pagamento', e.target.value)} />
+              <label style={{ minWidth: 'auto', marginLeft: 8 }}>Cel. local:</label>
+              <input
+                value={dados.celular_local}
+                onChange={(e) => setComMascara('celular_local', e.target.value, 'celular')}
+                style={{ maxWidth: 134, flex: '0 0 auto' }}
+              />
             </div>
-            <div className="form-row">
-              <label>Brinde:</label>
-              <input value={dados.brinde} onChange={(e) => set('brinde', e.target.value)} />
+          </div>
+
+          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <div className="section-box" style={{ width: 'fit-content', maxWidth: '100%' }}>
+              <div className="section-title">Catálogo</div>
+              <div className="subsecao-titulo">Mensagem</div>
+              {Array.from({ length: qtdMensagens }, (_, i) => i + 1).map((n) => (
+                <div className="form-row" key={n}>
+                  <label>{qtdMensagens > 1 ? `Tema ${n}:` : 'Tema:'}</label>
+                  <input
+                    value={dados[`tema_${n}`]}
+                    onChange={(e) => set(`tema_${n}`, e.target.value)}
+                    style={{ width: 240, flex: '0 0 auto' }}
+                  />
+                  <label style={{ minWidth: 'auto', marginLeft: 6 }}>Código:</label>
+                  <input
+                    value={dados[`mensagem_codigo_${n}`]}
+                    onChange={(e) => set(`mensagem_codigo_${n}`, e.target.value)}
+                    style={{ width: 80, flex: '0 0 auto' }}
+                  />
+                </div>
+              ))}
+              <div style={{ display: 'flex', gap: 6, marginTop: 4, marginBottom: 14 }}>
+                {qtdMensagens < MAX_MENSAGENS && (
+                  <button type="button" className="btn-small" onClick={adicionarMensagem} style={{ gap: 4 }}>
+                    <IconeMaisPequeno /> Adicionar
+                  </button>
+                )}
+                {qtdMensagens > MIN_MENSAGENS && (
+                  <button type="button" className="btn-small" onClick={removerUltimaMensagem}>
+                    − Remover última
+                  </button>
+                )}
+              </div>
+
+              <div className="subsecao-titulo">Músicas</div>
+              {Array.from({ length: qtdMusicas }, (_, i) => i + 1).map((n) => (
+                <div className="form-row" key={n}>
+                  <label>Música {n}:</label>
+                  <input
+                    value={dados[`musica_${n}`]}
+                    onChange={(e) => set(`musica_${n}`, e.target.value)}
+                    style={{ width: 391, flex: '0 0 auto' }}
+                  />
+                </div>
+              ))}
+              <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
+                {qtdMusicas < MAX_MUSICAS && (
+                  <button type="button" className="btn-small" onClick={adicionarMusica} style={{ gap: 4 }}>
+                    <IconeMaisPequeno /> Adicionar
+                  </button>
+                )}
+                {qtdMusicas > MIN_MUSICAS && (
+                  <button type="button" className="btn-small" onClick={removerUltimaMusica}>
+                    − Remover última
+                  </button>
+                )}
+              </div>
             </div>
-            <div className="form-row">
-              <label>Obs.:</label>
-              <input value={dados.observacoes} onChange={(e) => set('observacoes', e.target.value)} />
+
+            <div className="section-box" style={{ width: 'fit-content', maxWidth: '100%' }}>
+              <div className="section-title">Financeiro e brinde</div>
+              <div className="form-row">
+                <label>Valor:</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  className="input-valor-destaque"
+                  value={dados.valor}
+                  onChange={(e) => set('valor', formatarValorMonetario(e.target.value))}
+                  placeholder="R$ 0,00"
+                  style={{ maxWidth: 110, flex: '0 0 auto' }}
+                />
+              </div>
+              <div className="form-row">
+                <label>Pagamento:</label>
+                <CampoSelecao
+                  opcoes={['PIX', 'DINHEIRO', 'CARTÃO', 'PRAZO']}
+                  value={pagamentoParseado.forma}
+                  onChange={(forma) => set('pagamento', montarPagamento({ ...pagamentoParseado, forma, tipoCartao: '', diaPag: '', formaMp: '' }))}
+                  placeholder="Escolher..."
+                  style={{ width: 105, flex: '0 0 auto' }}
+                />
+                {pagamentoParseado.forma === 'CARTÃO' && (
+                  <CampoSelecao
+                    opcoes={['DÉBITO', 'CRÉDITO']}
+                    value={pagamentoParseado.tipoCartao}
+                    onChange={(tipoCartao) => set('pagamento', montarPagamento({ ...pagamentoParseado, tipoCartao }))}
+                    placeholder="Escolher..."
+                    style={{ width: 90, flex: '0 0 auto', marginLeft: 6 }}
+                  />
+                )}
+              </div>
+              {pagamentoParseado.forma === 'PRAZO' && (
+                <>
+                  <div className="form-row">
+                    <label>Dia pag.:</label>
+                    <CampoData
+                      placeholder="dd/mm/aa"
+                      value={pagamentoParseado.diaPag}
+                      onChange={(v) => {
+                        const mascarado = formatarData(v);
+                        set('pagamento', montarPagamento({ ...pagamentoParseado, diaPag: mascarado }));
+                      }}
+                      minimo={!editando ? hojeSemHora() : undefined}
+                      style={{ width: 112, flex: '0 0 auto' }}
+                    />
+                  </div>
+                  <div className="form-row">
+                    <label>Mod. pag.:</label>
+                    <CampoSelecao
+                      opcoes={['PIX', 'DINHEIRO', 'CARTÃO']}
+                      value={pagamentoParseado.formaMp}
+                      onChange={(formaMp) => set('pagamento', montarPagamento({ ...pagamentoParseado, formaMp }))}
+                      placeholder="Escolher..."
+                      style={{ width: 105, flex: '0 0 auto' }}
+                    />
+                  </div>
+                </>
+              )}
+              <div className="form-row">
+                <label>Brinde:</label>
+                <CampoComSugestoes
+                  value={dados.brinde}
+                  onChange={(v) => set('brinde', v)}
+                  sugestoes={['Bombom', 'Champagne']}
+                  placeholder="Bombom, Champagne..."
+                  style={{ width: 240, flex: '0 0 auto' }}
+                />
+              </div>
             </div>
+          </div>
+
+          <div className="section-box">
+            <div className="section-title">
+              <span>Comprador</span>
+              {cliente && (
+                <button type="button" className="btn-small" onClick={() => navigate(`/clientes/${cliente.id}`)}>
+                  Ver/editar cliente
+                </button>
+              )}
+            </div>
+            {cliente ? (
+              <div className="grade grade-2">
+                <InfoSomenteLeitura label="Nome" valor={cliente.nome} />
+                <InfoSomenteLeitura label="Nascimento" valor={cliente.nascimento} />
+                <InfoSomenteLeitura label="Fixo" valor={cliente.fixo} />
+                <InfoSomenteLeitura label="WhatsApp" valor={cliente.whatsapp} />
+                <InfoSomenteLeitura label="Celular" valor={cliente.celular} />
+                <InfoSomenteLeitura label="Endereço" valor={cliente.endereco} />
+                <InfoSomenteLeitura label="Complemento" valor={cliente.complemento} />
+                <InfoSomenteLeitura label="Bairro" valor={cliente.bairro} />
+                <InfoSomenteLeitura label="Referência" valor={cliente.referencia} />
+              </div>
+            ) : (
+              <p className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Nenhum cliente vinculado.</p>
+            )}
           </div>
         </div>
 
@@ -397,20 +580,20 @@ export default function FormAoVivo() {
               : <span className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Calculando O.S...</span>}
           </div>
 
-          {erro && <p className="fs-sm" style={{ color: '#dc3545', marginBottom: 10 }}>{erro}</p>}
+          {erro && <p className="fs-sm" style={{ color: 'var(--selo)', marginBottom: 10 }}>{erro}</p>}
 
           <div className="section-box actions-grid">
-            <button type="button" className="btn-action destaque" onClick={salvar} disabled={salvando}>
-              {salvando ? 'Salvando...' : 'Salvar'}
+            <button type="button" className="btn-action destaque" onClick={salvar} disabled={salvando || diaEventoNoPassado}>
+              <IconeSalvar /> {salvando ? 'Salvando...' : 'Salvar'}
             </button>
-            <button type="button" className="btn-action" onClick={limpar}>Limpar</button>
+            <button type="button" className="btn-action" onClick={limpar}><IconeLimpar /> Limpar</button>
             {editando && cliente && !estaBloqueado && (
               <button type="button" className="btn-action" onClick={() => navigate(`/ao-vivo/novo?clienteId=${cliente.id}`)}>
-                + Novo pedido
+                <IconeMaisPequeno /> Novo pedido
               </button>
             )}
             {editando && (
-              <button type="button" className="btn-action perigo-acao" onClick={apagar}>Excluir</button>
+              <button type="button" className="btn-action perigo-acao" onClick={apagar}><IconeExcluir /> Excluir</button>
             )}
             <button
               type="button"
@@ -418,7 +601,7 @@ export default function FormAoVivo() {
               style={{ gridColumn: editando ? undefined : 'span 2', pointerEvents: 'auto' }}
               onClick={fechar}
             >
-              Fechar
+              <IconeFechar /> Fechar
             </button>
           </div>
 
@@ -443,7 +626,7 @@ export default function FormAoVivo() {
 function InfoSomenteLeitura({ label, valor }) {
   return (
     <div>
-      <div className="fs-xs" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', color: '#6c757d', marginBottom: 2 }}>
+      <div className="fs-xs" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--tinta-suave)', marginBottom: 2 }}>
         {label}
       </div>
       <div className="fs-md">{valor || '—'}</div>

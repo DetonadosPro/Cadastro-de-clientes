@@ -3,12 +3,22 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../api.js';
 import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
 
+function IconeInfo() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5M12 8v.1" />
+    </svg>
+  );
+}
+
 const OPCOES_FILTRO = [
   { valor: '', label: 'Todos os campos' },
   { valor: 'os', label: 'O.S.' },
   { valor: 'nome_comprador', label: 'Nome do comprador' },
   { valor: 'destinatario', label: 'Destinatário' },
   { valor: 'fixo_comprador', label: 'Telefone fixo do comprador' },
+  { valor: 'whatsapp_comprador', label: 'WhatsApp do comprador' },
   { valor: 'celular_comprador', label: 'Celular do comprador' },
   { valor: 'fixo_destinatario', label: 'Telefone fixo do destinatário' },
   { valor: 'celular_destinatario', label: 'Celular do destinatário' },
@@ -21,12 +31,17 @@ const OPCOES_FILTRO = [
 const MASCARA_POR_FILTRO = {
   fixo_comprador: formatarFixo,
   fixo_destinatario: formatarFixo,
+  whatsapp_comprador: formatarCelular,
   celular_comprador: formatarCelular,
   celular_destinatario: formatarCelular,
   aniversario: formatarData,
   data_pedido: formatarData,
   dia_mensagem: formatarData,
 };
+
+function formatarReais(v) {
+  return (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
 
 export default function ListaFonada() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -104,12 +119,16 @@ export default function ListaFonada() {
       <div style={estilos.cabecalho}>
         <div>
           <h1 style={{ marginBottom: 2 }}>Mensagem fonada</h1>
-          <p className="fs-sm" style={{ color: '#6c757d', margin: 0 }}>Pacotes de mensagem por telefone — consulta</p>
-          <div className="fs-xs" style={{ display: 'flex', gap: 14, marginTop: 6, color: '#6c757d' }}>
-            <span><span className="bolinha-status usada" /> já foi marcada</span>
-            <span><span className="bolinha-status livre" /> ainda disponível</span>
-          </div>
+          <p className="fs-sm" style={{ color: 'var(--tinta-suave)', margin: 0 }}>
+            Pedidos de mensagem por telefone — consulta
+          </p>
         </div>
+      </div>
+
+      <div className="legenda-chip">
+        <IconeInfo />
+        <span><span className="bolinha-status usada" /> MARCADA</span>
+        <span><span className="bolinha-status livre" /> DISPONÍVEL</span>
       </div>
 
       <form onSubmit={aoSubmeterBusca} style={estilos.buscaForm}>
@@ -132,13 +151,15 @@ export default function ListaFonada() {
         <button type="submit" className="btn secundario">Buscar</button>
       </form>
 
-      {erro && <p style={{ color: '#dc3545' }}>{erro}</p>}
+      {erro && <p style={{ color: 'var(--selo)' }}>{erro}</p>}
 
       {carregando ? (
-        <p style={{ color: '#6c757d' }}>Carregando...</p>
+        <p style={{ color: 'var(--tinta-suave)' }}>Carregando...</p>
       ) : itens.length === 0 ? (
-        <div className="painel" style={{ textAlign: 'center', color: '#6c757d' }}>
-          Nenhum pacote encontrado.
+        <div className="painel" style={{ textAlign: 'center', color: 'var(--tinta-suave)' }}>
+          {buscaUrl
+            ? 'Nenhum pedido encontrado com esses filtros.'
+            : 'Nenhum pedido de mensagem fonada ainda. Novos pedidos são criados a partir da ficha do cliente.'}
         </div>
       ) : (
         <>
@@ -189,7 +210,7 @@ export default function ListaFonada() {
                         {p.recall === 'SIM' ? 'Sim' : 'Não'}
                       </span>
                     </td>
-                    <td>{p.valor != null ? `R$ ${p.valor.toFixed(2)}` : '—'}</td>
+                    <td>{p.valor != null ? formatarReais(p.valor) : '—'}</td>
                     <td>
                       <span className={`tag ${p.pagou === 'SIM' ? 'ok' : 'pendente'}`}>
                         {p.pagou === 'SIM' ? 'Pago' : 'Pendente'}
@@ -206,8 +227,8 @@ export default function ListaFonada() {
             <button className="btn secundario" disabled={paginaUrl <= 1} onClick={() => irParaPagina(paginaUrl - 1)}>
               ← Anterior
             </button>
-            <span className="fs-sm" style={{ color: '#6c757d' }}>
-              Página {paginaUrl} de {totalPaginas} — {total} pacote(s)
+            <span className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>
+              Página {paginaUrl} de {totalPaginas} — {total} pedido(s)
             </span>
             <button className="btn secundario" disabled={paginaUrl >= totalPaginas} onClick={() => irParaPagina(paginaUrl + 1)}>
               Próxima →

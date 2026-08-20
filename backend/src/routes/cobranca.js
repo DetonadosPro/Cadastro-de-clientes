@@ -80,6 +80,7 @@ router.get('/', async (req, res) => {
         formaPagamento: (l.periodo || '').trim().toUpperCase() === 'PIX' ? 'PIX' : 'RECIBO',
         nome: cliente ? cliente.nome : l.nome_comprador,
         fixo: cliente ? cliente.fixo : l.comprador_fixo,
+        whatsapp: cliente ? cliente.whatsapp : null,
         celular: cliente ? cliente.celular : l.comprador_celular,
         endereco: cliente ? cliente.endereco : l.comprador_endereco,
         complemento: cliente ? cliente.complemento : l.comprador_complemento,

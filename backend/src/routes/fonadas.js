@@ -9,7 +9,7 @@
 // então ILIKE é o equivalente correto aqui).
 
 const express = require('express');
-const { db } = require('../db/database');
+const { db, pool, reservarProximaOs } = require('../db/database');
 const { agoraBrasilia } = require('../utils/dataHora');
 
 const router = express.Router();
@@ -18,7 +18,7 @@ const CAMPOS = [
   'senha_os', 'cliente_id', 'nome_comprador', 'data_pedido', 'horario_pedido', 'nascimento', 'tipo', 'recall', 'recall_codigo',
   'p1_dia', 'p1_para', 'p1_tema', 'p1_mensagem', 'p1_fixo', 'p1_celular', 'p1_horario', 'p1_quem_oferece', 'p1_resultado',
   'p2_dia', 'p2_para', 'p2_tema', 'p2_mensagem', 'p2_fixo', 'p2_celular', 'p2_horario', 'p2_quem_oferece', 'p2_resultado',
-  'comprador_fixo', 'comprador_celular', 'comprador_endereco', 'comprador_complemento', 'comprador_bairro', 'comprador_referencia',
+  'comprador_fixo', 'comprador_whatsapp', 'comprador_celular', 'comprador_endereco', 'comprador_complemento', 'comprador_bairro', 'comprador_referencia',
   'valor', 'cobranca', 'periodo', 'pagou', 'recebi',
   'vender', 'status', 'impresso',
 ];
@@ -27,6 +27,7 @@ const FILTROS_FONADA = {
   nome_comprador: { colunas: ['nome_comprador'], tipo: 'texto' },
   destinatario: { colunas: ['p1_para', 'p2_para'], tipo: 'texto' },
   fixo_comprador: { colunas: ['comprador_fixo'], tipo: 'fixo' },
+  whatsapp_comprador: { colunas: ['comprador_whatsapp'], tipo: 'celular' },
   celular_comprador: { colunas: ['comprador_celular'], tipo: 'celular' },
   fixo_destinatario: { colunas: ['p1_fixo', 'p2_fixo'], tipo: 'fixo' },
   celular_destinatario: { colunas: ['p1_celular', 'p2_celular'], tipo: 'celular' },
@@ -57,19 +58,17 @@ function montarFiltro(campo, termo, indiceInicial) {
 }
 
 // GET /api/fonadas/proxima-os
+//
+// Reserva o número atomicamente (ver reservarProximaOs em
+// db/database.js) — duas pessoas pedindo "próxima O.S." ao mesmo
+// tempo, em máquinas diferentes, nunca recebem o mesmo número. Isso
+// é diferente de só calcular MAX(senha_os)+1, que tinha uma janela de
+// tempo entre "calcular" e "salvar" onde outra pessoa podia calcular
+// o mesmo valor.
 router.get('/proxima-os', async (req, res) => {
   try {
-    const resultado = await db.query(`
-      SELECT senha_os FROM fonadas WHERE senha_os IS NOT NULL AND senha_os != ''
-    `);
-
-    let maior = 0;
-    for (const linha of resultado.rows) {
-      const n = parseInt(linha.senha_os, 10);
-      if (!isNaN(n) && n > maior) maior = n;
-    }
-
-    res.json({ proximaOs: String(maior + 1) });
+    const proximo = await reservarProximaOs(pool, 'fonada');
+    res.json({ proximaOs: String(proximo) });
   } catch (erro) {
     console.error('Erro ao calcular próxima O.S.:', erro);
     res.status(500).json({ erro: 'Erro ao calcular próxima O.S.' });
@@ -102,10 +101,11 @@ router.get('/', async (req, res) => {
         p1_fixo ILIKE $6 OR p2_fixo ILIKE $7 OR
         p1_celular ILIKE $8 OR p2_celular ILIKE $9 OR
         comprador_endereco ILIKE $10 OR
-        senha_os ILIKE $11
+        senha_os ILIKE $11 OR
+        comprador_whatsapp ILIKE $12
       )`;
       const termo = `%${busca}%`;
-      params = new Array(11).fill(termo);
+      params = new Array(12).fill(termo);
     }
 
     const totalResultado = await db.query(`SELECT COUNT(*) as n FROM fonadas ${where}`, params);
@@ -175,6 +175,7 @@ router.post('/', async (req, res) => {
       }
       dados.nome_comprador = cliente.nome;
       dados.comprador_fixo = cliente.fixo;
+      dados.comprador_whatsapp = cliente.whatsapp;
       dados.comprador_celular = cliente.celular;
       dados.comprador_endereco = cliente.endereco;
       dados.comprador_complemento = cliente.complemento;

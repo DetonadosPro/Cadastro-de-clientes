@@ -1,8 +1,15 @@
 // scripts/vincular-clientes-antigos.js
 //
-// Migrado para PostgreSQL. Organiza o histórico de pedidos antigos (de
-// antes do cadastro de clientes existir) em clientes de verdade, e
-// vincula cada pedido ao cliente correspondente.
+// ⚠️ AVISO IMPORTANTE (migração para PostgreSQL/Railway):
+// Este script ainda usa a sintaxe antiga do SQLite (node:sqlite,
+// db.prepare com "?"). Precisa ser adaptado (placeholders $1/$2... e
+// await) antes de rodar contra o banco novo — combinado que migramos
+// junto com importar-planilha.js quando você tiver a planilha
+// atualizada em mãos.
+//
+// Organiza o histórico de pedidos antigos (de antes do cadastro de
+// clientes existir) em clientes de verdade, e vincula cada pedido ao
+// cliente correspondente.
 //
 // Critério para considerar "mesma pessoa":
 //   (nome compartilha pelo menos 1 palavra significativa idêntica ou
@@ -17,20 +24,14 @@
 // por nascimento, e o B liga com o C por celular, os três acabam no
 // mesmo cliente — mesmo que A e C nunca tenham batido diretamente.
 //
-// Como usar (rode isso NO SEU COMPUTADOR, com a DATABASE_URL definida):
+// Como usar:
 //   node scripts/vincular-clientes-antigos.js --simular   → só mostra o relatório, não muda nada
 //   node scripts/vincular-clientes-antigos.js             → aplica de verdade
 //   node scripts/vincular-clientes-antigos.js --desfazer  → apaga TODOS os clientes e desvincula
 //                                                             todos os pedidos (cliente_id = NULL),
 //                                                             para poder rodar do zero com regras novas
 
-const { pool, iniciarBanco } = require('../src/db/database');
-
-if (!process.env.DATABASE_URL) {
-  console.error('❌ Defina a variável DATABASE_URL antes de rodar este script.');
-  console.error('   Exemplo (PowerShell): $env:DATABASE_URL="postgresql://..."');
-  process.exit(1);
-}
+const { db, iniciarBanco } = require('../src/db/database');
 
 const MODO_SIMULACAO = process.argv.includes('--simular');
 const MODO_DESFAZER = process.argv.includes('--desfazer');
@@ -45,19 +46,9 @@ function normalizarNome(nome) {
     .trim();
 }
 
-// Extrai só "dd/mm" de uma data no formato "dd/mm" ou "dd/mm/aa[aa]" —
-// alguns pedidos antigos têm o nascimento salvo sem ano, outros com
-// ano de 2 ou 4 dígitos. Duas pessoas com o mesmo dia/mês de
-// aniversário devem ser tratadas como o mesmo aniversário aqui,
-// mesmo que uma tenha ano preenchido e a outra não — só o nome
-// compatível exigido junto é que evita juntar pessoas diferentes que
-// por coincidência nasceram no mesmo dia (ver nomesCompativeis).
-// Retorna '' se a data não seguir esse formato reconhecível.
 function normalizarData(data) {
   const s = String(data || '').trim();
-  if (!s || s === '0') return '';
-  const m = s.match(/^(\d{2})\/(\d{2})(?:\/\d{2,4})?$/);
-  return m ? `${m[1]}/${m[2]}` : '';
+  return (!s || s === '0') ? '' : s;
 }
 
 function normalizarTelefone(tel) {
@@ -118,8 +109,8 @@ class UniaoConjuntos {
   }
 }
 
-async function carregarPedidosSemCliente() {
-  const fonadasResultado = await pool.query(`
+function carregarPedidosSemCliente() {
+  const fonadas = db.prepare(`
     SELECT id, 'fonada' as sistema, nome_comprador as nome, nascimento,
            comprador_celular as celular, comprador_fixo as fixo,
            comprador_endereco as endereco, comprador_complemento as complemento,
@@ -127,18 +118,18 @@ async function carregarPedidosSemCliente() {
            data_pedido
     FROM fonadas
     WHERE cliente_id IS NULL AND nome_comprador IS NOT NULL AND nome_comprador != ''
-  `);
+  `).all();
 
-  const aoVivoResultado = await pool.query(`
+  const aoVivo = db.prepare(`
     SELECT id, 'aovivo' as sistema, comprador as nome, aniversario as nascimento,
            celular, NULL as fixo,
            NULL as endereco, NULL as complemento, NULL as bairro, NULL as referencia,
            data_pedido
     FROM ao_vivo
     WHERE cliente_id IS NULL AND comprador IS NOT NULL AND comprador != ''
-  `);
+  `).all();
 
-  return [...fonadasResultado.rows, ...aoVivoResultado.rows];
+  return [...fonadas, ...aoVivo];
 }
 
 function agruparPedidos(pedidos) {
@@ -238,41 +229,35 @@ function montarDadosCliente(pedidosDoGrupo) {
   };
 }
 
-const CAMPOS_CLIENTE = ['nome', 'nascimento', 'fixo', 'celular', 'endereco', 'complemento', 'bairro', 'referencia'];
+function aplicar(grupos) {
+  const inserirCliente = db.prepare(`
+    INSERT INTO clientes (nome, nascimento, fixo, celular, endereco, complemento, bairro, referencia)
+    VALUES (@nome, @nascimento, @fixo, @celular, @endereco, @complemento, @bairro, @referencia)
+  `);
+  const vincularFonada = db.prepare('UPDATE fonadas SET cliente_id = ? WHERE id = ?');
+  const vincularAoVivo = db.prepare('UPDATE ao_vivo SET cliente_id = ? WHERE id = ?');
 
-async function aplicar(grupos) {
   let totalClientes = 0;
   let totalVinculados = 0;
 
-  const client = await pool.connect();
+  db.exec('BEGIN');
   try {
-    await client.query('BEGIN');
-
     for (const pedidosDoGrupo of grupos.values()) {
       const dadosCliente = montarDadosCliente(pedidosDoGrupo);
-      const valores = CAMPOS_CLIENTE.map((campo) => dadosCliente[campo]);
-      const placeholders = CAMPOS_CLIENTE.map((_, i) => `$${i + 1}`).join(', ');
-
-      const resultadoInsercao = await client.query(
-        `INSERT INTO clientes (${CAMPOS_CLIENTE.join(', ')}) VALUES (${placeholders}) RETURNING id`,
-        valores
-      );
-      const clienteId = resultadoInsercao.rows[0].id;
+      const resultado = inserirCliente.run(dadosCliente);
+      const clienteId = resultado.lastInsertRowid;
       totalClientes++;
 
       for (const p of pedidosDoGrupo) {
-        const tabela = p.sistema === 'fonada' ? 'fonadas' : 'ao_vivo';
-        await client.query(`UPDATE ${tabela} SET cliente_id = $1 WHERE id = $2`, [clienteId, p.id]);
+        if (p.sistema === 'fonada') vincularFonada.run(clienteId, p.id);
+        else vincularAoVivo.run(clienteId, p.id);
         totalVinculados++;
       }
     }
-
-    await client.query('COMMIT');
+    db.exec('COMMIT');
   } catch (err) {
-    await client.query('ROLLBACK');
+    db.exec('ROLLBACK');
     throw err;
-  } finally {
-    client.release();
   }
 
   return { totalClientes, totalVinculados };
@@ -294,37 +279,33 @@ function casosParaConferir(grupos) {
   return casos;
 }
 
-async function desfazer() {
+function desfazer() {
   console.log('\n🗑️  Desfazendo vínculos e apagando clientes...\n');
-  const client = await pool.connect();
+  db.exec('BEGIN');
   try {
-    await client.query('BEGIN');
-    await client.query('UPDATE fonadas SET cliente_id = NULL');
-    await client.query('UPDATE ao_vivo SET cliente_id = NULL');
-    await client.query('DELETE FROM clientes');
-    await client.query('COMMIT');
+    db.exec('UPDATE fonadas SET cliente_id = NULL');
+    db.exec('UPDATE ao_vivo SET cliente_id = NULL');
+    db.exec('DELETE FROM clientes');
+    db.exec('COMMIT');
   } catch (err) {
-    await client.query('ROLLBACK');
+    db.exec('ROLLBACK');
     throw err;
-  } finally {
-    client.release();
   }
   console.log('✅ Todos os clientes foram apagados e os pedidos desvinculados.\n');
   console.log('Rode o script novamente (com ou sem --simular) para vincular do zero.\n');
 }
 
-async function main() {
-  await iniciarBanco();
+function main() {
+  iniciarBanco();
 
   if (MODO_DESFAZER) {
-    await desfazer();
-    await pool.end();
+    desfazer();
     return;
   }
 
   console.log(`\n${MODO_SIMULACAO ? '🔍 MODO SIMULAÇÃO (nada será alterado)' : '⚙️  APLICANDO DE VERDADE'}\n`);
 
-  const pedidos = await carregarPedidosSemCliente();
+  const pedidos = carregarPedidosSemCliente();
   console.log(`Pedidos sem cliente vinculado encontrados: ${pedidos.length}`);
 
   const { grupos, semGrupo } = agruparPedidos(pedidos);
@@ -340,10 +321,8 @@ async function main() {
 
   console.log(`\n=== RESUMO ===`);
   console.log(`Clientes que ${MODO_SIMULACAO ? 'seriam' : 'serão'} criados: ${grupos.size}`);
-  if (pedidos.length > 0) {
-    console.log(`Pedidos vinculados: ${totalCobertos} de ${pedidos.length} (${(100 * totalCobertos / pedidos.length).toFixed(1)}%)`);
-    console.log(`Pedidos sem vínculo: ${semGrupo.length} (${(100 * semGrupo.length / pedidos.length).toFixed(1)}%)`);
-  }
+  console.log(`Pedidos vinculados: ${totalCobertos} de ${pedidos.length} (${(100 * totalCobertos / pedidos.length).toFixed(1)}%)`);
+  console.log(`Pedidos sem vínculo: ${semGrupo.length} (${(100 * semGrupo.length / pedidos.length).toFixed(1)}%)`);
 
   const casos = casosParaConferir(grupos);
   console.log(`\n--- Grupos com variação de nome (para conferência) ---`);
@@ -355,20 +334,14 @@ async function main() {
 
   if (MODO_SIMULACAO) {
     console.log(`\nNada foi alterado no banco. Rode sem --simular para aplicar de verdade.\n`);
-    await pool.end();
     return;
   }
 
   console.log(`\nAplicando...`);
-  const { totalClientes, totalVinculados } = await aplicar(grupos);
+  const { totalClientes, totalVinculados } = aplicar(grupos);
   console.log(`\n✅ ${totalClientes} cliente(s) criado(s).`);
   console.log(`✅ ${totalVinculados} pedido(s) vinculado(s).`);
   console.log(`\n🎉 Concluído!\n`);
-
-  await pool.end();
 }
 
-main().catch((erro) => {
-  console.error('\n❌ Erro durante a vinculação:', erro.message);
-  process.exit(1);
-});
+main();

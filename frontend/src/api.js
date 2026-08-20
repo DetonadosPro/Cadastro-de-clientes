@@ -128,6 +128,7 @@ export const api = {
     buscarParaImpressao: (ids) => chamar(`/ao-vivo/imprimir?ids=${ids.join(',')}`),
     darBaixa: (id, entregue) => chamar(`/ao-vivo/${id}/baixa`, { method: 'POST', body: JSON.stringify({ entregue }) }),
     desfazerBaixa: (id) => chamar(`/ao-vivo/${id}/desfazer-baixa`, { method: 'POST' }),
+    marcarPagou: (id, pagou) => chamar(`/ao-vivo/${id}/pagou`, { method: 'POST', body: JSON.stringify({ pagou }) }),
   },
 
   // ---------- Clientes (cadastro único, compartilhado) ----------
@@ -147,6 +148,11 @@ export const api = {
       chamar(`/clientes/${destinoId}/mesclar`, { method: 'POST', body: JSON.stringify({ origemId }) }),
     verificarDuplicidade: (nome, nascimento) =>
       chamar(`/clientes/verificar-duplicidade?nome=${encodeURIComponent(nome)}&nascimento=${encodeURIComponent(nascimento)}`),
+    possiveisDuplicatas: () => chamar('/clientes/possiveis-duplicatas'),
+    descartarDuplicata: (clienteAId, clienteBId) =>
+      chamar('/clientes/descartar-duplicata', { method: 'POST', body: JSON.stringify({ clienteAId, clienteBId }) }),
+    mesclarAutomatico: (clienteAId, clienteBId) =>
+      chamar('/clientes/mesclar-automatico', { method: 'POST', body: JSON.stringify({ clienteAId, clienteBId }) }),
     bloquear: (id, bloqueado, motivo) =>
       chamar(`/clientes/${id}/bloqueio`, { method: 'PUT', body: JSON.stringify({ bloqueado, motivo }) }),
   },

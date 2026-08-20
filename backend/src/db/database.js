@@ -30,7 +30,22 @@ const db = {
   pool,
 };
 
+let unaccentDisponivel = false;
+
 async function iniciarBanco() {
+  // Extensão para busca por nome ignorar acentos (ex: buscar "jose"
+  // encontra "José") — além de ILIKE, que já ignora maiúsculas
+  ///minúsculas. Tentativa best-effort: alguns provedores gerenciados
+  // não permitem criar extensões sem privilégio de superusuário; se
+  // falhar, o sistema segue funcionando normalmente, só sem ignorar
+  // acentos na busca (ILIKE continua funcionando de qualquer forma).
+  try {
+    await pool.query('CREATE EXTENSION IF NOT EXISTS unaccent');
+    unaccentDisponivel = true;
+  } catch (erro) {
+    console.warn('⚠️  Extensão "unaccent" não pôde ser criada (busca vai ignorar maiúsculas/minúsculas, mas não acentos):', erro.message);
+  }
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS usuarios (
       id SERIAL PRIMARY KEY,
@@ -199,6 +214,49 @@ async function iniciarBanco() {
   `);
   await pool.query('CREATE INDEX IF NOT EXISTS idx_tentativas_pedido ON tentativas_contato(pedido_id)');
 
+  // Pares de clientes que a pessoa já confirmou não serem a mesma
+  // pessoa, mesmo batendo no critério de nome parecido + mesmo
+  // dia/mês de aniversário — a sugestão de duplicata (ver
+  // GET /clientes/possiveis-duplicatas) para de aparecer para esse
+  // par especificamente, de forma permanente. cliente_menor_id e
+  // cliente_maior_id guardam o par sempre na mesma ordem (menor
+  // primeiro), para que a checagem de "esse par já foi descartado?"
+  // não dependa de qual dos dois é "a" ou "b" na hora da consulta.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS duplicatas_descartadas (
+      cliente_menor_id INTEGER NOT NULL,
+      cliente_maior_id INTEGER NOT NULL,
+      criado_em TIMESTAMP DEFAULT NOW(),
+      PRIMARY KEY (cliente_menor_id, cliente_maior_id)
+    );
+  `);
+
+  // Contador dedicado para gerar números de O.S. sem risco de duas
+  // pessoas receberem o mesmo número ao mesmo tempo (ver
+  // reservarProximaOs, em routes/fonadas.js e routes/aoVivo.js). Uma
+  // linha por sistema; o valor é o último número já entregue.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS contadores_os (
+      sistema TEXT PRIMARY KEY,
+      ultimo_numero INTEGER NOT NULL DEFAULT 0
+    );
+  `);
+  await pool.query(`
+    INSERT INTO contadores_os (sistema, ultimo_numero) VALUES ('fonada', 0)
+    ON CONFLICT (sistema) DO NOTHING
+  `);
+  await pool.query(`
+    INSERT INTO contadores_os (sistema, ultimo_numero) VALUES ('ao_vivo', 0)
+    ON CONFLICT (sistema) DO NOTHING
+  `);
+  // Sincroniza o contador com o maior número já em uso, para o caso de
+  // o contador ainda não refletir o histórico existente (primeira vez
+  // que esta tabela é criada, com pedidos antigos já no banco). Só
+  // avança o contador para cima — nunca para baixo — então rodar isso
+  // de novo no futuro não tem efeito colateral.
+  await sincronizarContadorComMaximoExistente(pool, 'fonada', 'fonadas', 'senha_os');
+  await sincronizarContadorComMaximoExistente(pool, 'ao_vivo', 'ao_vivo', 'numero_os');
+
   const colunasNovas = [
     { tabela: 'ao_vivo', coluna: 'tema_4', tipo: 'TEXT' },
     { tabela: 'ao_vivo', coluna: 'mensagem_codigo_4', tipo: 'TEXT' },
@@ -214,10 +272,102 @@ async function iniciarBanco() {
     { tabela: 'clientes', coluna: 'bloqueado', tipo: 'BOOLEAN DEFAULT FALSE' },
     { tabela: 'clientes', coluna: 'bloqueio_motivo', tipo: 'TEXT' },
     { tabela: 'ao_vivo', coluna: 'resultado_entrega', tipo: 'TEXT' },
+    { tabela: 'ao_vivo', coluna: 'pagou', tipo: 'TEXT' },
+    { tabela: 'clientes', coluna: 'whatsapp', tipo: 'TEXT' },
+    { tabela: 'fonadas', coluna: 'comprador_whatsapp', tipo: 'TEXT' },
+    { tabela: 'ao_vivo', coluna: 'whatsapp', tipo: 'TEXT' },
   ];
   for (const { tabela, coluna, tipo } of colunasNovas) {
     await pool.query(`ALTER TABLE ${tabela} ADD COLUMN IF NOT EXISTS ${coluna} ${tipo}`);
   }
+
+  // Trava de integridade contra O.S. duplicada: dois pedidos criados ao
+  // mesmo tempo em máquinas diferentes podiam, antes desta trava,
+  // receber o mesmo número sugerido (o cálculo de "próxima O.S." não
+  // era atômico). O índice único parcial abaixo garante, no nível do
+  // banco, que isso nunca fica salvo — mesmo que a camada de
+  // aplicação falhe em prevenir. É "parcial" (WHERE excluido_em IS
+  // NULL) porque um número de um pedido excluído pode legitimamente
+  // ser reaproveitado por um pedido novo depois.
+  //
+  // Antes de criar o índice, verificamos se já existem duplicatas
+  // salvas — se existirem, a criação falharia e travaria a
+  // inicialização do sistema inteiro. Nesse caso só avisamos no log,
+  // sem quebrar o boot; o índice fica pendente até os dados serem
+  // corrigidos manualmente.
+  await aplicarIndiceUnicoSeguro(pool, 'fonadas', 'senha_os', 'idx_unico_fonadas_senha_os');
+  await aplicarIndiceUnicoSeguro(pool, 'ao_vivo', 'numero_os', 'idx_unico_aovivo_numero_os');
 }
 
-module.exports = { db, pool, iniciarBanco };
+async function sincronizarContadorComMaximoExistente(pool, sistema, tabela, coluna) {
+  const resultado = await pool.query(`SELECT ${coluna} FROM ${tabela} WHERE ${coluna} IS NOT NULL AND ${coluna} != ''`);
+  let maior = 0;
+  for (const linha of resultado.rows) {
+    const n = parseInt(linha[coluna], 10);
+    if (!isNaN(n) && n > maior) maior = n;
+  }
+  await pool.query(
+    `UPDATE contadores_os SET ultimo_numero = $1 WHERE sistema = $2 AND ultimo_numero < $1`,
+    [maior, sistema]
+  );
+}
+
+// Reserva o próximo número de O.S. de forma atômica: a linha do
+// contador é travada (FOR UPDATE) durante o incremento, então se duas
+// pessoas pedirem o "próximo número" ao mesmo tempo, a segunda espera
+// a primeira terminar antes de ler o valor — nunca as duas recebem o
+// mesmo número, mesmo em máquinas diferentes na mesma rede.
+async function reservarProximaOs(pool, sistema) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const resultado = await client.query(
+      'SELECT ultimo_numero FROM contadores_os WHERE sistema = $1 FOR UPDATE',
+      [sistema]
+    );
+    const atual = resultado.rows[0] ? resultado.rows[0].ultimo_numero : 0;
+    const proximo = atual + 1;
+    await client.query(
+      'UPDATE contadores_os SET ultimo_numero = $1 WHERE sistema = $2',
+      [proximo, sistema]
+    );
+    await client.query('COMMIT');
+    return proximo;
+  } catch (erro) {
+    await client.query('ROLLBACK');
+    throw erro;
+  } finally {
+    client.release();
+  }
+}
+
+async function aplicarIndiceUnicoSeguro(pool, tabela, coluna, nomeIndice) {
+  const duplicatas = await pool.query(`
+    SELECT ${coluna}, COUNT(*) as qtd
+    FROM ${tabela}
+    WHERE excluido_em IS NULL AND ${coluna} IS NOT NULL AND ${coluna} != ''
+    GROUP BY ${coluna}
+    HAVING COUNT(*) > 1
+  `);
+
+  if (duplicatas.rows.length > 0) {
+    console.warn(
+      `⚠️  ${tabela}.${coluna}: ${duplicatas.rows.length} valor(es) duplicado(s) encontrado(s) ` +
+      `(ex: "${duplicatas.rows[0][coluna]}" aparece ${duplicatas.rows[0].qtd}x). ` +
+      `Índice único NÃO criado até os dados serem corrigidos manualmente.`
+    );
+    return;
+  }
+
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS ${nomeIndice}
+    ON ${tabela} (${coluna})
+    WHERE excluido_em IS NULL AND ${coluna} IS NOT NULL AND ${coluna} != ''
+  `);
+}
+
+function unaccentEstaDisponivel() {
+  return unaccentDisponivel;
+}
+
+module.exports = { db, pool, iniciarBanco, reservarProximaOs, unaccentEstaDisponivel };

@@ -5,7 +5,7 @@
 // calculados dinamicamente, LIKE trocado por ILIKE.
 
 const express = require('express');
-const { db } = require('../db/database');
+const { db, pool, reservarProximaOs } = require('../db/database');
 const { agoraBrasilia } = require('../utils/dataHora');
 
 const router = express.Router();
@@ -14,7 +14,7 @@ const CAMPOS = [
   'numero_os', 'cliente_id', 'data_pedido', 'horario_pedido', 'dia_entrega', 'horario_entrega',
   'comprador', 'para', 'oferecimento',
   'endereco', 'bairro', 'referencia',
-  'fixo_local', 'celular_local', 'celular', 'celular2',
+  'fixo_local', 'celular_local', 'celular', 'celular2', 'whatsapp',
   'tema_1', 'mensagem_codigo_1', 'tema_2', 'mensagem_codigo_2', 'tema_3', 'mensagem_codigo_3', 'tema_4', 'mensagem_codigo_4',
   'musica_1', 'musica_2', 'musica_3', 'musica_4', 'musica_5', 'musica_6',
   'aniversario', 'valor', 'pagamento', 'brinde', 'observacoes',
@@ -24,6 +24,7 @@ const FILTROS_AOVIVO = {
   comprador: { colunas: ['comprador'], tipo: 'texto' },
   destinatario: { colunas: ['para'], tipo: 'texto' },
   celular_comprador: { colunas: ['celular', 'celular2'], tipo: 'celular' },
+  whatsapp_comprador: { colunas: ['whatsapp'], tipo: 'celular' },
   fixo_local: { colunas: ['fixo_local'], tipo: 'fixo' },
   celular_local: { colunas: ['celular_local'], tipo: 'celular' },
   endereco: { colunas: ['endereco'], tipo: 'texto' },
@@ -51,19 +52,14 @@ function montarFiltro(campo, termo, indiceInicial) {
 }
 
 // GET /api/ao-vivo/proxima-os
+//
+// Reserva o número atomicamente (ver reservarProximaOs em
+// db/database.js) — duas pessoas pedindo "próxima O.S." ao mesmo
+// tempo, em máquinas diferentes, nunca recebem o mesmo número.
 router.get('/proxima-os', async (req, res) => {
   try {
-    const resultado = await db.query(`
-      SELECT numero_os FROM ao_vivo WHERE numero_os IS NOT NULL AND numero_os != ''
-    `);
-
-    let maior = 0;
-    for (const linha of resultado.rows) {
-      const n = parseInt(linha.numero_os, 10);
-      if (!isNaN(n) && n > maior) maior = n;
-    }
-
-    res.json({ proximaOs: String(maior + 1) });
+    const proximo = await reservarProximaOs(pool, 'ao_vivo');
+    res.json({ proximaOs: String(proximo) });
   } catch (erro) {
     console.error('Erro ao calcular próxima O.S.:', erro);
     res.status(500).json({ erro: 'Erro ao calcular próxima O.S.' });
@@ -94,10 +90,11 @@ router.get('/', async (req, res) => {
         celular ILIKE $3 OR celular2 ILIKE $4 OR
         fixo_local ILIKE $5 OR celular_local ILIKE $6 OR
         endereco ILIKE $7 OR
-        numero_os ILIKE $8
+        numero_os ILIKE $8 OR
+        whatsapp ILIKE $9
       )`;
       const termo = `%${busca}%`;
-      params = new Array(8).fill(termo);
+      params = new Array(9).fill(termo);
     }
 
     const totalResultado = await db.query(`SELECT COUNT(*) as n FROM ao_vivo ${where}`, params);
@@ -268,6 +265,44 @@ router.post('/:id/desfazer-baixa', async (req, res) => {
   }
 });
 
+// POST /api/ao-vivo/:id/pagou
+//
+// Marca (ou desmarca) que a cobrança prevista para este pedido foi
+// recebida — mesma coluna "pagou" que a tela de Cobrança já usa para
+// Fonada, agora também disponível para Ao Vivo (usado no botão
+// "Recebido" da Agenda, nos itens marcados como cobrança prevista).
+// Separado da rota de baixa de entrega de propósito: são conceitos
+// diferentes (entregar o evento x receber o pagamento).
+router.post('/:id/pagou', async (req, res) => {
+  try {
+    const { pagou } = req.body;
+    if (pagou !== 'SIM' && pagou !== 'NÃO' && pagou !== null) {
+      return res.status(400).json({ erro: 'Informe pagou como "SIM", "NÃO" ou null.' });
+    }
+
+    const existenteResultado = await db.query('SELECT id, cliente_id FROM ao_vivo WHERE id = $1', [req.params.id]);
+    if (existenteResultado.rows.length === 0) return res.status(404).json({ erro: 'Pedido não encontrado.' });
+
+    const clienteId = existenteResultado.rows[0].cliente_id;
+    if (clienteId) {
+      const clienteResultado = await db.query('SELECT bloqueado FROM clientes WHERE id = $1', [clienteId]);
+      if (clienteResultado.rows[0]?.bloqueado) {
+        return res.status(403).json({ erro: 'Este cliente está bloqueado. Não é possível alterar pedidos dele.' });
+      }
+    }
+
+    await db.query(
+      'UPDATE ao_vivo SET pagou = $1, atualizado_em = NOW() WHERE id = $2',
+      [pagou, req.params.id]
+    );
+
+    res.json({ ok: true, pagou });
+  } catch (erro) {
+    console.error('Erro ao marcar pagamento do ao vivo:', erro);
+    res.status(500).json({ erro: 'Erro ao marcar pagamento.' });
+  }
+});
+
 router.get('/:id', async (req, res) => {
   try {
     const resultado = await db.query('SELECT * FROM ao_vivo WHERE id = $1', [req.params.id]);
@@ -295,6 +330,7 @@ router.post('/', async (req, res) => {
       }
       dados.comprador = cliente.nome;
       dados.celular = cliente.celular;
+      dados.whatsapp = cliente.whatsapp;
       dados.aniversario = cliente.nascimento;
     }
 
