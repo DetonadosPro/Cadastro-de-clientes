@@ -241,7 +241,7 @@ export default function ListaAoVivo() {
         <>
           <div className="painel nao-imprimir" style={{ padding: 0, overflow: 'hidden' }}>
             <div style={{ overflowX: 'auto' }}>
-            <table className="tabela-lista">
+            <table className="tabela-lista tabela-aovivo">
               <thead>
                 <tr>
                   <th style={{ width: 36 }}>
@@ -256,7 +256,7 @@ export default function ListaAoVivo() {
                   <th>Status</th>
                   <th>Comprador</th>
                   <th>Para</th>
-                  <th>Data</th>
+                  <th>Evento</th>
                   <th>Bairro</th>
                   <th>Valor</th>
                 </tr>
@@ -264,26 +264,26 @@ export default function ListaAoVivo() {
               <tbody>
                 {itens.map((p) => (
                   <tr key={p.id} onClick={() => navigate(`/ao-vivo/${p.id}`)}>
-                    <td onClick={(e) => e.stopPropagation()}>
+                    <td data-label="Selecionar" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
                         checked={selecionados.has(p.id)}
                         onChange={(e) => alternarSelecao(p.id, e)}
                       />
                     </td>
-                    <td>
+                    <td data-label="O.S.">
                       <span className="carimbo-os carimbo-os-lista">
                         {p.numero_os || p.id}
                       </span>
                     </td>
-                    <td onClick={(e) => e.stopPropagation()}>
+                    <td data-label="Status" onClick={(e) => e.stopPropagation()}>
                       <IndicadorEntrega status={statusEntrega(p)} />
                     </td>
-                    <td>{p.comprador}</td>
-                    <td>{p.para || '—'}</td>
-                    <td>{p.dia_entrega} {p.horario_entrega ? `— ${p.horario_entrega}` : ''}</td>
-                    <td>{p.bairro || '—'}</td>
-                    <td>{p.valor != null ? formatarReais(p.valor) : '—'}</td>
+                    <td data-label="Comprador">{p.comprador}</td>
+                    <td data-label="Para">{p.para || '—'}</td>
+                    <td data-label="Evento">{p.dia_entrega} {p.horario_entrega ? `— ${p.horario_entrega}` : ''}</td>
+                    <td data-label="Bairro">{p.bairro || '—'}</td>
+                    <td data-label="Valor">{p.valor != null ? formatarReais(p.valor) : '—'}</td>
                   </tr>
                 ))}
               </tbody>

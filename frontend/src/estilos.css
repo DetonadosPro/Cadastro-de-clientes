@@ -643,6 +643,88 @@ input, select, textarea {
     font-size: 0.68rem;
     padding: 2px 8px;
   }
+
+  /* Tabela de ao vivo vira lista de cards compactos no mobile */
+  .tabela-lista.tabela-aovivo thead {
+    display: none;
+  }
+  .tabela-lista.tabela-aovivo,
+  .tabela-lista.tabela-aovivo tbody {
+    display: block;
+    width: 100%;
+  }
+  .tabela-lista.tabela-aovivo tbody tr {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    row-gap: 4px;
+    column-gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--papel-alt);
+    align-items: start;
+  }
+  .tabela-lista.tabela-aovivo td {
+    padding: 2px 0;
+    border-bottom: none;
+    font-size: 0.85rem;
+    min-width: 0;
+  }
+  .tabela-lista.tabela-aovivo td[data-label="Selecionar"] {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    align-self: center;
+  }
+  .tabela-lista.tabela-aovivo td[data-label="O.S."] {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .tabela-lista.tabela-aovivo td[data-label="Status"] {
+    grid-column: 3;
+    grid-row: 1;
+    text-align: right;
+  }
+  .tabela-lista.tabela-aovivo td[data-label="Comprador"] {
+    grid-column: 2 / 4;
+    grid-row: 2;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tabela-lista.tabela-aovivo td[data-label="Para"] {
+    grid-column: 2 / 4;
+    grid-row: 3;
+    font-size: 0.72rem;
+    color: var(--tinta-suave);
+  }
+  .tabela-lista.tabela-aovivo td[data-label="Para"]::before {
+    content: "Para: ";
+  }
+  .tabela-lista.tabela-aovivo td[data-label="Evento"] {
+    grid-column: 2;
+    grid-row: 4;
+    font-size: 0.72rem;
+    color: var(--tinta-suave);
+  }
+  .tabela-lista.tabela-aovivo td[data-label="Bairro"] {
+    grid-column: 3;
+    grid-row: 4;
+    font-size: 0.72rem;
+    color: var(--tinta-suave);
+    text-align: right;
+  }
+  .tabela-lista.tabela-aovivo td[data-label="Valor"] {
+    grid-column: 2 / 4;
+    grid-row: 5;
+    font-size: 0.72rem;
+    color: var(--tinta-suave);
+  }
+  .tabela-lista.tabela-aovivo td[data-label="Valor"]::before {
+    content: "Valor: ";
+  }
+  .tabela-lista.tabela-aovivo .tag {
+    font-size: 0.68rem;
+    padding: 2px 8px;
+  }
 }
 
 .campo-data-agenda {
@@ -660,6 +742,9 @@ input, select, textarea {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+}
+.acoes-secundarias-mobile {
+  display: contents;
 }
 .btn-action {
   background: var(--branco);
@@ -739,6 +824,38 @@ input, select, textarea {
   }
   .form-layout > div:last-child {
     order: -1; /* mostra o painel de ações primeiro no mobile, mais fácil de alcançar */
+  }
+}
+
+/* Mobile: Salvar em destaque sozinho no topo, demais ações em
+   linha única com ícone + rótulo pequeno (mesmo padrão da Agenda),
+   em vez da grade 2x2 que ocupa altura demais em telas pequenas. */
+@media (max-width: 700px) {
+  .actions-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .actions-grid .btn-action.destaque {
+    padding: 12px;
+    font-size: 14px;
+  }
+  .acoes-secundarias-mobile {
+    display: flex;
+    gap: 5px;
+  }
+  .acoes-secundarias-mobile .btn-action {
+    flex: 1;
+    flex-direction: column;
+    gap: 3px;
+    padding: 6px 2px;
+    font-size: 10px;
+    line-height: 1.2;
+    box-shadow: none;
+  }
+  .acoes-secundarias-mobile .btn-action svg {
+    width: 17px;
+    height: 17px;
   }
 }
 
