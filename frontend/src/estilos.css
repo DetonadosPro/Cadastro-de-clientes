@@ -406,6 +406,84 @@ input, select, textarea {
   color: var(--carimbo);
 }
 
+/* ---------- Ações compactas dos cards de agenda ---------- */
+.acoes-agenda {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.btn-icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--carimbo);
+  background: transparent;
+  color: var(--carimbo);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 12px;
+  white-space: nowrap;
+  transition: background 0.12s ease;
+}
+.btn-icone:hover {
+  background: var(--carimbo-suave);
+}
+.btn-icone svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+.btn-icone.principal {
+  background: var(--carimbo);
+  color: var(--branco);
+}
+.btn-icone.principal:hover {
+  background: var(--carimbo-claro);
+}
+.btn-icone.perigo {
+  border-color: var(--selo);
+  color: var(--selo);
+}
+.btn-icone.perigo:hover {
+  background: var(--selo-suave);
+}
+.btn-icone:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 700px) {
+  .item-agenda {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .acoes-agenda {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    width: 100%;
+    gap: 5px;
+  }
+  .btn-icone {
+    flex: 1;
+    flex-direction: column;
+    gap: 3px;
+    padding: 6px 2px;
+    font-size: 10px;
+    line-height: 1.2;
+  }
+  .btn-icone svg {
+    width: 17px;
+    height: 17px;
+  }
+  .btn-icone span {
+    white-space: normal;
+    text-align: center;
+  }
+}
+
 .campo-data-agenda {
   padding: 6px 10px;
   border: 1.5px solid var(--borda);

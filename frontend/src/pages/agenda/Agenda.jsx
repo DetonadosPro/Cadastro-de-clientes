@@ -270,7 +270,7 @@ export default function Agenda() {
                     return (
                       <div
                         key={chave}
-                        className={`painel ${urgencia ? `painel-urgencia ${urgencia}` : ''}`}
+                        className={`painel item-agenda ${urgencia ? `painel-urgencia ${urgencia}` : ''}`}
                         style={{
                           ...estilos.itemAgenda,
                           ...(jaPassada ? estilos.itemPassado : {}),
@@ -308,40 +308,43 @@ export default function Agenda() {
                             {(!ehHoje || jaPassada) && item.resultado && <Info label="Resultado" valor={item.resultado} />}
                           </div>
                         </div>
-                        <div style={estilos.acoesItem}>
+                        <div className="acoes-agenda">
                           {item.cliente_id && (
                             <button
                               type="button"
-                              className="btn-small"
+                              className="btn-icone"
                               onClick={() => navigate(`/clientes/${item.cliente_id}`)}
                             >
-                              Ver cliente
+                              <IconeUsuario />
+                              <span>Ver cliente</span>
                             </button>
                           )}
                           <button
                             type="button"
-                            className="btn-small"
+                            className="btn-icone"
                             onClick={() => navigate(`/fonada/${item.pedidoId}`)}
                           >
-                            Abrir pedido
+                            <IconePedido />
+                            <span>Abrir pedido</span>
                           </button>
                           {ehHoje && !jaPassada && (
                             <>
                               <button
                                 type="button"
-                                className="btn-small"
-                                style={{ color: 'var(--selo)', borderColor: 'var(--selo)' }}
+                                className="btn-icone perigo"
                                 onClick={() => abrirRemarcar(item)}
                               >
-                                Não atendeu
+                                <IconeNaoAtendeu />
+                                <span>Não atendeu</span>
                               </button>
                               <button
                                 type="button"
-                                className="btn"
+                                className="btn-icone principal"
                                 onClick={() => darBaixa(item)}
                                 disabled={salvandoBaixa === chave}
                               >
-                                {salvandoBaixa === chave ? 'Salvando...' : 'Marcar como passada'}
+                                <IconeCheck />
+                                <span>{salvandoBaixa === chave ? 'Salvando...' : 'Marcar como passada'}</span>
                               </button>
                             </>
                           )}
@@ -372,7 +375,7 @@ export default function Agenda() {
                     return (
                       <div
                         key={item.id}
-                        className={`painel ${urgencia ? `painel-urgencia ${urgencia}` : ''}`}
+                        className={`painel item-agenda ${urgencia ? `painel-urgencia ${urgencia}` : ''}`}
                         style={{
                           ...estilos.itemAgenda,
                           ...(jaPassada ? estilos.itemPassado : {}),
@@ -422,51 +425,56 @@ export default function Agenda() {
                             <Info label="Referência" valor={item.referencia} />
                           </div>
                         </div>
-                        <div style={estilos.acoesItem}>
+                        <div className="acoes-agenda">
                           {item.cliente_id && (
                             <button
                               type="button"
-                              className="btn-small"
+                              className="btn-icone"
                               onClick={() => navigate(`/clientes/${item.cliente_id}`)}
                             >
-                              Ver cliente
+                              <IconeUsuario />
+                              <span>Ver cliente</span>
                             </button>
                           )}
                           <button
                             type="button"
-                            className="btn-small"
+                            className="btn-icone"
                             onClick={() => navigate(`/ao-vivo/${item.id}`)}
                           >
-                            Abrir pedido
+                            <IconePedido />
+                            <span>Abrir pedido</span>
                           </button>
                           {!item.ehCobranca && !foiEntregue && (
                             <button
                               type="button"
-                              className="btn"
+                              className="btn-icone principal"
                               onClick={() => darBaixaAoVivo(item, true)}
                               disabled={salvandoBaixa === chave}
                             >
-                              {salvandoBaixa === chave ? 'Salvando...' : 'Confirmar entrega'}
+                              <IconeCheck />
+                              <span>{salvandoBaixa === chave ? 'Salvando...' : 'Confirmar entrega'}</span>
                             </button>
                           )}
                           {item.ehCobranca && item.pagou !== 'SIM' && (
                             <button
                               type="button"
-                              className="btn"
+                              className="btn-icone principal"
                               onClick={() => marcarPagouAoVivo(item, 'SIM')}
                               disabled={salvandoBaixa === `aovivo-pagou-${item.id}`}
                             >
-                              {salvandoBaixa === `aovivo-pagou-${item.id}` ? 'Salvando...' : 'Recebido'}
+                              <IconeCheck />
+                              <span>{salvandoBaixa === `aovivo-pagou-${item.id}` ? 'Salvando...' : 'Recebido'}</span>
                             </button>
                           )}
                           {item.ehCobranca && item.pagou === 'SIM' && (
                             <button
                               type="button"
-                              className="btn-small"
+                              className="btn-icone"
                               onClick={() => marcarPagouAoVivo(item, null)}
                               disabled={salvandoBaixa === `aovivo-pagou-${item.id}`}
                             >
-                              {salvandoBaixa === `aovivo-pagou-${item.id}` ? 'Desfazendo...' : 'Desfazer'}
+                              <IconeNaoAtendeu />
+                              <span>{salvandoBaixa === `aovivo-pagou-${item.id}` ? 'Desfazendo...' : 'Desfazer'}</span>
                             </button>
                           )}
                         </div>
@@ -528,6 +536,42 @@ export default function Agenda() {
   );
 }
 
+function IconeUsuario() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" />
+    </svg>
+  );
+}
+
+function IconePedido() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <path d="M14 2v6h6" />
+      <path d="M9 13h6M9 17h6" />
+    </svg>
+  );
+}
+
+function IconeNaoAtendeu() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .3 2 .7 2.9a2 2 0 0 1-.4 2.1L8 10a16 16 0 0 0 6 6l1.3-1.4a2 2 0 0 1 2.1-.4c.9.4 1.9.6 2.9.7a2 2 0 0 1 1.7 2z" />
+      <line x1="1" y1="1" x2="23" y2="23" />
+    </svg>
+  );
+}
+
+function IconeCheck() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
 function Info({ label, valor }) {
   return (
     <div>
@@ -555,11 +599,5 @@ const estilos = {
   },
   itemPassado: {
     opacity: 0.55,
-  },
-  acoesItem: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 6,
-    flexShrink: 0,
   },
 };
