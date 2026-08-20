@@ -498,13 +498,29 @@ export default function FormFonada() {
                       Nasc.: {cliente.nascimento || '—'}
                     </span>
                   </div>
-                  <div className="grade grade-2" style={{ gap: 0 }}>
-                    <InfoLinha label="Fixo" valor={cliente.fixo} />
-                    <InfoLinha label="Celular" valor={cliente.celular} />
-                    <InfoLinha label="WhatsApp" valor={cliente.whatsapp} />
-                    <InfoLinha label="Bairro" valor={cliente.bairro} />
-                    <InfoLinha label="Endereço" valor={[cliente.endereco, cliente.complemento].filter(Boolean).join(' — ')} />
-                    <InfoLinha label="Referência" valor={cliente.referencia} />
+                  <div className="info-linha">
+                    <span className="info-label">Fixo</span>
+                    <span className="info-valor">{cliente.fixo || '—'}</span>
+                  </div>
+                  <div className="info-linha">
+                    <span className="info-label">Celular</span>
+                    <span className="info-valor">{cliente.celular || '—'}</span>
+                  </div>
+                  <div className="info-linha">
+                    <span className="info-label">WhatsApp</span>
+                    <span className="info-valor">{cliente.whatsapp || '—'}</span>
+                  </div>
+                  <div className="info-linha">
+                    <span className="info-label">Bairro</span>
+                    <span className="info-valor">{cliente.bairro || '—'}</span>
+                  </div>
+                  <div className="info-linha">
+                    <span className="info-label">Endereço</span>
+                    <span className="info-valor">{[cliente.endereco, cliente.complemento].filter(Boolean).join(' — ') || '—'}</span>
+                  </div>
+                  <div className="info-linha">
+                    <span className="info-label">Referência</span>
+                    <span className="info-valor">{cliente.referencia || '—'}</span>
                   </div>
                 </>
               ) : (

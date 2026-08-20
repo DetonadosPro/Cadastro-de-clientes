@@ -1324,19 +1324,6 @@ button.nav-grupo-titulo {
   color: var(--tinta);
   font-weight: 700;
 }
-.info-linha-compacta {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--papel-alt);
-  overflow: hidden;
-}
-.info-linha-compacta .info-valor {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
 ::-webkit-scrollbar {
   width: 10px;
