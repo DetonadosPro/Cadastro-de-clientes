@@ -422,64 +422,6 @@ export default function FormFonada() {
             </div>
           </div>
 
-          <div className="section-box" style={{ width: 'fit-content', maxWidth: '100%' }}>
-            <div className="form-row">
-              <label>Valor R$:</label>
-              <input
-                type="text"
-                inputMode="numeric"
-                className="input-valor-destaque"
-                value={dados.valor}
-                onChange={(e) => set('valor', formatarValorMonetario(e.target.value))}
-                placeholder="0,00"
-                style={{ maxWidth: 90, flex: '0 0 auto' }}
-              />
-              <label style={{ minWidth: 'auto', marginLeft: 8 }}>Cob. dia:</label>
-              <CampoData
-                placeholder="dd/mm/aa"
-                value={dados.cobranca}
-                onChange={(v) => setComMascara('cobranca', v, 'data')}
-                minimo={!editando ? hojeSemHora() : undefined}
-                style={{ maxWidth: 118, flex: '0 0 auto' }}
-              />
-            </div>
-            {cobrancaNoPassado && (
-              <p className="fs-xs" style={{ color: 'var(--selo)', marginTop: -4, marginBottom: 8 }}>
-                O dia de cobrança não pode ser anterior a hoje.
-              </p>
-            )}
-            <div className="form-row">
-              <label>Período:</label>
-              <input
-                value={dados.periodo}
-                onChange={(e) => set('periodo', e.target.value)}
-                style={{ width: 292, flex: '0 0 auto' }}
-              />
-            </div>
-            <div className="form-row" style={{ marginBottom: 0 }}>
-              <label style={{ minWidth: 'auto' }}>Recall:</label>
-              <select
-                value={dados.recall}
-                onChange={(e) => {
-                  const novoValor = e.target.value;
-                  set('recall', novoValor);
-                  if (novoValor !== 'SIM') set('recall_codigo', '');
-                }}
-                style={{ maxWidth: 90 }}
-              >
-                <option value="SIM">Sim</option>
-                <option value="NÃO">Não</option>
-              </select>
-              <input
-                placeholder="00000"
-                value={dados.recall_codigo}
-                disabled={dados.recall !== 'SIM'}
-                onChange={(e) => set('recall_codigo', formatarCodigoNumerico(e.target.value, 5))}
-                style={{ maxWidth: 90, marginLeft: 4 }}
-              />
-            </div>
-          </div>
-
           <div className="grade grade-comprador-lateral">
             <div className="section-box">
               <div className="section-title">
@@ -514,23 +456,63 @@ export default function FormFonada() {
               )}
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, height: '100%' }}>
-              <div className="section-box" style={{ flex: 1 }}>
-                <div className="section-title">Lançamento</div>
-                <InfoLinha label="Pagou" valor={dados.pagou === 'SIM' ? 'Sim' : 'Não'} />
-                <InfoLinha label="Data do pagamento" valor={dados.data_pagamento} />
-                <InfoLinha label="Status" valor={dados.recebi} />
+            <div className="section-box">
+              <div className="form-row">
+                <label>Valor R$:</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  className="input-valor-destaque"
+                  value={dados.valor}
+                  onChange={(e) => set('valor', formatarValorMonetario(e.target.value))}
+                  placeholder="0,00"
+                  style={{ maxWidth: 90, flex: '0 0 auto' }}
+                />
               </div>
-              <div className="section-box" style={{ flex: 1 }}>
-                <div className="section-title">Registro do pedido</div>
-                <div className="info-linha">
-                  <span className="info-label">Data</span>
-                  <span className="info-valor">{dados.data_pedido || '—'}</span>
-                </div>
-                <div className="info-linha">
-                  <span className="info-label">Horário</span>
-                  <span className="info-valor">{dados.horario_pedido || '—'}</span>
-                </div>
+              <div className="form-row">
+                <label style={{ minWidth: 'auto' }}>Cob. dia:</label>
+                <CampoData
+                  placeholder="dd/mm/aa"
+                  value={dados.cobranca}
+                  onChange={(v) => setComMascara('cobranca', v, 'data')}
+                  minimo={!editando ? hojeSemHora() : undefined}
+                  style={{ maxWidth: 118, flex: '0 0 auto' }}
+                />
+              </div>
+              {cobrancaNoPassado && (
+                <p className="fs-xs" style={{ color: 'var(--selo)', marginTop: -4, marginBottom: 8 }}>
+                  O dia de cobrança não pode ser anterior a hoje.
+                </p>
+              )}
+              <div className="form-row">
+                <label>Período:</label>
+                <input
+                  value={dados.periodo}
+                  onChange={(e) => set('periodo', e.target.value)}
+                  style={{ flex: 1, minWidth: 0 }}
+                />
+              </div>
+              <div className="form-row" style={{ marginBottom: 0 }}>
+                <label style={{ minWidth: 'auto' }}>Recall:</label>
+                <select
+                  value={dados.recall}
+                  onChange={(e) => {
+                    const novoValor = e.target.value;
+                    set('recall', novoValor);
+                    if (novoValor !== 'SIM') set('recall_codigo', '');
+                  }}
+                  style={{ maxWidth: 90 }}
+                >
+                  <option value="SIM">Sim</option>
+                  <option value="NÃO">Não</option>
+                </select>
+                <input
+                  placeholder="00000"
+                  value={dados.recall_codigo}
+                  disabled={dados.recall !== 'SIM'}
+                  onChange={(e) => set('recall_codigo', formatarCodigoNumerico(e.target.value, 5))}
+                  style={{ maxWidth: 90, marginLeft: 4 }}
+                />
               </div>
             </div>
           </div>
@@ -606,6 +588,25 @@ export default function FormFonada() {
               >
                 <IconeFechar /> Fechar
               </button>
+            </div>
+          </div>
+
+          <div className="section-box">
+            <div className="section-title">Lançamento</div>
+            <InfoLinha label="Pagou" valor={dados.pagou === 'SIM' ? 'Sim' : 'Não'} />
+            <InfoLinha label="Data do pagamento" valor={dados.data_pagamento} />
+            <InfoLinha label="Status" valor={dados.recebi} />
+          </div>
+
+          <div className="section-box">
+            <div className="section-title">Registro do pedido</div>
+            <div className="info-linha">
+              <span className="info-label">Data</span>
+              <span className="info-valor">{dados.data_pedido || '—'}</span>
+            </div>
+            <div className="info-linha">
+              <span className="info-label">Horário</span>
+              <span className="info-valor">{dados.horario_pedido || '—'}</span>
             </div>
           </div>
         </div>
