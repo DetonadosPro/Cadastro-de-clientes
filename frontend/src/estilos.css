@@ -493,8 +493,10 @@ input, select, textarea {
     width: 100%;
   }
   .tabela-lista.tabela-clientes tbody tr {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 0.85fr) minmax(0, 0.85fr);
+    grid-template-rows: auto auto auto;
+    row-gap: 2px;
     padding: 10px 12px;
     border-bottom: 1px solid var(--papel-alt);
   }
@@ -504,19 +506,19 @@ input, select, textarea {
     font-size: 0.85rem;
   }
   .tabela-lista.tabela-clientes td[data-label="Nome"] {
-    order: 1;
-    flex: 0 0 100%;
+    grid-column: 1 / 5;
+    grid-row: 1;
     font-size: 0.95rem;
   }
   .tabela-lista.tabela-clientes td[data-label="Celular"] {
-    order: 2;
-    flex: 1 1 auto;
+    grid-column: 1 / 3;
+    grid-row: 2;
     font-weight: 600;
     color: var(--carimbo);
   }
   .tabela-lista.tabela-clientes td[data-label="WhatsApp"] {
-    order: 3;
-    flex: 1 1 auto;
+    grid-column: 3 / 5;
+    grid-row: 2;
     font-weight: 600;
     color: var(--carimbo);
     text-align: right;
@@ -533,36 +535,27 @@ input, select, textarea {
   .tabela-lista.tabela-clientes td[data-label="Bairro"],
   .tabela-lista.tabela-clientes td[data-label="Fonada"],
   .tabela-lista.tabela-clientes td[data-label="Ao vivo"] {
-    flex: 0 0 auto;
+    grid-row: 3;
     font-size: 0.72rem;
     color: var(--tinta-suave);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .tabela-lista.tabela-clientes td[data-label="Nascimento"] {
-    order: 4;
+    grid-column: 1;
   }
   .tabela-lista.tabela-clientes td[data-label="Bairro"] {
-    order: 5;
+    grid-column: 2;
   }
   .tabela-lista.tabela-clientes td[data-label="Fonada"] {
-    order: 6;
+    grid-column: 3;
   }
   .tabela-lista.tabela-clientes td[data-label="Ao vivo"] {
-    order: 7;
-  }
-  .tabela-lista.tabela-clientes td[data-label="Nascimento"]::after {
-    content: "·";
-    margin: 0 4px;
-  }
-  .tabela-lista.tabela-clientes td[data-label="Bairro"]::after {
-    content: "·";
-    margin: 0 4px;
+    grid-column: 4;
   }
   .tabela-lista.tabela-clientes td[data-label="Fonada"]::before {
     content: "Fonada ";
-  }
-  .tabela-lista.tabela-clientes td[data-label="Fonada"]::after {
-    content: " ·";
-    margin-right: 4px;
   }
   .tabela-lista.tabela-clientes td[data-label="Ao vivo"]::before {
     content: "Ao vivo ";
