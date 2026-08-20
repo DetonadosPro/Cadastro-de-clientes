@@ -45,6 +45,22 @@ function textoParaData(texto) {
   return data;
 }
 
+function IconeNaoAtendeuMensagem() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3.1-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .3 2 .7 2.9a2 2 0 0 1-.4 2.1L8 10a16 16 0 0 0 6 6l1.3-1.4a2 2 0 0 1 2.1-.4c.9.4 1.9.6 2.9.7a2 2 0 0 1 1.7 2z" />
+      <line x1="1" y1="1" x2="23" y2="23" />
+    </svg>
+  );
+}
+function IconeCheckMensagem() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
 function IconeSalvar() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -575,7 +591,6 @@ export default function FormFonada() {
               <ItemEntregaMensagem
                 numero={1}
                 dia={dados.p1_dia}
-                horario={dados.p1_horario}
                 resultado={dados.p1_resultado}
                 salvando={salvandoBaixa === 1}
                 onDarBaixa={() => darBaixaMensagem(1)}
@@ -584,7 +599,6 @@ export default function FormFonada() {
               <ItemEntregaMensagem
                 numero={2}
                 dia={dados.p2_dia}
-                horario={dados.p2_horario}
                 resultado={dados.p2_resultado}
                 salvando={salvandoBaixa === 2}
                 onDarBaixa={() => darBaixaMensagem(2)}
@@ -782,42 +796,49 @@ function BotaoP({ onClick, titulo }) {
   );
 }
 
-function ItemEntregaMensagem({ numero, dia, horario, resultado, salvando, onDarBaixa, onNaoAtendeu, comBorda }) {
+function ItemEntregaMensagem({ numero, dia, resultado, salvando, onDarBaixa, onNaoAtendeu, comBorda }) {
   const existe = Boolean(dia);
   const jaProcessada = Boolean(resultado);
 
   return (
-    <div style={comBorda ? { marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--papel-alt)' } : undefined}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: existe && !jaProcessada ? 8 : 0 }}>
-        <div>
-          <div className="fs-sm" style={{ fontWeight: 700 }}>{numero}ª mensagem</div>
-          <div className="fs-xs" style={{ color: 'var(--tinta-suave)' }}>
-            {existe ? `${dia}${horario ? ` — ${horario}` : ''}` : 'Ainda não marcada'}
-          </div>
-        </div>
-        {jaProcessada && <span className="tag ok">Passada</span>}
-      </div>
-      {existe && !jaProcessada && (
-        <div style={{ display: 'flex', gap: 6 }}>
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: comBorda ? '8px 0 4px' : '0 0 6px',
+        marginTop: comBorda ? 8 : 0,
+        borderTop: comBorda ? '1px solid var(--papel-alt)' : undefined,
+      }}
+    >
+      <span className="fs-sm" style={{ fontWeight: 700 }}>{numero}ª mensagem</span>
+      {jaProcessada ? (
+        <span className="tag ok">Passada</span>
+      ) : existe ? (
+        <div style={{ display: 'flex', gap: 5 }}>
           <button
             type="button"
             className="btn-action perigo-acao"
-            style={{ flex: 1, fontSize: 12, padding: '7px 8px' }}
+            style={{ width: 34, height: 34, padding: 0 }}
             onClick={onNaoAtendeu}
             disabled={salvando}
+            title="Não atendeu"
           >
-            Não atendeu
+            <IconeNaoAtendeuMensagem />
           </button>
           <button
             type="button"
             className="btn-action"
-            style={{ flex: 1, fontSize: 12, padding: '7px 8px', background: 'var(--carimbo)', color: 'var(--branco)', borderColor: 'var(--carimbo)' }}
+            style={{ width: 34, height: 34, padding: 0, background: 'var(--carimbo)', color: 'var(--branco)', borderColor: 'var(--carimbo)' }}
             onClick={onDarBaixa}
             disabled={salvando}
+            title="Marcar passada"
           >
-            {salvando ? 'Salvando...' : 'Marcar passada'}
+            <IconeCheckMensagem />
           </button>
         </div>
+      ) : (
+        <span className="fs-xs" style={{ color: 'var(--tinta-suave)' }}>Não marcada</span>
       )}
     </div>
   );
