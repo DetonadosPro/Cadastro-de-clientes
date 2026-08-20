@@ -1801,6 +1801,37 @@ tr:hover .alca-arrastar {
 .grade-resumo-financeiro {
   gap: 12px;
 }
+
+/* Cards de métrica dos relatórios (Fonada/Ao vivo): mantém 3-4 colunas
+   mesmo no mobile, em vez de colapsar como o .grade genérico, com
+   fonte reduzida para caber confortavelmente em telas pequenas. */
+.grade-relatorio {
+  gap: 8px;
+}
+@media (max-width: 700px) {
+  .grade-relatorio.grade-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+  .grade-relatorio.grade-4 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+  .grade-relatorio .cartao-valor {
+    padding: 8px 6px;
+  }
+  .grade-relatorio .cartao-valor-label {
+    font-size: 9.5px;
+    margin-bottom: 3px;
+  }
+  .grade-relatorio .cartao-valor-numero {
+    font-size: 15px;
+  }
+}
+@media (max-width: 480px) {
+  .grade-relatorio.grade-3,
+  .grade-relatorio.grade-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
 .cartao-valor {
   background: var(--papel-alt);
   border: 1.5px solid var(--borda);

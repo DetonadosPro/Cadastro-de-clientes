@@ -148,13 +148,13 @@ function AbaVendas({ sistema }) {
 
           {dados.fonada && (
             <BlocoSistema titulo="Fonada" cor="azul">
-              <div className="grade grade-4">
+              <div className="grade grade-relatorio grade-4">
                 <CartaoValor label="Total de pedidos" valor={dados.fonada.quantidade} />
                 <CartaoValor label="PIX" valor={dados.fonada.totalPix} sub={`${dados.fonada.percentualPix}%`} />
                 <CartaoValor label="Outros" valor={dados.fonada.totalRecibo} sub={`${dados.fonada.percentualRecibo}%`} />
                 <CartaoValor label="Valor total" valor={formatarReais(dados.fonada.valorTotal)} />
               </div>
-              <div className="grade grade-2" style={{ marginTop: 10 }}>
+              <div className="grade grade-relatorio grade-2" style={{ marginTop: 10 }}>
                 <CartaoValor label="Recall" valor={dados.fonada.totalRecall} sub={`${dados.fonada.percentualRecall}%`} />
                 <CartaoValor label="Clientes" valor={dados.fonada.totalOutros} sub={`${dados.fonada.percentualOutros}%`} />
               </div>
@@ -163,7 +163,7 @@ function AbaVendas({ sistema }) {
 
           {dados.aoVivo && (
             <BlocoSistema titulo="Ao vivo" cor="vermelho">
-              <div className="grade grade-2">
+              <div className="grade grade-relatorio grade-2">
                 <CartaoValor label="Total de pedidos" valor={dados.aoVivo.quantidade} />
                 <CartaoValor label="Valor total" valor={formatarReais(dados.aoVivo.valorTotal)} />
               </div>
@@ -241,17 +241,18 @@ function AbaRecebimentos({ sistema }) {
 
           {dados.fonada && (
             <BlocoSistema titulo="Fonada" cor="azul">
-              <div className="grade grade-3">
+              <div className="grade grade-relatorio grade-4">
                 <CartaoValor label="Total de pedidos" valor={dados.fonada.quantidade} />
                 <CartaoValor label="PIX" valor={dados.fonada.totalPix} sub={`${dados.fonada.percentualPix}%`} />
                 <CartaoValor label="Outros" valor={dados.fonada.totalRecibo} sub={`${dados.fonada.percentualRecibo}%`} />
+                <CartaoValor label="Valor total" valor={formatarReais(dados.fonada.valorTotal)} />
               </div>
             </BlocoSistema>
           )}
 
           {dados.aoVivo && (
             <BlocoSistema titulo="Ao vivo" cor="vermelho">
-              <div className="grade grade-2">
+              <div className="grade grade-relatorio grade-2">
                 <CartaoValor label="Total de pedidos" valor={dados.aoVivo.quantidade} />
                 <CartaoValor label="Valor total" valor={formatarReais(dados.aoVivo.valorTotal)} />
               </div>
