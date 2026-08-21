@@ -375,7 +375,7 @@ input, select, textarea {
    espaço vazio na horizontal. */
 .secao-transmissao .form-row input,
 .secao-transmissao .form-row select {
-  max-width: 220px;
+  max-width: 160px;
   padding: 4px 5px;
   font-size: 15px;
 }
