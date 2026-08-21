@@ -416,6 +416,16 @@ async function aplicar(gruposFinais) {
   try {
     await client.query('BEGIN');
 
+    // Otimização: em vez de um UPDATE por pedido (22 mil+ idas e
+    // vindas sequenciais pela rede até o Railway, que é o motivo do
+    // script ficar lento), acumula todos os pares (id do pedido,
+    // cliente_id) de cada tabela e grava com UNNEST — dois UPDATEs no
+    // total (um para fonadas, um para ao_vivo), não um por pedido.
+    const idsFonada = [];
+    const clienteIdsFonada = [];
+    const idsAoVivo = [];
+    const clienteIdsAoVivo = [];
+
     for (const candidatosDoGrupo of gruposFinais) {
       const dadosCliente = montarDadosFinais(candidatosDoGrupo);
       const valores = CAMPOS_CLIENTE.map((campo) => dadosCliente[campo]);
@@ -429,12 +439,35 @@ async function aplicar(gruposFinais) {
       totalClientes++;
 
       for (const cand of candidatosDoGrupo) {
-        const tabela = cand.sistemaOrigem === 'fonada' ? 'fonadas' : 'ao_vivo';
+        const ehFonada = cand.sistemaOrigem === 'fonada';
         for (const p of cand.pedidos) {
-          await client.query(`UPDATE ${tabela} SET cliente_id = $1 WHERE id = $2`, [clienteId, p.id]);
+          if (ehFonada) {
+            idsFonada.push(p.id);
+            clienteIdsFonada.push(clienteId);
+          } else {
+            idsAoVivo.push(p.id);
+            clienteIdsAoVivo.push(clienteId);
+          }
           totalVinculados++;
         }
       }
+    }
+
+    if (idsFonada.length > 0) {
+      await client.query(
+        `UPDATE fonadas AS f SET cliente_id = dados.cliente_id
+         FROM (SELECT UNNEST($1::int[]) AS id, UNNEST($2::int[]) AS cliente_id) AS dados
+         WHERE f.id = dados.id`,
+        [idsFonada, clienteIdsFonada]
+      );
+    }
+    if (idsAoVivo.length > 0) {
+      await client.query(
+        `UPDATE ao_vivo AS a SET cliente_id = dados.cliente_id
+         FROM (SELECT UNNEST($1::int[]) AS id, UNNEST($2::int[]) AS cliente_id) AS dados
+         WHERE a.id = dados.id`,
+        [idsAoVivo, clienteIdsAoVivo]
+      );
     }
 
     await client.query('COMMIT');
