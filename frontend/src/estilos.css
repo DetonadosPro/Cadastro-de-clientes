@@ -410,6 +410,41 @@ input, select, textarea {
   margin-bottom: 6px;
 }
 
+/* "Quem oferece" — pode receber nomes longos; em vez de o texto
+   correr para os lados sem parar, quebra em várias linhas dentro de
+   uma caixa mais alta. "Resultado" (.campo-resultado) ganha a mesma
+   altura, para que o botão "P" de cada campo fique alinhado na mesma
+   posição vertical entre os dois — ambos alinhados ao topo da própria
+   linha (que agora é mais alta que as demais), em vez de centralizados. */
+.secao-transmissao .coluna-mensagem .form-row-multilinha,
+.secao-transmissao .coluna-mensagem .campo-resultado {
+  align-items: flex-start;
+}
+.secao-transmissao .coluna-mensagem textarea {
+  max-width: 160px;
+  width: 160px;
+  padding: 4px 5px;
+  font-size: 13px;
+  height: 52px;
+  box-sizing: border-box;
+  resize: none;
+  font-family: inherit;
+  border: 1px solid var(--borda);
+  border-radius: 6px;
+  color: var(--tinta);
+  background: var(--branco);
+  outline: none;
+  line-height: 1.3;
+  overflow-wrap: break-word;
+}
+.secao-transmissao .coluna-mensagem .campo-resultado input {
+  height: 52px;
+}
+.secao-transmissao .coluna-mensagem .form-row-multilinha .btn-small,
+.secao-transmissao .coluna-mensagem .campo-resultado .btn-small {
+  align-self: flex-start;
+}
+
 @media (max-width: 640px) {
   .duas-colunas-mensagem {
     grid-template-columns: 1fr;
