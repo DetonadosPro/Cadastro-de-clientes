@@ -546,7 +546,7 @@ export default function FormAoVivo() {
                 </div>
               </div>
 
-              <div className="section-box secao-comprador" style={{ flex: '1 1 320px', minWidth: 320, overflow: 'hidden' }}>
+              <div className="section-box secao-comprador" style={{ flex: '1 1 320px', minWidth: 320, height: '100%', overflow: 'hidden', boxSizing: 'border-box' }}>
                 <div className="section-title">
                   <span>Comprador</span>
                   {cliente && (
