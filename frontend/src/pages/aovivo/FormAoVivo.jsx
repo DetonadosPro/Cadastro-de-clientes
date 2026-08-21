@@ -352,7 +352,7 @@ export default function FormAoVivo() {
       <div className={`form-layout ${estaBloqueado ? 'form-bloqueado' : ''}`}>
 
         <div>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'stretch', flexWrap: 'wrap' }}>
             <div className="section-box secao-aovivo-espacosa" style={{ flex: '1 1 320px', minWidth: 320 }}>
               <div className="section-title">Homenageado</div>
               <div className="form-row">
