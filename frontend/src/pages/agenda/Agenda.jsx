@@ -125,6 +125,20 @@ export default function Agenda() {
     }
   }
 
+  async function desfazerBaixa(item) {
+    const chave = `desfazer-${item.pedidoId}-${item.mensagem}`;
+    setSalvandoBaixa(chave);
+    try {
+      await api.agenda.desfazerBaixaFonada(item.pedidoId, item.mensagem);
+      mostrarToast('Baixa desfeita.');
+      carregar();
+    } catch (err) {
+      mostrarToast('Não foi possível desfazer. Tente novamente.', 'erro');
+    } finally {
+      setSalvandoBaixa(null);
+    }
+  }
+
   async function darBaixaAoVivo(item, entregue) {
     const chave = `aovivo-${item.id}`;
     setSalvandoBaixa(chave);
@@ -401,6 +415,7 @@ export default function Agenda() {
                   salvandoBaixa={salvandoBaixa}
                   navigate={navigate}
                   onDarBaixa={darBaixa}
+                  onDesfazerBaixa={desfazerBaixa}
                   onAbrirRemarcar={abrirRemarcar}
                 />
               ) : (
@@ -578,7 +593,7 @@ function LinhaAgenda({ selecionada, onClick, urgencia, jaPassada, horario, titul
 // Painel de detalhes — mostra todos os campos e ações do item
 // selecionado na lista, para caber mensagens/pedidos por dia sem abrir
 // uma tela nova para cada um.
-function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onAbrirRemarcar }) {
+function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onDesfazerBaixa, onAbrirRemarcar }) {
   const chave = `${item.pedidoId}-${item.mensagem}`;
   const jaPassada = ehHoje && item.passada;
   const urgencia = (ehHoje && !jaPassada) ? statusUrgenciaItem(item.horario) : null;
@@ -650,6 +665,17 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onA
             <IconeCheck /> {salvandoBaixa === chave ? 'Salvando...' : 'Marcar passada'}
           </button>
         </div>
+      )}
+      {ehHoje && jaPassada && (
+        <button
+          type="button"
+          className="btn-action"
+          style={{ width: '100%' }}
+          onClick={() => onDesfazerBaixa(item)}
+          disabled={salvandoBaixa === `desfazer-${chave}`}
+        >
+          {salvandoBaixa === `desfazer-${chave}` ? 'Desfazendo...' : 'Desfazer'}
+        </button>
       )}
 
       <CardRemarcacoes pedidoId={item.pedidoId} mensagem={item.mensagem} />

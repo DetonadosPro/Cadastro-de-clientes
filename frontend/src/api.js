@@ -165,6 +165,8 @@ export const api = {
     hoje: (data) => chamar(`/agenda/hoje${data ? `?data=${encodeURIComponent(data)}` : ''}`),
     darBaixaFonada: (pedidoId, mensagem) =>
       chamar(`/agenda/fonada/${pedidoId}/baixa`, { method: 'POST', body: JSON.stringify({ mensagem }) }),
+    desfazerBaixaFonada: (pedidoId, mensagem) =>
+      chamar(`/agenda/fonada/${pedidoId}/desfazer-baixa`, { method: 'POST', body: JSON.stringify({ mensagem }) }),
     naoAtendeuFonada: (pedidoId, mensagem, observacao, remarcadoDia, remarcadoHorario) =>
       chamar(`/agenda/fonada/${pedidoId}/nao-atendeu`, {
         method: 'POST',

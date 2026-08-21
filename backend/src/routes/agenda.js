@@ -176,6 +176,30 @@ router.post('/fonada/:id/baixa', async (req, res) => {
   }
 });
 
+// POST /api/agenda/fonada/:id/desfazer-baixa
+router.post('/fonada/:id/desfazer-baixa', async (req, res) => {
+  try {
+    const { mensagem } = req.body;
+    if (mensagem !== 1 && mensagem !== 2) {
+      return res.status(400).json({ erro: 'Informe qual mensagem (1 ou 2).' });
+    }
+
+    const existenteResultado = await db.query('SELECT id FROM fonadas WHERE id = $1', [req.params.id]);
+    if (existenteResultado.rows.length === 0) return res.status(404).json({ erro: 'Pedido não encontrado.' });
+
+    const coluna = mensagem === 1 ? 'p1_resultado' : 'p2_resultado';
+    await db.query(
+      `UPDATE fonadas SET ${coluna} = NULL, atualizado_em = NOW() WHERE id = $1`,
+      [req.params.id]
+    );
+
+    res.json({ ok: true });
+  } catch (erro) {
+    console.error('Erro ao desfazer baixa da fonada:', erro);
+    res.status(500).json({ erro: 'Erro ao desfazer.' });
+  }
+});
+
 // POST /api/agenda/fonada/:id/nao-atendeu
 router.post('/fonada/:id/nao-atendeu', async (req, res) => {
   const { mensagem, observacao, remarcadoDia, remarcadoHorario } = req.body;
