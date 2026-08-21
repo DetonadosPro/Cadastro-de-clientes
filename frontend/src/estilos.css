@@ -434,7 +434,7 @@ input, select, textarea {
    junto caso uma das duas precise de ajuste fino no futuro. */
 .secao-aovivo-espacosa.section-box.section-box {
   padding: 14px 16px;
-  margin-bottom: 14px;
+  margin-bottom: 0;
 }
 .secao-aovivo-espacosa.section-box.section-box .section-title {
   padding-bottom: 10px;
