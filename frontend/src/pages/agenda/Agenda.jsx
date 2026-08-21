@@ -462,6 +462,18 @@ function IconeCheck() {
   );
 }
 
+// Seta de expandir/recolher — gira 180° quando o card está aberto.
+function IconeChevron({ aberto }) {
+  return (
+    <svg
+      viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      style={{ width: 18, height: 18, flexShrink: 0, transition: 'transform 0.15s', transform: aberto ? 'rotate(180deg)' : 'none' }}
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
 // Uma linha fina e clicável na lista compacta — horário, nome, tag de
 // urgência/status. Reduz cada item a uma tira baixa, para caber muitos
 // na tela sem rolar, em vez do card grande com todos os campos aberto.
@@ -560,6 +572,78 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onA
           >
             <IconeCheck /> {salvandoBaixa === chave ? 'Salvando...' : 'Marcar passada'}
           </button>
+        </div>
+      )}
+
+      <CardRemarcacoes pedidoId={item.pedidoId} mensagem={item.mensagem} />
+    </div>
+  );
+}
+
+// Card separado, abaixo dos detalhes da fonada — clicável para expandir
+// e mostrar o histórico de tentativas ("não atendeu" + remarcação) desse
+// pedido/mensagem específico. Busca sob demanda (só quando o item
+// selecionado muda), e fica escondido quando não há nenhuma tentativa.
+function CardRemarcacoes({ pedidoId, mensagem }) {
+  const [tentativas, setTentativas] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [aberto, setAberto] = useState(false);
+
+  useEffect(() => {
+    let cancelado = false;
+    setCarregando(true);
+    setAberto(false);
+    api.agenda.buscarTentativas(pedidoId)
+      .then((resp) => {
+        if (cancelado) return;
+        setTentativas((resp.tentativas || []).filter((t) => t.mensagem === mensagem));
+      })
+      .catch(() => { if (!cancelado) setTentativas([]); })
+      .finally(() => { if (!cancelado) setCarregando(false); });
+    return () => { cancelado = true; };
+  }, [pedidoId, mensagem]);
+
+  if (carregando || tentativas.length === 0) return null;
+
+  return (
+    <div className="section-box" style={{ marginTop: 12 }}>
+      <button
+        type="button"
+        onClick={() => setAberto((v) => !v)}
+        style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%',
+          background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+          borderBottom: '1px solid var(--papel-alt)', paddingBottom: 8, marginBottom: aberto ? 10 : 0,
+          font: 'inherit', color: 'inherit',
+        }}
+      >
+        <span className="fs-xs" style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 8 }}>
+          Remarcações
+          <span className="aba-contagem">{tentativas.length}</span>
+        </span>
+        <IconeChevron aberto={aberto} />
+      </button>
+
+      {aberto && (
+        <div style={{ display: 'grid', gap: 8 }}>
+          {tentativas.map((t) => (
+            <div key={t.id} className="info-linha" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: 6 }}>
+                <span className="fs-sm" style={{ fontWeight: 700 }}>
+                  Ligou em {t.data_hora_tentativa}
+                </span>
+                <span className="tag pendente">Não atendeu</span>
+              </div>
+              {t.observacao && (
+                <span className="fs-xs" style={{ color: 'var(--tinta-suave)' }}>Obs.: {t.observacao}</span>
+              )}
+              {t.remarcado_dia && (
+                <span className="fs-xs" style={{ color: 'var(--tinta-suave)' }}>
+                  Remarcado para {t.remarcado_dia} às {t.remarcado_horario}
+                </span>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>
