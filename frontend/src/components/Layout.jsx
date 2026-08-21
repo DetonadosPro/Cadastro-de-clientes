@@ -74,6 +74,7 @@ function IconeLixeira() {
   );
 }
 
+
 export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
