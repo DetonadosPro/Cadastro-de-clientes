@@ -357,7 +357,7 @@ export default function FormAoVivo() {
               <div className="section-title">Homenageado</div>
               <div className="form-row">
                 <label>Para:</label>
-                <input value={dados.para} onChange={(e) => set('para', e.target.value)} style={{ width: 200, flex: '0 0 auto' }} />
+                <input value={dados.para} onChange={(e) => set('para', e.target.value)} style={{ width: 340, flex: '0 0 auto' }} />
               </div>
               <div className="form-row">
                 <label>Dia Evento:</label>
@@ -387,20 +387,20 @@ export default function FormAoVivo() {
                   value={dados.oferecimento}
                   onChange={(e) => set('oferecimento', e.target.value)}
                   rows={3}
-                  style={{ resize: 'vertical', width: 200, flex: '0 0 auto' }}
+                  style={{ resize: 'vertical', width: 340, flex: '0 0 auto' }}
                 />
               </div>
               <div className="form-row">
                 <label>End.:</label>
-                <input value={dados.endereco} onChange={(e) => set('endereco', e.target.value)} style={{ width: 200, flex: '0 0 auto' }} />
+                <input value={dados.endereco} onChange={(e) => set('endereco', e.target.value)} style={{ width: 340, flex: '0 0 auto' }} />
               </div>
               <div className="form-row">
                 <label>Bairro:</label>
-                <input value={dados.bairro} onChange={(e) => set('bairro', e.target.value)} style={{ width: 200, flex: '0 0 auto' }} />
+                <input value={dados.bairro} onChange={(e) => set('bairro', e.target.value)} style={{ width: 340, flex: '0 0 auto' }} />
               </div>
               <div className="form-row">
                 <label style={{ minWidth: 'auto' }}>Ref.:</label>
-                <input value={dados.referencia} onChange={(e) => set('referencia', e.target.value)} style={{ width: 200, flex: '0 0 auto' }} />
+                <input value={dados.referencia} onChange={(e) => set('referencia', e.target.value)} style={{ width: 340, flex: '0 0 auto' }} />
               </div>
               <div className="form-row">
                 <label>Fixo local:</label>
