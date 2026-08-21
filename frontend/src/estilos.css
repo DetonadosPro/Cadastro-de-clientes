@@ -1458,10 +1458,10 @@ button.nav-grupo-titulo {
 
 /* Seção Comprador (Fonada) — todas as fontes 3px menores que o
    padrão dessas mesmas classes em outras telas. */
-.secao-comprador .fs-lg { font-size: 13px; }
-.secao-comprador .fs-sm { font-size: 10px; }
-.secao-comprador .info-label { font-size: 8px; }
-.secao-comprador .info-valor { font-size: 10px; }
+.secao-comprador.secao-comprador .fs-lg { font-size: 13px; }
+.secao-comprador.secao-comprador .fs-sm { font-size: 10px; }
+.secao-comprador.secao-comprador .info-label { font-size: 8px; }
+.secao-comprador.secao-comprador .info-valor { font-size: 10px; }
 
 ::-webkit-scrollbar {
   width: 10px;
