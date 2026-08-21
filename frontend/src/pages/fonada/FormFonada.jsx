@@ -670,7 +670,7 @@ export default function FormFonada() {
 // na prática é a mesma ordem de serviço, só com campos diferentes.
 function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada, editando, dataNoPassado, salvandoBaixa, onDarBaixa, onNaoAtendeu }) {
   const p = numero === 1 ? 'p1' : 'p2';
-  const mostrarBotaoP = false;
+  const mostrarBotaoP = numero === 1;
   const diaPreenchido = Boolean(dados[`${p}_dia`]);
   const jaProcessada = Boolean(dados[`${p}_resultado`]);
 

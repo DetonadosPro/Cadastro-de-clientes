@@ -382,17 +382,20 @@ input, select, textarea {
   max-width: 160px;
   padding: 2px 5px;
   font-size: 13px;
+  height: 26px;
+  box-sizing: border-box;
 }
 /* O botão "P" (copiar para a 2ª mensagem) só existe na coluna 1.
-   Sem igualar sua altura à do input, .form-row (flex + align-items:
+   Sem fixar sua altura igual à do input, .form-row (flex + align-items:
    center) usa o elemento mais alto da linha para definir a altura
-   total — deixando as linhas da coluna 1 com altura diferente das
-   da coluna 2, mesmo com o mesmo margin-bottom. */
+   total — deixando as linhas da coluna 1 mais altas que as da coluna 2,
+   mesmo com o mesmo margin-bottom. Altura em px explícita (em vez de
+   padding/line-height) porque é a forma garantida de igualar duas
+   caixas com fontes e paddings diferentes. */
 .secao-transmissao .coluna-mensagem .btn-small {
-  padding: 2px 5px;
-  font-size: 13px;
-  line-height: 1.5;
-  align-self: stretch;
+  height: 26px;
+  box-sizing: border-box;
+  padding: 0 7px;
   display: inline-flex;
   align-items: center;
 }
