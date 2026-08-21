@@ -509,15 +509,32 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onA
       </div>
       <div className="fs-lg" style={{ fontWeight: 700, marginBottom: 2 }}>{item.nome_comprador || '—'}</div>
       <div className="fs-sm" style={{ color: 'var(--tinta-suave)', marginBottom: 14 }}>
-        {item.horario || '—'} · {item.tema || '—'}
+        {item.horario || '—'}
       </div>
 
-      <div className="grade grade-2" style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid var(--papel-alt)' }}>
+      <div className="grade grade-2" style={{ marginBottom: 12 }}>
         <Info label="Para" valor={item.para} />
-        <Info label="Celular" valor={item.celular} />
-        <Info label="Fixo" valor={item.fixo} />
-        {(!ehHoje || jaPassada) && item.resultado && <Info label="Resultado" valor={item.resultado} />}
+        <Info label="Tema" valor={item.tema ? `${item.tema}${item.codigo ? ' · ' + item.codigo : ''}` : (item.codigo || null)} />
       </div>
+
+      {(item.celular || item.fixo) && (
+        <div className="grade grade-2" style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid var(--papel-alt)' }}>
+          {item.celular && <InfoTelefone label="Celular" valor={item.celular} />}
+          {item.fixo && <Info label="Fixo" valor={item.fixo} />}
+        </div>
+      )}
+
+      {item.quemOferece && (
+        <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid var(--papel-alt)' }}>
+          <Info label="Quem oferece" valor={item.quemOferece} />
+        </div>
+      )}
+
+      {(!ehHoje || jaPassada) && item.resultado && (
+        <div style={{ marginBottom: 14 }}>
+          <Info label="Resultado" valor={item.resultado} />
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: 8, marginBottom: ehHoje && !jaPassada ? 8 : 0 }}>
         {item.cliente_id && (
@@ -662,6 +679,38 @@ function Info({ label, valor }) {
         {label}
       </div>
       <div className="fs-md">{valor || '—'}</div>
+    </div>
+  );
+}
+
+// Igual a Info, mas o valor vira link clicável para abrir a conversa no
+// WhatsApp (wa.me), usado no Celular — mesmo padrão de formatação de
+// número usado no cadastro (DDI 55 + DDD + número, só dígitos).
+function InfoTelefone({ label, valor }) {
+  const somenteDigitos = String(valor || '').replace(/\D/g, '');
+  const numeroComDDI = somenteDigitos
+    ? (somenteDigitos.startsWith('55') ? somenteDigitos : `55${somenteDigitos}`)
+    : '';
+  const linkWhatsapp = numeroComDDI.length >= 12 ? `https://wa.me/${numeroComDDI}` : null;
+
+  return (
+    <div>
+      <div className="fs-xs" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--tinta-suave)', marginBottom: 2 }}>
+        {label}
+      </div>
+      {linkWhatsapp ? (
+        <a
+          href={linkWhatsapp}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fs-md link-whatsapp"
+          title="Abrir conversa no WhatsApp"
+        >
+          {valor}
+        </a>
+      ) : (
+        <div className="fs-md">{valor || '—'}</div>
+      )}
     </div>
   );
 }
