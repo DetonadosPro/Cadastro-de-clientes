@@ -129,7 +129,13 @@ export default function FormFonada() {
   // Navegação entre resultados da busca (Anterior/Próximo), sem
   // precisar voltar à lista. A lista de IDs é salva pela ListaFonada
   // no momento do clique; aqui só localizamos a posição atual nela.
+  // Quando o pedido atual está na borda da página local (primeiro ou
+  // último item), e existe uma página anterior/seguinte na busca
+  // original, essa página é buscada sob demanda na API — sem isso,
+  // Anterior/Próximo "travava" nas bordas de cada página de 30 itens.
   const [listaNavegacao, setListaNavegacao] = useState([]);
+  const [contextoNavegacao, setContextoNavegacao] = useState(null);
+  const [buscandoPaginaAdjacente, setBuscandoPaginaAdjacente] = useState(false);
   useEffect(() => {
     try {
       const salva = JSON.parse(sessionStorage.getItem('fonadaListaNavegacao') || '[]');
@@ -137,10 +143,23 @@ export default function FormFonada() {
     } catch {
       setListaNavegacao([]);
     }
+    try {
+      const ctx = JSON.parse(sessionStorage.getItem('fonadaNavegacaoContexto') || 'null');
+      setContextoNavegacao(ctx);
+    } catch {
+      setContextoNavegacao(null);
+    }
   }, [id]);
   const indiceAtual = listaNavegacao.indexOf(Number(id));
   const idAnterior = indiceAtual > 0 ? listaNavegacao[indiceAtual - 1] : null;
   const idProximo = indiceAtual >= 0 && indiceAtual < listaNavegacao.length - 1 ? listaNavegacao[indiceAtual + 1] : null;
+
+  // Só faz sentido tentar buscar a página vizinha quando o pedido atual
+  // é realmente a borda da lista local (primeiro/último item) — no
+  // meio da lista, idAnterior/idProximo já resolvem localmente.
+  const podeBuscarPaginaAnterior = idAnterior === null && indiceAtual === 0 && contextoNavegacao && contextoNavegacao.pagina > 1;
+  const podeBuscarPaginaProxima = idProximo === null && indiceAtual === listaNavegacao.length - 1 && indiceAtual >= 0
+    && contextoNavegacao && contextoNavegacao.pagina < contextoNavegacao.totalPaginas;
 
   function irParaPedidoAdjacente(idAlvo) {
     sessionStorage.setItem('ultimoFonadaSelecionado', String(idAlvo));
@@ -150,6 +169,36 @@ export default function FormFonada() {
     // passa a voltar pedido por pedido em vez de ir direto para a
     // lista de onde a navegação começou.
     navigate(`/fonada/${idAlvo}`, { replace: true });
+  }
+
+  // Busca a página vizinha (anterior ou seguinte) na API, atualiza o
+  // sessionStorage com a nova lista/contexto (como se a pessoa tivesse
+  // clicado nesse item a partir daquela página), e navega para a
+  // primeira/última linha dela.
+  async function irParaPaginaAdjacente(direcao) {
+    if (!contextoNavegacao) return;
+    const novaPagina = contextoNavegacao.pagina + direcao;
+    setBuscandoPaginaAdjacente(true);
+    try {
+      const resposta = await api.fonada.listar(contextoNavegacao.busca, novaPagina, contextoNavegacao.campo);
+      const novosIds = (resposta.fonadas || []).map((f) => f.id);
+      if (novosIds.length === 0) return;
+
+      const novoContexto = { ...contextoNavegacao, pagina: novaPagina };
+      sessionStorage.setItem('fonadaListaNavegacao', JSON.stringify(novosIds));
+      sessionStorage.setItem('fonadaNavegacaoContexto', JSON.stringify(novoContexto));
+
+      // Indo para a página seguinte, entra pelo primeiro item dela;
+      // voltando para a anterior, entra pelo último — mantém a sensação
+      // de "continuar andando" na mesma direção do clique.
+      const idAlvo = direcao > 0 ? novosIds[0] : novosIds[novosIds.length - 1];
+      sessionStorage.setItem('ultimoFonadaSelecionado', String(idAlvo));
+      navigate(`/fonada/${idAlvo}`, { replace: true });
+    } catch (err) {
+      mostrarToast('Não foi possível carregar a próxima página de resultados.', 'erro');
+    } finally {
+      setBuscandoPaginaAdjacente(false);
+    }
   }
 
   const chaveRascunho = editando ? `editar-${id}` : 'novo';
@@ -593,14 +642,17 @@ export default function FormFonada() {
               : <span className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Calculando O.S...</span>}
           </div>
 
-          {(idAnterior !== null || idProximo !== null) && (
+          {(idAnterior !== null || idProximo !== null || podeBuscarPaginaAnterior || podeBuscarPaginaProxima) && (
             <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
               <button
                 type="button"
                 className="btn-action"
                 style={{ flex: 1 }}
-                onClick={() => irParaPedidoAdjacente(idAnterior)}
-                disabled={idAnterior === null}
+                onClick={() => {
+                  if (idAnterior !== null) irParaPedidoAdjacente(idAnterior);
+                  else if (podeBuscarPaginaAnterior) irParaPaginaAdjacente(-1);
+                }}
+                disabled={(idAnterior === null && !podeBuscarPaginaAnterior) || buscandoPaginaAdjacente}
                 title="Pedido anterior na busca"
               >
                 ← Anterior
@@ -609,8 +661,11 @@ export default function FormFonada() {
                 type="button"
                 className="btn-action"
                 style={{ flex: 1 }}
-                onClick={() => irParaPedidoAdjacente(idProximo)}
-                disabled={idProximo === null}
+                onClick={() => {
+                  if (idProximo !== null) irParaPedidoAdjacente(idProximo);
+                  else if (podeBuscarPaginaProxima) irParaPaginaAdjacente(1);
+                }}
+                disabled={(idProximo === null && !podeBuscarPaginaProxima) || buscandoPaginaAdjacente}
                 title="Próximo pedido na busca"
               >
                 Próximo →

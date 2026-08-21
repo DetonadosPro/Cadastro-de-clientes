@@ -204,7 +204,14 @@ export default function ListaFonada() {
                       // Salva a lista de IDs da página atual (na mesma
                       // ordem exibida) para permitir navegar entre os
                       // resultados da busca sem precisar voltar à lista.
+                      // Também salva o contexto da busca/página, para o
+                      // formulário poder buscar a página seguinte ou
+                      // anterior sob demanda quando o Anterior/Próximo
+                      // chegar na borda da página atual.
                       sessionStorage.setItem('fonadaListaNavegacao', JSON.stringify(itens.map((x) => x.id)));
+                      sessionStorage.setItem('fonadaNavegacaoContexto', JSON.stringify({
+                        busca: buscaUrl, campo: campoUrl, pagina: paginaUrl, totalPaginas,
+                      }));
                       navigate(`/fonada/${p.id}`);
                     }}
                   >
