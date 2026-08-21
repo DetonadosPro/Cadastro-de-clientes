@@ -422,7 +422,7 @@ input, select, textarea {
   flex: 1 1 auto;
   padding: 4px 5px;
   font-size: 13px;
-  height: 40px;
+  height: 58px;
   box-sizing: border-box;
   resize: none;
   font-family: inherit;
@@ -437,9 +437,9 @@ input, select, textarea {
 .secao-transmissao .coluna-mensagem .campo-quem-oferece .btn-small {
   align-self: flex-start;
 }
-/* "Resultado" 15% mais largo que o padrão da seção (160px -> 184px). */
+/* "Resultado" 15% mais largo (184px -> 212px). */
 .secao-transmissao .coluna-mensagem .campo-resultado input {
-  max-width: 184px;
+  max-width: 212px;
 }
 
 @media (max-width: 640px) {

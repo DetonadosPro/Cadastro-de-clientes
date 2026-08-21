@@ -798,7 +798,7 @@ function CampoComP({ label, nomeCampo, prefixo, numero, dados, set, onCopiar, mo
           value={valor}
           onChange={(e) => set(`${prefixo}_${nomeCampo}`, e.target.value)}
           disabled={desabilitado}
-          rows={2}
+          rows={3}
           style={{ ...(negrito ? { fontWeight: 700 } : {}), ...(cor ? { color: cor } : {}) }}
         />
       ) : (
