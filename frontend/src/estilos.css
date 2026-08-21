@@ -2018,10 +2018,11 @@ tr:hover .alca-arrastar {
   padding: 0 14px;
 }
 .abas-relatorio {
-  justify-content: space-between;
+  justify-content: flex-start;
 }
 .filtro-sistema-relatorio {
   flex: 0 0 auto;
+  margin-left: auto;
   padding: 0 14px;
 }
 .filtro-sistema-relatorio select {
@@ -2147,13 +2148,13 @@ tr:hover .alca-arrastar {
 .form-periodo-relatorio {
   display: flex;
   align-items: flex-end;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 20px;
   flex-wrap: wrap;
 }
 .form-periodo-relatorio .campo {
-  flex: 1;
-  min-width: 140px;
+  flex: 0 0 auto;
+  width: 150px;
   margin-bottom: 0;
 }
 .form-periodo-relatorio .btn {
