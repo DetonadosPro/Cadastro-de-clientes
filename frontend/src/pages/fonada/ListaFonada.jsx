@@ -14,28 +14,24 @@ function IconeInfo() {
 
 const OPCOES_FILTRO = [
   { valor: '', label: 'Todos os campos' },
-  { valor: 'aniversario', label: 'Aniversário' },
-  { valor: 'celular_comprador', label: 'Celular do comprador' },
-  { valor: 'celular_destinatario', label: 'Celular do destinatário' },
-  { valor: 'data_pedido', label: 'Data do pedido' },
-  { valor: 'destinatario', label: 'Destinatário' },
-  { valor: 'dia_mensagem', label: 'Dia da mensagem' },
+  { valor: 'aniversario', label: 'Aniversário cliente' },
+  { valor: 'celular_comprador', label: 'Celular cliente' },
+  { valor: 'celular_destinatario', label: 'Celular destinatário' },
+  { valor: 'dia_mensagem', label: 'Dia mensagem' },
   { valor: 'endereco', label: 'Endereço' },
-  { valor: 'nome_comprador', label: 'Nome do comprador' },
+  { valor: 'fixo_comprador', label: 'Fixo cliente' },
+  { valor: 'fixo_destinatario', label: 'Fixo destinatário' },
+  { valor: 'nome_comprador', label: 'Nome cliente' },
+  { valor: 'destinatario', label: 'Nome destinatário' },
   { valor: 'os', label: 'O.S.' },
-  { valor: 'fixo_comprador', label: 'Telefone fixo do comprador' },
-  { valor: 'fixo_destinatario', label: 'Telefone fixo do destinatário' },
-  { valor: 'whatsapp_comprador', label: 'WhatsApp do comprador' },
 ];
 
 const MASCARA_POR_FILTRO = {
   fixo_comprador: formatarFixo,
   fixo_destinatario: formatarFixo,
-  whatsapp_comprador: formatarCelular,
   celular_comprador: formatarCelular,
   celular_destinatario: formatarCelular,
   aniversario: formatarData,
-  data_pedido: formatarData,
   dia_mensagem: formatarData,
 };
 
