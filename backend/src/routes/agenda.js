@@ -158,9 +158,9 @@ router.post('/fonada/:id/baixa', async (req, res) => {
 
     const usuarioResultado = await db.query('SELECT nome, usuario FROM usuarios WHERE id = $1', [req.usuario.id]);
     const usuarioLogado = usuarioResultado.rows[0];
-    const nomeExibicao = usuarioLogado ? (usuarioLogado.nome || usuarioLogado.usuario) : req.usuario.usuario;
+    const nomeExibicao = usuarioLogado ? usuarioLogado.usuario : req.usuario.usuario;
 
-    const resultado = `MENSAGEM PASSADA, ${data} às ${horario} por ${nomeExibicao}`;
+    const resultado = `OK ${nomeExibicao} ${data} ${horario}`;
 
     const coluna = mensagem === 1 ? 'p1_resultado' : 'p2_resultado';
     await db.query(
