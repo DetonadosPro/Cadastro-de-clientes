@@ -364,7 +364,7 @@ export default function FormAoVivo() {
                 placeholder="dd/mm/aa"
                 value={dados.dia_entrega}
                 onChange={(v) => setComMascara('dia_entrega', v, 'data')}
-                style={{ maxWidth: 110, flex: '0 0 auto' }}
+                style={{ maxWidth: 121, flex: '0 0 auto' }}
                 minimo={!editando ? hojeSemHora() : undefined}
               />
               <label style={{ minWidth: 'auto', marginLeft: 4 }}>Horário:</label>
