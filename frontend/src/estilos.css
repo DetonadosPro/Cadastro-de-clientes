@@ -2022,7 +2022,6 @@ tr:hover .alca-arrastar {
 }
 .filtro-sistema-relatorio {
   flex: 0 0 auto;
-  margin-left: auto;
   padding: 0 14px;
 }
 .filtro-sistema-relatorio select {
