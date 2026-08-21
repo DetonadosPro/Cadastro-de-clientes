@@ -1,6 +1,6 @@
 // scripts/corrigir-aovivo-antigos-pendentes.js
 //
-// Corrige pedidos Ao Vivo antigos (dia_entrega até 20/08/25, inclusive)
+// Corrige pedidos Ao Vivo antigos (dia_entrega até 20/08/26, inclusive)
 // que ainda estão pendentes por falta de baixa manual — não é que a
 // entrega não aconteceu, é só que ninguém marcou no sistema na época.
 // Isso limpa a "poluição" de pendências antigas sem mexer em nada que
@@ -28,7 +28,7 @@ require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') }
 const { Pool } = require('pg');
 
 const SIMULAR = process.argv.includes('--simular');
-const DATA_LIMITE = '20/08/25';
+const DATA_LIMITE = '20/08/26';
 
 if (!process.env.DATABASE_URL) {
   console.error('❌ DATABASE_URL não encontrada. Confira se o arquivo backend/.env existe e tem essa variável preenchida.');
