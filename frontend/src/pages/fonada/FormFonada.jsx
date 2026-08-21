@@ -364,13 +364,15 @@ export default function FormFonada() {
   }
 
   // Junta as tentativas sem sucesso com os resultados de baixa bem-sucedida
-  // (identificados pelo texto automático "MENSAGEM PASSADA, ..."), para
-  // mostrar o histórico completo em ordem: mais recentes primeiro.
+  // para mostrar o histórico completo em ordem: mais recentes primeiro.
+  // O texto automático de sucesso mudou de formato ("MENSAGEM PASSADA, ..."
+  // -> "OK usuario dd/mm/aa hh:mm"); reconhece os dois formatos para não
+  // perder do histórico os resultados antigos já salvos no banco.
   const itensHistorico = [
     ...tentativas.map((t) => ({ ...t, tipo: 'falha', chave: `tentativa-${t.id}` })),
     ...[1, 2].flatMap((n) => {
       const resultado = dados[`p${n}_resultado`];
-      if (resultado && resultado.startsWith('MENSAGEM PASSADA')) {
+      if (resultado && (resultado.startsWith('MENSAGEM PASSADA') || resultado.startsWith('OK '))) {
         return [{ tipo: 'sucesso', mensagem: n, texto: resultado, chave: `sucesso-${n}` }];
       }
       return [];
