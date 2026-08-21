@@ -201,6 +201,10 @@ export default function ListaFonada() {
                     className={ultimoSelecionado === String(p.id) ? 'linha-ultimo-selecionado' : ''}
                     onClick={() => {
                       sessionStorage.setItem('ultimoFonadaSelecionado', String(p.id));
+                      // Salva a lista de IDs da página atual (na mesma
+                      // ordem exibida) para permitir navegar entre os
+                      // resultados da busca sem precisar voltar à lista.
+                      sessionStorage.setItem('fonadaListaNavegacao', JSON.stringify(itens.map((x) => x.id)));
                       navigate(`/fonada/${p.id}`);
                     }}
                   >

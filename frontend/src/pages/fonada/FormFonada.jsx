@@ -126,6 +126,27 @@ export default function FormFonada() {
   const { rascunhoFonada, setRascunhoFonada, limparRascunhoFonada } = useRascunhos();
   const { mostrarToast } = useToast();
 
+  // Navegação entre resultados da busca (Anterior/Próximo), sem
+  // precisar voltar à lista. A lista de IDs é salva pela ListaFonada
+  // no momento do clique; aqui só localizamos a posição atual nela.
+  const [listaNavegacao, setListaNavegacao] = useState([]);
+  useEffect(() => {
+    try {
+      const salva = JSON.parse(sessionStorage.getItem('fonadaListaNavegacao') || '[]');
+      setListaNavegacao(Array.isArray(salva) ? salva : []);
+    } catch {
+      setListaNavegacao([]);
+    }
+  }, [id]);
+  const indiceAtual = listaNavegacao.indexOf(Number(id));
+  const idAnterior = indiceAtual > 0 ? listaNavegacao[indiceAtual - 1] : null;
+  const idProximo = indiceAtual >= 0 && indiceAtual < listaNavegacao.length - 1 ? listaNavegacao[indiceAtual + 1] : null;
+
+  function irParaPedidoAdjacente(idAlvo) {
+    sessionStorage.setItem('ultimoFonadaSelecionado', String(idAlvo));
+    navigate(`/fonada/${idAlvo}`);
+  }
+
   const chaveRascunho = editando ? `editar-${id}` : 'novo';
 
   const [dados, setDados] = useState(VAZIO);
@@ -566,6 +587,31 @@ export default function FormFonada() {
               ? <span className="carimbo-os">O.S. {dados.senha_os}</span>
               : <span className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Calculando O.S...</span>}
           </div>
+
+          {(idAnterior !== null || idProximo !== null) && (
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+              <button
+                type="button"
+                className="btn-action"
+                style={{ flex: 1 }}
+                onClick={() => irParaPedidoAdjacente(idAnterior)}
+                disabled={idAnterior === null}
+                title="Pedido anterior na busca"
+              >
+                ← Anterior
+              </button>
+              <button
+                type="button"
+                className="btn-action"
+                style={{ flex: 1 }}
+                onClick={() => irParaPedidoAdjacente(idProximo)}
+                disabled={idProximo === null}
+                title="Próximo pedido na busca"
+              >
+                Próximo →
+              </button>
+            </div>
+          )}
 
           {erro && <p className="fs-sm" style={{ color: 'var(--selo)', marginBottom: 10 }}>{erro}</p>}
 
