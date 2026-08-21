@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../../api.js';
 import { formatarData } from '../../mascaras.js';
 import CampoData from '../../components/CampoData.jsx';
@@ -169,6 +169,8 @@ function AbaVendas({ sistema }) {
               </div>
             </BlocoSistema>
           )}
+
+          {dados.itens && <TabelaDetalhada itens={dados.itens} tituloColunaValor="Venda" />}
         </>
       )}
     </div>
@@ -258,6 +260,8 @@ function AbaRecebimentos({ sistema }) {
               </div>
             </BlocoSistema>
           )}
+
+          {dados.itens && <TabelaDetalhada itens={dados.itens} tituloColunaValor="Recebido" />}
         </>
       )}
     </div>
@@ -305,6 +309,59 @@ function CartaoValor({ label, valor, sub, destaque }) {
       <div className="cartao-valor-label">{label}</div>
       <div className="cartao-valor-numero">{valor}</div>
       {sub && <div className="fs-xs" style={{ marginTop: 4, opacity: 0.8 }}>{sub}</div>}
+    </div>
+  );
+}
+
+// Tabela com um pedido por linha (comprador, O.S., forma, valor) — só
+// aparece quando a busca é de um dia único (inicio === fim), já que
+// num período de vários dias a lista ficaria longa demais para ser
+// útil junto com os agregados. Clicar na linha abre o pedido, igual
+// às listas de Fonada/Ao Vivo.
+function TabelaDetalhada({ itens, tituloColunaValor }) {
+  const navigate = useNavigate();
+
+  if (itens.length === 0) {
+    return (
+      <div className="painel" style={{ marginTop: 16, textAlign: 'center', color: 'var(--tinta-suave)' }}>
+        Nenhum pedido nesse dia.
+      </div>
+    );
+  }
+
+  return (
+    <div className="painel" style={{ marginTop: 16, padding: 0, overflow: 'hidden' }}>
+      <div style={{ overflowX: 'auto' }}>
+        <table className="tabela-lista">
+          <thead>
+            <tr>
+              <th>O.S.</th>
+              <th>Comprador</th>
+              <th>Sistema</th>
+              <th>Forma</th>
+              <th>{tituloColunaValor}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {itens.map((item) => (
+              <tr
+                key={`${item.sistema}-${item.id}`}
+                onClick={() => navigate(item.sistema === 'FONADA' ? `/fonada/${item.id}` : `/ao-vivo/${item.id}`)}
+              >
+                <td data-label="O.S.">
+                  <span className="carimbo-os carimbo-os-lista">{item.os}</span>
+                </td>
+                <td data-label="Comprador">{item.nome}</td>
+                <td data-label="Sistema">{item.sistema === 'FONADA' ? 'Fonada' : 'Ao vivo'}</td>
+                <td data-label="Forma">{item.forma}</td>
+                <td data-label={tituloColunaValor} style={{ fontFamily: 'var(--fonte-mono)', fontWeight: 700 }}>
+                  {formatarReais(item.valor)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

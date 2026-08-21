@@ -53,13 +53,18 @@ router.get('/vendas', async (req, res) => {
       (req.query.fim || '').trim()
     );
     const sistema = (req.query.sistema || 'TODOS').trim().toUpperCase();
+    // A tabela detalhada por pessoa só faz sentido para um dia único —
+    // num período de vários dias a lista ficaria longa demais para
+    // ser útil aqui (o relatório já mostra os agregados nesse caso).
+    const diaUnico = Boolean(inicio) && inicio === fim;
 
     let resumoFonada = null;
     let resumoAoVivo = null;
+    const itensDetalhados = [];
 
     if (sistema === 'FONADA' || sistema === 'TODOS') {
       const fonadasResultado = await db.query(`
-        SELECT id, valor, periodo, data_pedido, recall FROM fonadas WHERE excluido_em IS NULL
+        SELECT id, valor, periodo, data_pedido, recall, nome_comprador, senha_os FROM fonadas WHERE excluido_em IS NULL
       `);
       const noPeriodo = filtrarPorIntervalo(fonadasResultado.rows, 'data_pedido', inicio, fim);
       const totalPix = noPeriodo.filter((l) => formaPagamento(l.periodo) === 'PIX').length;
@@ -79,17 +84,37 @@ router.get('/vendas', async (req, res) => {
         percentualOutros: calcularPercentual(totalOutros, noPeriodo.length),
         valorTotal: noPeriodo.reduce((soma, l) => soma + (l.valor || 0), 0),
       };
+
+      if (diaUnico) {
+        for (const l of noPeriodo) {
+          itensDetalhados.push({
+            id: l.id, sistema: 'FONADA', os: l.senha_os || l.id,
+            nome: l.nome_comprador || '—', valor: l.valor || 0,
+            forma: formaPagamento(l.periodo),
+          });
+        }
+      }
     }
 
     if (sistema === 'AOVIVO' || sistema === 'TODOS') {
       const aoVivoResultado = await db.query(`
-        SELECT id, valor, data_pedido FROM ao_vivo WHERE excluido_em IS NULL
+        SELECT id, valor, data_pedido, comprador, numero_os, pagamento FROM ao_vivo WHERE excluido_em IS NULL
       `);
       const noPeriodo = filtrarPorIntervalo(aoVivoResultado.rows, 'data_pedido', inicio, fim);
       resumoAoVivo = {
         quantidade: noPeriodo.length,
         valorTotal: noPeriodo.reduce((soma, l) => soma + (l.valor || 0), 0),
       };
+
+      if (diaUnico) {
+        for (const l of noPeriodo) {
+          itensDetalhados.push({
+            id: l.id, sistema: 'AOVIVO', os: l.numero_os || l.id,
+            nome: l.comprador || '—', valor: l.valor || 0,
+            forma: formaPagamento(l.pagamento),
+          });
+        }
+      }
     }
 
     const quantidade = (resumoFonada?.quantidade || 0) + (resumoAoVivo?.quantidade || 0);
@@ -100,6 +125,7 @@ router.get('/vendas', async (req, res) => {
       fonada: resumoFonada,
       aoVivo: resumoAoVivo,
       geral: { quantidade, valorTotal },
+      itens: diaUnico ? itensDetalhados : null,
     });
   } catch (erro) {
     console.error('Erro ao gerar relatório de vendas:', erro);
@@ -115,13 +141,15 @@ router.get('/recebimentos', async (req, res) => {
       (req.query.fim || '').trim()
     );
     const sistema = (req.query.sistema || 'TODOS').trim().toUpperCase();
+    const diaUnico = Boolean(inicio) && inicio === fim;
 
     let fonadaResumo = null;
     let aoVivoResumo = null;
+    const itensDetalhados = [];
 
     if (sistema === 'FONADA' || sistema === 'TODOS') {
       const fonadasResultado = await db.query(`
-        SELECT id, valor, periodo, data_pagamento, pagou
+        SELECT id, valor, periodo, data_pagamento, pagou, nome_comprador, senha_os
         FROM fonadas
         WHERE excluido_em IS NULL AND pagou = 'SIM' AND data_pagamento IS NOT NULL
       `);
@@ -136,11 +164,21 @@ router.get('/recebimentos', async (req, res) => {
         percentualRecibo: calcularPercentual(totalRecibo, noPeriodo.length),
         valorTotal: noPeriodo.reduce((soma, l) => soma + (l.valor || 0), 0),
       };
+
+      if (diaUnico) {
+        for (const l of noPeriodo) {
+          itensDetalhados.push({
+            id: l.id, sistema: 'FONADA', os: l.senha_os || l.id,
+            nome: l.nome_comprador || '—', valor: l.valor || 0,
+            forma: formaPagamento(l.periodo),
+          });
+        }
+      }
     }
 
     if (sistema === 'AOVIVO' || sistema === 'TODOS') {
       const aoVivoResultado = await db.query(`
-        SELECT id, valor, dia_entrega
+        SELECT id, valor, dia_entrega, comprador, numero_os, pagamento
         FROM ao_vivo
         WHERE excluido_em IS NULL AND dia_entrega IS NOT NULL
       `);
@@ -149,6 +187,16 @@ router.get('/recebimentos', async (req, res) => {
         quantidade: noPeriodo.length,
         valorTotal: noPeriodo.reduce((soma, l) => soma + (l.valor || 0), 0),
       };
+
+      if (diaUnico) {
+        for (const l of noPeriodo) {
+          itensDetalhados.push({
+            id: l.id, sistema: 'AOVIVO', os: l.numero_os || l.id,
+            nome: l.comprador || '—', valor: l.valor || 0,
+            forma: formaPagamento(l.pagamento),
+          });
+        }
+      }
     }
 
     const quantidade = (fonadaResumo?.quantidade || 0) + (aoVivoResumo?.quantidade || 0);
@@ -180,6 +228,7 @@ router.get('/recebimentos', async (req, res) => {
       diferencaVendidoRecebido,
       fonada: fonadaResumo,
       aoVivo: aoVivoResumo,
+      itens: diaUnico ? itensDetalhados : null,
     });
   } catch (erro) {
     console.error('Erro ao gerar relatório de recebimentos:', erro);
