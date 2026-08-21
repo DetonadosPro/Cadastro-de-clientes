@@ -144,7 +144,12 @@ export default function FormFonada() {
 
   function irParaPedidoAdjacente(idAlvo) {
     sessionStorage.setItem('ultimoFonadaSelecionado', String(idAlvo));
-    navigate(`/fonada/${idAlvo}`);
+    // replace: true — substitui a entrada atual do histórico em vez de
+    // empilhar uma nova. Sem isso, cada clique em Anterior/Próximo
+    // empilha uma entrada, e o botão "Fechar" (que usa navigate(-1))
+    // passa a voltar pedido por pedido em vez de ir direto para a
+    // lista de onde a navegação começou.
+    navigate(`/fonada/${idAlvo}`, { replace: true });
   }
 
   const chaveRascunho = editando ? `editar-${id}` : 'novo';
