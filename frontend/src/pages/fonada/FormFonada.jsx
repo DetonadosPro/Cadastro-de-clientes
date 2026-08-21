@@ -748,8 +748,8 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
           O dia não pode ser anterior a hoje.
         </p>
       )}
-      <CampoComP label="Quem oferece" nomeCampo="quem_oferece" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} negrito multilinha />
-      <CampoComP label="Resultado" nomeCampo="resultado" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} negrito cor="var(--selo)" classeExtra="campo-resultado" />
+      <CampoComP label="Quem oferece" nomeCampo="quem_oferece" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} negrito />
+      <CampoComP label="Resultado" nomeCampo="resultado" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} negrito cor="var(--selo)" />
 
       {editando && diaPreenchido && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 8, borderTop: '1px dashed var(--papel-alt)' }}>
@@ -788,27 +788,16 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
   );
 }
 
-function CampoComP({ label, nomeCampo, prefixo, numero, dados, set, onCopiar, mostrarBotaoP, desabilitado, negrito, cor, multilinha, classeExtra }) {
-  const valor = dados[`${prefixo}_${nomeCampo}`];
+function CampoComP({ label, nomeCampo, prefixo, numero, dados, set, onCopiar, mostrarBotaoP, desabilitado, negrito, cor }) {
   return (
-    <div className={`form-row ${multilinha ? 'form-row-multilinha' : ''} ${classeExtra || ''}`}>
+    <div className="form-row">
       <label>{label}:</label>
-      {multilinha ? (
-        <textarea
-          value={valor}
-          onChange={(e) => set(`${prefixo}_${nomeCampo}`, e.target.value)}
-          disabled={desabilitado}
-          rows={2}
-          style={{ ...(negrito ? { fontWeight: 700 } : {}), ...(cor ? { color: cor } : {}) }}
-        />
-      ) : (
-        <input
-          value={valor}
-          onChange={(e) => set(`${prefixo}_${nomeCampo}`, e.target.value)}
-          disabled={desabilitado}
-          style={{ ...(negrito ? { fontWeight: 700 } : {}), ...(cor ? { color: cor } : {}) }}
-        />
-      )}
+      <input
+        value={dados[`${prefixo}_${nomeCampo}`]}
+        onChange={(e) => set(`${prefixo}_${nomeCampo}`, e.target.value)}
+        disabled={desabilitado}
+        style={{ ...(negrito ? { fontWeight: 700 } : {}), ...(cor ? { color: cor } : {}) }}
+      />
       {mostrarBotaoP && (
         <BotaoP onClick={() => onCopiar(nomeCampo, numero)} titulo="Copiar para a 2ª mensagem" />
       )}
