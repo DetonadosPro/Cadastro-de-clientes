@@ -473,109 +473,111 @@ export default function FormAoVivo() {
               </div>
             </div>
 
-            <div className="section-box secao-aovivo-espacosa" style={{ width: 'fit-content', maxWidth: '100%' }}>
-              <div className="section-title">Financeiro e brinde</div>
-              <div className="form-row">
-                <label>Valor:</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  className="input-valor-destaque"
-                  value={dados.valor}
-                  onChange={(e) => set('valor', formatarValorMonetario(e.target.value))}
-                  placeholder="R$ 0,00"
-                  style={{ maxWidth: 110, flex: '0 0 auto' }}
-                />
-              </div>
-              <div className="form-row">
-                <label>Pagamento:</label>
-                <CampoSelecao
-                  opcoes={['PIX', 'DINHEIRO', 'CARTÃO', 'PRAZO']}
-                  value={pagamentoParseado.forma}
-                  onChange={(forma) => set('pagamento', montarPagamento({ ...pagamentoParseado, forma, tipoCartao: '', diaPag: '', formaMp: '' }))}
-                  placeholder="Escolher..."
-                  style={{ width: 105, flex: '0 0 auto' }}
-                />
-                {pagamentoParseado.forma === 'CARTÃO' && (
-                  <CampoSelecao
-                    opcoes={['DÉBITO', 'CRÉDITO']}
-                    value={pagamentoParseado.tipoCartao}
-                    onChange={(tipoCartao) => set('pagamento', montarPagamento({ ...pagamentoParseado, tipoCartao }))}
-                    placeholder="Escolher..."
-                    style={{ width: 90, flex: '0 0 auto', marginLeft: 6 }}
+            <div style={{ display: 'flex', gap: 12, alignItems: 'stretch', flex: '1 1 660px' }}>
+              <div className="section-box secao-aovivo-espacosa" style={{ width: 'fit-content', maxWidth: '100%' }}>
+                <div className="section-title">Financeiro e brinde</div>
+                <div className="form-row">
+                  <label>Valor:</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    className="input-valor-destaque"
+                    value={dados.valor}
+                    onChange={(e) => set('valor', formatarValorMonetario(e.target.value))}
+                    placeholder="R$ 0,00"
+                    style={{ maxWidth: 110, flex: '0 0 auto' }}
                   />
-                )}
-              </div>
-              {pagamentoParseado.forma === 'PRAZO' && (
-                <>
-                  <div className="form-row">
-                    <label>Dia pag.:</label>
-                    <CampoData
-                      placeholder="dd/mm/aa"
-                      value={pagamentoParseado.diaPag}
-                      onChange={(v) => {
-                        const mascarado = formatarData(v);
-                        set('pagamento', montarPagamento({ ...pagamentoParseado, diaPag: mascarado }));
-                      }}
-                      minimo={!editando ? hojeSemHora() : undefined}
-                      style={{ width: 112, flex: '0 0 auto' }}
-                    />
-                  </div>
-                  <div className="form-row">
-                    <label>Mod. pag.:</label>
+                </div>
+                <div className="form-row">
+                  <label>Pagamento:</label>
+                  <CampoSelecao
+                    opcoes={['PIX', 'DINHEIRO', 'CARTÃO', 'PRAZO']}
+                    value={pagamentoParseado.forma}
+                    onChange={(forma) => set('pagamento', montarPagamento({ ...pagamentoParseado, forma, tipoCartao: '', diaPag: '', formaMp: '' }))}
+                    placeholder="Escolher..."
+                    style={{ width: 105, flex: '0 0 auto' }}
+                  />
+                  {pagamentoParseado.forma === 'CARTÃO' && (
                     <CampoSelecao
-                      opcoes={['PIX', 'DINHEIRO', 'CARTÃO']}
-                      value={pagamentoParseado.formaMp}
-                      onChange={(formaMp) => set('pagamento', montarPagamento({ ...pagamentoParseado, formaMp }))}
+                      opcoes={['DÉBITO', 'CRÉDITO']}
+                      value={pagamentoParseado.tipoCartao}
+                      onChange={(tipoCartao) => set('pagamento', montarPagamento({ ...pagamentoParseado, tipoCartao }))}
                       placeholder="Escolher..."
-                      style={{ width: 105, flex: '0 0 auto' }}
+                      style={{ width: 90, flex: '0 0 auto', marginLeft: 6 }}
                     />
-                  </div>
-                </>
-              )}
-              <div className="form-row">
-                <label>Brinde:</label>
-                <CampoComSugestoes
-                  value={dados.brinde}
-                  onChange={(v) => set('brinde', v)}
-                  sugestoes={['Bombom', 'Champagne']}
-                  placeholder="Bombom, Champagne..."
-                  style={{ width: 240, flex: '0 0 auto' }}
-                />
+                  )}
+                </div>
+                {pagamentoParseado.forma === 'PRAZO' && (
+                  <>
+                    <div className="form-row">
+                      <label>Dia pag.:</label>
+                      <CampoData
+                        placeholder="dd/mm/aa"
+                        value={pagamentoParseado.diaPag}
+                        onChange={(v) => {
+                          const mascarado = formatarData(v);
+                          set('pagamento', montarPagamento({ ...pagamentoParseado, diaPag: mascarado }));
+                        }}
+                        minimo={!editando ? hojeSemHora() : undefined}
+                        style={{ width: 112, flex: '0 0 auto' }}
+                      />
+                    </div>
+                    <div className="form-row">
+                      <label>Mod. pag.:</label>
+                      <CampoSelecao
+                        opcoes={['PIX', 'DINHEIRO', 'CARTÃO']}
+                        value={pagamentoParseado.formaMp}
+                        onChange={(formaMp) => set('pagamento', montarPagamento({ ...pagamentoParseado, formaMp }))}
+                        placeholder="Escolher..."
+                        style={{ width: 105, flex: '0 0 auto' }}
+                      />
+                    </div>
+                  </>
+                )}
+                <div className="form-row">
+                  <label>Brinde:</label>
+                  <CampoComSugestoes
+                    value={dados.brinde}
+                    onChange={(v) => set('brinde', v)}
+                    sugestoes={['Bombom', 'Champagne']}
+                    placeholder="Bombom, Champagne..."
+                    style={{ width: 240, flex: '0 0 auto' }}
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="section-box secao-comprador" style={{ flex: '1 1 320px', minWidth: 320 }}>
-              <div className="section-title">
-                <span>Comprador</span>
-                {cliente && (
-                  <button type="button" className="btn-small" onClick={() => navigate(`/clientes/${cliente.id}`)}>
-                    Ver/editar cliente
-                  </button>
+              <div className="section-box secao-comprador" style={{ flex: '1 1 320px', minWidth: 320 }}>
+                <div className="section-title">
+                  <span>Comprador</span>
+                  {cliente && (
+                    <button type="button" className="btn-small" onClick={() => navigate(`/clientes/${cliente.id}`)}>
+                      Ver/editar cliente
+                    </button>
+                  )}
+                </div>
+                {cliente ? (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 4 }}>
+                      <span className="fs-lg" style={{ fontWeight: 700 }}>{cliente.nome}</span>
+                      <span className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>
+                        Nasc.: {cliente.nascimento || '—'}
+                      </span>
+                    </div>
+                    <div className="grade grade-3" style={{ marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid var(--papel-alt)' }}>
+                      <InfoGrupo label="Fixo" valor={cliente.fixo} />
+                      <InfoGrupo label="Celular" valor={cliente.celular} />
+                      <InfoGrupo label="WhatsApp" valor={cliente.whatsapp} />
+                    </div>
+                    <div className="grade grade-3">
+                      <InfoGrupo label="Bairro" valor={cliente.bairro} />
+                      <InfoGrupo label="Endereço" valor={[cliente.endereco, cliente.complemento].filter(Boolean).join(' — ')} />
+                      <InfoGrupo label="Referência" valor={cliente.referencia} />
+                    </div>
+                  </>
+                ) : (
+                  <p className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Nenhum cliente vinculado.</p>
                 )}
               </div>
-              {cliente ? (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 4 }}>
-                    <span className="fs-lg" style={{ fontWeight: 700 }}>{cliente.nome}</span>
-                    <span className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>
-                      Nasc.: {cliente.nascimento || '—'}
-                    </span>
-                  </div>
-                  <div className="grade grade-3" style={{ marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid var(--papel-alt)' }}>
-                    <InfoGrupo label="Fixo" valor={cliente.fixo} />
-                    <InfoGrupo label="Celular" valor={cliente.celular} />
-                    <InfoGrupo label="WhatsApp" valor={cliente.whatsapp} />
-                  </div>
-                  <div className="grade grade-3">
-                    <InfoGrupo label="Bairro" valor={cliente.bairro} />
-                    <InfoGrupo label="Endereço" valor={[cliente.endereco, cliente.complemento].filter(Boolean).join(' — ')} />
-                    <InfoGrupo label="Referência" valor={cliente.referencia} />
-                  </div>
-                </>
-              ) : (
-                <p className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Nenhum cliente vinculado.</p>
-              )}
             </div>
           </div>
         </div>
