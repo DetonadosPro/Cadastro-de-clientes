@@ -16,7 +16,7 @@ const VAZIO = {
   tema_1: '', mensagem_codigo_1: '', tema_2: '', mensagem_codigo_2: '',
   tema_3: '', mensagem_codigo_3: '', tema_4: '', mensagem_codigo_4: '',
   musica_1: '', musica_2: '', musica_3: '', musica_4: '', musica_5: '', musica_6: '',
-  valor: '', pagamento: '', brinde: '', observacoes: '',
+  valor: '', pagamento: '', brinde: '', observacoes: '', pagou: '', data_pagou: '',
 };
 
 const MIN_MENSAGENS = 1;
@@ -614,6 +614,20 @@ export default function FormAoVivo() {
               </button>
             </div>
           </div>
+
+          {String(dados.pagamento || '').startsWith('PRAZO') && (
+            <div className="section-box">
+              <div className="section-title">Lançamento</div>
+              <div className="info-linha">
+                <span className="info-label">Pagou</span>
+                <span className="info-valor">{dados.pagou === 'SIM' ? 'Sim' : 'Não'}</span>
+              </div>
+              <div className="info-linha">
+                <span className="info-label">Data do pagamento</span>
+                <span className="info-valor">{dados.data_pagou || '—'}</span>
+              </div>
+            </div>
+          )}
 
           <div className="section-box">
             <div className="section-title">Registro do pedido</div>

@@ -40,4 +40,15 @@ function agoraBrasilia() {
   return new Date(`${ano}-${mes}-${dia}T${hora}:${minuto}:${segundo}`);
 }
 
-module.exports = { agoraBrasilia };
+// Data de hoje (Brasília) no formato dd/mm/aa usado nos campos do
+// sistema — mesmo formato que hojeFormatado() no frontend, para poder
+// comparar/filtrar direto com as datas já salvas.
+function formatarDataBrasilia() {
+  const agora = agoraBrasilia();
+  const dd = String(agora.getDate()).padStart(2, '0');
+  const mm = String(agora.getMonth() + 1).padStart(2, '0');
+  const aa = String(agora.getFullYear()).slice(-2);
+  return `${dd}/${mm}/${aa}`;
+}
+
+module.exports = { agoraBrasilia, formatarDataBrasilia };

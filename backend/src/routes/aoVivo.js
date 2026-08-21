@@ -6,7 +6,16 @@
 
 const express = require('express');
 const { db, pool, reservarProximaOs } = require('../db/database');
-const { agoraBrasilia } = require('../utils/dataHora');
+const { agoraBrasilia, formatarDataBrasilia } = require('../utils/dataHora');
+
+// Data + hora atual (Brasília) formatada como texto único, no mesmo
+// padrão usado no histórico de tentativas da Fonada — ex: "21/08/26 14:32".
+function agoraFormatadoTexto() {
+  const agora = agoraBrasilia();
+  const hh = String(agora.getHours()).padStart(2, '0');
+  const min = String(agora.getMinutes()).padStart(2, '0');
+  return `${formatarDataBrasilia()} ${hh}:${min}`;
+}
 
 const router = express.Router();
 
@@ -291,12 +300,14 @@ router.post('/:id/pagou', async (req, res) => {
       }
     }
 
+    const dataPagou = pagou === 'SIM' ? formatarDataBrasilia() : null;
+
     await db.query(
-      'UPDATE ao_vivo SET pagou = $1, atualizado_em = NOW() WHERE id = $2',
-      [pagou, req.params.id]
+      'UPDATE ao_vivo SET pagou = $1, data_pagou = $2, atualizado_em = NOW() WHERE id = $3',
+      [pagou, dataPagou, req.params.id]
     );
 
-    res.json({ ok: true, pagou });
+    res.json({ ok: true, pagou, dataPagou });
   } catch (erro) {
     console.error('Erro ao marcar pagamento do ao vivo:', erro);
     res.status(500).json({ erro: 'Erro ao marcar pagamento.' });
@@ -398,6 +409,91 @@ router.delete('/:id', async (req, res) => {
   } catch (erro) {
     console.error('Erro ao apagar ao vivo:', erro);
     res.status(500).json({ erro: 'Erro ao apagar registro.' });
+  }
+});
+
+// POST /api/ao-vivo/:id/nao-recebeu
+//
+// Equivalente ao "não atendeu" da Fonada, mas para o prazo de
+// pagamento — quando o dia previsto chega e o cliente não pagou, isso
+// registra a tentativa e remarca o dia do prazo para uma nova data. O
+// dia fica guardado dentro do próprio texto do campo `pagamento`
+// (formato "PRAZO - DIA dd/mm/aa - MP - ..."), então a remarcação
+// troca só essa parte, preservando o resto do texto (forma do MP etc).
+router.post('/:id/nao-recebeu', async (req, res) => {
+  const { observacao, remarcadoDia } = req.body;
+
+  if (!remarcadoDia) {
+    return res.status(400).json({ erro: 'Informe o novo dia para remarcar o prazo.' });
+  }
+
+  const client = await pool.connect();
+  try {
+    const pedidoResultado = await client.query('SELECT id, cliente_id, pagamento FROM ao_vivo WHERE id = $1', [req.params.id]);
+    if (pedidoResultado.rows.length === 0) {
+      client.release();
+      return res.status(404).json({ erro: 'Pedido não encontrado.' });
+    }
+
+    const pedido = pedidoResultado.rows[0];
+    if (!String(pedido.pagamento || '').startsWith('PRAZO')) {
+      client.release();
+      return res.status(400).json({ erro: 'Este pedido não está com pagamento a prazo.' });
+    }
+
+    const clienteId = pedido.cliente_id;
+    if (clienteId) {
+      const clienteResultado = await client.query('SELECT bloqueado FROM clientes WHERE id = $1', [clienteId]);
+      if (clienteResultado.rows[0]?.bloqueado) {
+        client.release();
+        return res.status(403).json({ erro: 'Este cliente está bloqueado. Não é possível registrar tentativas para ele.' });
+      }
+    }
+
+    const texto = agoraFormatadoTexto();
+
+    // Troca (ou insere, se não tinha) a parte "DIA dd/mm/aa" do texto
+    // de pagamento, mantendo o resto (MP, forma) intacto.
+    let novoPagamento = pedido.pagamento;
+    if (/DIA [\d/]*/.test(novoPagamento)) {
+      novoPagamento = novoPagamento.replace(/DIA [\d/]*/, `DIA ${remarcadoDia}`);
+    } else {
+      novoPagamento = novoPagamento.replace(/^PRAZO/, `PRAZO - DIA ${remarcadoDia}`);
+    }
+
+    await client.query('BEGIN');
+
+    await client.query(`
+      INSERT INTO tentativas_prazo_ao_vivo (pedido_id, data_hora_tentativa, observacao, remarcado_dia)
+      VALUES ($1, $2, $3, $4)
+    `, [req.params.id, texto, observacao || null, remarcadoDia]);
+
+    await client.query(`
+      UPDATE ao_vivo SET pagamento = $1, atualizado_em = NOW() WHERE id = $2
+    `, [novoPagamento, req.params.id]);
+
+    await client.query('COMMIT');
+    res.json({ ok: true, pagamento: novoPagamento });
+  } catch (erro) {
+    await client.query('ROLLBACK');
+    console.error('Erro ao registrar tentativa de prazo:', erro);
+    res.status(500).json({ erro: 'Não foi possível registrar a tentativa.' });
+  } finally {
+    client.release();
+  }
+});
+
+// GET /api/ao-vivo/:id/tentativas-prazo
+router.get('/:id/tentativas-prazo', async (req, res) => {
+  try {
+    const resultado = await db.query(
+      'SELECT * FROM tentativas_prazo_ao_vivo WHERE pedido_id = $1 ORDER BY id DESC',
+      [req.params.id]
+    );
+    res.json({ tentativas: resultado.rows });
+  } catch (erro) {
+    console.error('Erro ao buscar tentativas de prazo:', erro);
+    res.status(500).json({ erro: 'Erro ao buscar tentativas.' });
   }
 });
 

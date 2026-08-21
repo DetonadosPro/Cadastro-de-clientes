@@ -214,6 +214,22 @@ async function iniciarBanco() {
   `);
   await pool.query('CREATE INDEX IF NOT EXISTS idx_tentativas_pedido ON tentativas_contato(pedido_id)');
 
+  // Equivalente a tentativas_contato, mas para o prazo de pagamento do
+  // Ao Vivo — não tem o conceito de "1ª/2ª mensagem" (é um pedido só),
+  // então não existe coluna mensagem. Guarda o histórico de "não
+  // recebeu no dia previsto" + remarcação do dia do prazo.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tentativas_prazo_ao_vivo (
+      id SERIAL PRIMARY KEY,
+      pedido_id INTEGER NOT NULL REFERENCES ao_vivo(id),
+      data_hora_tentativa TEXT NOT NULL,
+      observacao TEXT,
+      remarcado_dia TEXT,
+      criado_em TIMESTAMP DEFAULT NOW()
+    );
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_tentativas_prazo_pedido ON tentativas_prazo_ao_vivo(pedido_id)');
+
   // Pares de clientes que a pessoa já confirmou não serem a mesma
   // pessoa, mesmo batendo no critério de nome parecido + mesmo
   // dia/mês de aniversário — a sugestão de duplicata (ver
@@ -276,6 +292,7 @@ async function iniciarBanco() {
     { tabela: 'clientes', coluna: 'whatsapp', tipo: 'TEXT' },
     { tabela: 'fonadas', coluna: 'comprador_whatsapp', tipo: 'TEXT' },
     { tabela: 'ao_vivo', coluna: 'whatsapp', tipo: 'TEXT' },
+    { tabela: 'ao_vivo', coluna: 'data_pagou', tipo: 'TEXT' },
   ];
   for (const { tabela, coluna, tipo } of colunasNovas) {
     await pool.query(`ALTER TABLE ${tabela} ADD COLUMN IF NOT EXISTS ${coluna} ${tipo}`);

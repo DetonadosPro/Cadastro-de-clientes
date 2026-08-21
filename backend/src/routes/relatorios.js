@@ -178,11 +178,25 @@ router.get('/recebimentos', async (req, res) => {
 
     if (sistema === 'AOVIVO' || sistema === 'TODOS') {
       const aoVivoResultado = await db.query(`
-        SELECT id, valor, dia_entrega, comprador, numero_os, pagamento
+        SELECT id, valor, dia_entrega, comprador, numero_os, pagamento, pagou, data_pagou
         FROM ao_vivo
-        WHERE excluido_em IS NULL AND dia_entrega IS NOT NULL
+        WHERE excluido_em IS NULL
       `);
-      const noPeriodo = filtrarPorIntervalo(aoVivoResultado.rows, 'dia_entrega', inicio, fim);
+
+      // Pagamento a PRAZO só conta como recebido de verdade quando
+      // pagou = 'SIM' — antes disso é só uma previsão de cobrança, não
+      // um recebimento. Por isso entra no relatório pela data em que
+      // foi efetivamente marcado como recebido (data_pagou), não pela
+      // data de entrega da mensagem. Pagamento à vista (qualquer outra
+      // forma) continua entrando pela data de entrega, como sempre foi.
+      const ehPrazo = (pagamento) => String(pagamento || '').startsWith('PRAZO');
+      const linhasAVista = aoVivoResultado.rows.filter((l) => !ehPrazo(l.pagamento));
+      const linhasPrazoRecebidas = aoVivoResultado.rows.filter((l) => ehPrazo(l.pagamento) && l.pagou === 'SIM');
+
+      const noPeriodoAVista = filtrarPorIntervalo(linhasAVista, 'dia_entrega', inicio, fim);
+      const noPeriodoPrazo = filtrarPorIntervalo(linhasPrazoRecebidas, 'data_pagou', inicio, fim);
+      const noPeriodo = [...noPeriodoAVista, ...noPeriodoPrazo];
+
       aoVivoResumo = {
         quantidade: noPeriodo.length,
         valorTotal: noPeriodo.reduce((soma, l) => soma + (l.valor || 0), 0),

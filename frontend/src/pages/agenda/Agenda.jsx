@@ -51,6 +51,15 @@ export default function Agenda() {
   const [remarcadoHorario, setRemarcadoHorario] = useState('');
   const [salvandoRemarcacao, setSalvandoRemarcacao] = useState(false);
 
+  // Mesma ideia, mas para o prazo de pagamento do Ao Vivo — sem
+  // horário, e em estados separados para não misturar com o fluxo da
+  // Fonada (podem estar abertos em telas diferentes, embora não ao
+  // mesmo tempo na prática).
+  const [itemRemarcarPrazoAberto, setItemRemarcarPrazoAberto] = useState(null);
+  const [observacaoPrazo, setObservacaoPrazo] = useState('');
+  const [remarcadoDiaPrazo, setRemarcadoDiaPrazo] = useState('');
+  const [salvandoRemarcacaoPrazo, setSalvandoRemarcacaoPrazo] = useState(false);
+
   // Item selecionado na lista compacta — chave única por tipo+id, já
   // que fonada usa pedidoId+mensagem e ao vivo usa só id.
   const [chaveSelecionada, setChaveSelecionada] = useState(null);
@@ -190,6 +199,38 @@ export default function Agenda() {
       mostrarToast('Não foi possível registrar. Tente novamente.', 'erro');
     } finally {
       setSalvandoRemarcacao(false);
+    }
+  }
+
+  function abrirRemarcarPrazo(item) {
+    setItemRemarcarPrazoAberto({ pedidoId: item.id, nome: item.comprador });
+    setObservacaoPrazo('');
+    setRemarcadoDiaPrazo('');
+  }
+
+  function cancelarRemarcarPrazo() {
+    setItemRemarcarPrazoAberto(null);
+  }
+
+  async function confirmarRemarcarPrazo() {
+    if (!remarcadoDiaPrazo.trim()) {
+      mostrarToast('Informe o novo dia para remarcar o prazo.', 'erro');
+      return;
+    }
+    setSalvandoRemarcacaoPrazo(true);
+    try {
+      await api.aoVivo.naoRecebeu(
+        itemRemarcarPrazoAberto.pedidoId,
+        observacaoPrazo.trim() || null,
+        remarcadoDiaPrazo.trim()
+      );
+      mostrarToast('Tentativa registrada e prazo remarcado.');
+      setItemRemarcarPrazoAberto(null);
+      carregar();
+    } catch (err) {
+      mostrarToast('Não foi possível registrar. Tente novamente.', 'erro');
+    } finally {
+      setSalvandoRemarcacaoPrazo(false);
     }
   }
 
@@ -371,6 +412,7 @@ export default function Agenda() {
                   onDarBaixaAoVivo={darBaixaAoVivo}
                   onDesfazerBaixaAoVivo={desfazerBaixaAoVivo}
                   onMarcarPagouAoVivo={marcarPagouAoVivo}
+                  onAbrirRemarcarPrazo={abrirRemarcarPrazo}
                 />
               )}
             </div>
@@ -417,6 +459,41 @@ export default function Agenda() {
               <button type="button" className="btn secundario" onClick={cancelarRemarcar}>Cancelar</button>
               <button type="button" className="btn" onClick={confirmarRemarcar} disabled={salvandoRemarcacao}>
                 {salvandoRemarcacao ? 'Salvando...' : 'Registrar e remarcar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {itemRemarcarPrazoAberto && (
+        <div className="modal-fundo" onClick={cancelarRemarcarPrazo}>
+          <div className="modal-caixa" onClick={(e) => e.stopPropagation()}>
+            <div className="section-title">Não recebeu — {itemRemarcarPrazoAberto.nome}</div>
+            <p className="fs-sm" style={{ color: 'var(--tinta-suave)', marginBottom: 10 }}>
+              A tentativa fica registrada no horário atual do sistema. Escolha o novo dia
+              para remarcar o prazo de pagamento.
+            </p>
+            <div className="campo">
+              <label>Novo dia *</label>
+              <CampoData
+                placeholder="dd/mm/aa"
+                value={remarcadoDiaPrazo}
+                onChange={(v) => setRemarcadoDiaPrazo(formatarData(v))}
+                autoFocus
+              />
+            </div>
+            <div className="campo">
+              <label>Observação (opcional)</label>
+              <input
+                placeholder="Ex: pediu mais alguns dias..."
+                value={observacaoPrazo}
+                onChange={(e) => setObservacaoPrazo(e.target.value)}
+              />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+              <button type="button" className="btn secundario" onClick={cancelarRemarcarPrazo}>Cancelar</button>
+              <button type="button" className="btn" onClick={confirmarRemarcarPrazo} disabled={salvandoRemarcacaoPrazo}>
+                {salvandoRemarcacaoPrazo ? 'Salvando...' : 'Registrar e remarcar'}
               </button>
             </div>
           </div>
@@ -650,7 +727,76 @@ function CardRemarcacoes({ pedidoId, mensagem }) {
   );
 }
 
-function DetalhesAoVivo({ item, ehHoje, salvandoBaixa, navigate, onDarBaixaAoVivo, onDesfazerBaixaAoVivo, onMarcarPagouAoVivo }) {
+// Igual a CardRemarcacoes, mas para o histórico de "não recebeu no dia
+// previsto" do prazo de pagamento do Ao Vivo — sem o conceito de
+// mensagem (1ª/2ª) nem de horário, só o dia do prazo.
+function CardRemarcacoesPrazo({ pedidoId }) {
+  const [tentativas, setTentativas] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [aberto, setAberto] = useState(false);
+
+  useEffect(() => {
+    let cancelado = false;
+    setCarregando(true);
+    setAberto(false);
+    api.aoVivo.buscarTentativasPrazo(pedidoId)
+      .then((resp) => {
+        if (cancelado) return;
+        setTentativas(resp.tentativas || []);
+      })
+      .catch(() => { if (!cancelado) setTentativas([]); })
+      .finally(() => { if (!cancelado) setCarregando(false); });
+    return () => { cancelado = true; };
+  }, [pedidoId]);
+
+  if (carregando || tentativas.length === 0) return null;
+
+  return (
+    <div className="section-box" style={{ marginTop: 12 }}>
+      <button
+        type="button"
+        onClick={() => setAberto((v) => !v)}
+        style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%',
+          background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+          borderBottom: '1px solid var(--papel-alt)', paddingBottom: 8, marginBottom: aberto ? 10 : 0,
+          font: 'inherit', color: 'inherit',
+        }}
+      >
+        <span className="fs-xs" style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 8 }}>
+          Remarcações
+          <span className="aba-contagem">{tentativas.length}</span>
+        </span>
+        <IconeChevron aberto={aberto} />
+      </button>
+
+      {aberto && (
+        <div style={{ display: 'grid', gap: 8 }}>
+          {tentativas.map((t) => (
+            <div key={t.id} className="info-linha" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: 6 }}>
+                <span className="fs-sm" style={{ fontWeight: 700 }}>
+                  Verificado em {t.data_hora_tentativa}
+                </span>
+                <span className="tag pendente">Não recebeu</span>
+              </div>
+              {t.observacao && (
+                <span className="fs-xs" style={{ color: 'var(--tinta-suave)' }}>Obs.: {t.observacao}</span>
+              )}
+              {t.remarcado_dia && (
+                <span className="fs-xs" style={{ color: 'var(--tinta-suave)' }}>
+                  Remarcado para {t.remarcado_dia}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DetalhesAoVivo({ item, ehHoje, salvandoBaixa, navigate, onDarBaixaAoVivo, onDesfazerBaixaAoVivo, onMarcarPagouAoVivo, onAbrirRemarcarPrazo }) {
   const chave = `aovivo-${item.id}`;
   const jaPassada = ehHoje && item.passada;
   const foiEntregue = Boolean(item.resultado_entrega);
@@ -712,15 +858,25 @@ function DetalhesAoVivo({ item, ehHoje, salvandoBaixa, navigate, onDarBaixaAoViv
         </button>
       )}
       {item.ehCobranca && item.pagou !== 'SIM' && (
-        <button
-          type="button"
-          className="btn-action destaque"
-          style={{ width: '100%' }}
-          onClick={() => onMarcarPagouAoVivo(item, 'SIM')}
-          disabled={salvandoBaixa === `aovivo-pagou-${item.id}`}
-        >
-          <IconeCheck /> {salvandoBaixa === `aovivo-pagou-${item.id}` ? 'Salvando...' : 'Recebido'}
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            type="button"
+            className="btn-action perigo-acao"
+            style={{ flex: 1 }}
+            onClick={() => onAbrirRemarcarPrazo(item)}
+          >
+            <IconeNaoAtendeu /> Não recebeu
+          </button>
+          <button
+            type="button"
+            className="btn-action destaque"
+            style={{ flex: 1 }}
+            onClick={() => onMarcarPagouAoVivo(item, 'SIM')}
+            disabled={salvandoBaixa === `aovivo-pagou-${item.id}`}
+          >
+            <IconeCheck /> {salvandoBaixa === `aovivo-pagou-${item.id}` ? 'Salvando...' : 'Recebido'}
+          </button>
+        </div>
       )}
       {item.ehCobranca && item.pagou === 'SIM' && (
         <button
@@ -733,6 +889,8 @@ function DetalhesAoVivo({ item, ehHoje, salvandoBaixa, navigate, onDarBaixaAoViv
           <IconeNaoAtendeu /> {salvandoBaixa === `aovivo-pagou-${item.id}` ? 'Desfazendo...' : 'Desfazer'}
         </button>
       )}
+
+      {item.ehCobranca && <CardRemarcacoesPrazo pedidoId={item.id} />}
     </div>
   );
 }

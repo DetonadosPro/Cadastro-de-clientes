@@ -129,6 +129,9 @@ export const api = {
     darBaixa: (id, entregue) => chamar(`/ao-vivo/${id}/baixa`, { method: 'POST', body: JSON.stringify({ entregue }) }),
     desfazerBaixa: (id) => chamar(`/ao-vivo/${id}/desfazer-baixa`, { method: 'POST' }),
     marcarPagou: (id, pagou) => chamar(`/ao-vivo/${id}/pagou`, { method: 'POST', body: JSON.stringify({ pagou }) }),
+    naoRecebeu: (id, observacao, remarcadoDia) =>
+      chamar(`/ao-vivo/${id}/nao-recebeu`, { method: 'POST', body: JSON.stringify({ observacao, remarcadoDia }) }),
+    buscarTentativasPrazo: (id) => chamar(`/ao-vivo/${id}/tentativas-prazo`),
   },
 
   // ---------- Clientes (cadastro único, compartilhado) ----------
