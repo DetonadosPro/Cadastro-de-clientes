@@ -725,7 +725,7 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
           value={dados[`${p}_dia`]}
           onChange={(v) => setComMascara(`${p}_dia`, v, 'data')}
           disabled={bloqueada}
-          style={{ fontWeight: 700, flex: '0 0 auto', width: 90, minWidth: 0 }}
+          style={{ fontWeight: 700, flex: '0 0 auto', width: 104, minWidth: 0 }}
           minimo={!editando ? hojeSemHora() : undefined}
         />
         <label style={{ minWidth: 'auto', marginLeft: 6 }}>Horário:</label>
