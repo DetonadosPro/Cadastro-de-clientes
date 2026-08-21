@@ -545,7 +545,7 @@ export default function FormAoVivo() {
               </div>
             </div>
 
-            <div className="section-box" style={{ flex: '1 1 320px', minWidth: 320 }}>
+            <div className="section-box secao-comprador" style={{ flex: '1 1 320px', minWidth: 320 }}>
               <div className="section-title">
                 <span>Comprador</span>
                 {cliente && (
@@ -556,21 +556,21 @@ export default function FormAoVivo() {
               </div>
               {cliente ? (
                 <>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 4 }}>
                     <span className="fs-lg" style={{ fontWeight: 700 }}>{cliente.nome}</span>
                     <span className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>
                       Nasc.: {cliente.nascimento || '—'}
                     </span>
                   </div>
                   <div className="grade grade-3" style={{ marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid var(--papel-alt)' }}>
-                    <InfoSomenteLeitura label="Fixo" valor={cliente.fixo} />
-                    <InfoSomenteLeitura label="Celular" valor={cliente.celular} />
-                    <InfoSomenteLeitura label="WhatsApp" valor={cliente.whatsapp} />
+                    <InfoGrupo label="Fixo" valor={cliente.fixo} />
+                    <InfoGrupo label="Celular" valor={cliente.celular} />
+                    <InfoGrupo label="WhatsApp" valor={cliente.whatsapp} />
                   </div>
                   <div className="grade grade-3">
-                    <InfoSomenteLeitura label="Endereço" valor={[cliente.endereco, cliente.complemento].filter(Boolean).join(' — ')} />
-                    <InfoSomenteLeitura label="Bairro" valor={cliente.bairro} />
-                    <InfoSomenteLeitura label="Referência" valor={cliente.referencia} />
+                    <InfoGrupo label="Bairro" valor={cliente.bairro} />
+                    <InfoGrupo label="Endereço" valor={[cliente.endereco, cliente.complemento].filter(Boolean).join(' — ')} />
+                    <InfoGrupo label="Referência" valor={cliente.referencia} />
                   </div>
                 </>
               ) : (
@@ -631,13 +631,34 @@ export default function FormAoVivo() {
   );
 }
 
-function InfoSomenteLeitura({ label, valor }) {
+function InfoGrupo({ label, valor }) {
+  const ehWhatsapp = label === 'WhatsApp';
+  const somenteDigitos = String(valor || '').replace(/\D/g, '');
+  // wa.me exige o número com DDI (Brasil = 55) + DDD + número, só
+  // dígitos. Números salvos aqui já vêm com DDD (ex: "34 9 9648-3060"),
+  // então só falta o "55" na frente quando ainda não tiver.
+  const numeroComDDI = somenteDigitos
+    ? (somenteDigitos.startsWith('55') ? somenteDigitos : `55${somenteDigitos}`)
+    : '';
+  const linkWhatsapp = ehWhatsapp && numeroComDDI.length >= 12 ? `https://wa.me/${numeroComDDI}` : null;
+
   return (
     <div>
-      <div className="fs-xs" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--tinta-suave)', marginBottom: 2 }}>
-        {label}
-      </div>
-      <div className="fs-md">{valor || '—'}</div>
+      <div className="info-label" style={{ fontSize: 11, marginBottom: 3 }}>{label}</div>
+      {linkWhatsapp ? (
+        <a
+          href={linkWhatsapp}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="info-valor link-whatsapp"
+          style={{ fontSize: 13 }}
+          title="Abrir conversa no WhatsApp"
+        >
+          {valor}
+        </a>
+      ) : (
+        <div className="info-valor" style={{ fontSize: 13 }}>{valor || '—'}</div>
+      )}
     </div>
   );
 }
