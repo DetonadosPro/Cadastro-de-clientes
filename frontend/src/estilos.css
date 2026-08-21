@@ -380,7 +380,6 @@ input, select, textarea {
 .secao-transmissao .coluna-mensagem .form-row input,
 .secao-transmissao .coluna-mensagem .form-row select {
   max-width: 160px;
-  width: 160px;
   padding: 2px 5px;
   font-size: 13px;
 }
