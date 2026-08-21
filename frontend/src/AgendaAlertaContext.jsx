@@ -61,7 +61,7 @@ function corAgregada(itensFonada, itensAoVivo) {
     else if (diff <= LIMIAR_PROXIMA_MINUTOS) temProxima = true;
   }
   for (const item of itensAoVivo) {
-    if (item.passada) continue;
+    if (item.passada || item.ehCobranca) continue;
     const diff = minutosAteHorario(item.horario_entrega, agora);
     if (diff === null) continue;
     if (diff < 0) temAtrasada = true;
