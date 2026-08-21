@@ -406,7 +406,7 @@ export default function FormFonada() {
       <div className={`form-layout ${estaBloqueado ? 'form-bloqueado' : ''}`}>
 
         <div>
-          <div className="section-box">
+          <div className="section-box secao-transmissao">
             <div className="section-title">Transmissão</div>
             <div className="duas-colunas-mensagem">
               <ColunaMensagem
