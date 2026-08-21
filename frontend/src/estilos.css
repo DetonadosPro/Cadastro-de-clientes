@@ -1995,8 +1995,10 @@ tr:hover .alca-arrastar {
 .abas-cliente {
   display: flex;
   align-items: center;
+  gap: 6px;
   border-bottom: 2px solid #eeeeee;
   background: #fafafa;
+  padding: 8px 14px 0;
 }
 /* Usada nas telas onde a section-box tem padding 0 e as abas ficam
    coladas no topo do card (Agenda, Relatórios). Antes usava
@@ -2032,10 +2034,11 @@ tr:hover .alca-arrastar {
   background: #ffffff;
 }
 .aba-cliente-botao {
-  flex: 1;
-  padding: 12px 16px;
+  flex: 0 0 auto;
+  padding: 10px 14px;
   background: transparent;
   border: none;
+  border-radius: 8px 8px 0 0;
   border-bottom: 3px solid transparent;
   font-size: 14px;
   font-weight: 700;
@@ -2045,7 +2048,7 @@ tr:hover .alca-arrastar {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  transition: color 0.15s ease, border-color 0.15s ease;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 .aba-cliente-botao:hover {
   color: var(--carimbo);

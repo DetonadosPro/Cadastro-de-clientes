@@ -30,7 +30,7 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ erro: 'Informe usuário e senha.' });
     }
 
-    const resultado = await db.query('SELECT * FROM usuarios WHERE usuario = $1', [usuario]);
+    const resultado = await db.query('SELECT * FROM usuarios WHERE usuario ILIKE $1', [usuario]);
     const linha = resultado.rows[0];
 
     if (!linha) {
@@ -99,7 +99,7 @@ router.post('/usuarios', exigirSenhaMestra, async (req, res) => {
       return res.status(400).json({ erro: 'A senha deve ter pelo menos 3 caracteres.' });
     }
 
-    const existente = await db.query('SELECT id FROM usuarios WHERE usuario = $1', [usuario]);
+    const existente = await db.query('SELECT id FROM usuarios WHERE usuario ILIKE $1', [usuario]);
     if (existente.rows.length > 0) {
       return res.status(409).json({ erro: 'Esse usuário já existe.' });
     }
