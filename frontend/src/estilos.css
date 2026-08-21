@@ -411,10 +411,31 @@ input, select, textarea {
 }
 
 /* "Quem oferece" estica até o fim da coluna (sem o teto de 160px das
-   demais linhas), já que costuma levar nomes mais longos. */
-.secao-transmissao .coluna-mensagem .campo-quem-oferece input {
+   demais linhas), já que costuma levar nomes mais longos, e agora
+   quebra em várias linhas (textarea) em vez de correr para o lado
+   sem parar. */
+.secao-transmissao .coluna-mensagem .campo-quem-oferece {
+  align-items: flex-start;
+}
+.secao-transmissao .coluna-mensagem .campo-quem-oferece textarea {
   max-width: none;
   flex: 1 1 auto;
+  padding: 4px 5px;
+  font-size: 13px;
+  height: 40px;
+  box-sizing: border-box;
+  resize: none;
+  font-family: inherit;
+  border: 1px solid var(--borda);
+  border-radius: 6px;
+  color: var(--tinta);
+  background: var(--branco);
+  outline: none;
+  line-height: 1.3;
+  overflow-wrap: break-word;
+}
+.secao-transmissao .coluna-mensagem .campo-quem-oferece .btn-small {
+  align-self: flex-start;
 }
 /* "Resultado" 15% mais largo que o padrão da seção (160px -> 184px). */
 .secao-transmissao .coluna-mensagem .campo-resultado input {

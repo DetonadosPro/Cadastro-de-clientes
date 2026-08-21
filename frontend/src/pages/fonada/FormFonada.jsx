@@ -708,9 +708,9 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
       <CampoComP label="Para" nomeCampo="para" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} />
       <div className="form-row">
         <label>Fixo:</label>
-        <input value={dados[`${p}_fixo`]} onChange={(e) => setComMascara(`${p}_fixo`, e.target.value, 'fixo')} disabled={bloqueada} />
+        <input value={dados[`${p}_fixo`]} onChange={(e) => setComMascara(`${p}_fixo`, e.target.value, 'fixo')} disabled={bloqueada} style={{ flex: '0 0 auto', width: 118, minWidth: 0 }} />
         <label style={{ minWidth: 'auto', marginLeft: 4 }}>Cel.:</label>
-        <input value={dados[`${p}_celular`]} onChange={(e) => setComMascara(`${p}_celular`, e.target.value, 'celular')} disabled={bloqueada} />
+        <input value={dados[`${p}_celular`]} onChange={(e) => setComMascara(`${p}_celular`, e.target.value, 'celular')} disabled={bloqueada} style={{ flex: '0 0 auto', width: 128, minWidth: 0 }} />
         {mostrarBotaoP && (
           <BotaoP
             onClick={() => { onCopiar('fixo', numero); onCopiar('celular', numero); }}
@@ -748,7 +748,7 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
           O dia não pode ser anterior a hoje.
         </p>
       )}
-      <CampoComP label="Quem oferece" nomeCampo="quem_oferece" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} negrito classeExtra="campo-quem-oferece" />
+      <CampoComP label="Quem oferece" nomeCampo="quem_oferece" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} negrito classeExtra="campo-quem-oferece" multilinha />
       <CampoComP label="Resultado" nomeCampo="resultado" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} negrito cor="var(--selo)" classeExtra="campo-resultado" />
 
       {editando && diaPreenchido && (
@@ -788,16 +788,27 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
   );
 }
 
-function CampoComP({ label, nomeCampo, prefixo, numero, dados, set, onCopiar, mostrarBotaoP, desabilitado, negrito, cor, classeExtra }) {
+function CampoComP({ label, nomeCampo, prefixo, numero, dados, set, onCopiar, mostrarBotaoP, desabilitado, negrito, cor, classeExtra, multilinha }) {
+  const valor = dados[`${prefixo}_${nomeCampo}`];
   return (
     <div className={`form-row ${classeExtra || ''}`}>
       <label>{label}:</label>
-      <input
-        value={dados[`${prefixo}_${nomeCampo}`]}
-        onChange={(e) => set(`${prefixo}_${nomeCampo}`, e.target.value)}
-        disabled={desabilitado}
-        style={{ ...(negrito ? { fontWeight: 700 } : {}), ...(cor ? { color: cor } : {}) }}
-      />
+      {multilinha ? (
+        <textarea
+          value={valor}
+          onChange={(e) => set(`${prefixo}_${nomeCampo}`, e.target.value)}
+          disabled={desabilitado}
+          rows={2}
+          style={{ ...(negrito ? { fontWeight: 700 } : {}), ...(cor ? { color: cor } : {}) }}
+        />
+      ) : (
+        <input
+          value={valor}
+          onChange={(e) => set(`${prefixo}_${nomeCampo}`, e.target.value)}
+          disabled={desabilitado}
+          style={{ ...(negrito ? { fontWeight: 700 } : {}), ...(cor ? { color: cor } : {}) }}
+        />
+      )}
       {mostrarBotaoP && (
         <BotaoP onClick={() => onCopiar(nomeCampo, numero)} titulo="Copiar para a 2ª mensagem" />
       )}
