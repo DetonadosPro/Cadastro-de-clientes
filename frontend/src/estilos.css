@@ -406,8 +406,28 @@ input, select, textarea {
 .secao-transmissao {
   padding: 10px 12px;
 }
+.secao-transmissao.section-box.section-box {
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+.secao-transmissao.section-box.section-box .section-title {
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
 .secao-transmissao .form-row {
   margin-bottom: 6px;
+}
+.secao-transmissao.section-box.section-box .form-row {
+  margin-bottom: 6px;
+}
+/* Neutraliza o padding mais compacto que .form-compacto aplica no
+   desktop (usado só no Ao Vivo) para estas três caixas replicarem
+   exatamente o padding/fonte de input que a Transmissão tem na
+   Fonada (padrão global de .form-row input: 5px 8px, 12px). */
+.secao-transmissao.section-box.section-box .form-row input,
+.secao-transmissao.section-box.section-box .form-row select {
+  padding: 5px 8px;
+  font-size: 12px;
 }
 
 /* "Quem oferece" estica até o fim da coluna (sem o teto de 160px das

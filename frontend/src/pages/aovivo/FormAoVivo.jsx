@@ -352,7 +352,7 @@ export default function FormAoVivo() {
       <div className={`form-layout ${estaBloqueado ? 'form-bloqueado' : ''}`}>
 
         <div>
-          <div className="section-box">
+          <div className="section-box secao-transmissao">
             <div className="section-title">Homenageado</div>
             <div className="form-row">
               <label>Para:</label>
@@ -416,7 +416,7 @@ export default function FormAoVivo() {
           </div>
 
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            <div className="section-box" style={{ width: 'fit-content', maxWidth: '100%' }}>
+            <div className="section-box secao-transmissao" style={{ width: 'fit-content', maxWidth: '100%' }}>
               <div className="section-title">Catálogo</div>
               <div className="subsecao-titulo">Mensagem</div>
               {Array.from({ length: qtdMensagens }, (_, i) => i + 1).map((n) => (
@@ -473,7 +473,7 @@ export default function FormAoVivo() {
               </div>
             </div>
 
-            <div className="section-box" style={{ width: 'fit-content', maxWidth: '100%' }}>
+            <div className="section-box secao-transmissao" style={{ width: 'fit-content', maxWidth: '100%' }}>
               <div className="section-title">Financeiro e brinde</div>
               <div className="form-row">
                 <label>Valor:</label>
