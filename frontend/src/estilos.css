@@ -2629,10 +2629,12 @@ input[type="password"] {
   text-transform: none;
 }
 
-/* Zoom geral da página de Fonada foi removido — a seção Transmissão
-   agora tem seu próprio ajuste de tamanho (.secao-transmissao), então
-   o zoom em cascata na página inteira deixou de ser necessário. */
+/* Página de pedido Fonada — aumentada (efeito Ctrl++ do navegador),
+   só nesta tela. "zoom" é suportado nos navegadores baseados em
+   Chromium (o que cobre o uso normal deste sistema). Aumentado para
+   ajudar a leitura de quem tem mais dificuldade de visão. */
 .pagina-fonada-ampliada {
+  zoom: 1.2;
 }
 
 /* Página de pedido Ao Vivo — mesmo princípio, zoom um pouco menor
