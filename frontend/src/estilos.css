@@ -407,7 +407,7 @@ input, select, textarea {
   padding: 10px 12px;
 }
 .secao-transmissao .form-row {
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 @media (max-width: 640px) {
