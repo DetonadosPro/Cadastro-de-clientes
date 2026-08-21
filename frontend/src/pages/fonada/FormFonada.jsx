@@ -836,10 +836,33 @@ function InfoLinha({ label, valor }) {
 }
 
 function InfoGrupo({ label, valor }) {
+  const ehWhatsapp = label === 'WhatsApp';
+  const somenteDigitos = String(valor || '').replace(/\D/g, '');
+  // wa.me exige o número com DDI (Brasil = 55) + DDD + número, só
+  // dígitos. Números salvos aqui já vêm com DDD (ex: "34 9 9648-3060"),
+  // então só falta o "55" na frente quando ainda não tiver.
+  const numeroComDDI = somenteDigitos
+    ? (somenteDigitos.startsWith('55') ? somenteDigitos : `55${somenteDigitos}`)
+    : '';
+  const linkWhatsapp = ehWhatsapp && numeroComDDI.length >= 12 ? `https://wa.me/${numeroComDDI}` : null;
+
   return (
     <div>
       <div className="info-label" style={{ fontSize: 11, marginBottom: 3 }}>{label}</div>
-      <div className="info-valor" style={{ fontSize: 13 }}>{valor || '—'}</div>
+      {linkWhatsapp ? (
+        <a
+          href={linkWhatsapp}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="info-valor link-whatsapp"
+          style={{ fontSize: 13 }}
+          title="Abrir conversa no WhatsApp"
+        >
+          {valor}
+        </a>
+      ) : (
+        <div className="info-valor" style={{ fontSize: 13 }}>{valor || '—'}</div>
+      )}
     </div>
   );
 }

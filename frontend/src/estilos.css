@@ -1399,6 +1399,18 @@ button.nav-grupo-titulo {
   color: var(--tinta);
   font-weight: 700;
 }
+/* Telefone de WhatsApp clicável (abre wa.me com a conversa pronta) —
+   mesma aparência do texto normal, com sublinhado só ao passar o
+   mouse, para não parecer um link genérico azul destoando do tema. */
+.link-whatsapp {
+  text-decoration: none;
+  cursor: pointer;
+  display: inline-block;
+}
+.link-whatsapp:hover {
+  text-decoration: underline;
+  color: var(--carimbo);
+}
 
 /* Seção Comprador (Fonada) — todas as fontes 3px menores que o
    padrão dessas mesmas classes em outras telas. */
