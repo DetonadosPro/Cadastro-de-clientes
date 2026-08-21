@@ -356,10 +356,6 @@ export default function FormAoVivo() {
             <div className="section-box secao-aovivo-espacosa" style={{ flex: '1 1 320px', minWidth: 320 }}>
               <div className="section-title">Homenageado</div>
               <div className="form-row">
-                <label>Para:</label>
-                <input value={dados.para} onChange={(e) => set('para', e.target.value)} style={{ flex: '1 1 auto', minWidth: 0 }} />
-              </div>
-              <div className="form-row">
                 <label>Dia Evento:</label>
                 <CampoData
                   placeholder="dd/mm/aa"
@@ -375,6 +371,8 @@ export default function FormAoVivo() {
                   onChange={(e) => setComMascara('horario_entrega', e.target.value, 'horario')}
                   style={{ maxWidth: 70, flex: '0 0 auto' }}
                 />
+                <label style={{ minWidth: 'auto', marginLeft: 4 }}>Para:</label>
+                <input value={dados.para} onChange={(e) => set('para', e.target.value)} style={{ flex: '1 1 auto', minWidth: 0 }} />
               </div>
               {diaEventoNoPassado && (
                 <p className="fs-xs" style={{ color: 'var(--selo)', marginTop: -6, marginBottom: 8 }}>
