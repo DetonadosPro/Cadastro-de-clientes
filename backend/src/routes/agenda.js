@@ -125,7 +125,7 @@ router.get('/hoje', async (req, res) => {
     const idsJaListados = new Set(itensAoVivo.map((a) => a.id));
     const itensCobranca = cobrancaResultado.rows
       .filter((a) => !idsJaListados.has(a.id))
-      .map((a) => ({ ...a, passada: false, ehCobranca: true }));
+      .map((a) => ({ ...a, passada: a.pagou === 'SIM', ehCobranca: true }));
 
     const itensAoVivoTotal = [...itensAoVivo, ...itensCobranca];
 
