@@ -66,11 +66,12 @@ router.get('/hoje', async (req, res) => {
     const consultandoHoje = !dataConsultada || curto === curtoHoje || curto === longoHoje || longo === curtoHoje || longo === longoHoje;
 
     const fonadasResultado = await db.query(`
-      SELECT id, senha_os, nome_comprador, cliente_id,
-             p1_dia, p1_para, p1_tema, p1_mensagem, p1_horario, p1_celular, p1_fixo, p1_quem_oferece, p1_resultado,
-             p2_dia, p2_para, p2_tema, p2_mensagem, p2_horario, p2_celular, p2_fixo, p2_quem_oferece, p2_resultado
-      FROM fonadas
-      WHERE excluido_em IS NULL AND (p1_dia IN ($1, $2) OR p2_dia IN ($1, $2))
+      SELECT f.id, f.senha_os, f.nome_comprador, f.cliente_id, c.whatsapp AS cliente_whatsapp,
+             f.p1_dia, f.p1_para, f.p1_tema, f.p1_mensagem, f.p1_horario, f.p1_celular, f.p1_fixo, f.p1_quem_oferece, f.p1_resultado,
+             f.p2_dia, f.p2_para, f.p2_tema, f.p2_mensagem, f.p2_horario, f.p2_celular, f.p2_fixo, f.p2_quem_oferece, f.p2_resultado
+      FROM fonadas f
+      LEFT JOIN clientes c ON c.id = f.cliente_id
+      WHERE f.excluido_em IS NULL AND (f.p1_dia IN ($1, $2) OR f.p2_dia IN ($1, $2))
     `, [curto, longo]);
 
     const itensFonada = [];
@@ -78,7 +79,7 @@ router.get('/hoje', async (req, res) => {
       if ((f.p1_dia === curto || f.p1_dia === longo) && dataCompleta(f.p1_dia)) {
         itensFonada.push({
           pedidoId: f.id, mensagem: 1, senha_os: f.senha_os, nome_comprador: f.nome_comprador,
-          cliente_id: f.cliente_id, para: f.p1_para, tema: f.p1_tema, codigo: f.p1_mensagem, horario: f.p1_horario,
+          cliente_id: f.cliente_id, whatsapp: f.cliente_whatsapp, para: f.p1_para, tema: f.p1_tema, codigo: f.p1_mensagem, horario: f.p1_horario,
           celular: f.p1_celular, fixo: f.p1_fixo, quemOferece: f.p1_quem_oferece, resultado: f.p1_resultado,
           passada: Boolean(f.p1_resultado),
         });
@@ -86,7 +87,7 @@ router.get('/hoje', async (req, res) => {
       if ((f.p2_dia === curto || f.p2_dia === longo) && dataCompleta(f.p2_dia)) {
         itensFonada.push({
           pedidoId: f.id, mensagem: 2, senha_os: f.senha_os, nome_comprador: f.nome_comprador,
-          cliente_id: f.cliente_id, para: f.p2_para, tema: f.p2_tema, codigo: f.p2_mensagem, horario: f.p2_horario,
+          cliente_id: f.cliente_id, whatsapp: f.cliente_whatsapp, para: f.p2_para, tema: f.p2_tema, codigo: f.p2_mensagem, horario: f.p2_horario,
           celular: f.p2_celular, fixo: f.p2_fixo, quemOferece: f.p2_quem_oferece, resultado: f.p2_resultado,
           passada: Boolean(f.p2_resultado),
         });

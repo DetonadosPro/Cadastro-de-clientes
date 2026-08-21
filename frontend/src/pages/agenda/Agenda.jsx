@@ -519,7 +519,7 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onA
           </span>
         )}
       </div>
-      <div className="fs-lg" style={{ fontWeight: 700, marginBottom: 2 }}>{item.nome_comprador || '—'}</div>
+      <NomeComWhatsapp nome={item.nome_comprador} whatsapp={item.whatsapp} />
       <div className="fs-sm" style={{ color: 'var(--tinta-suave)', marginBottom: 14 }}>
         {item.horario || '—'}
       </div>
@@ -756,6 +756,37 @@ function Relogio() {
   );
 }
 
+// Monta o link wa.me a partir de um número de telefone qualquer — DDI
+// 55 + DDD + número, só dígitos. Usado tanto no nome do comprador
+// quanto no campo Celular do card de detalhes.
+function linkWhatsappDe(valor) {
+  const somenteDigitos = String(valor || '').replace(/\D/g, '');
+  if (!somenteDigitos) return null;
+  const numeroComDDI = somenteDigitos.startsWith('55') ? somenteDigitos : `55${somenteDigitos}`;
+  return numeroComDDI.length >= 12 ? `https://wa.me/${numeroComDDI}` : null;
+}
+
+// Nome do comprador como título do card — vira link clicável para abrir
+// a conversa no WhatsApp quando o cliente tiver esse número cadastrado.
+function NomeComWhatsapp({ nome, whatsapp }) {
+  const link = linkWhatsappDe(whatsapp);
+  if (!link) {
+    return <div className="fs-lg" style={{ fontWeight: 700, marginBottom: 2 }}>{nome || '—'}</div>;
+  }
+  return (
+    <a
+      href={link}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="fs-lg link-whatsapp"
+      style={{ fontWeight: 700, marginBottom: 2, display: 'inline-block' }}
+      title="Abrir conversa no WhatsApp"
+    >
+      {nome || '—'}
+    </a>
+  );
+}
+
 function Info({ label, valor }) {
   return (
     <div>
@@ -771,11 +802,7 @@ function Info({ label, valor }) {
 // WhatsApp (wa.me), usado no Celular — mesmo padrão de formatação de
 // número usado no cadastro (DDI 55 + DDD + número, só dígitos).
 function InfoTelefone({ label, valor }) {
-  const somenteDigitos = String(valor || '').replace(/\D/g, '');
-  const numeroComDDI = somenteDigitos
-    ? (somenteDigitos.startsWith('55') ? somenteDigitos : `55${somenteDigitos}`)
-    : '';
-  const linkWhatsapp = numeroComDDI.length >= 12 ? `https://wa.me/${numeroComDDI}` : null;
+  const linkWhatsapp = linkWhatsappDe(valor);
 
   return (
     <div>
