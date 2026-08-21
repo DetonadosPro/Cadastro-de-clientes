@@ -376,7 +376,7 @@ input, select, textarea {
 .secao-transmissao .form-row input,
 .secao-transmissao .form-row select {
   max-width: 220px;
-  padding: 9px 10px;
+  padding: 4px 5px;
   font-size: 15px;
 }
 .secao-transmissao .form-row label {
