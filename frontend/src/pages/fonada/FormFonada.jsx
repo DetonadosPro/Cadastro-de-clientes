@@ -725,7 +725,7 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
           value={dados[`${p}_dia`]}
           onChange={(v) => setComMascara(`${p}_dia`, v, 'data')}
           disabled={bloqueada}
-          style={{ fontWeight: 700, flex: '1 1 60px', minWidth: 0 }}
+          style={{ fontWeight: 700, flex: '0 0 auto', width: 82, minWidth: 0 }}
           minimo={!editando ? hojeSemHora() : undefined}
         />
         <label style={{ minWidth: 'auto', marginLeft: 6 }}>Horário:</label>
@@ -734,7 +734,7 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
           value={dados[`${p}_horario`]}
           onChange={(e) => setComMascara(`${p}_horario`, e.target.value, 'horario')}
           disabled={bloqueada}
-          style={{ fontWeight: 700, flex: '1 1 45px', minWidth: 0 }}
+          style={{ fontWeight: 700, flex: '0 0 auto', width: 56, minWidth: 0 }}
         />
         {mostrarBotaoP && (
           <BotaoP
@@ -748,8 +748,8 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
           O dia não pode ser anterior a hoje.
         </p>
       )}
-      <CampoComP label="Quem oferece" nomeCampo="quem_oferece" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} negrito />
-      <CampoComP label="Resultado" nomeCampo="resultado" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} negrito cor="var(--selo)" />
+      <CampoComP label="Quem oferece" nomeCampo="quem_oferece" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} negrito classeExtra="campo-quem-oferece" />
+      <CampoComP label="Resultado" nomeCampo="resultado" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} negrito cor="var(--selo)" classeExtra="campo-resultado" />
 
       {editando && diaPreenchido && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 8, borderTop: '1px dashed var(--papel-alt)' }}>
@@ -788,9 +788,9 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
   );
 }
 
-function CampoComP({ label, nomeCampo, prefixo, numero, dados, set, onCopiar, mostrarBotaoP, desabilitado, negrito, cor }) {
+function CampoComP({ label, nomeCampo, prefixo, numero, dados, set, onCopiar, mostrarBotaoP, desabilitado, negrito, cor, classeExtra }) {
   return (
-    <div className="form-row">
+    <div className={`form-row ${classeExtra || ''}`}>
       <label>{label}:</label>
       <input
         value={dados[`${prefixo}_${nomeCampo}`]}

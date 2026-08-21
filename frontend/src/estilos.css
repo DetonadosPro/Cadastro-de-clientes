@@ -410,6 +410,17 @@ input, select, textarea {
   margin-bottom: 6px;
 }
 
+/* "Quem oferece" estica até o fim da coluna (sem o teto de 160px das
+   demais linhas), já que costuma levar nomes mais longos. */
+.secao-transmissao .coluna-mensagem .campo-quem-oferece input {
+  max-width: none;
+  flex: 1 1 auto;
+}
+/* "Resultado" 15% mais largo que o padrão da seção (160px -> 184px). */
+.secao-transmissao .coluna-mensagem .campo-resultado input {
+  max-width: 184px;
+}
+
 @media (max-width: 640px) {
   .duas-colunas-mensagem {
     grid-template-columns: 1fr;
