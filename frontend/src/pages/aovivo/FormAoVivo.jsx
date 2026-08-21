@@ -352,70 +352,74 @@ export default function FormAoVivo() {
       <div className={`form-layout ${estaBloqueado ? 'form-bloqueado' : ''}`}>
 
         <div>
-          <div className="section-box secao-aovivo-espacosa">
-            <div className="section-title">Homenageado</div>
-            <div className="form-row">
-              <label>Para:</label>
-              <input value={dados.para} onChange={(e) => set('para', e.target.value)} />
-            </div>
-            <div className="form-row">
-              <label>Dia Evento:</label>
-              <CampoData
-                placeholder="dd/mm/aa"
-                value={dados.dia_entrega}
-                onChange={(v) => setComMascara('dia_entrega', v, 'data')}
-                style={{ maxWidth: 121, flex: '0 0 auto' }}
-                minimo={!editando ? hojeSemHora() : undefined}
-              />
-              <label style={{ minWidth: 'auto', marginLeft: 4 }}>Horário:</label>
-              <input
-                placeholder="hh:mm"
-                value={dados.horario_entrega}
-                onChange={(e) => setComMascara('horario_entrega', e.target.value, 'horario')}
-                style={{ maxWidth: 70, flex: '0 0 auto' }}
-              />
-            </div>
-            {diaEventoNoPassado && (
-              <p className="fs-xs" style={{ color: 'var(--selo)', marginTop: -6, marginBottom: 8 }}>
-                O dia do evento não pode ser uma data anterior a hoje.
-              </p>
-            )}
-            <div className="form-row">
-              <label>Oferecimento:</label>
-              <textarea
-                value={dados.oferecimento}
-                onChange={(e) => set('oferecimento', e.target.value)}
-                rows={3}
-                style={{ resize: 'vertical', flex: 1 }}
-              />
-            </div>
-            <div className="form-row">
-              <label>End.:</label>
-              <input value={dados.endereco} onChange={(e) => set('endereco', e.target.value)} />
-            </div>
-            <div className="form-row">
-              <label>Bairro:</label>
-              <input value={dados.bairro} onChange={(e) => set('bairro', e.target.value)} />
-              <label style={{ minWidth: 'auto', marginLeft: 4 }}>Ref.:</label>
-              <input value={dados.referencia} onChange={(e) => set('referencia', e.target.value)} />
-            </div>
-            <div className="form-row">
-              <label>Fixo local:</label>
-              <input
-                value={dados.fixo_local}
-                onChange={(e) => setComMascara('fixo_local', e.target.value, 'fixo')}
-                style={{ maxWidth: 118, flex: '0 0 auto' }}
-              />
-              <label style={{ minWidth: 'auto', marginLeft: 8 }}>Cel. local:</label>
-              <input
-                value={dados.celular_local}
-                onChange={(e) => setComMascara('celular_local', e.target.value, 'celular')}
-                style={{ maxWidth: 134, flex: '0 0 auto' }}
-              />
-            </div>
-          </div>
-
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <div className="section-box secao-aovivo-espacosa" style={{ width: 'fit-content', maxWidth: '100%' }}>
+              <div className="section-title">Homenageado</div>
+              <div className="form-row">
+                <label>Para:</label>
+                <input value={dados.para} onChange={(e) => set('para', e.target.value)} style={{ width: 200, flex: '0 0 auto' }} />
+              </div>
+              <div className="form-row">
+                <label>Dia Evento:</label>
+                <CampoData
+                  placeholder="dd/mm/aa"
+                  value={dados.dia_entrega}
+                  onChange={(v) => setComMascara('dia_entrega', v, 'data')}
+                  style={{ maxWidth: 121, flex: '0 0 auto' }}
+                  minimo={!editando ? hojeSemHora() : undefined}
+                />
+                <label style={{ minWidth: 'auto', marginLeft: 4 }}>Horário:</label>
+                <input
+                  placeholder="hh:mm"
+                  value={dados.horario_entrega}
+                  onChange={(e) => setComMascara('horario_entrega', e.target.value, 'horario')}
+                  style={{ maxWidth: 70, flex: '0 0 auto' }}
+                />
+              </div>
+              {diaEventoNoPassado && (
+                <p className="fs-xs" style={{ color: 'var(--selo)', marginTop: -6, marginBottom: 8 }}>
+                  O dia do evento não pode ser uma data anterior a hoje.
+                </p>
+              )}
+              <div className="form-row">
+                <label>Oferecimento:</label>
+                <textarea
+                  value={dados.oferecimento}
+                  onChange={(e) => set('oferecimento', e.target.value)}
+                  rows={3}
+                  style={{ resize: 'vertical', width: 200, flex: '0 0 auto' }}
+                />
+              </div>
+              <div className="form-row">
+                <label>End.:</label>
+                <input value={dados.endereco} onChange={(e) => set('endereco', e.target.value)} style={{ width: 200, flex: '0 0 auto' }} />
+              </div>
+              <div className="form-row">
+                <label>Bairro:</label>
+                <input value={dados.bairro} onChange={(e) => set('bairro', e.target.value)} style={{ width: 200, flex: '0 0 auto' }} />
+              </div>
+              <div className="form-row">
+                <label style={{ minWidth: 'auto' }}>Ref.:</label>
+                <input value={dados.referencia} onChange={(e) => set('referencia', e.target.value)} style={{ width: 200, flex: '0 0 auto' }} />
+              </div>
+              <div className="form-row">
+                <label>Fixo local:</label>
+                <input
+                  value={dados.fixo_local}
+                  onChange={(e) => setComMascara('fixo_local', e.target.value, 'fixo')}
+                  style={{ maxWidth: 118, flex: '0 0 auto' }}
+                />
+              </div>
+              <div className="form-row">
+                <label>Cel. local:</label>
+                <input
+                  value={dados.celular_local}
+                  onChange={(e) => setComMascara('celular_local', e.target.value, 'celular')}
+                  style={{ maxWidth: 134, flex: '0 0 auto' }}
+                />
+              </div>
+            </div>
+
             <div className="section-box secao-aovivo-espacosa" style={{ width: 'fit-content', maxWidth: '100%' }}>
               <div className="section-title">Catálogo</div>
               <div className="subsecao-titulo">Mensagem</div>
