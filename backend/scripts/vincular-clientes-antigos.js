@@ -416,28 +416,46 @@ async function aplicar(gruposFinais) {
   try {
     await client.query('BEGIN');
 
-    // Otimização: em vez de um UPDATE por pedido (22 mil+ idas e
-    // vindas sequenciais pela rede até o Railway, que é o motivo do
-    // script ficar lento), acumula todos os pares (id do pedido,
-    // cliente_id) de cada tabela e grava com UNNEST — dois UPDATEs no
-    // total (um para fonadas, um para ao_vivo), não um por pedido.
+    // Otimização: em vez de um INSERT por cliente (6 mil+ idas e
+    // vindas sequenciais pela rede até o Railway — esse era o
+    // gargalo real, não os UPDATEs) monta os clientes em lotes de 500
+    // com um único INSERT multi-linha por lote, usando "RETURNING id"
+    // para pegar de volta os ids na mesma ordem em que foram
+    // inseridos (o Postgres preserva a ordem de VALUES em
+    // RETURNING). Os UPDATEs de fonadas/ao_vivo continuam via UNNEST,
+    // como antes.
+    const TAMANHO_LOTE = 500;
+    const clienteIdPorGrupo = new Array(gruposFinais.length);
+    const dadosPorGrupo = gruposFinais.map((candidatosDoGrupo) => montarDadosFinais(candidatosDoGrupo));
+
+    for (let inicio = 0; inicio < dadosPorGrupo.length; inicio += TAMANHO_LOTE) {
+      const lote = dadosPorGrupo.slice(inicio, inicio + TAMANHO_LOTE);
+      const valores = [];
+      const gruposDeLinhas = lote.map((dadosCliente, i) => {
+        const base = i * CAMPOS_CLIENTE.length;
+        CAMPOS_CLIENTE.forEach((campo) => valores.push(dadosCliente[campo]));
+        const placeholders = CAMPOS_CLIENTE.map((_, j) => `$${base + j + 1}`).join(', ');
+        return `(${placeholders})`;
+      });
+
+      const resultadoInsercao = await client.query(
+        `INSERT INTO clientes (${CAMPOS_CLIENTE.join(', ')}) VALUES ${gruposDeLinhas.join(', ')} RETURNING id`,
+        valores
+      );
+
+      resultadoInsercao.rows.forEach((linha, i) => {
+        clienteIdPorGrupo[inicio + i] = linha.id;
+      });
+      totalClientes += lote.length;
+    }
+
     const idsFonada = [];
     const clienteIdsFonada = [];
     const idsAoVivo = [];
     const clienteIdsAoVivo = [];
 
-    for (const candidatosDoGrupo of gruposFinais) {
-      const dadosCliente = montarDadosFinais(candidatosDoGrupo);
-      const valores = CAMPOS_CLIENTE.map((campo) => dadosCliente[campo]);
-      const placeholders = CAMPOS_CLIENTE.map((_, i) => `$${i + 1}`).join(', ');
-
-      const resultadoInsercao = await client.query(
-        `INSERT INTO clientes (${CAMPOS_CLIENTE.join(', ')}) VALUES (${placeholders}) RETURNING id`,
-        valores
-      );
-      const clienteId = resultadoInsercao.rows[0].id;
-      totalClientes++;
-
+    gruposFinais.forEach((candidatosDoGrupo, i) => {
+      const clienteId = clienteIdPorGrupo[i];
       for (const cand of candidatosDoGrupo) {
         const ehFonada = cand.sistemaOrigem === 'fonada';
         for (const p of cand.pedidos) {
@@ -451,7 +469,7 @@ async function aplicar(gruposFinais) {
           totalVinculados++;
         }
       }
-    }
+    });
 
     if (idsFonada.length > 0) {
       await client.query(
