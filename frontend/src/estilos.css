@@ -1400,6 +1400,13 @@ button.nav-grupo-titulo {
   font-weight: 700;
 }
 
+/* Seção Comprador (Fonada) — todas as fontes 1.5px menores que o
+   padrão dessas mesmas classes em outras telas. */
+.secao-comprador .fs-lg { font-size: 14.5px; }
+.secao-comprador .fs-sm { font-size: 11.5px; }
+.secao-comprador .info-label { font-size: 9.5px; }
+.secao-comprador .info-valor { font-size: 11.5px; }
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;

@@ -483,7 +483,7 @@ export default function FormFonada() {
               </div>
             </div>
 
-            <div className="section-box">
+            <div className="section-box secao-comprador">
               <div className="section-title">
                 <span>Comprador</span>
                 {cliente && (
