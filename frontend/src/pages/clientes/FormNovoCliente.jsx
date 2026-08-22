@@ -139,26 +139,26 @@ export default function FormNovoCliente() {
       {!duplicados && (
         <div className="painel">
           <div className="section-title">Dados do cliente</div>
-          <div className="grade grade-2">
-            <div className="campo">
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 10 }}>
+            <div className="campo" style={{ flex: '1 1 320px', minWidth: 200, marginBottom: 0 }}>
               <label>Nome *</label>
               <input value={dados.nome} onChange={(e) => set('nome', e.target.value)} autoFocus />
             </div>
-            <div className="campo">
+            <div className="campo" style={{ flex: '0 0 auto', width: 130, marginBottom: 0 }}>
               <label>Nascimento</label>
               <input placeholder="dd/mm/aa" value={dados.nascimento} onChange={(e) => setComMascara('nascimento', e.target.value, 'data')} />
             </div>
           </div>
-          <div className="grade grade-3">
-            <div className="campo">
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 10 }}>
+            <div className="campo" style={{ flex: '0 0 auto', width: 150, marginBottom: 0 }}>
               <label>Telefone fixo</label>
               <input value={dados.fixo} onChange={(e) => setComMascara('fixo', e.target.value, 'fixo')} />
             </div>
-            <div className="campo">
+            <div className="campo" style={{ flex: '0 0 auto', width: 165, marginBottom: 0 }}>
               <label>WhatsApp</label>
               <input value={dados.whatsapp} onChange={(e) => setComMascara('whatsapp', e.target.value, 'celular')} />
             </div>
-            <div className="campo">
+            <div className="campo" style={{ flex: '0 0 auto', width: 165, marginBottom: 0 }}>
               <label>Celular</label>
               <input value={dados.celular} onChange={(e) => setComMascara('celular', e.target.value, 'celular')} />
             </div>
