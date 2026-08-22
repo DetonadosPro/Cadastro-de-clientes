@@ -112,7 +112,7 @@ router.get('/', async (req, res) => {
 // PUT /api/cobranca/:id/baixa
 router.put('/:id/baixa', async (req, res) => {
   try {
-    const { pagou, recebi } = req.body;
+    const { pagou, recebi, dataPagamento } = req.body;
 
     const existenteResultado = await db.query('SELECT id, cliente_id FROM fonadas WHERE id = $1', [req.params.id]);
     if (existenteResultado.rows.length === 0) return res.status(404).json({ erro: 'Pedido não encontrado.' });
@@ -125,17 +125,23 @@ router.put('/:id/baixa', async (req, res) => {
       }
     }
 
-    const agora = agoraBrasilia();
-    const dd = String(agora.getDate()).padStart(2, '0');
-    const mm = String(agora.getMonth() + 1).padStart(2, '0');
-    const aa = String(agora.getFullYear()).slice(-2);
-    const dataPagamento = `${dd}/${mm}/${aa}`;
+    // O frontend já pré-preenche o campo com a data de hoje (editável,
+    // para permitir baixa retroativa) — usa o que foi enviado, e só
+    // cai para "hoje calculado aqui" se por algum motivo vier vazio.
+    let dataFinal = dataPagamento;
+    if (!dataFinal || !dataFinal.trim()) {
+      const agora = agoraBrasilia();
+      const dd = String(agora.getDate()).padStart(2, '0');
+      const mm = String(agora.getMonth() + 1).padStart(2, '0');
+      const aa = String(agora.getFullYear()).slice(-2);
+      dataFinal = `${dd}/${mm}/${aa}`;
+    }
 
     await db.query(`
       UPDATE fonadas SET pagou = $1, recebi = $2, data_pagamento = $3, atualizado_em = NOW() WHERE id = $4
-    `, [pagou ?? null, recebi ?? null, dataPagamento, req.params.id]);
+    `, [pagou ?? null, recebi ?? null, dataFinal, req.params.id]);
 
-    res.json({ ok: true, dataPagamento });
+    res.json({ ok: true, dataPagamento: dataFinal });
   } catch (erro) {
     console.error('Erro ao dar baixa:', erro);
     res.status(500).json({ erro: 'Erro ao dar baixa.' });

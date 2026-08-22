@@ -6,6 +6,17 @@ import { formatarData } from '../../mascaras.js';
 import PaginaImpressaoRecibos from './PaginaImpressaoRecibos.jsx';
 import CampoData from '../../components/CampoData.jsx';
 
+// Data de hoje no formato dd/mm/aa, pré-preenchida no campo de dia da
+// baixa — mesma lógica usada na Agenda (fuso do navegador, que na
+// prática corresponde ao horário local de quem está usando o sistema).
+function hojeFormatado() {
+  const agora = new Date();
+  const dd = String(agora.getDate()).padStart(2, '0');
+  const mm = String(agora.getMonth() + 1).padStart(2, '0');
+  const aa = String(agora.getFullYear()).slice(-2);
+  return `${dd}/${mm}/${aa}`;
+}
+
 function IconeImpressora() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
@@ -31,7 +42,7 @@ export default function ListaCobranca() {
   const [pedidosImpressao, setPedidosImpressao] = useState([]);
 
   const [itemBaixaAberto, setItemBaixaAberto] = useState(null);
-  const [pagouBaixa, setPagouBaixa] = useState('SIM');
+  const [dataBaixa, setDataBaixa] = useState('');
   const [statusBaixa, setStatusBaixa] = useState('');
   const [salvandoBaixa, setSalvandoBaixa] = useState(false);
 
@@ -120,7 +131,7 @@ export default function ListaCobranca() {
 
   function abrirBaixa(pedido) {
     setItemBaixaAberto(pedido);
-    setPagouBaixa(pedido.pagou === 'SIM' ? 'SIM' : 'NAO');
+    setDataBaixa(hojeFormatado());
     setStatusBaixa(pedido.recebi || '');
   }
 
@@ -131,9 +142,8 @@ export default function ListaCobranca() {
   async function confirmarBaixa() {
     setSalvandoBaixa(true);
     try {
-      await api.cobranca.darBaixa(itemBaixaAberto.id, pagouBaixa, statusBaixa.trim() || null);
-      const statusTexto = pagouBaixa === 'SIM' ? 'marcado como pago' : 'marcado como não pago';
-      mostrarToast(`"${itemBaixaAberto.nome}" foi ${statusTexto}.`);
+      await api.cobranca.darBaixa(itemBaixaAberto.id, 'SIM', statusBaixa.trim() || null, dataBaixa);
+      mostrarToast(`"${itemBaixaAberto.nome}" foi marcado como pago.`);
       setItemBaixaAberto(null);
       buscar();
     } catch (err) {
@@ -309,12 +319,13 @@ export default function ListaCobranca() {
               <InfoSomenteLeitura label="Referência" valor={itemBaixaAberto.referencia} />
             </div>
 
-            <div className="campo" style={{ maxWidth: 110 }}>
-              <label>Pagou</label>
-              <select value={pagouBaixa} onChange={(e) => setPagouBaixa(e.target.value)}>
-                <option value="SIM">Sim</option>
-                <option value="NAO">Não</option>
-              </select>
+            <div className="campo" style={{ maxWidth: 130 }}>
+              <label>Dia do pagamento</label>
+              <CampoData
+                placeholder="dd/mm/aa"
+                value={dataBaixa}
+                onChange={(v) => setDataBaixa(formatarData(v))}
+              />
             </div>
             <div className="campo">
               <label>Status</label>

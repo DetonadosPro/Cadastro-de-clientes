@@ -185,8 +185,8 @@ export const api = {
       if (os) params.set('os', os);
       return chamar(`/cobranca?${params.toString()}`);
     },
-    darBaixa: (pedidoId, pagou, recebi) =>
-      chamar(`/cobranca/${pedidoId}/baixa`, { method: 'PUT', body: JSON.stringify({ pagou, recebi }) }),
+    darBaixa: (pedidoId, pagou, recebi, dataPagamento) =>
+      chamar(`/cobranca/${pedidoId}/baixa`, { method: 'PUT', body: JSON.stringify({ pagou, recebi, dataPagamento }) }),
   },
 
   // ---------- Relatórios financeiros por período ----------

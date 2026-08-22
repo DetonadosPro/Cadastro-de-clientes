@@ -2737,7 +2737,7 @@ tr:hover .alca-arrastar {
   font-family: 'Brush Script MT', 'Segoe Script', cursive;
   font-style: italic;
   font-weight: 700;
-  font-size: 18px;
+  font-size: 29px;
   color: #cc0000;
   flex-shrink: 0;
 }
@@ -2789,21 +2789,6 @@ tr:hover .alca-arrastar {
   min-height: 1.3em;
 }
 
-.recibo-rodape {
-  text-align: center;
-  margin-top: 2mm;
-}
-.recibo-rodape-empresa {
-  display: inline-block;
-  border-top: 1.5px solid #1a1a1a;
-  font-family: Calibri, Arial, sans-serif;
-  font-weight: 700;
-  font-size: 15px;
-  color: #000099;
-  letter-spacing: 0.04em;
-  padding-top: 2px;
-  min-width: 45%;
-}
 .recibo-os {
   font-family: Calibri, Arial, sans-serif;
   font-weight: 700;

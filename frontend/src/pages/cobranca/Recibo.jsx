@@ -59,10 +59,6 @@ export default function Recibo({ pedido }) {
           <Campo label="Cobrança:" valor={pedido.cobranca} grow={0.8} />
           <Campo label="Período:" valor={pedido.periodo} grow={1.4} />
         </div>
-
-        <div className="recibo-rodape">
-          <div className="recibo-rodape-empresa">POMBO-CORREIO</div>
-        </div>
       </div>
 
       <div className="recibo-os">O.S.: {pedido.senha_os || pedido.id || ''}</div>
