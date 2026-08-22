@@ -562,7 +562,7 @@ input, select, textarea {
   gap: 14px;
 }
 .coluna-mensagem {
-  border-left: 1px solid var(--papel-alt);
+  border-left: 2px solid var(--borda);
   padding-left: 12px;
   min-width: 0;
 }
@@ -811,7 +811,7 @@ input, select, textarea {
   .coluna-mensagem {
     border-left: none;
     padding-left: 0;
-    border-top: 1px solid var(--papel-alt);
+    border-top: 2px solid var(--borda);
     padding-top: 12px;
     margin-top: 4px;
   }
