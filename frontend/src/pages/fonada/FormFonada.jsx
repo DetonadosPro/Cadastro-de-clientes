@@ -416,9 +416,20 @@ export default function FormFonada() {
   function fechar() {
     limparRascunhoFonada();
     // Volta para a página de onde realmente veio (lista, "Hoje", busca, etc).
-    // Se não houver histórico (acesso direto pela URL), cai na ficha do
-    // cliente vinculado, ou na listagem de fonada como último recurso.
-    if (window.history.state && window.history.state.idx > 0) {
+    // Quando existe contexto de navegação por busca (contextoNavegacao),
+    // ele é a fonte de verdade mais confiável — reflete a página atual
+    // mesmo depois de usar Anterior/Próximo para pular de página, o que
+    // o histórico do navegador (window.history) não acompanha, já que
+    // a troca de página usa replace: true em vez de empilhar entradas.
+    // Sem isso, "Fechar" reabriria sempre na página de onde a navegação
+    // começou, não na página em que o pedido atual realmente está.
+    if (contextoNavegacao) {
+      const params = new URLSearchParams();
+      if (contextoNavegacao.busca) params.set('busca', contextoNavegacao.busca);
+      if (contextoNavegacao.campo) params.set('campo', contextoNavegacao.campo);
+      params.set('pagina', String(contextoNavegacao.pagina));
+      navigate(`/fonada?${params.toString()}`);
+    } else if (window.history.state && window.history.state.idx > 0) {
       navigate(-1);
     } else if (cliente) {
       navigate(`/clientes/${cliente.id}`);
