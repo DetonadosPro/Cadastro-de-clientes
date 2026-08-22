@@ -231,6 +231,10 @@ input, select, textarea {
     flex-direction: column;
     gap: 10px !important;
   }
+  .form-novo-cliente .linha-form-cliente .campo {
+    flex: 0 0 auto !important;
+    width: 100% !important;
+  }
   .form-novo-cliente .campo-largura-fixa {
     width: 100% !important;
   }
@@ -885,6 +889,88 @@ input, select, textarea {
     text-align: right;
   }
   .tabela-lista.tabela-fonada .tag {
+    font-size: 0.68rem;
+    padding: 2px 8px;
+  }
+
+  /* Tabela de cobrança vira lista de cards compactos no mobile —
+     checkbox de seleção fica sobreposta no canto (mesma linha do
+     O.S.), e o botão "Dar baixa" ocupa a largura toda embaixo, fácil
+     de tocar. */
+  .tabela-lista.tabela-cobranca thead {
+    display: none;
+  }
+  .tabela-lista.tabela-cobranca,
+  .tabela-lista.tabela-cobranca tbody {
+    display: block;
+    width: 100%;
+  }
+  .tabela-lista.tabela-cobranca tbody tr {
+    display: grid;
+    grid-template-columns: auto 1fr 1fr;
+    grid-template-areas:
+      "check os pagou"
+      "comprador comprador comprador"
+      "cobrar cobrar forma"
+      "valor valor valor"
+      "acao acao acao";
+    row-gap: 4px;
+    column-gap: 8px;
+    padding: 12px;
+    border-bottom: 1px solid var(--papel-alt);
+  }
+  .tabela-lista.tabela-cobranca td {
+    padding: 2px 0;
+    border-bottom: none;
+    font-size: 0.85rem;
+    min-width: 0;
+  }
+  .tabela-lista.tabela-cobranca td[data-label="Selecionar"] {
+    grid-area: check;
+    display: flex;
+    align-items: center;
+  }
+  .tabela-lista.tabela-cobranca td[data-label="O.S."] {
+    grid-area: os;
+  }
+  .tabela-lista.tabela-cobranca td[data-label="Pagou"] {
+    grid-area: pagou;
+    text-align: right;
+  }
+  .tabela-lista.tabela-cobranca td[data-label="Comprador"] {
+    grid-area: comprador;
+    font-weight: 600;
+    font-size: 0.95rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tabela-lista.tabela-cobranca td[data-label="Cobrar dia"] {
+    grid-area: cobrar;
+    font-size: 0.72rem;
+    color: var(--tinta-suave);
+  }
+  .tabela-lista.tabela-cobranca td[data-label="Cobrar dia"]::before {
+    content: "Cobrar em ";
+  }
+  .tabela-lista.tabela-cobranca td[data-label="Forma"] {
+    grid-area: forma;
+    text-align: right;
+  }
+  .tabela-lista.tabela-cobranca td[data-label="Valor"] {
+    grid-area: valor;
+    font-weight: 700;
+    color: var(--carimbo);
+  }
+  .tabela-lista.tabela-cobranca td[data-label="Ação"] {
+    grid-area: acao;
+    margin-top: 4px;
+  }
+  .tabela-lista.tabela-cobranca td[data-label="Ação"] .btn-small {
+    width: 100%;
+    padding: 8px 0;
+  }
+  .tabela-lista.tabela-cobranca .tag {
     font-size: 0.68rem;
     padding: 2px 8px;
   }
