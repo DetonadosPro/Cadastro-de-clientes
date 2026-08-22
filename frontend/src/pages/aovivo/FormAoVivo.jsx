@@ -400,20 +400,6 @@ export default function FormAoVivo() {
                 <label style={{ minWidth: 'auto' }}>Ref.:</label>
                 <input value={dados.referencia} onChange={(e) => set('referencia', e.target.value)} style={{ flex: '1 1 auto', minWidth: 0 }} />
               </div>
-              <div className="form-row">
-                <label>Fixo:</label>
-                <input
-                  value={dados.fixo_local}
-                  onChange={(e) => setComMascara('fixo_local', e.target.value, 'fixo')}
-                  style={{ maxWidth: 118, flex: '0 0 auto' }}
-                />
-                <label style={{ minWidth: 'auto', marginLeft: 4 }}>Cel.:</label>
-                <input
-                  value={dados.celular_local}
-                  onChange={(e) => setComMascara('celular_local', e.target.value, 'celular')}
-                  style={{ maxWidth: 134, flex: '0 0 auto' }}
-                />
-              </div>
             </div>
 
             <div className="section-box secao-aovivo-espacosa" style={{ width: 'fit-content', maxWidth: '100%' }}>

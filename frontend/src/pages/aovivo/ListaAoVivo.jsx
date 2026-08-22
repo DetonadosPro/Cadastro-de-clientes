@@ -2,31 +2,23 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
-import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
+import { formatarCelular, formatarData } from '../../mascaras.js';
 import PaginaImpressaoAoVivo from './PaginaImpressaoAoVivo.jsx';
 
 const OPCOES_FILTRO = [
   { valor: '', label: 'Todos os campos' },
-  { valor: 'aniversario', label: 'Aniversário' },
-  { valor: 'celular_comprador', label: 'Celular do comprador' },
-  { valor: 'celular_local', label: 'Celular do local' },
-  { valor: 'comprador', label: 'Comprador' },
-  { valor: 'data_pedido', label: 'Data do pedido' },
-  { valor: 'destinatario', label: 'Destinatário' },
-  { valor: 'dia_mensagem', label: 'Dia da mensagem' },
+  { valor: 'aniversario', label: 'Aniversário cliente' },
+  { valor: 'celular_comprador', label: 'Celular cliente' },
+  { valor: 'dia_mensagem', label: 'Dia mensagem' },
   { valor: 'endereco', label: 'Endereço' },
+  { valor: 'comprador', label: 'Nome cliente' },
+  { valor: 'destinatario', label: 'Nome destinatário' },
   { valor: 'os', label: 'O.S.' },
-  { valor: 'fixo_local', label: 'Telefone fixo do local' },
-  { valor: 'whatsapp_comprador', label: 'WhatsApp do comprador' },
 ];
 
 const MASCARA_POR_FILTRO = {
   celular_comprador: formatarCelular,
-  whatsapp_comprador: formatarCelular,
-  celular_local: formatarCelular,
-  fixo_local: formatarFixo,
   aniversario: formatarData,
-  data_pedido: formatarData,
   dia_mensagem: formatarData,
 };
 

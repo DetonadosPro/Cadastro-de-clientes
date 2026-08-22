@@ -32,13 +32,9 @@ const CAMPOS = [
 const FILTROS_AOVIVO = {
   comprador: { colunas: ['comprador'], tipo: 'texto' },
   destinatario: { colunas: ['para'], tipo: 'texto' },
-  celular_comprador: { colunas: ['celular', 'celular2'], tipo: 'celular' },
-  whatsapp_comprador: { colunas: ['whatsapp'], tipo: 'celular' },
-  fixo_local: { colunas: ['fixo_local'], tipo: 'fixo' },
-  celular_local: { colunas: ['celular_local'], tipo: 'celular' },
+  celular_comprador: { colunas: ['celular', 'celular2', 'whatsapp'], tipo: 'celular' },
   endereco: { colunas: ['endereco'], tipo: 'texto' },
   aniversario: { colunas: ['aniversario'], tipo: 'data' },
-  data_pedido: { colunas: ['data_pedido'], tipo: 'data' },
   dia_mensagem: { colunas: ['dia_entrega'], tipo: 'data' },
   os: { colunas: ['numero_os'], tipo: 'exato' },
 };
@@ -97,13 +93,12 @@ router.get('/', async (req, res) => {
       where += ` AND (
         comprador ILIKE $1 OR para ILIKE $2 OR
         celular ILIKE $3 OR celular2 ILIKE $4 OR
-        fixo_local ILIKE $5 OR celular_local ILIKE $6 OR
-        endereco ILIKE $7 OR
-        numero_os ILIKE $8 OR
-        whatsapp ILIKE $9
+        endereco ILIKE $5 OR
+        numero_os ILIKE $6 OR
+        whatsapp ILIKE $7
       )`;
       const termo = `%${busca}%`;
-      params = new Array(9).fill(termo);
+      params = new Array(7).fill(termo);
     }
 
     const totalResultado = await db.query(`SELECT COUNT(*) as n FROM ao_vivo ${where}`, params);

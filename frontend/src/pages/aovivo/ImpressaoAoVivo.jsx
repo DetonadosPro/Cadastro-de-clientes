@@ -113,11 +113,6 @@ export default function ImpressaoAoVivo({ pedido }) {
         <Campo label="Referência:" valor={pedido.referencia} grow={1.75} />
       </div>
 
-      <div className="impresso-linha">
-        <Campo label="Tel. fixo:" valor={pedido.fixoLocal} largura={38} />
-        <Campo label="Celular:" valor={pedido.celularLocal} largura={38} />
-      </div>
-
       <div className="impresso-secao-titulo">MENSAGENS</div>
 
       <div className="impresso-linha">
