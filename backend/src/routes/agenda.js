@@ -211,6 +211,20 @@ router.post('/fonada/:id/nao-atendeu', async (req, res) => {
   if (!remarcadoDia || !remarcadoHorario) {
     return res.status(400).json({ erro: 'Informe o novo dia e horário para remarcar.' });
   }
+  if (!dataCompleta(remarcadoDia)) {
+    return res.status(400).json({ erro: 'Data de remarcação inválida.' });
+  }
+  // Nunca remarcar para um dia anterior a hoje — mesma checagem que o
+  // frontend já faz, repetida aqui para não depender só da validação
+  // do cliente (alguém poderia chamar a API direto).
+  const hoje = hojeEmAmbosFormatos();
+  const hojeChave = `${hoje.aaaa}${hoje.mm}${hoje.dd}`;
+  const [, ddR, mmR, aaR] = String(remarcadoDia).trim().match(/^(\d{2})\/(\d{2})\/(\d{2}|\d{4})$/);
+  const aaaaR = aaR.length === 2 ? `20${aaR}` : aaR;
+  const remarcadoChave = `${aaaaR}${mmR}${ddR}`;
+  if (remarcadoChave < hojeChave) {
+    return res.status(400).json({ erro: 'Não é possível remarcar para um dia anterior a hoje.' });
+  }
 
   const client = await pool.connect();
   try {

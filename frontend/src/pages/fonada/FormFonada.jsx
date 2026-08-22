@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../../api.js';
 import { useRascunhos } from '../../RascunhosContext.jsx';
@@ -209,6 +209,13 @@ export default function FormFonada() {
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
+  // Nome do campo (valor/cobranca/periodo) que está faltando ao tentar
+  // salvar — usado para destacar visualmente qual precisa ser
+  // preenchido, já que CampoData não é um <input> real e não dá para
+  // simplesmente chamar .focus() nele.
+  const [campoObrigatorioFaltando, setCampoObrigatorioFaltando] = useState(null);
+  const refValor = useRef(null);
+  const refPeriodo = useRef(null);
   const [salvandoBaixa, setSalvandoBaixa] = useState(null);
   const [remarcarAberto, setRemarcarAberto] = useState(null);
   const [remarcadoDia, setRemarcadoDia] = useState('');
@@ -361,10 +368,34 @@ export default function FormFonada() {
 
   async function salvar() {
     setErro('');
+    setCampoObrigatorioFaltando(null);
     if (!dados.cliente_id) {
       setErro('Nenhum cliente vinculado a este pedido.');
       return;
     }
+
+    // Valor, dia de cobrança e período são obrigatórios para o pedido
+    // fazer sentido financeiramente — sem eles, a cobrança não tem
+    // como ser feita depois. O botão Salvar fica sempre clicável (não
+    // desabilitado), mas ao clicar sem preencher, avisa e destaca
+    // visualmente o primeiro campo faltando, em vez de deixar salvar
+    // silenciosamente incompleto.
+    const camposObrigatorios = [
+      { campo: 'valor', rotulo: 'Valor' },
+      { campo: 'cobranca', rotulo: 'Cobrar dia' },
+      { campo: 'periodo', rotulo: 'Período' },
+    ];
+    for (const { campo, rotulo } of camposObrigatorios) {
+      const valorAtual = String(dados[campo] || '').trim();
+      if (!valorAtual) {
+        setErro(`Preencha o campo "${rotulo}" antes de salvar.`);
+        setCampoObrigatorioFaltando(campo);
+        if (campo === 'valor') refValor.current?.focus();
+        if (campo === 'periodo') refPeriodo.current?.focus();
+        return;
+      }
+    }
+
     if (!editando) {
       const hoje = hojeSemHora();
       const camposData = [
@@ -515,13 +546,17 @@ export default function FormFonada() {
               <div className="form-row">
                 <label>Valor R$:</label>
                 <input
+                  ref={refValor}
                   type="text"
                   inputMode="numeric"
                   className="input-valor-destaque"
                   value={dados.valor}
-                  onChange={(e) => set('valor', formatarValorMonetario(e.target.value))}
+                  onChange={(e) => { set('valor', formatarValorMonetario(e.target.value)); setCampoObrigatorioFaltando(null); }}
                   placeholder="0,00"
-                  style={{ maxWidth: 90, flex: '0 0 auto' }}
+                  style={{
+                    maxWidth: 90, flex: '0 0 auto',
+                    borderColor: campoObrigatorioFaltando === 'valor' ? 'var(--selo)' : undefined,
+                  }}
                 />
               </div>
               <div className="form-row">
@@ -529,9 +564,12 @@ export default function FormFonada() {
                 <CampoData
                   placeholder="dd/mm/aa"
                   value={dados.cobranca}
-                  onChange={(v) => setComMascara('cobranca', v, 'data')}
+                  onChange={(v) => { setComMascara('cobranca', v, 'data'); setCampoObrigatorioFaltando(null); }}
                   minimo={!editando ? hojeSemHora() : undefined}
-                  style={{ maxWidth: 118, flex: '0 0 auto' }}
+                  style={{
+                    maxWidth: 118, flex: '0 0 auto',
+                    borderColor: campoObrigatorioFaltando === 'cobranca' ? 'var(--selo)' : undefined,
+                  }}
                 />
               </div>
               {cobrancaNoPassado && (
@@ -542,9 +580,13 @@ export default function FormFonada() {
               <div className="form-row">
                 <label>Período:</label>
                 <input
+                  ref={refPeriodo}
                   value={dados.periodo}
-                  onChange={(e) => set('periodo', e.target.value)}
-                  style={{ flex: 1, minWidth: 0 }}
+                  onChange={(e) => { set('periodo', e.target.value); setCampoObrigatorioFaltando(null); }}
+                  style={{
+                    flex: 1, minWidth: 0,
+                    borderColor: campoObrigatorioFaltando === 'periodo' ? 'var(--selo)' : undefined,
+                  }}
                 />
               </div>
               <div className="form-row" style={{ marginBottom: 0 }}>

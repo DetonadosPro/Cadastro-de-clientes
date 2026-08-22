@@ -15,6 +15,25 @@ function hojeFormatado() {
   return `${dd}/${mm}/${aa}`;
 }
 
+// Data de hoje como objeto Date, zerada na hora — usada como `minimo`
+// do CampoData, para impedir escolher um dia anterior a hoje ao
+// remarcar uma mensagem.
+function hojeSemHora() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+// Converte "dd/mm/aa" para Date (zerada na hora), ou null se incompleta.
+function paraDataSemHora(dataBr) {
+  const m = String(dataBr || '').match(/^(\d{2})\/(\d{2})\/(\d{2})$/);
+  if (!m) return null;
+  const [, dd, mm, aa] = m;
+  const d = new Date(2000 + parseInt(aa, 10), parseInt(mm, 10) - 1, parseInt(dd, 10));
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
 // Soma (ou subtrai) dias a uma data no formato dd/mm/aa, devolvendo o
 // resultado no mesmo formato. Usado pelos botões "dia anterior"/"próximo".
 function somarDias(dataBr, quantidade) {
@@ -188,7 +207,7 @@ export default function Agenda() {
       whatsapp: item.whatsapp, para: item.para,
     });
     setObservacao('');
-    setRemarcadoDia('');
+    setRemarcadoDia(hojeFormatado());
     setRemarcadoHorario('');
   }
 
@@ -199,6 +218,11 @@ export default function Agenda() {
   async function confirmarRemarcar() {
     if (!remarcadoDia.trim() || !remarcadoHorario.trim()) {
       mostrarToast('Informe o novo dia e horário para remarcar.', 'erro');
+      return;
+    }
+    const dataEscolhida = paraDataSemHora(remarcadoDia.trim());
+    if (dataEscolhida && dataEscolhida.getTime() < hojeSemHora().getTime()) {
+      mostrarToast('Não é possível remarcar para um dia anterior a hoje.', 'erro');
       return;
     }
     setSalvandoRemarcacao(true);
@@ -475,7 +499,7 @@ export default function Agenda() {
                   placeholder="dd/mm/aa"
                   value={remarcadoDia}
                   onChange={(v) => setRemarcadoDia(formatarData(v))}
-                  autoFocus
+                  minimo={hojeSemHora()}
                 />
               </div>
               <div className="campo">
@@ -484,6 +508,7 @@ export default function Agenda() {
                   placeholder="hh:mm"
                   value={remarcadoHorario}
                   onChange={(e) => setRemarcadoHorario(formatarHorario(e.target.value))}
+                  autoFocus
                 />
               </div>
             </div>
