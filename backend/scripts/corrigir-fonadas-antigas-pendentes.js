@@ -75,7 +75,9 @@ async function main() {
   console.log(`Data limite: antes de ${DATA_LIMITE} (exclusive)`);
 
   const resultado = await pool.query(`
-    SELECT id, senha_os, nome_comprador, data_pedido, cobranca, pagou, p1_resultado, p2_resultado
+    SELECT id, senha_os, nome_comprador, data_pedido, cobranca, pagou,
+           p1_tema, p1_para, p1_dia, p1_resultado,
+           p2_tema, p2_para, p2_dia, p2_resultado
     FROM fonadas
     WHERE excluido_em IS NULL AND data_pedido IS NOT NULL
     ORDER BY id
@@ -86,8 +88,16 @@ async function main() {
     return chave && chave < chaveLimite;
   });
 
-  const precisamP1 = elegiveis.filter((l) => !l.p1_resultado);
-  const precisamP2 = elegiveis.filter((l) => !l.p2_resultado);
+  // Uma mensagem só é "corrigível" se ela realmente existir — tem
+  // tema, destinatário (para) ou dia preenchidos. Muitos pedidos são
+  // de 1 mensagem só, e a 2ª mensagem fica com tudo vazio de
+  // propósito; marcar isso como "passada" seria inventar uma entrega
+  // que nunca existiu.
+  const mensagemExiste = (tema, para, dia) =>
+    String(tema || '').trim() || String(para || '').trim() || String(dia || '').trim();
+
+  const precisamP1 = elegiveis.filter((l) => !l.p1_resultado && mensagemExiste(l.p1_tema, l.p1_para, l.p1_dia));
+  const precisamP2 = elegiveis.filter((l) => !l.p2_resultado && mensagemExiste(l.p2_tema, l.p2_para, l.p2_dia));
   const precisamBaixa = elegiveis.filter((l) => l.pagou !== 'SIM');
   const precisamBaixaComCobranca = precisamBaixa.filter((l) => !ehDataZeradaOuVazia(l.cobranca));
   const precisamBaixaSemCobranca = precisamBaixa.filter((l) => ehDataZeradaOuVazia(l.cobranca));
@@ -107,8 +117,8 @@ async function main() {
   console.log('\nPrimeiros 10 exemplos:');
   for (const l of elegiveis.slice(0, 10)) {
     const acoes = [];
-    if (!l.p1_resultado) acoes.push('1ª msg → passada');
-    if (!l.p2_resultado) acoes.push('2ª msg → passada');
+    if (!l.p1_resultado && mensagemExiste(l.p1_tema, l.p1_para, l.p1_dia)) acoes.push('1ª msg → passada');
+    if (!l.p2_resultado && mensagemExiste(l.p2_tema, l.p2_para, l.p2_dia)) acoes.push('2ª msg → passada');
     if (l.pagou !== 'SIM') {
       acoes.push(ehDataZeradaOuVazia(l.cobranca) ? 'baixa sem data' : `baixa em ${l.cobranca}`);
     }
@@ -131,7 +141,7 @@ async function main() {
   if (idsP1.length > 0) {
     const r1 = await pool.query(`
       UPDATE fonadas SET p1_resultado = $1, atualizado_em = NOW()
-      WHERE id = ANY($2::int[]) AND p1_resultado IS NULL
+      WHERE id = ANY($2::int[]) AND (p1_resultado IS NULL OR TRIM(p1_resultado) = '')
     `, [textoResultado, idsP1]);
     console.log(`\n1ª mensagem marcada como passada: ${r1.rowCount}`);
   }
@@ -139,7 +149,7 @@ async function main() {
   if (idsP2.length > 0) {
     const r2 = await pool.query(`
       UPDATE fonadas SET p2_resultado = $1, atualizado_em = NOW()
-      WHERE id = ANY($2::int[]) AND p2_resultado IS NULL
+      WHERE id = ANY($2::int[]) AND (p2_resultado IS NULL OR TRIM(p2_resultado) = '')
     `, [textoResultado, idsP2]);
     console.log(`2ª mensagem marcada como passada: ${r2.rowCount}`);
   }
