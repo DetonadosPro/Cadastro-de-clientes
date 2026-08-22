@@ -2471,6 +2471,54 @@ tr:hover .alca-arrastar {
   color: #ffffff;
 }
 
+/* ---------- Card de desempenho por funcionário ---------- */
+.cartao-funcionario {
+  background: var(--branco);
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 2px rgba(28, 27, 25, 0.04);
+}
+.cartao-funcionario-cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--papel-alt);
+}
+.cartao-funcionario-nome {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--tinta);
+}
+.cartao-funcionario-total {
+  font-family: var(--fonte-mono);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--carimbo);
+}
+@media (max-width: 700px) {
+  .cartao-funcionario {
+    padding: 14px 14px;
+  }
+  .cartao-funcionario-nome {
+    font-size: 15px;
+  }
+  .cartao-funcionario-total {
+    font-size: 18px;
+  }
+}
+@media (max-width: 480px) {
+  .cartao-funcionario-cabecalho {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+}
+
 /* ---------- Formulário de período (Relatórios) ---------- */
 .form-periodo-relatorio {
   display: flex;
