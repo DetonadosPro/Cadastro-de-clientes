@@ -14,7 +14,12 @@ export function ToastProvider({ children }) {
   const mostrarToast = useCallback((mensagem, tipo = 'sucesso') => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     setToast({ mensagem, tipo, chave: Date.now() });
-    timeoutRef.current = setTimeout(() => setToast(null), 3000);
+    // Toasts de sucesso (ex: "Pedido salvo") são confirmações rápidas de
+    // algo que já deu certo — não precisam ficar tanto tempo na tela.
+    // Os demais (erro, avisos) ficam mais tempo, já que costumam pedir
+    // mais atenção da pessoa.
+    const duracaoMs = tipo === 'sucesso' ? 3500 : 4500;
+    timeoutRef.current = setTimeout(() => setToast(null), duracaoMs);
   }, []);
 
   return (
