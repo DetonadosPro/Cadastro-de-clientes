@@ -117,6 +117,7 @@ export default function Agenda() {
     try {
       await api.agenda.darBaixaFonada(item.pedidoId, item.mensagem);
       mostrarToast('Baixa registrada com sucesso.');
+      abrirWhatsappSeExistir(item.whatsapp, mensagemConfirmacao(item.nome_comprador, item.para));
       carregar();
     } catch (err) {
       mostrarToast('Não foi possível registrar a baixa. Tente novamente.', 'erro');
@@ -182,7 +183,10 @@ export default function Agenda() {
   }
 
   function abrirRemarcar(item) {
-    setItemRemarcarAberto({ pedidoId: item.pedidoId, mensagem: item.mensagem, nome: item.nome_comprador });
+    setItemRemarcarAberto({
+      pedidoId: item.pedidoId, mensagem: item.mensagem, nome: item.nome_comprador,
+      whatsapp: item.whatsapp, para: item.para,
+    });
     setObservacao('');
     setRemarcadoDia('');
     setRemarcadoHorario('');
@@ -207,6 +211,10 @@ export default function Agenda() {
         remarcadoHorario.trim()
       );
       mostrarToast('Tentativa registrada e mensagem remarcada.');
+      abrirWhatsappSeExistir(
+        itemRemarcarAberto.whatsapp,
+        mensagemNaoAtendeu(itemRemarcarAberto.nome, itemRemarcarAberto.para)
+      );
       setItemRemarcarAberto(null);
       carregar();
     } catch (err) {
@@ -631,7 +639,6 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onD
       <NomeComWhatsapp
         nome={item.nome_comprador}
         whatsapp={item.whatsapp}
-        mensagem={mensagemConfirmacao(item.nome_comprador, item.para)}
       />
       <div className="fs-sm" style={{ color: 'var(--tinta-suave)', marginBottom: 14 }}>
         {item.horario || '—'}
@@ -981,11 +988,19 @@ function linkWhatsappDe(valor, mensagem) {
   return mensagem ? `${base}&text=${encodeURIComponent(mensagem)}` : base;
 }
 
-// Texto de confirmação enviado por padrão ao clicar no celular do
-// comprador na Agenda — "comprador" e "destinatario" já vêm prontos
-// (nome_comprador/comprador e para, dependendo do sistema).
+// Primeiro nome de um nome completo — usado nas mensagens automáticas
+// para soar mais pessoal do que o nome inteiro.
+function primeiroNome(nomeCompleto) {
+  const nome = String(nomeCompleto || '').trim();
+  if (!nome) return 'tudo bem';
+  return nome.split(/\s+/)[0];
+}
+
+// Texto de confirmação enviado ao marcar uma mensagem como passada —
+// "comprador" e "destinatario" já vêm prontos (nome_comprador/comprador
+// e para, dependendo do sistema).
 function mensagemConfirmacao(comprador, destinatario) {
-  const nomeComprador = comprador || 'tudo bem';
+  const nomeComprador = primeiroNome(comprador);
   const nomeDestinatario = destinatario || 'a pessoa';
   // Emoji "rosto apaixonado" (🥰) escrito como escape Unicode, em vez
   // do caractere literal — mais resistente a problemas de codificação
@@ -994,11 +1009,31 @@ function mensagemConfirmacao(comprador, destinatario) {
   return `Olá ${nomeComprador}! Acabei de passar a mensagem para ${nomeDestinatario}${emoji}`;
 }
 
-// Nome do comprador como título do card — vira link clicável para abrir
-// o WhatsApp quando o cliente tiver esse número cadastrado. Quando
-// `mensagem` é informada, ela já vem preenchida na conversa.
-function NomeComWhatsapp({ nome, whatsapp, mensagem }) {
+// Texto enviado ao registrar "não atendeu" e remarcar — avisa o
+// comprador que ainda não conseguiu passar a mensagem para o
+// destinatário, sem dar detalhes do motivo (só "ninguém atende por lá").
+function mensagemNaoAtendeu(comprador, destinatario) {
+  const nomeComprador = primeiroNome(comprador);
+  const nomeDestinatario = destinatario || 'a pessoa';
+  const emoji = '\u{1F609}';
+  return `Oi, ${nomeComprador}, tudo bem? É do Pombo-Correio. Ainda não conseguimos passar a mensagem para ${nomeDestinatario} porque ninguém atende por lá. Assim que der certo, te avisamos!${emoji}`;
+}
+
+// Abre o WhatsApp com a mensagem indicada, só se o cliente tiver um
+// whatsapp cadastrado — chamado depois de uma ação (marcar passada,
+// remarcar) ter concluído com sucesso, não em vez dela.
+function abrirWhatsappSeExistir(whatsapp, mensagem) {
   const link = linkWhatsappDe(whatsapp, mensagem);
+  if (link) window.open(link, '_blank', 'noopener,noreferrer');
+}
+
+// Nome do comprador como título do card — vira link clicável para abrir
+// a conversa no WhatsApp quando o cliente tiver esse número cadastrado.
+// A mensagem de confirmação/remarcação é enviada só ao concluir as
+// ações "Marcar passada" e "Não atendeu" (ver abrirWhatsappSeExistir),
+// não ao clicar no nome — aqui abre sempre a conversa vazia.
+function NomeComWhatsapp({ nome, whatsapp }) {
+  const link = linkWhatsappDe(whatsapp);
   if (!link) {
     return <div className="fs-lg" style={{ fontWeight: 700, marginBottom: 2 }}>{nome || '—'}</div>;
   }
@@ -1009,7 +1044,7 @@ function NomeComWhatsapp({ nome, whatsapp, mensagem }) {
       rel="noopener noreferrer"
       className="fs-lg link-whatsapp"
       style={{ fontWeight: 700, marginBottom: 2, display: 'inline-block' }}
-      title={mensagem ? 'Enviar confirmação no WhatsApp' : 'Abrir conversa no WhatsApp'}
+      title="Abrir conversa no WhatsApp"
     >
       {nome || '—'}
     </a>
