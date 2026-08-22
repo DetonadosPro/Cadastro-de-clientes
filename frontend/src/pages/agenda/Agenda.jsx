@@ -961,18 +961,24 @@ function Relogio() {
   );
 }
 
-// Monta o link wa.me a partir de um número de telefone qualquer — DDI
-// 55 + DDD + número, só dígitos. Usado tanto no nome do comprador
-// quanto no campo Celular do card de detalhes. Quando `mensagem` é
-// informada, ela já vem preenchida na conversa ao abrir o link — o
-// texto é urlencoded automaticamente pelo `encodeURIComponent`.
+// Monta o link do WhatsApp a partir de um número de telefone qualquer
+// — DDI 55 + DDD + número, só dígitos. Usado tanto no nome do
+// comprador quanto no campo Celular do card de detalhes. Quando
+// `mensagem` é informada, ela já vem preenchida na conversa ao abrir
+// o link.
+//
+// Usa api.whatsapp.com/send em vez de wa.me — no wa.me, o app
+// desktop/Web do WhatsApp historicamente tem bugs para decodificar
+// certos emojis (surrogate pairs) vindos da URL, mesmo com o link
+// funcionando certinho no celular; api.whatsapp.com costuma ser mais
+// consistente entre plataformas.
 function linkWhatsappDe(valor, mensagem) {
   const somenteDigitos = String(valor || '').replace(/\D/g, '');
   if (!somenteDigitos) return null;
   const numeroComDDI = somenteDigitos.startsWith('55') ? somenteDigitos : `55${somenteDigitos}`;
   if (numeroComDDI.length < 12) return null;
-  const base = `https://wa.me/${numeroComDDI}`;
-  return mensagem ? `${base}?text=${encodeURIComponent(mensagem)}` : base;
+  const base = `https://api.whatsapp.com/send?phone=${numeroComDDI}`;
+  return mensagem ? `${base}&text=${encodeURIComponent(mensagem)}` : base;
 }
 
 // Texto de confirmação enviado por padrão ao clicar no celular do
