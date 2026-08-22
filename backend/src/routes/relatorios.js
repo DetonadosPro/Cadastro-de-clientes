@@ -252,12 +252,11 @@ router.get('/recebimentos', async (req, res) => {
 
 // GET /api/relatorios/desempenho?inicio=dd/mm/aa&fim=dd/mm/aa&sistema=FONADA|AOVIVO|TODOS
 //
-// Desempenho por funcionário: quantas mensagens cada um passou/entregou
-// no período, quantos pedidos vendeu, valor total vendido, e o
-// detalhamento por tipo (Fonada / Ao Vivo). Só considera pedidos
+// Desempenho por funcionário: quantas mensagens de Fonada cada um
+// passou no período, quantos pedidos vendeu (Fonada e Ao Vivo,
+// separados), e o valor vendido em cada sistema. Só considera pedidos
 // criados a partir de quando os campos vendedor_usuario/passada_por
-// passaram a existir — pedidos antigos aparecem como "—" (sem essa
-// informação registrada).
+// passaram a existir — pedidos antigos não aparecem aqui.
 router.get('/desempenho', async (req, res) => {
   try {
     const { inicio, fim } = resolverIntervalo(
@@ -276,7 +275,6 @@ router.get('/desempenho', async (req, res) => {
           vendasFonada: 0, valorVendidoFonada: 0,
           vendasAoVivo: 0, valorVendidoAoVivo: 0,
           mensagensPassadasFonada: 0,
-          entreguesAoVivo: 0,
         };
       }
       return porFuncionario[nome];
@@ -323,7 +321,7 @@ router.get('/desempenho', async (req, res) => {
 
     if (sistema === 'AOVIVO' || sistema === 'TODOS') {
       const aoVivoResultado = await db.query(`
-        SELECT valor, data_pedido, dia_entrega, vendedor_usuario, resultado_entrega, entregue_por
+        SELECT valor, data_pedido, vendedor_usuario
         FROM ao_vivo WHERE excluido_em IS NULL
       `);
 
@@ -335,14 +333,6 @@ router.get('/desempenho', async (req, res) => {
           acc.valorVendidoAoVivo += l.valor || 0;
         }
       }
-
-      const entreguesLinhas = aoVivoResultado.rows
-        .filter((l) => l.resultado_entrega && l.entregue_por && String(l.resultado_entrega).startsWith('ENTREGUE'))
-        .map((l) => ({ dia: l.dia_entrega, entregue_por: l.entregue_por }));
-      for (const l of filtrarPorIntervalo(entreguesLinhas, 'dia', inicio, fim)) {
-        const acc = acumulador(l.entregue_por);
-        if (acc) acc.entreguesAoVivo += 1;
-      }
     }
 
     const funcionarios = Object.values(porFuncionario)
@@ -350,7 +340,6 @@ router.get('/desempenho', async (req, res) => {
         ...f,
         vendasTotal: f.vendasFonada + f.vendasAoVivo,
         valorVendidoTotal: f.valorVendidoFonada + f.valorVendidoAoVivo,
-        mensagensTotal: f.mensagensPassadasFonada + f.entreguesAoVivo,
       }))
       .sort((a, b) => b.valorVendidoTotal - a.valorVendidoTotal);
 

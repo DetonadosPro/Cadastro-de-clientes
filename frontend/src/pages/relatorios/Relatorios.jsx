@@ -343,17 +343,17 @@ function AbaDesempenho({ sistema }) {
 function CartaoFuncionario({ funcionario }) {
   return (
     <div className="painel">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
+      <div style={{ marginBottom: 12 }}>
         <span className="fs-lg" style={{ fontWeight: 700 }}>{funcionario.usuario}</span>
-        <span style={{ fontFamily: 'var(--fonte-mono)', fontWeight: 700, fontSize: 18, color: 'var(--carimbo)' }}>
-          {formatarReais(funcionario.valorVendidoTotal)}
-        </span>
       </div>
       <div className="grade grade-relatorio grade-4">
         <CartaoValor label="Vendas" valor={funcionario.vendasTotal} sub={`${funcionario.vendasFonada} fonada · ${funcionario.vendasAoVivo} ao vivo`} />
-        <CartaoValor label="Valor vendido" valor={formatarReais(funcionario.valorVendidoTotal)} />
-        <CartaoValor label="Mensagens passadas" valor={funcionario.mensagensTotal} sub={`${funcionario.mensagensPassadasFonada} fonada · ${funcionario.entreguesAoVivo} ao vivo`} />
+        <CartaoValor label="Valor vendido Fonada" valor={formatarReais(funcionario.valorVendidoFonada)} />
+        <CartaoValor label="Valor vendido Ao Vivo" valor={formatarReais(funcionario.valorVendidoAoVivo)} />
         <CartaoValor label="Valor médio/venda" valor={funcionario.vendasTotal ? formatarReais(funcionario.valorVendidoTotal / funcionario.vendasTotal) : '—'} />
+      </div>
+      <div className="grade grade-relatorio grade-4" style={{ marginTop: 10 }}>
+        <CartaoValor label="Mensagens passadas (Fonada)" valor={funcionario.mensagensPassadasFonada} />
       </div>
     </div>
   );
