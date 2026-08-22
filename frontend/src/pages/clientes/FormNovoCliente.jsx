@@ -137,46 +137,49 @@ export default function FormNovoCliente() {
       )}
 
       {!duplicados && (
-        <div className="painel" style={{ maxWidth: 720 }}>
-          <div className="section-title">Dados do cliente</div>
-          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 10 }}>
-            <div className="campo" style={{ flex: '1 1 280px', minWidth: 200, marginBottom: 0 }}>
+        <div className="painel" style={{ maxWidth: 720, padding: 28 }}>
+          <div className="section-title" style={{ marginBottom: 20 }}>Dados do cliente</div>
+
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 18 }}>
+            <div className="campo" style={{ flex: '1 1 280px', minWidth: 200, marginBottom: 0, gap: 6 }}>
               <label>Nome *</label>
               <input value={dados.nome} onChange={(e) => set('nome', e.target.value)} autoFocus />
             </div>
-            <div className="campo" style={{ flex: '0 0 auto', width: 130, marginBottom: 0 }}>
+            <div className="campo" style={{ flex: '0 0 auto', width: 130, marginBottom: 0, gap: 6 }}>
               <label>Nascimento</label>
               <input placeholder="dd/mm/aa" value={dados.nascimento} onChange={(e) => setComMascara('nascimento', e.target.value, 'data')} />
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 10 }}>
-            <div className="campo" style={{ flex: '0 0 auto', width: 150, marginBottom: 0 }}>
+
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', paddingBottom: 20, marginBottom: 20, borderBottom: '1px solid var(--papel-alt)' }}>
+            <div className="campo" style={{ flex: '0 0 auto', width: 150, marginBottom: 0, gap: 6 }}>
               <label>Telefone fixo</label>
               <input value={dados.fixo} onChange={(e) => setComMascara('fixo', e.target.value, 'fixo')} />
             </div>
-            <div className="campo" style={{ flex: '0 0 auto', width: 165, marginBottom: 0 }}>
+            <div className="campo" style={{ flex: '0 0 auto', width: 165, marginBottom: 0, gap: 6 }}>
               <label>WhatsApp</label>
               <input value={dados.whatsapp} onChange={(e) => setComMascara('whatsapp', e.target.value, 'celular')} />
             </div>
-            <div className="campo" style={{ flex: '0 0 auto', width: 165, marginBottom: 0 }}>
+            <div className="campo" style={{ flex: '0 0 auto', width: 165, marginBottom: 0, gap: 6 }}>
               <label>Celular</label>
               <input value={dados.celular} onChange={(e) => setComMascara('celular', e.target.value, 'celular')} />
             </div>
           </div>
-          <div className="campo">
+
+          <div className="campo" style={{ gap: 6, marginBottom: 18 }}>
             <label>Endereço</label>
             <input value={dados.endereco} onChange={(e) => set('endereco', e.target.value)} style={{ maxWidth: 420 }} />
           </div>
-          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 10 }}>
-            <div className="campo" style={{ flex: '0 0 auto', width: 180, marginBottom: 0 }}>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 22 }}>
+            <div className="campo" style={{ flex: '0 0 auto', width: 180, marginBottom: 0, gap: 6 }}>
               <label>Complemento</label>
               <input value={dados.complemento} onChange={(e) => set('complemento', e.target.value)} />
             </div>
-            <div className="campo" style={{ flex: '0 0 auto', width: 180, marginBottom: 0 }}>
+            <div className="campo" style={{ flex: '0 0 auto', width: 180, marginBottom: 0, gap: 6 }}>
               <label>Bairro</label>
               <input value={dados.bairro} onChange={(e) => set('bairro', e.target.value)} />
             </div>
-            <div className="campo" style={{ flex: '1 1 200px', minWidth: 160, marginBottom: 0 }}>
+            <div className="campo" style={{ flex: '1 1 200px', minWidth: 160, marginBottom: 0, gap: 6 }}>
               <label>Referência</label>
               <input value={dados.referencia} onChange={(e) => set('referencia', e.target.value)} />
             </div>
