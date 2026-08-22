@@ -352,25 +352,27 @@ export default function FormAoVivo() {
       <div className={`form-layout ${estaBloqueado ? 'form-bloqueado' : ''}`}>
 
         <div>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'stretch', flexWrap: 'wrap' }}>
-            <div className="section-box secao-aovivo-espacosa" style={{ flex: '1 1 320px', minWidth: 320 }}>
+          <div className="grade-secoes-aovivo" style={{ display: 'flex', gap: 12, alignItems: 'stretch', flexWrap: 'wrap' }}>
+            <div className="section-box secao-aovivo-espacosa secao-homenageado-aovivo" style={{ flex: '1 1 320px', minWidth: 320 }}>
               <div className="section-title">Homenageado</div>
-              <div className="form-row">
+              <div className="form-row linha-para-dia-aovivo">
                 <label>Para:</label>
-                <input value={dados.para} onChange={(e) => set('para', e.target.value)} style={{ flex: '1 1 auto', minWidth: 0 }} />
-                <label style={{ minWidth: 'auto', marginLeft: 4 }}>Dia Evento:</label>
+                <input value={dados.para} onChange={(e) => set('para', e.target.value)} className="campo-para-aovivo" style={{ flex: '1 1 auto', minWidth: 0 }} />
+                <label style={{ minWidth: 'auto', marginLeft: 4 }} className="label-dia-aovivo">Dia Evento:</label>
                 <CampoData
                   placeholder="dd/mm/aa"
                   value={dados.dia_entrega}
                   onChange={(v) => setComMascara('dia_entrega', v, 'data')}
+                  className="campo-dia-aovivo"
                   style={{ maxWidth: 121, flex: '0 0 auto' }}
                   minimo={!editando ? hojeSemHora() : undefined}
                 />
-                <label style={{ minWidth: 'auto', marginLeft: 4 }}>Horário:</label>
+                <label style={{ minWidth: 'auto', marginLeft: 4 }} className="label-horario-aovivo">Horário:</label>
                 <input
                   placeholder="hh:mm"
                   value={dados.horario_entrega}
                   onChange={(e) => setComMascara('horario_entrega', e.target.value, 'horario')}
+                  className="campo-horario-aovivo"
                   style={{ maxWidth: 70, flex: '0 0 auto' }}
                 />
               </div>
@@ -402,21 +404,23 @@ export default function FormAoVivo() {
               </div>
             </div>
 
-            <div className="section-box secao-aovivo-espacosa" style={{ width: 'fit-content', maxWidth: '100%' }}>
+            <div className="section-box secao-aovivo-espacosa secao-catalogo-aovivo" style={{ width: 'fit-content', maxWidth: '100%' }}>
               <div className="section-title">Catálogo</div>
               <div className="subsecao-titulo">Mensagem</div>
               {Array.from({ length: qtdMensagens }, (_, i) => i + 1).map((n) => (
-                <div className="form-row" key={n}>
+                <div className="form-row linha-tema-codigo-aovivo" key={n}>
                   <label>{qtdMensagens > 1 ? `Tema ${n}:` : 'Tema:'}</label>
                   <input
                     value={dados[`tema_${n}`]}
                     onChange={(e) => set(`tema_${n}`, e.target.value)}
+                    className="campo-tema-aovivo"
                     style={{ width: 240, flex: '0 0 auto' }}
                   />
-                  <label style={{ minWidth: 'auto', marginLeft: 6 }}>Código:</label>
+                  <label style={{ minWidth: 'auto', marginLeft: 6 }} className="label-codigo-aovivo">Código:</label>
                   <input
                     value={dados[`mensagem_codigo_${n}`]}
                     onChange={(e) => set(`mensagem_codigo_${n}`, e.target.value)}
+                    className="campo-codigo-aovivo"
                     style={{ width: 80, flex: '0 0 auto' }}
                   />
                 </div>
@@ -441,6 +445,7 @@ export default function FormAoVivo() {
                   <input
                     value={dados[`musica_${n}`]}
                     onChange={(e) => set(`musica_${n}`, e.target.value)}
+                    className="campo-musica-aovivo"
                     style={{ width: 391, flex: '0 0 auto' }}
                   />
                 </div>
@@ -459,28 +464,29 @@ export default function FormAoVivo() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: 12, alignItems: 'stretch', flex: '1 1 660px' }}>
-              <div className="section-box secao-aovivo-espacosa" style={{ width: 'fit-content', maxWidth: '100%' }}>
+            <div className="wrapper-financeiro-aovivo" style={{ display: 'flex', gap: 12, alignItems: 'stretch', flex: '1 1 660px' }}>
+              <div className="section-box secao-aovivo-espacosa secao-financeiro-aovivo" style={{ width: 'fit-content', maxWidth: '100%' }}>
                 <div className="section-title">Financeiro e brinde</div>
                 <div className="form-row">
                   <label>Valor:</label>
                   <input
                     type="text"
                     inputMode="numeric"
-                    className="input-valor-destaque"
+                    className="input-valor-destaque campo-valor-aovivo"
                     value={dados.valor}
                     onChange={(e) => set('valor', formatarValorMonetario(e.target.value))}
                     placeholder="R$ 0,00"
                     style={{ maxWidth: 110, flex: '0 0 auto' }}
                   />
                 </div>
-                <div className="form-row">
+                <div className="form-row linha-pagamento-aovivo">
                   <label>Pagamento:</label>
                   <CampoSelecao
                     opcoes={['PIX', 'DINHEIRO', 'CARTÃO', 'PRAZO']}
                     value={pagamentoParseado.forma}
                     onChange={(forma) => set('pagamento', montarPagamento({ ...pagamentoParseado, forma, tipoCartao: '', diaPag: '', formaMp: '' }))}
                     placeholder="Escolher..."
+                    className="campo-forma-pagamento-aovivo"
                     style={{ width: 105, flex: '0 0 auto' }}
                   />
                   {pagamentoParseado.forma === 'CARTÃO' && (
@@ -489,6 +495,7 @@ export default function FormAoVivo() {
                       value={pagamentoParseado.tipoCartao}
                       onChange={(tipoCartao) => set('pagamento', montarPagamento({ ...pagamentoParseado, tipoCartao }))}
                       placeholder="Escolher..."
+                      className="campo-tipo-cartao-aovivo"
                       style={{ width: 90, flex: '0 0 auto', marginLeft: 6 }}
                     />
                   )}
@@ -505,7 +512,7 @@ export default function FormAoVivo() {
                           set('pagamento', montarPagamento({ ...pagamentoParseado, diaPag: mascarado }));
                         }}
                         minimo={!editando ? hojeSemHora() : undefined}
-                        style={{ width: 112, flex: '0 0 auto' }}
+                        style={{ width: 129, flex: '0 0 auto' }}
                       />
                     </div>
                     <div className="form-row">
@@ -527,6 +534,7 @@ export default function FormAoVivo() {
                     onChange={(v) => set('brinde', v)}
                     sugestoes={['Bombom', 'Champagne']}
                     placeholder="Bombom, Champagne..."
+                    className="campo-brinde-aovivo"
                     style={{ width: 240, flex: '0 0 auto' }}
                   />
                 </div>

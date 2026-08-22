@@ -264,8 +264,11 @@ export default function Agenda() {
   const listaAtual = aba === 'fonada' ? fonadaExibida : aoVivoExibido;
   const chaveDoItem = (item) => (aba === 'fonada' ? `${item.pedidoId}-${item.mensagem}` : `aovivo-${item.id}`);
 
-  // Seleciona automaticamente o primeiro item da lista ao carregar, trocar
-  // de dia ou de aba — assim o painel de detalhes nunca fica vazio à toa.
+  // Ao trocar de dia ou de aba: no desktop, seleciona automaticamente o
+  // primeiro item (painel de detalhes nunca fica vazio à toa). No
+  // mobile isso é indesejado — abriria o drawer de detalhes sozinho a
+  // cada troca — então lá só limpa a seleção que não existe mais,
+  // deixando o usuário escolher o que ver tocando na lista.
   useEffect(() => {
     if (listaAtual.length === 0) {
       setChaveSelecionada(null);
@@ -273,7 +276,8 @@ export default function Agenda() {
     }
     const aindaExiste = listaAtual.some((item) => chaveDoItem(item) === chaveSelecionada);
     if (!aindaExiste) {
-      setChaveSelecionada(chaveDoItem(listaAtual[0]));
+      const ehMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches;
+      setChaveSelecionada(ehMobile ? null : chaveDoItem(listaAtual[0]));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aba, dataSelecionada, fonada, aoVivo]);
@@ -403,7 +407,17 @@ export default function Agenda() {
               )}
             </div>
 
-            <div className="painel-detalhes-agenda">
+            <div className={`painel-detalhes-agenda ${itemSelecionado ? 'drawer-aberto' : ''}`}>
+              {itemSelecionado && (
+                <button
+                  type="button"
+                  className="drawer-fechar-mobile"
+                  onClick={() => setChaveSelecionada(null)}
+                  aria-label="Fechar detalhes"
+                >
+                  ✕
+                </button>
+              )}
               {!itemSelecionado ? (
                 <p className="fs-sm" style={{ color: 'var(--tinta-suave)', textAlign: 'center', padding: '24px 12px' }}>
                   Selecione um item da lista para ver os detalhes.
@@ -431,6 +445,9 @@ export default function Agenda() {
                 />
               )}
             </div>
+            {itemSelecionado && (
+              <div className="drawer-overlay-mobile" onClick={() => setChaveSelecionada(null)} />
+            )}
           </div>
         </div>
       )}

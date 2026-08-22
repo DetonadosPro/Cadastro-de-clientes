@@ -45,6 +45,8 @@ html, body {
   font-family: var(--fonte-corpo);
   font-size: 15px;
   line-height: 1.5;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 #root {
@@ -169,6 +171,22 @@ input, select, textarea {
 .grade-comprador-lateral { grid-template-columns: minmax(320px, 352px) 1fr; align-items: stretch; }
 @media (max-width: 900px) {
   .grade-comprador-lateral { grid-template-columns: 1fr; }
+  /* Depois que a coluna do comprador ganha a largura toda (breakpoint
+     acima), o título ainda pode ficar apertado com o botão "Ver/editar
+     cliente" ao lado em telas intermediárias — permite quebrar em duas
+     linhas em vez de vazar para fora do card. */
+  .titulo-secao-comprador {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  /* Fixo/Celular/WhatsApp e Bairro/Endereço/Referência do comprador:
+     3 colunas ficam espremidas em telas intermediárias — cai para 2
+     antes do ponto em que o .grade-3 genérico faria isso (700px),
+     porque aqui o espaço já é menor por estar ao lado da lista, não
+     em tela cheia. */
+  .secao-comprador .grade-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 .grade-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .grade-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -183,6 +201,36 @@ input, select, textarea {
 }
 @media (max-width: 480px) {
   .grade-2, .grade-3, .grade-4 { grid-template-columns: 1fr; }
+}
+
+/* Botão "P" (copiar da 1ª para a 2ª mensagem) no formulário de
+   Fonada: some no mobile, onde ocupa espaço precioso na tela estreita
+   e a ação de copiar é menos comum de usar via toque. Continua
+   normalmente no desktop. */
+@media (max-width: 700px) {
+  .secao-transmissao .coluna-mensagem .btn-small.botao-p-copiar {
+    display: none;
+  }
+  .secao-transmissao .coluna-mensagem .form-row {
+    flex-wrap: wrap;
+  }
+  /* Fixo + Celular juntos (246px de largura fixa) não cabem numa
+     linha só em telas estreitas — em vez de deixar quebrar de forma
+     desorganizada pelo flex-wrap genérico, vira um grid de 2 colunas
+     dedicado, com cada campo ocupando a largura disponível da sua
+     coluna. */
+  .secao-transmissao .coluna-mensagem .linha-fixo-celular {
+    display: grid;
+    grid-template-columns: auto 1fr auto 1fr;
+    align-items: center;
+    column-gap: 6px;
+    row-gap: 4px;
+  }
+  .secao-transmissao .coluna-mensagem .campo-fixo-fonada,
+  .secao-transmissao .coluna-mensagem .campo-celular-fonada {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
 }
 
 /* ---------- Etiqueta de O.S. ---------- */
@@ -347,6 +395,61 @@ input, select, textarea {
   }
   .painel-detalhes-agenda {
     position: static;
+  }
+
+  /* Drawer mobile: o painel de detalhes só ganha esse comportamento
+     quando tem um item selecionado (.drawer-aberto) — sem seleção,
+     continua oculto normalmente pelo próprio fluxo do layout (o "..."
+     de placeholder nem chega a aparecer fixo). Desliza de baixo para
+     cima, cobrindo até 85% da altura da tela, com um botão fechar no
+     canto e um overlay escuro atrás que também fecha ao tocar fora. */
+  .painel-detalhes-agenda.drawer-aberto {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    max-height: 85vh;
+    overflow-y: auto;
+    z-index: 60;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -4px 24px rgba(28, 27, 25, 0.18);
+    padding-top: 44px;
+    animation: drawer-subir 0.2s ease-out;
+  }
+  .drawer-fechar-mobile {
+    display: flex;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: none;
+    background: var(--papel-alt);
+    color: var(--tinta-suave);
+    font-size: 15px;
+    cursor: pointer;
+  }
+  .drawer-overlay-mobile {
+    position: fixed;
+    inset: 0;
+    background: rgba(28, 27, 25, 0.4);
+    z-index: 55;
+  }
+  @keyframes drawer-subir {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+}
+@media (min-width: 901px) {
+  /* No desktop o botão fechar do drawer nunca deve aparecer — o
+     painel já fica sempre visível ao lado da lista, sem overlay. */
+  .drawer-fechar-mobile,
+  .drawer-overlay-mobile {
+    display: none;
   }
 }
 
@@ -577,6 +680,98 @@ input, select, textarea {
   font-weight: 700;
 }
 
+/* Formulário de Ao Vivo no mobile: as seções (Homenageado, Catálogo,
+   Financeiro) usam width: fit-content no desktop para não esticar até
+   o fim da tela à toa — mas em telas estreitas isso limita a caixa ao
+   tamanho dos campos internos, que têm largura fixa em px e ficam
+   apertados. Aqui essas caixas passam a ocupar a largura toda
+   disponível, e os campos de largura fixa viram flexíveis. */
+/* Formulário de Ao Vivo no mobile: o desktop usa flex-wrap com
+   flex-basis/min-width fixos em px para posicionar Homenageado,
+   Catálogo, Financeiro e Comprador lado a lado de forma inteligente
+   — mas em telas de celular (mesmo as grandes, tipo iPhone 15/S22+)
+   essa matemática de larguras mínimas estoura, cortando conteúdo.
+   Em vez de ajustar cada campo individualmente, a abordagem no mobile
+   é estrutural: cada container vira uma pilha vertical de largura
+   100%, sem tentar caber nada lado a lado. !important é necessário
+   porque os valores problemáticos vêm de style inline no JSX, que
+   tem precedência sobre CSS normal. */
+@media (max-width: 700px) {
+  .grade-secoes-aovivo,
+  .wrapper-financeiro-aovivo {
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+  }
+  .secao-homenageado-aovivo,
+  .secao-catalogo-aovivo,
+  .secao-financeiro-aovivo,
+  .secao-comprador {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .secao-catalogo-aovivo,
+  .secao-financeiro-aovivo {
+    width: 100% !important;
+  }
+
+  /* Para + Dia Evento + Horário: eram 3 campos numa linha só — em
+     mobile viram um grid de 2 colunas, com "Para" ocupando a linha
+     toda (nome pode ser longo) e Dia/Horário lado a lado embaixo. */
+  .linha-para-dia-aovivo {
+    flex-wrap: wrap;
+  }
+  .campo-para-aovivo {
+    flex: 1 1 100% !important;
+    margin-bottom: 6px;
+  }
+  .campo-dia-aovivo,
+  .campo-horario-aovivo {
+    flex: 1 1 100px !important;
+    max-width: none !important;
+  }
+
+  /* Tema + Código: o campo de tema (240px fixo) é o que mais aperta —
+     ganha a largura toda da linha, o código fica pequeno ao lado. */
+  .linha-tema-codigo-aovivo {
+    flex-wrap: wrap;
+  }
+  .campo-tema-aovivo {
+    flex: 1 1 140px !important;
+    width: auto !important;
+  }
+  .campo-codigo-aovivo {
+    flex: 0 0 80px !important;
+  }
+
+  /* Música: 391px fixo é largo demais para telas pequenas. */
+  .campo-musica-aovivo {
+    width: auto !important;
+    flex: 1 1 auto !important;
+  }
+
+  /* Pagamento + tipo de cartão: permite quebrar em vez de espremer. */
+  .linha-pagamento-aovivo {
+    flex-wrap: wrap;
+  }
+
+  /* Brinde: 240px fixo também aperta — cresce com a linha. */
+  .campo-brinde-aovivo {
+    width: auto !important;
+    flex: 1 1 auto !important;
+  }
+
+  /* Comprador: Fixo/Celular/WhatsApp e Bairro/Endereço/Referência em
+     3 colunas ficam ilegíveis na largura toda do card em celular —
+     cai para 1 coluna só, cada informação em sua própria linha. */
+  .secao-comprador .grade-3 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 /* "Quem oferece" estica até o fim da coluna (sem o teto de 160px das
    demais linhas), já que costuma levar nomes mais longos, e agora
    quebra em várias linhas (textarea) em vez de correr para o lado
@@ -609,7 +804,7 @@ input, select, textarea {
   max-width: 212px;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 900px) {
   .duas-colunas-mensagem {
     grid-template-columns: 1fr;
   }
@@ -1243,26 +1438,29 @@ input, select, textarea {
    em vez da grade 2x2 que ocupa altura demais em telas pequenas. */
 @media (max-width: 700px) {
   .actions-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
   }
   .actions-grid .btn-action.destaque {
     padding: 12px;
     font-size: 14px;
   }
-  .acoes-secundarias-mobile {
-    display: flex;
-    gap: 5px;
+  .actions-grid .acoes-secundarias-mobile {
+    display: flex !important;
+    gap: 5px !important;
+    width: 100%;
   }
-  .acoes-secundarias-mobile .btn-action {
-    flex: 1;
+  .actions-grid .acoes-secundarias-mobile .btn-action {
+    flex: 1 1 0 !important;
     flex-direction: column;
     gap: 3px;
     padding: 6px 2px;
     font-size: 10px;
     line-height: 1.2;
     box-shadow: none;
+    min-width: 0;
+    grid-column: auto !important;
   }
   .acoes-secundarias-mobile .btn-action svg {
     width: 17px;
@@ -1536,6 +1734,7 @@ button.nav-grupo-titulo {
   min-width: 0;
   height: 100vh;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* Relógio fixo no canto superior direito — sempre visível, não rola
@@ -3006,4 +3205,15 @@ input[type="password"] {
    cabendo sem cortar o financeiro. */
 .pagina-aovivo-ampliada {
   zoom: 1.12;
+}
+
+/* Em mobile, o zoom amplia a largura efetiva de tudo, empurrando
+   conteúdo para fora da tela — layout cortado à direita, mesmo com o
+   restante do CSS mobile funcionando. O zoom era pensado só para o
+   desktop, onde sobra espaço horizontal; no celular ele atrapalha. */
+@media (max-width: 700px) {
+  .pagina-aovivo-ampliada,
+  .pagina-fonada-ampliada {
+    zoom: 1;
+  }
 }

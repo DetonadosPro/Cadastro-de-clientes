@@ -572,7 +572,7 @@ export default function FormFonada() {
             </div>
 
             <div className="section-box secao-comprador">
-              <div className="section-title">
+              <div className="section-title titulo-secao-comprador">
                 <span>Comprador</span>
                 {cliente && (
                   <button type="button" className="btn-small" onClick={() => navigate(`/clientes/${cliente.id}`)}>
@@ -820,11 +820,11 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
         )}
       </div>
       <CampoComP label="Para" nomeCampo="para" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} />
-      <div className="form-row">
+      <div className="form-row linha-fixo-celular">
         <label>Fixo:</label>
-        <input value={dados[`${p}_fixo`]} onChange={(e) => setComMascara(`${p}_fixo`, e.target.value, 'fixo')} disabled={bloqueada} style={{ flex: '0 0 auto', width: 118, minWidth: 0 }} />
-        <label style={{ minWidth: 'auto', marginLeft: 4 }}>Cel.:</label>
-        <input value={dados[`${p}_celular`]} onChange={(e) => setComMascara(`${p}_celular`, e.target.value, 'celular')} disabled={bloqueada} style={{ flex: '0 0 auto', width: 128, minWidth: 0 }} />
+        <input value={dados[`${p}_fixo`]} onChange={(e) => setComMascara(`${p}_fixo`, e.target.value, 'fixo')} disabled={bloqueada} className="campo-fixo-fonada" style={{ flex: '1 1 100px', minWidth: 90 }} />
+        <label style={{ minWidth: 'auto', marginLeft: 4 }} className="label-cel-fonada">Cel.:</label>
+        <input value={dados[`${p}_celular`]} onChange={(e) => setComMascara(`${p}_celular`, e.target.value, 'celular')} disabled={bloqueada} className="campo-celular-fonada" style={{ flex: '1 1 110px', minWidth: 100 }} />
         {mostrarBotaoP && (
           <BotaoP
             onClick={() => { onCopiar('fixo', numero); onCopiar('celular', numero); }}
@@ -932,7 +932,7 @@ function CampoComP({ label, nomeCampo, prefixo, numero, dados, set, onCopiar, mo
 
 function BotaoP({ onClick, titulo }) {
   return (
-    <button type="button" className="btn-small" title={titulo} onClick={onClick} style={{ flexShrink: 0 }}>
+    <button type="button" className="btn-small botao-p-copiar" title={titulo} onClick={onClick} style={{ flexShrink: 0 }}>
       P
     </button>
   );

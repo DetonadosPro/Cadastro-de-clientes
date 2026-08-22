@@ -167,8 +167,8 @@ export default function ListaCobranca() {
       </div>
 
       <form onSubmit={buscar} className="painel nao-imprimir" style={estilos.formBusca}>
-        <div className="grade grade-4">
-          <div className="campo">
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div className="campo" style={{ flex: '0 0 auto', width: 130, marginBottom: 0 }}>
             <label>Cobrar dia</label>
             <CampoData
               placeholder="dd/mm/aa"
@@ -176,7 +176,15 @@ export default function ListaCobranca() {
               onChange={(v) => setCobrarDia(formatarData(v))}
             />
           </div>
-          <div className="campo">
+          <div className="campo" style={{ flex: '0 0 auto', width: 270, marginBottom: 0 }}>
+            <label>Nome</label>
+            <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do comprador" />
+          </div>
+          <div className="campo" style={{ flex: '0 0 auto', width: 100, marginBottom: 0 }}>
+            <label>O.S.</label>
+            <input value={os} onChange={(e) => setOs(e.target.value)} placeholder="Número exato" />
+          </div>
+          <div className="campo" style={{ flex: '0 0 auto', width: 150, marginBottom: 0 }}>
             <label>Pagou</label>
             <select value={pagouFiltro} onChange={(e) => setPagouFiltro(e.target.value)}>
               <option value="NAO">Não pagou</option>
@@ -184,17 +192,7 @@ export default function ListaCobranca() {
               <option value="TODOS">Todos</option>
             </select>
           </div>
-          <div className="campo">
-            <label>Nome</label>
-            <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do comprador" />
-          </div>
-          <div className="campo">
-            <label>O.S.</label>
-            <input value={os} onChange={(e) => setOs(e.target.value)} placeholder="Número exato" />
-          </div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
-          <button type="submit" className="btn" disabled={carregando}>
+          <button type="submit" className="btn" disabled={carregando} style={{ flex: '0 0 auto' }}>
             {carregando ? 'Buscando...' : 'Buscar'}
           </button>
         </div>
