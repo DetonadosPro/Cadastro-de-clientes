@@ -479,6 +479,19 @@ input, select, textarea {
   padding: 16px;
   margin-bottom: 12px;
 }
+
+/* Cards de informação só de leitura (Lançamento, Registro do pedido)
+   — fundo levemente acinzentado e mais compactos, para o olho já
+   identificar de longe que não são editáveis, diferente dos cards de
+   formulário ao redor. */
+.section-box-somente-leitura {
+  background: var(--papel-alt);
+  box-shadow: none;
+  padding: 10px 14px;
+}
+.section-box-somente-leitura .info-linha {
+  padding: 4px 0;
+}
 .section-title {
   font-size: 12.5px;
   font-weight: 700;

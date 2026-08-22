@@ -710,14 +710,14 @@ export default function FormFonada() {
             </div>
           </div>
 
-          <div className="section-box">
+          <div className="section-box section-box-somente-leitura">
             <div className="section-title">Lançamento</div>
             <InfoLinha label="Pagou" valor={dados.pagou === 'SIM' ? 'Sim' : 'Não'} />
             <InfoLinha label="Data do pagamento" valor={dados.data_pagamento} />
             <InfoLinha label="Status" valor={dados.recebi} />
           </div>
 
-          <div className="section-box">
+          <div className="section-box section-box-somente-leitura">
             <div className="section-title">Registro do pedido</div>
             <div className="info-linha">
               <span className="info-label">Data</span>

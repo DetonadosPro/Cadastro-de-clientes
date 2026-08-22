@@ -610,7 +610,7 @@ export default function FormAoVivo() {
           </div>
 
           {String(dados.pagamento || '').startsWith('PRAZO') && (
-            <div className="section-box">
+            <div className="section-box section-box-somente-leitura">
               <div className="section-title">Lançamento</div>
               <div className="info-linha">
                 <span className="info-label">Pagou</span>
@@ -623,7 +623,7 @@ export default function FormAoVivo() {
             </div>
           )}
 
-          <div className="section-box">
+          <div className="section-box section-box-somente-leitura">
             <div className="section-title">Registro do pedido</div>
             <div className="info-linha">
               <span className="info-label">Data</span>
