@@ -399,15 +399,31 @@ router.put('/:id', async (req, res) => {
 });
 
 router.delete('/:id', async (req, res) => {
+  const client = await pool.connect();
   try {
-    const existente = await db.query('SELECT id FROM ao_vivo WHERE id = $1', [req.params.id]);
-    if (existente.rows.length === 0) return res.status(404).json({ erro: 'Registro não encontrado.' });
+    const existente = await client.query('SELECT id FROM ao_vivo WHERE id = $1', [req.params.id]);
+    if (existente.rows.length === 0) {
+      client.release();
+      return res.status(404).json({ erro: 'Registro não encontrado.' });
+    }
 
-    await db.query('DELETE FROM ao_vivo WHERE id = $1', [req.params.id]);
+    await client.query('BEGIN');
+    // O histórico de tentativas de prazo ("não recebeu") referencia o
+    // pedido por chave estrangeira — sem apagar essas linhas primeiro,
+    // o Postgres recusa apagar o pedido com erro de integridade
+    // referencial. Apaga o histórico junto, de propósito: ele não faz
+    // sentido isolado sem o pedido a que pertence.
+    await client.query('DELETE FROM tentativas_prazo_ao_vivo WHERE pedido_id = $1', [req.params.id]);
+    await client.query('DELETE FROM ao_vivo WHERE id = $1', [req.params.id]);
+    await client.query('COMMIT');
+
     res.json({ ok: true });
   } catch (erro) {
+    await client.query('ROLLBACK');
     console.error('Erro ao apagar ao vivo:', erro);
     res.status(500).json({ erro: 'Erro ao apagar registro.' });
+  } finally {
+    client.release();
   }
 });
 
