@@ -2361,6 +2361,24 @@ tr:hover .alca-arrastar {
   color: var(--carimbo);
   background: #ffffff;
 }
+/* Em telas estreitas, 3 abas + filtro de sistema não cabem lado a
+   lado sem cortar o último item — em vez de tentar espremer tudo,
+   a faixa vira rolável horizontalmente (padrão comum em apps),
+   preservando o tamanho legível de cada aba. */
+@media (max-width: 700px) {
+  .abas-relatorio {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+  .abas-relatorio::-webkit-scrollbar {
+    display: none;
+  }
+  .abas-relatorio .aba-cliente-botao,
+  .abas-relatorio .filtro-sistema-relatorio {
+    flex-shrink: 0;
+  }
+}
 .aba-cliente-botao {
   flex: 0 0 auto;
   padding: 10px 14px;
