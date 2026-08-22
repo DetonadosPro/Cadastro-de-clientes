@@ -39,11 +39,15 @@ export default function Recibo({ pedido }) {
 
         <div className="recibo-linha">
           <Campo label="Recebemos de:" valor={pedido.nome} grow={2.2} />
-          <Campo label="Compl.:" valor={pedido.complemento} grow={1} />
+          <Campo label="Whats:" valor={pedido.whatsapp} grow={1} />
         </div>
 
         <div className="recibo-linha">
-          <Campo label="Endereço:" valor={pedido.endereco} grow={1} />
+          <Campo
+            label="Endereço:"
+            valor={pedido.complemento ? `${pedido.endereco || ''} - ${pedido.complemento}` : pedido.endereco}
+            grow={1}
+          />
         </div>
 
         <div className="recibo-linha">
