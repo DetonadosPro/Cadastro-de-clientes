@@ -987,10 +987,10 @@ function linkWhatsappDe(valor, mensagem) {
 function mensagemConfirmacao(comprador, destinatario) {
   const nomeComprador = comprador || 'tudo bem';
   const nomeDestinatario = destinatario || 'a pessoa';
-  // Emoji "rosto sorridente" (😊) escrito como escape Unicode, em vez
+  // Emoji "rosto apaixonado" (🥰) escrito como escape Unicode, em vez
   // do caractere literal — mais resistente a problemas de codificação
   // ao salvar/abrir o arquivo em editores ou sistemas diferentes.
-  const emoji = '\u{1F60A}';
+  const emoji = '\u{1F970}';
   return `Olá ${nomeComprador}! Acabei de passar a mensagem para ${nomeDestinatario}${emoji}`;
 }
 
