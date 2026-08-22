@@ -217,6 +217,28 @@ input, select, textarea {
   transition: box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
+/* Formulário de Novo Cliente: no desktop os campos curtos (Nascimento,
+   Telefone, WhatsApp, Celular, Complemento, Bairro) têm largura fixa
+   em px, do tamanho do conteúdo — em telas pequenas isso ficaria
+   apertado demais lado a lado, então essas regras empilham tudo em
+   coluna e liberam a largura total do card. Só afeta mobile; o
+   desktop continua com os estilos inline definidos no JSX. */
+@media (max-width: 640px) {
+  .form-novo-cliente {
+    padding: 18px !important;
+  }
+  .form-novo-cliente .linha-form-cliente {
+    flex-direction: column;
+    gap: 10px !important;
+  }
+  .form-novo-cliente .campo-largura-fixa {
+    width: 100% !important;
+  }
+  .form-novo-cliente .campo-endereco-cliente {
+    max-width: 100% !important;
+  }
+}
+
 /* Cartão com faixa de urgência lateral — usado na Agenda no lugar de
    uma borda grossa ao redor inteiro, que pesava visualmente demais. */
 .painel-urgencia {
