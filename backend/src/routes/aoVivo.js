@@ -191,7 +191,9 @@ router.get('/imprimir', async (req, res) => {
         tema4: p.tema_4, msg4: p.mensagem_codigo_4,
         musicas: [p.musica_1, p.musica_2, p.musica_3, p.musica_4, p.musica_5, p.musica_6].filter(Boolean),
         nomeComprador: cliente ? cliente.nome : p.comprador,
-        telefoneComprador: cliente ? (cliente.celular || cliente.fixo) : (p.celular || p.celular2),
+        telefoneComprador: cliente
+          ? (cliente.whatsapp || cliente.celular || cliente.fixo)
+          : (p.whatsapp || p.celular || p.celular2),
         enderecoCobranca: cliente ? cliente.endereco : null,
         bairroCobranca: cliente ? cliente.bairro : null,
         valor: p.valor,
