@@ -1990,6 +1990,9 @@ tr:hover .alca-arrastar {
 .bolinha-status.livre {
   background: #cccccc;
 }
+.bolinha-status.bloqueada {
+  background: var(--selo);
+}
 
 /* ---------- Abas dentro da ficha do cliente (Fonada / Ao vivo) ---------- */
 .abas-cliente {
