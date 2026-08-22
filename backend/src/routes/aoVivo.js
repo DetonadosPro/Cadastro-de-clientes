@@ -26,7 +26,7 @@ const CAMPOS = [
   'fixo_local', 'celular_local', 'celular', 'celular2', 'whatsapp',
   'tema_1', 'mensagem_codigo_1', 'tema_2', 'mensagem_codigo_2', 'tema_3', 'mensagem_codigo_3', 'tema_4', 'mensagem_codigo_4',
   'musica_1', 'musica_2', 'musica_3', 'musica_4', 'musica_5', 'musica_6',
-  'aniversario', 'valor', 'pagamento', 'brinde', 'observacoes',
+  'aniversario', 'valor', 'pagamento', 'brinde', 'observacoes', 'vendedor_usuario',
 ];
 
 const FILTROS_AOVIVO = {
@@ -242,8 +242,8 @@ router.post('/:id/baixa', async (req, res) => {
     const resultado = `${entregue ? 'ENTREGUE' : 'NÃO ENTREGUE'}, ${dd}/${mm}/${aa} às ${hh}:${min} por ${nomeExibicao}`;
 
     await db.query(
-      'UPDATE ao_vivo SET resultado_entrega = $1, atualizado_em = NOW() WHERE id = $2',
-      [resultado, req.params.id]
+      'UPDATE ao_vivo SET resultado_entrega = $1, entregue_por = $2, atualizado_em = NOW() WHERE id = $3',
+      [resultado, nomeExibicao, req.params.id]
     );
 
     res.json({ ok: true, resultado });
@@ -345,6 +345,8 @@ router.post('/', async (req, res) => {
     if (!dados.comprador || !dados.comprador.trim()) {
       return res.status(400).json({ erro: 'O nome do comprador é obrigatório.' });
     }
+
+    dados.vendedor_usuario = req.usuario.usuario;
 
     const campos = CAMPOS.filter((c) => dados[c] !== undefined);
     const placeholders = campos.map((_, i) => `$${i + 1}`).join(', ');

@@ -250,4 +250,115 @@ router.get('/recebimentos', async (req, res) => {
   }
 });
 
+// GET /api/relatorios/desempenho?inicio=dd/mm/aa&fim=dd/mm/aa&sistema=FONADA|AOVIVO|TODOS
+//
+// Desempenho por funcionário: quantas mensagens cada um passou/entregou
+// no período, quantos pedidos vendeu, valor total vendido, e o
+// detalhamento por tipo (Fonada / Ao Vivo). Só considera pedidos
+// criados a partir de quando os campos vendedor_usuario/passada_por
+// passaram a existir — pedidos antigos aparecem como "—" (sem essa
+// informação registrada).
+router.get('/desempenho', async (req, res) => {
+  try {
+    const { inicio, fim } = resolverIntervalo(
+      (req.query.inicio || '').trim(),
+      (req.query.fim || '').trim()
+    );
+    const sistema = (req.query.sistema || 'TODOS').trim().toUpperCase();
+
+    // Mapa por nome de usuário -> acumulador de métricas.
+    const porFuncionario = {};
+    function acumulador(nome) {
+      if (!nome) return null;
+      if (!porFuncionario[nome]) {
+        porFuncionario[nome] = {
+          usuario: nome,
+          vendasFonada: 0, valorVendidoFonada: 0,
+          vendasAoVivo: 0, valorVendidoAoVivo: 0,
+          mensagensPassadasFonada: 0,
+          entreguesAoVivo: 0,
+        };
+      }
+      return porFuncionario[nome];
+    }
+
+    if (sistema === 'FONADA' || sistema === 'TODOS') {
+      const fonadasResultado = await db.query(`
+        SELECT valor, data_pedido, vendedor_usuario,
+               p1_dia, p1_resultado, p1_passada_por,
+               p2_dia, p2_resultado, p2_passada_por
+        FROM fonadas WHERE excluido_em IS NULL
+      `);
+
+      // Vendas: conta pelo dia do PEDIDO (quando foi vendido).
+      const vendidasNoPeriodo = filtrarPorIntervalo(fonadasResultado.rows, 'data_pedido', inicio, fim);
+      for (const l of vendidasNoPeriodo) {
+        const acc = acumulador(l.vendedor_usuario);
+        if (acc) {
+          acc.vendasFonada += 1;
+          acc.valorVendidoFonada += l.valor || 0;
+        }
+      }
+
+      // Mensagens passadas: cada mensagem (p1/p2) conta separadamente,
+      // pelo dia em que ela estava marcada (p1_dia/p2_dia) — não pelo
+      // dia do pedido, já que a mensagem pode ser passada bem depois
+      // da venda.
+      const linhasP1 = fonadasResultado.rows
+        .filter((l) => l.p1_resultado && l.p1_passada_por)
+        .map((l) => ({ dia: l.p1_dia, passada_por: l.p1_passada_por }));
+      const linhasP2 = fonadasResultado.rows
+        .filter((l) => l.p2_resultado && l.p2_passada_por)
+        .map((l) => ({ dia: l.p2_dia, passada_por: l.p2_passada_por }));
+
+      for (const l of filtrarPorIntervalo(linhasP1, 'dia', inicio, fim)) {
+        const acc = acumulador(l.passada_por);
+        if (acc) acc.mensagensPassadasFonada += 1;
+      }
+      for (const l of filtrarPorIntervalo(linhasP2, 'dia', inicio, fim)) {
+        const acc = acumulador(l.passada_por);
+        if (acc) acc.mensagensPassadasFonada += 1;
+      }
+    }
+
+    if (sistema === 'AOVIVO' || sistema === 'TODOS') {
+      const aoVivoResultado = await db.query(`
+        SELECT valor, data_pedido, dia_entrega, vendedor_usuario, resultado_entrega, entregue_por
+        FROM ao_vivo WHERE excluido_em IS NULL
+      `);
+
+      const vendidosNoPeriodo = filtrarPorIntervalo(aoVivoResultado.rows, 'data_pedido', inicio, fim);
+      for (const l of vendidosNoPeriodo) {
+        const acc = acumulador(l.vendedor_usuario);
+        if (acc) {
+          acc.vendasAoVivo += 1;
+          acc.valorVendidoAoVivo += l.valor || 0;
+        }
+      }
+
+      const entreguesLinhas = aoVivoResultado.rows
+        .filter((l) => l.resultado_entrega && l.entregue_por && String(l.resultado_entrega).startsWith('ENTREGUE'))
+        .map((l) => ({ dia: l.dia_entrega, entregue_por: l.entregue_por }));
+      for (const l of filtrarPorIntervalo(entreguesLinhas, 'dia', inicio, fim)) {
+        const acc = acumulador(l.entregue_por);
+        if (acc) acc.entreguesAoVivo += 1;
+      }
+    }
+
+    const funcionarios = Object.values(porFuncionario)
+      .map((f) => ({
+        ...f,
+        vendasTotal: f.vendasFonada + f.vendasAoVivo,
+        valorVendidoTotal: f.valorVendidoFonada + f.valorVendidoAoVivo,
+        mensagensTotal: f.mensagensPassadasFonada + f.entreguesAoVivo,
+      }))
+      .sort((a, b) => b.valorVendidoTotal - a.valorVendidoTotal);
+
+    res.json({ inicio, fim, sistema, funcionarios });
+  } catch (erro) {
+    console.error('Erro ao gerar relatório de desempenho:', erro);
+    res.status(500).json({ erro: 'Erro ao gerar relatório de desempenho.' });
+  }
+});
+
 module.exports = router;

@@ -16,11 +16,11 @@ const router = express.Router();
 
 const CAMPOS = [
   'senha_os', 'cliente_id', 'nome_comprador', 'data_pedido', 'horario_pedido', 'nascimento', 'tipo', 'recall', 'recall_codigo',
-  'p1_dia', 'p1_para', 'p1_tema', 'p1_mensagem', 'p1_fixo', 'p1_celular', 'p1_horario', 'p1_quem_oferece', 'p1_resultado',
-  'p2_dia', 'p2_para', 'p2_tema', 'p2_mensagem', 'p2_fixo', 'p2_celular', 'p2_horario', 'p2_quem_oferece', 'p2_resultado',
+  'p1_dia', 'p1_para', 'p1_tema', 'p1_mensagem', 'p1_fixo', 'p1_celular', 'p1_horario', 'p1_quem_oferece', 'p1_resultado', 'p1_passada_por',
+  'p2_dia', 'p2_para', 'p2_tema', 'p2_mensagem', 'p2_fixo', 'p2_celular', 'p2_horario', 'p2_quem_oferece', 'p2_resultado', 'p2_passada_por',
   'comprador_fixo', 'comprador_whatsapp', 'comprador_celular', 'comprador_endereco', 'comprador_complemento', 'comprador_bairro', 'comprador_referencia',
   'valor', 'cobranca', 'periodo', 'pagou', 'recebi',
-  'vender', 'status', 'impresso',
+  'vender', 'status', 'impresso', 'vendedor_usuario',
 ];
 
 const FILTROS_FONADA = {
@@ -184,6 +184,11 @@ router.post('/', async (req, res) => {
     if (!dados.nome_comprador || !dados.nome_comprador.trim()) {
       return res.status(400).json({ erro: 'O nome do comprador é obrigatório.' });
     }
+
+    // Vendedor é sempre quem está logado no momento de criar o pedido —
+    // não é um campo escolhido manualmente, para não depender de a
+    // pessoa lembrar de preencher certo.
+    dados.vendedor_usuario = req.usuario.usuario;
 
     const campos = CAMPOS.filter((c) => dados[c] !== undefined);
     const placeholders = campos.map((_, i) => `$${i + 1}`).join(', ');

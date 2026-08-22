@@ -195,5 +195,7 @@ export const api = {
       chamar(`/relatorios/vendas?inicio=${encodeURIComponent(inicio)}&fim=${encodeURIComponent(fim)}&sistema=${encodeURIComponent(sistema)}`),
     recebimentos: (inicio, fim, sistema = 'TODOS') =>
       chamar(`/relatorios/recebimentos?inicio=${encodeURIComponent(inicio)}&fim=${encodeURIComponent(fim)}&sistema=${encodeURIComponent(sistema)}`),
+    desempenho: (inicio, fim, sistema = 'TODOS') =>
+      chamar(`/relatorios/desempenho?inicio=${encodeURIComponent(inicio)}&fim=${encodeURIComponent(fim)}&sistema=${encodeURIComponent(sistema)}`),
   },
 };

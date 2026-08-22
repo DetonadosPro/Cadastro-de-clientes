@@ -53,6 +53,13 @@ export default function Relatorios() {
           >
             Recebimentos
           </button>
+          <button
+            type="button"
+            className={`aba-cliente-botao ${aba === 'desempenho' ? 'ativa' : ''}`}
+            onClick={() => irParaAba('desempenho')}
+          >
+            Desempenho
+          </button>
           <div className="filtro-sistema-relatorio">
             <select value={sistema} onChange={(e) => mudarSistema(e.target.value)}>
               <option value="TODOS">Todos</option>
@@ -71,6 +78,9 @@ export default function Relatorios() {
           </div>
           <div style={{ display: aba === 'recebimentos' ? 'block' : 'none' }}>
             <AbaRecebimentos sistema={sistema} />
+          </div>
+          <div style={{ display: aba === 'desempenho' ? 'block' : 'none' }}>
+            <AbaDesempenho sistema={sistema} />
           </div>
         </div>
       </div>
@@ -264,6 +274,87 @@ function AbaRecebimentos({ sistema }) {
           {dados.itens && <TabelaDetalhada itens={dados.itens} tituloColunaValor="Recebido" />}
         </>
       )}
+    </div>
+  );
+}
+
+function AbaDesempenho({ sistema }) {
+  const { inicio, fim, setInicio, setFim } = useIntervaloData();
+  const [dados, setDados] = useState(null);
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState('');
+  const [jaBuscou, setJaBuscou] = useState(false);
+
+  async function buscar(e, sistemaAtual = sistema) {
+    if (e) e.preventDefault();
+    if (!inicio) {
+      setErro('Informe pelo menos a data inicial.');
+      return;
+    }
+    setCarregando(true);
+    setErro('');
+    setJaBuscou(true);
+    try {
+      const resp = await api.relatorios.desempenho(inicio, fim, sistemaAtual);
+      setDados(resp);
+    } catch (err) {
+      setErro(err.message);
+    } finally {
+      setCarregando(false);
+    }
+  }
+
+  React.useEffect(() => {
+    if (jaBuscou) buscar(null, sistema);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sistema]);
+
+  return (
+    <div>
+      <FormularioPeriodo
+        inicio={inicio} fim={fim} setInicio={setInicio} setFim={setFim}
+        onSubmit={buscar} carregando={carregando}
+      />
+
+      {erro && <p className="fs-sm" style={{ color: 'var(--selo)' }}>{erro}</p>}
+
+      {!jaBuscou ? (
+        <EstadoVazio texto="Escolha o período e clique em Buscar." />
+      ) : carregando ? (
+        <p className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Carregando...</p>
+      ) : dados && (
+        dados.funcionarios.length === 0 ? (
+          <div className="painel" style={{ marginTop: 16, textAlign: 'center', color: 'var(--tinta-suave)' }}>
+            Nenhum vendedor ou mensagem passada registrada nesse período. Pedidos antigos, de antes desse
+            registro existir, não aparecem aqui.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
+            {dados.funcionarios.map((f) => (
+              <CartaoFuncionario key={f.usuario} funcionario={f} />
+            ))}
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
+function CartaoFuncionario({ funcionario }) {
+  return (
+    <div className="painel">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
+        <span className="fs-lg" style={{ fontWeight: 700 }}>{funcionario.usuario}</span>
+        <span style={{ fontFamily: 'var(--fonte-mono)', fontWeight: 700, fontSize: 18, color: 'var(--carimbo)' }}>
+          {formatarReais(funcionario.valorVendidoTotal)}
+        </span>
+      </div>
+      <div className="grade grade-relatorio grade-4">
+        <CartaoValor label="Vendas" valor={funcionario.vendasTotal} sub={`${funcionario.vendasFonada} fonada · ${funcionario.vendasAoVivo} ao vivo`} />
+        <CartaoValor label="Valor vendido" valor={formatarReais(funcionario.valorVendidoTotal)} />
+        <CartaoValor label="Mensagens passadas" valor={funcionario.mensagensTotal} sub={`${funcionario.mensagensPassadasFonada} fonada · ${funcionario.entreguesAoVivo} ao vivo`} />
+        <CartaoValor label="Valor médio/venda" valor={funcionario.vendasTotal ? formatarReais(funcionario.valorVendidoTotal / funcionario.vendasTotal) : '—'} />
+      </div>
     </div>
   );
 }

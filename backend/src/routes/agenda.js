@@ -164,9 +164,10 @@ router.post('/fonada/:id/baixa', async (req, res) => {
     const resultado = `OK ${nomeExibicao} ${data} ${horario}`;
 
     const coluna = mensagem === 1 ? 'p1_resultado' : 'p2_resultado';
+    const colunaPassadaPor = mensagem === 1 ? 'p1_passada_por' : 'p2_passada_por';
     await db.query(
-      `UPDATE fonadas SET ${coluna} = $1, atualizado_em = NOW() WHERE id = $2`,
-      [resultado, req.params.id]
+      `UPDATE fonadas SET ${coluna} = $1, ${colunaPassadaPor} = $2, atualizado_em = NOW() WHERE id = $3`,
+      [resultado, nomeExibicao, req.params.id]
     );
 
     res.json({ ok: true, resultado });
