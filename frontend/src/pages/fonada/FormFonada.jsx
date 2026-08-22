@@ -796,12 +796,7 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
   return (
     <div className="coluna-mensagem">
       <div className="coluna-mensagem-titulo">
-        <span className={`bolinha-status ${bloqueada ? 'bloqueada' : (dados[`${p}_dia`] ? 'usada' : 'livre')}`} /> {numero}ª mensagem
-        {bloqueada && (
-          <span className="fs-xs" style={{ color: 'var(--selo)', fontWeight: 700, marginLeft: 6, whiteSpace: 'nowrap' }}>
-            — INTERURBANO
-          </span>
-        )}
+        <span className={`bolinha-status ${dados[`${p}_dia`] ? 'usada' : 'livre'}`} /> {numero}ª mensagem
       </div>
       <div className="form-row">
         <label>Tema:</label>
