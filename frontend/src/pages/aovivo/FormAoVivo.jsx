@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../../api.js';
 import { useRascunhos } from '../../RascunhosContext.jsx';
@@ -151,6 +151,8 @@ export default function FormAoVivo() {
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
+  const [campoObrigatorioFaltando, setCampoObrigatorioFaltando] = useState(null);
+  const refValor = useRef(null);
 
   function contarPreenchidos(d, prefixo, minimo, maximo) {
     for (let i = maximo; i > minimo; i--) {
@@ -265,8 +267,15 @@ export default function FormAoVivo() {
 
   async function salvar() {
     setErro('');
+    setCampoObrigatorioFaltando(null);
     if (!dados.cliente_id) {
       setErro('Nenhum cliente vinculado a este pedido.');
+      return;
+    }
+    if (!String(dados.valor || '').trim()) {
+      setErro('Preencha o campo "Valor" antes de salvar.');
+      setCampoObrigatorioFaltando('valor');
+      refValor.current?.focus();
       return;
     }
     if (!editando) {
@@ -470,13 +479,17 @@ export default function FormAoVivo() {
                 <div className="form-row">
                   <label>Valor:</label>
                   <input
+                    ref={refValor}
                     type="text"
                     inputMode="numeric"
                     className="input-valor-destaque campo-valor-aovivo"
                     value={dados.valor}
-                    onChange={(e) => set('valor', formatarValorMonetario(e.target.value))}
+                    onChange={(e) => { set('valor', formatarValorMonetario(e.target.value)); setCampoObrigatorioFaltando(null); }}
                     placeholder="R$ 0,00"
-                    style={{ maxWidth: 110, flex: '0 0 auto' }}
+                    style={{
+                      maxWidth: 110, flex: '0 0 auto',
+                      borderColor: campoObrigatorioFaltando === 'valor' ? 'var(--selo)' : undefined,
+                    }}
                   />
                 </div>
                 <div className="form-row linha-pagamento-aovivo">
