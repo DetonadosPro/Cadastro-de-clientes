@@ -137,10 +137,10 @@ export default function FormNovoCliente() {
       )}
 
       {!duplicados && (
-        <div className="painel">
+        <div className="painel" style={{ maxWidth: 720 }}>
           <div className="section-title">Dados do cliente</div>
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 10 }}>
-            <div className="campo" style={{ flex: '1 1 320px', minWidth: 200, marginBottom: 0 }}>
+            <div className="campo" style={{ flex: '1 1 280px', minWidth: 200, marginBottom: 0 }}>
               <label>Nome *</label>
               <input value={dados.nome} onChange={(e) => set('nome', e.target.value)} autoFocus />
             </div>
@@ -165,18 +165,18 @@ export default function FormNovoCliente() {
           </div>
           <div className="campo">
             <label>Endereço</label>
-            <input value={dados.endereco} onChange={(e) => set('endereco', e.target.value)} />
+            <input value={dados.endereco} onChange={(e) => set('endereco', e.target.value)} style={{ maxWidth: 420 }} />
           </div>
-          <div className="grade grade-3">
-            <div className="campo">
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 10 }}>
+            <div className="campo" style={{ flex: '0 0 auto', width: 180, marginBottom: 0 }}>
               <label>Complemento</label>
               <input value={dados.complemento} onChange={(e) => set('complemento', e.target.value)} />
             </div>
-            <div className="campo">
+            <div className="campo" style={{ flex: '0 0 auto', width: 180, marginBottom: 0 }}>
               <label>Bairro</label>
               <input value={dados.bairro} onChange={(e) => set('bairro', e.target.value)} />
             </div>
-            <div className="campo">
+            <div className="campo" style={{ flex: '1 1 200px', minWidth: 160, marginBottom: 0 }}>
               <label>Referência</label>
               <input value={dados.referencia} onChange={(e) => set('referencia', e.target.value)} />
             </div>
