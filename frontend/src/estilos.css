@@ -1974,6 +1974,11 @@ tr:hover .alca-arrastar {
   border-color: var(--borda);
   color: var(--tinta-suave);
 }
+.ponto-msg.bloqueada {
+  background: #8E5FA8;
+  border-color: #8E5FA8;
+  color: #ffffff;
+}
 
 /* Bolinha pequena de status, usada nas abas "1ª msg"/"2ª msg" do formulário */
 .bolinha-status {
@@ -1991,7 +1996,7 @@ tr:hover .alca-arrastar {
   background: #cccccc;
 }
 .bolinha-status.bloqueada {
-  background: var(--selo);
+  background: #8E5FA8;
 }
 
 /* ---------- Abas dentro da ficha do cliente (Fonada / Ao vivo) ---------- */
