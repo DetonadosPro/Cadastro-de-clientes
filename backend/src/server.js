@@ -71,6 +71,14 @@ async function iniciar() {
     console.log(`\n✅ Servidor Pombo-Correio rodando na porta ${PORTA}\n`);
   });
 
+  // Diagnóstico temporário — confirma se as variáveis de email estão
+  // realmente chegando no processo, sem revelar os valores sensíveis
+  // no log. Remover depois de confirmado que o envio funciona.
+  console.log('🔍 Diagnóstico GMAIL_USUARIO definido?', Boolean(process.env.GMAIL_USUARIO));
+  console.log('🔍 Diagnóstico GMAIL_SENHA_APP definido?', Boolean(process.env.GMAIL_SENHA_APP));
+  console.log('🔍 Diagnóstico GMAIL_USUARIO tamanho:', (process.env.GMAIL_USUARIO || '').length);
+  console.log('🔍 Diagnóstico GMAIL_SENHA_APP tamanho:', (process.env.GMAIL_SENHA_APP || '').length);
+
   iniciarAgendador();
 }
 
