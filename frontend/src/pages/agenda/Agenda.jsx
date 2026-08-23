@@ -389,6 +389,7 @@ export default function Agenda() {
                         onClick={() => setChaveSelecionada(chave)}
                         urgencia={urgencia}
                         jaPassada={jaPassada}
+                        senhaOs={item.senha_os}
                         horario={item.horario}
                         titulo={item.nome_comprador}
                         tagExtra={`${item.mensagem}ª msg`}
@@ -427,6 +428,7 @@ export default function Agenda() {
                         onClick={() => setChaveSelecionada(chave)}
                         urgencia={urgencia}
                         jaPassada={jaPassada}
+                        senhaOs={item.numero_os}
                         horario={item.ehCobranca ? null : item.horario_entrega}
                         titulo={item.comprador}
                         tagExtra={item.ehCobranca ? 'Cobrança' : null}
@@ -619,7 +621,7 @@ function IconeChevron({ aberto }) {
 // Uma linha fina e clicável na lista compacta — horário, nome, tag de
 // urgência/status. Reduz cada item a uma tira baixa, para caber muitos
 // na tela sem rolar, em vez do card grande com todos os campos aberto.
-function LinhaAgenda({ selecionada, onClick, urgencia, jaPassada, horario, titulo, tagExtra, status, statusOk }) {
+function LinhaAgenda({ selecionada, onClick, urgencia, jaPassada, senhaOs, horario, titulo, tagExtra, status, statusOk }) {
   return (
     <div
       className={`linha-agenda ${selecionada ? 'selecionada' : ''} ${urgencia ? `urgencia-${urgencia}` : ''} ${jaPassada ? 'passada' : ''}`}
@@ -628,6 +630,7 @@ function LinhaAgenda({ selecionada, onClick, urgencia, jaPassada, horario, titul
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter') onClick(); }}
     >
+      {senhaOs && <span className="linha-agenda-os">{senhaOs}</span>}
       <span className="linha-agenda-horario" style={{ textDecoration: jaPassada ? 'line-through' : 'none' }}>
         {horario || '—'}
       </span>
