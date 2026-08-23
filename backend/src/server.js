@@ -23,7 +23,9 @@ const clientesRouter = require('./routes/clientes');
 const agendaRouter = require('./routes/agenda');
 const cobrancaRouter = require('./routes/cobranca');
 const relatoriosRouter = require('./routes/relatorios');
+const lembretesRouter = require('./routes/lembretes');
 const autenticar = require('./middleware/autenticar');
+const { iniciarAgendador } = require('./tarefas/agendador');
 
 async function iniciar() {
   try {
@@ -43,6 +45,20 @@ async function iniciar() {
     res.json({ ok: true, sistema: 'Pombo-Correio', hora: new Date().toISOString() });
   });
 
+  // Rotas para disparar as tarefas agendadas manualmente (útil para
+  // testar sem esperar o cron rodar no horário certo) — exigem login,
+  // igual o resto do sistema.
+  app.post('/api/tarefas/backup-agora', autenticar, async (req, res) => {
+    const { rodarBackupSemanal } = require('./tarefas/backupSemanal');
+    await rodarBackupSemanal();
+    res.json({ ok: true, mensagem: 'Backup disparado — confira o email em alguns instantes.' });
+  });
+  app.post('/api/tarefas/resumo-agora', autenticar, async (req, res) => {
+    const { rodarResumoDiario } = require('./tarefas/resumoDiario');
+    await rodarResumoDiario();
+    res.json({ ok: true, mensagem: 'Resumo disparado — confira o email em alguns instantes.' });
+  });
+
   app.use('/api/auth', authRouter);
   app.use('/api/fonadas', autenticar, fonadasRouter);
   app.use('/api/ao-vivo', autenticar, aoVivoRouter);
@@ -50,11 +66,14 @@ async function iniciar() {
   app.use('/api/agenda', autenticar, agendaRouter);
   app.use('/api/cobranca', autenticar, cobrancaRouter);
   app.use('/api/relatorios', autenticar, relatoriosRouter);
+  app.use('/api/lembretes', autenticar, lembretesRouter);
 
   const PORTA = process.env.PORTA || process.env.PORT || 3001;
   app.listen(PORTA, () => {
     console.log(`\n✅ Servidor Pombo-Correio rodando na porta ${PORTA}\n`);
   });
+
+  iniciarAgendador();
 }
 
 iniciar();
