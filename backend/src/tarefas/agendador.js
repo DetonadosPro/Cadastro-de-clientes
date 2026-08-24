@@ -1,9 +1,8 @@
 // src/tarefas/agendador.js
 //
 // Centraliza os cron jobs do sistema. Os horários usam o fuso do
-// servidor Railway — por padrão UTC, então os horários abaixo já
-// consideram o ajuste para Brasília (UTC-3): "21:00 Brasília" vira
-// "0 0 * * *" (meia-noite UTC).
+// servidor Railway — por padrão UTC. Brasília é UTC-3, então meia-noite
+// em Brasília (00:00) equivale a 03:00 em UTC.
 //
 // Para trocar os horários sem redeploy, dá para sobrescrever via
 // variáveis de ambiente CRON_BACKUP e CRON_RESUMO (formato cron
@@ -15,10 +14,11 @@ const { rodarBackupSemanal } = require('./backupSemanal');
 const { rodarResumoDiario } = require('./resumoDiario');
 
 function iniciarAgendador() {
-  // Backup semanal — todo domingo às 21h (horário de Brasília).
-  // "0 0 * * 1" em UTC = domingo 21h em Brasília (UTC-3, vira segunda
-  // 00h UTC).
-  const cronBackup = process.env.CRON_BACKUP || '0 0 * * 1';
+  // Backup — todo dia à meia-noite (horário de Brasília) = 03:00 UTC.
+  // O nome da função (rodarBackupSemanal) ficou de quando era semanal
+  // — o comportamento em si (fazer backup das 3 tabelas) não mudou,
+  // só a frequência.
+  const cronBackup = process.env.CRON_BACKUP || '0 3 * * *';
   cron.schedule(cronBackup, () => {
     rodarBackupSemanal();
   });
@@ -29,7 +29,7 @@ function iniciarAgendador() {
     rodarResumoDiario();
   });
 
-  console.log(`🕒 Agendador iniciado — backup semanal (${cronBackup}), resumo diário (${cronResumo}).`);
+  console.log(`🕒 Agendador iniciado — backup diário (${cronBackup}), resumo diário (${cronResumo}).`);
 }
 
 module.exports = { iniciarAgendador };
