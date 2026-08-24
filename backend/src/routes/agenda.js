@@ -79,7 +79,7 @@ router.get('/hoje', async (req, res) => {
       if ((f.p1_dia === curto || f.p1_dia === longo) && dataCompleta(f.p1_dia)) {
         itensFonada.push({
           pedidoId: f.id, mensagem: 1, senha_os: f.senha_os, nome_comprador: f.nome_comprador,
-          cliente_id: f.cliente_id, whatsapp: f.cliente_whatsapp, para: f.p1_para, tema: f.p1_tema, codigo: f.p1_mensagem, horario: f.p1_horario,
+          cliente_id: f.cliente_id, whatsapp: f.cliente_whatsapp, para: f.p1_para, tema: f.p1_tema, codigo: f.p1_mensagem, dia: f.p1_dia, horario: f.p1_horario,
           celular: f.p1_celular, fixo: f.p1_fixo, quemOferece: f.p1_quem_oferece, resultado: f.p1_resultado,
           passada: Boolean(f.p1_resultado),
         });
@@ -87,7 +87,7 @@ router.get('/hoje', async (req, res) => {
       if ((f.p2_dia === curto || f.p2_dia === longo) && dataCompleta(f.p2_dia)) {
         itensFonada.push({
           pedidoId: f.id, mensagem: 2, senha_os: f.senha_os, nome_comprador: f.nome_comprador,
-          cliente_id: f.cliente_id, whatsapp: f.cliente_whatsapp, para: f.p2_para, tema: f.p2_tema, codigo: f.p2_mensagem, horario: f.p2_horario,
+          cliente_id: f.cliente_id, whatsapp: f.cliente_whatsapp, para: f.p2_para, tema: f.p2_tema, codigo: f.p2_mensagem, dia: f.p2_dia, horario: f.p2_horario,
           celular: f.p2_celular, fixo: f.p2_fixo, quemOferece: f.p2_quem_oferece, resultado: f.p2_resultado,
           passada: Boolean(f.p2_resultado),
         });

@@ -293,13 +293,21 @@ export default function Agenda() {
   }
 
   // Junta a 1ª e a 2ª mensagem do mesmo pedido numa única linha da
-  // lista quando são para o mesmo destinatário e mesmo horário — é o
-  // caso comum de quem compra as duas mensagens de uma vez e passa as
-  // duas juntas na mesma ligação. Sem isso, as duas apareciam como
-  // linhas separadas e não dava pra perceber, só olhando a lista, que
-  // eram a mesma ligação. Uma mensagem já passada e a outra ainda
-  // pendente não é agrupada — nesse caso já não faz mais sentido tratar
-  // como "uma coisa só" na lista.
+  // lista quando são para o mesmo destinatário, mesmo dia e mesmo
+  // horário — é o caso comum de quem compra as duas mensagens de uma
+  // vez e passa as duas juntas na mesma ligação. Sem isso, as duas
+  // apareciam como linhas separadas e não dava pra perceber, só
+  // olhando a lista, que eram a mesma ligação.
+  //
+  // O dia entra na comparação (além do horário) porque, por
+  // coincidência, dá pra ter a 1ª mensagem marcada pra um dia X e a 2ª
+  // marcada bem depois pra outro dia Z, ambas pro mesmo destinatário e
+  // no mesmo horário Y (ex: sempre liga às 14h) — sem checar o dia
+  // também, essas duas ligações completamente separadas apareceriam
+  // agrupadas como se fossem uma coisa só, o que estaria errado. Uma
+  // mensagem já passada e a outra ainda pendente também não é
+  // agrupada — nesse caso já não faz mais sentido tratar como "uma
+  // coisa só" na lista.
   function agruparMensagensDuplas(lista) {
     const porPedido = new Map();
     for (const item of lista) {
@@ -315,6 +323,8 @@ export default function Agenda() {
       const podeAgrupar = par
         && (item.para || '').trim().toUpperCase() === (par.para || '').trim().toUpperCase()
         && (item.para || '').trim() !== ''
+        && item.dia === par.dia
+        && item.dia
         && item.horario === par.horario
         && item.horario
         && item.passada === par.passada;
