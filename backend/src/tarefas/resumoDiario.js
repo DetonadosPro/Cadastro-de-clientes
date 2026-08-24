@@ -44,26 +44,47 @@ async function montarResumoDoDia() {
     `),
   ]);
 
-  const todasLinhas = [
-    ...fonadasResultado.rows.map((l) => ({ ...l, dataPago: l.data_pagamento })),
-    ...aoVivoResultado.rows.map((l) => ({ ...l, dataPago: l.data_pagou })),
-  ];
+  const fonadas = fonadasResultado.rows.map((l) => ({ ...l, dataPago: l.data_pagamento }));
+  const aoVivo = aoVivoResultado.rows.map((l) => ({ ...l, dataPago: l.data_pagou }));
 
-  const vendidoHoje = todasLinhas.filter((l) => paraChaveComparavel(l.data_pedido) === hojeChave);
-  const valorVendido = vendidoHoje.reduce((soma, l) => soma + (l.valor || 0), 0);
+  // Resume um grupo (fonada ou ao vivo) considerando só o dia de hoje —
+  // tanto o que foi vendido hoje quanto o que foi pago hoje e o que,
+  // dentre o vendido hoje, ainda ficou pendente de pagamento até agora.
+  function resumirGrupo(linhas) {
+    const vendidasHoje = linhas.filter((l) => paraChaveComparavel(l.data_pedido) === hojeChave);
+    const valorVendido = vendidasHoje.reduce((soma, l) => soma + (l.valor || 0), 0);
 
-  const recebidoHoje = todasLinhas.filter((l) => paraChaveComparavel(l.dataPago) === hojeChave && l.pagou === 'SIM');
-  const valorRecebido = recebidoHoje.reduce((soma, l) => soma + (l.valor || 0), 0);
+    const recebidasHoje = linhas.filter((l) => paraChaveComparavel(l.dataPago) === hojeChave && l.pagou === 'SIM');
+    const valorRecebido = recebidasHoje.reduce((soma, l) => soma + (l.valor || 0), 0);
 
-  const pendentes = todasLinhas.filter((l) => l.pagou !== 'SIM');
+    const pendentesHoje = vendidasHoje.filter((l) => l.pagou !== 'SIM');
+    const valorPendente = pendentesHoje.reduce((soma, l) => soma + (l.valor || 0), 0);
+
+    return {
+      quantidadeVendida: vendidasHoje.length,
+      valorVendido,
+      quantidadeRecebida: recebidasHoje.length,
+      valorRecebido,
+      quantidadePendente: pendentesHoje.length,
+      valorPendente,
+    };
+  }
+
+  const resumoFonada = resumirGrupo(fonadas);
+  const resumoAoVivo = resumirGrupo(aoVivo);
 
   return {
     dia: hoje,
-    quantidadeVendida: vendidoHoje.length,
-    valorVendido,
-    quantidadeRecebida: recebidoHoje.length,
-    valorRecebido,
-    quantidadePendente: pendentes.length,
+    fonada: resumoFonada,
+    aoVivo: resumoAoVivo,
+    total: {
+      quantidadeVendida: resumoFonada.quantidadeVendida + resumoAoVivo.quantidadeVendida,
+      valorVendido: resumoFonada.valorVendido + resumoAoVivo.valorVendido,
+      quantidadeRecebida: resumoFonada.quantidadeRecebida + resumoAoVivo.quantidadeRecebida,
+      valorRecebido: resumoFonada.valorRecebido + resumoAoVivo.valorRecebido,
+      quantidadePendente: resumoFonada.quantidadePendente + resumoAoVivo.quantidadePendente,
+      valorPendente: resumoFonada.valorPendente + resumoAoVivo.valorPendente,
+    },
   };
 }
 
@@ -71,12 +92,22 @@ async function rodarResumoDiario() {
   console.log('📊 Gerando resumo diário...');
   try {
     const resumo = await montarResumoDoDia();
+    const { fonada, aoVivo, total } = resumo;
 
     const texto =
       `📋 Resumo do dia ${resumo.dia} — Pombo-Correio\n\n` +
-      `💰 Vendido: ${resumo.quantidadeVendida} pedido(s), ${formatarReais(resumo.valorVendido)}\n` +
-      `✅ Recebido: ${resumo.quantidadeRecebida} pagamento(s), ${formatarReais(resumo.valorRecebido)}\n` +
-      `⏳ Pendentes no total: ${resumo.quantidadePendente} pedido(s)`;
+      `💰 Vendido\n` +
+      `Fonada: ${fonada.quantidadeVendida} pedido(s), ${formatarReais(fonada.valorVendido)}\n` +
+      `Ao vivo: ${aoVivo.quantidadeVendida} pedido(s), ${formatarReais(aoVivo.valorVendido)}\n` +
+      `Total: ${total.quantidadeVendida} pedido(s), ${formatarReais(total.valorVendido)}\n\n` +
+      `✅ Recebido\n` +
+      `Fonada: ${fonada.quantidadeRecebida} pagamento(s), ${formatarReais(fonada.valorRecebido)}\n` +
+      `Ao vivo: ${aoVivo.quantidadeRecebida} pagamento(s), ${formatarReais(aoVivo.valorRecebido)}\n` +
+      `Total: ${total.quantidadeRecebida} pagamento(s), ${formatarReais(total.valorRecebido)}\n\n` +
+      `⏳ Pendente de hoje\n` +
+      `Fonada: ${fonada.quantidadePendente} pedido(s), ${formatarReais(fonada.valorPendente)}\n` +
+      `Ao vivo: ${aoVivo.quantidadePendente} pedido(s), ${formatarReais(aoVivo.valorPendente)}\n` +
+      `Total: ${total.quantidadePendente} pedido(s), ${formatarReais(total.valorPendente)}`;
 
     if (telegramDisponivel()) {
       const resultado = await enviarTelegram(texto);
