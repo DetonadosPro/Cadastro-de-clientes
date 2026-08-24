@@ -56,6 +56,17 @@ async function chamar(caminho, opcoes = {}) {
   if (!resposta.ok) {
     if (resposta.status === 401) {
       limparSessao();
+      // Sessão expirada (token inválido/vencido) — manda de volta pro
+      // login em vez de deixar a pessoa numa tela travada fazendo
+      // chamadas que sempre vão falhar. Usa window.location (não
+      // useNavigate) porque este arquivo não é um componente React e
+      // fica fora da árvore do react-router; a recarga completa também
+      // garante que todo estado da aplicação é limpo junto.
+      // Evita redirecionar de novo se já está no login (ex: senha
+      // errada ao tentar entrar, que também retorna 401).
+      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+        window.location.href = '/login';
+      }
     }
     throw new Error(dados.erro || 'Erro ao comunicar com o servidor.');
   }
