@@ -739,6 +739,10 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onD
 
       <div className="grade grade-2" style={{ marginBottom: 12 }}>
         <Info label="Destinatário" valor={item.para} />
+        {item.celular && <InfoTelefone label="Celular" valor={item.celular} />}
+      </div>
+
+      <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid var(--papel-alt)' }}>
         {par ? (
           <Info
             label="Tema (1ª + 2ª)"
@@ -752,10 +756,9 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onD
         )}
       </div>
 
-      {(item.celular || item.fixo) && (
-        <div className="grade grade-2" style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid var(--papel-alt)' }}>
-          {item.celular && <InfoTelefone label="Celular" valor={item.celular} />}
-          {item.fixo && <Info label="Fixo" valor={item.fixo} />}
+      {item.fixo && (
+        <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid var(--papel-alt)' }}>
+          <Info label="Fixo" valor={item.fixo} />
         </div>
       )}
 
