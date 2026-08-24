@@ -41,7 +41,9 @@ async function enviarEmail({ destinatario, assunto, texto, anexos }) {
     if (anexos && anexos.length > 0) {
       corpo.attachments = anexos.map((a) => ({
         filename: a.filename,
-        content: Buffer.from(a.content, 'utf-8').toString('base64'),
+        // Anexos já comprimidos (gzip) chegam prontos em base64 — só
+        // os que ainda são texto puro precisam da conversão aqui.
+        content: a.jaComprimido ? a.content : Buffer.from(a.content, 'utf-8').toString('base64'),
       }));
     }
 
