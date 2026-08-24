@@ -78,6 +78,7 @@ async function iniciar() {
   console.log('🔍 Diagnóstico GMAIL_SENHA_APP definido?', Boolean(process.env.GMAIL_SENHA_APP));
   console.log('🔍 Diagnóstico GMAIL_USUARIO tamanho:', (process.env.GMAIL_USUARIO || '').length);
   console.log('🔍 Diagnóstico GMAIL_SENHA_APP tamanho:', (process.env.GMAIL_SENHA_APP || '').length);
+  console.log('🔍 Diagnóstico — todas as variáveis visíveis (só nomes):', Object.keys(process.env).sort().join(', '));
 
   iniciarAgendador();
 }
