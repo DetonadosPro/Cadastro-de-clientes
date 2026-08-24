@@ -759,9 +759,16 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onD
         </div>
       )}
 
-      {item.quemOferece && (
+      {(item.quemOferece || (par && par.quemOferece)) && (
         <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid var(--papel-alt)' }}>
-          <Info label="Quem oferece" valor={item.quemOferece} />
+          {par ? (
+            <div className="grade grade-2">
+              <Info label="Quem oferece (1ª)" valor={item.quemOferece} />
+              <Info label="Quem oferece (2ª)" valor={par.quemOferece} />
+            </div>
+          ) : (
+            <Info label="Quem oferece" valor={item.quemOferece} />
+          )}
         </div>
       )}
 
