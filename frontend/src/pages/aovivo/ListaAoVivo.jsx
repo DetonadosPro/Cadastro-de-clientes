@@ -260,7 +260,7 @@ export default function ListaAoVivo() {
                   </th>
                   <th>O.S.</th>
                   <th>Status</th>
-                  <th>Comprador</th>
+                  <th>Cliente</th>
                   <th>Para</th>
                   <th>Evento</th>
                   <th>Bairro</th>
@@ -293,7 +293,7 @@ export default function ListaAoVivo() {
                     <td data-label="Status" onClick={(e) => e.stopPropagation()}>
                       <IndicadorEntrega status={statusEntrega(p)} />
                     </td>
-                    <td data-label="Comprador">{p.comprador}</td>
+                    <td data-label="Cliente">{p.comprador}</td>
                     <td data-label="Para">{p.para || '—'}</td>
                     <td data-label="Evento">{p.dia_entrega} {p.horario_entrega ? `— ${p.horario_entrega}` : ''}</td>
                     <td data-label="Bairro">{p.bairro || '—'}</td>

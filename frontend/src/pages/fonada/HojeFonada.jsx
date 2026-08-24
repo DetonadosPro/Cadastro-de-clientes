@@ -47,7 +47,7 @@ export default function HojeFonada() {
                   </span>
                 </div>
                 <div className="grade grade-3" style={{ marginTop: 12 }}>
-                  <Info label="Comprador" valor={p.nome_comprador} />
+                  <Info label="Cliente" valor={p.nome_comprador} />
                   <Info label="Para" valor={ehHoje1 ? p.p1_para : p.p2_para} />
                   <Info label="Tema" valor={ehHoje1 ? p.p1_tema : p.p2_tema} />
                   <Info label="Telefone" valor={ehHoje1 ? p.p1_celular : p.p2_celular} />

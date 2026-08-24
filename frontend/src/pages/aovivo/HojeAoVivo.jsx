@@ -47,7 +47,7 @@ export default function HojeAoVivo() {
                   </span>
                 </div>
                 <div className="grade grade-3" style={{ marginTop: 12 }}>
-                  <Info label="Comprador" valor={p.comprador} />
+                  <Info label="Cliente" valor={p.comprador} />
                   <Info label="Para" valor={p.para} />
                   <Info label="Endereço" valor={p.endereco} />
                   <Info label="Bairro" valor={p.bairro} />

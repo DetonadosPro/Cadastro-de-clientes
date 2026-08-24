@@ -555,7 +555,7 @@ export default function FormAoVivo() {
 
               <div className="section-box secao-comprador" style={{ flex: '1 1 320px', minWidth: 320, height: '100%', overflow: 'hidden', boxSizing: 'border-box' }}>
                 <div className="section-title">
-                  <span>Comprador</span>
+                  <span>Cliente</span>
                   {cliente && (
                     <button type="button" className="btn-small" onClick={() => navigate(`/clientes/${cliente.id}`)}>
                       Ver/editar cliente

@@ -353,11 +353,24 @@ export default function FormFonada() {
     set(campo, formatado);
   }
 
-  function copiarEntreMensagens(nomeCampo, deMensagem) {
+  // Copia um ou mais campos da mensagem de origem para a mensagem de
+  // destino, tudo numa única atualização de estado. Antes, cada campo
+  // era copiado com uma chamada separada de set() — como set() lê o
+  // "dados" atual do fechamento (closure), a segunda chamada (e
+  // seguintes) ainda enxergava o "dados" de antes da primeira cópia
+  // ser aplicada, sobrescrevendo-a. Na prática isso fazia o botão P
+  // (passar) da 1ª mensagem, que deveria copiar tema E número, só
+  // copiar o último campo copiado (o número), perdendo o tema.
+  function copiarEntreMensagens(nomesCampos, deMensagem) {
+    const campos = Array.isArray(nomesCampos) ? nomesCampos : [nomesCampos];
     const origemPrefixo = deMensagem === 1 ? 'p1' : 'p2';
     const destinoPrefixo = deMensagem === 1 ? 'p2' : 'p1';
-    const valor = dados[`${origemPrefixo}_${nomeCampo}`];
-    set(`${destinoPrefixo}_${nomeCampo}`, valor);
+    const novo = { ...dados };
+    for (const nomeCampo of campos) {
+      novo[`${destinoPrefixo}_${nomeCampo}`] = dados[`${origemPrefixo}_${nomeCampo}`];
+    }
+    setDados(novo);
+    setRascunhoFonada({ chave: chaveRascunho, dados: novo, cliente });
   }
 
   function limpar() {
@@ -595,8 +608,19 @@ export default function FormFonada() {
                   value={dados.recall}
                   onChange={(e) => {
                     const novoValor = e.target.value;
-                    set('recall', novoValor);
-                    if (novoValor !== 'SIM') set('recall_codigo', '');
+                    // Atualiza recall e recall_codigo juntos, numa
+                    // única chamada — chamar set() duas vezes seguidas
+                    // aqui usaria o "dados" antigo (ainda sem a
+                    // mudança de recall) na segunda chamada, revertendo
+                    // silenciosamente o recall para o valor anterior
+                    // sempre que se tentava voltar de SIM para NÃO.
+                    const novo = {
+                      ...dados,
+                      recall: novoValor,
+                      recall_codigo: novoValor === 'SIM' ? dados.recall_codigo : '',
+                    };
+                    setDados(novo);
+                    setRascunhoFonada({ chave: chaveRascunho, dados: novo, cliente });
                   }}
                   style={{ maxWidth: 90 }}
                 >
@@ -615,7 +639,7 @@ export default function FormFonada() {
 
             <div className="section-box secao-comprador">
               <div className="section-title titulo-secao-comprador">
-                <span>Comprador</span>
+                <span>Cliente</span>
                 {cliente && (
                   <button type="button" className="btn-small" onClick={() => navigate(`/clientes/${cliente.id}`)}>
                     Ver/editar cliente
@@ -856,7 +880,7 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
         />
         {mostrarBotaoP && (
           <BotaoP
-            onClick={() => { onCopiar('tema', numero); onCopiar('mensagem', numero); }}
+            onClick={() => onCopiar(['tema', 'mensagem'], numero)}
             titulo="Copiar tema/nº para a 2ª mensagem"
           />
         )}
@@ -869,7 +893,7 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
         <input value={dados[`${p}_celular`]} onChange={(e) => setComMascara(`${p}_celular`, e.target.value, 'celular')} disabled={bloqueada} className="campo-celular-fonada" style={{ flex: '1 1 110px', minWidth: 100 }} />
         {mostrarBotaoP && (
           <BotaoP
-            onClick={() => { onCopiar('fixo', numero); onCopiar('celular', numero); }}
+            onClick={() => onCopiar(['fixo', 'celular'], numero)}
             titulo="Copiar telefones para a 2ª mensagem"
           />
         )}
@@ -894,7 +918,7 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
         />
         {mostrarBotaoP && (
           <BotaoP
-            onClick={() => { onCopiar('dia', numero); onCopiar('horario', numero); }}
+            onClick={() => onCopiar(['dia', 'horario'], numero)}
             titulo="Copiar dia/horário para a 2ª mensagem"
           />
         )}

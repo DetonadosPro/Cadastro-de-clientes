@@ -325,7 +325,7 @@ function AbaDesempenho({ sistema }) {
       ) : dados && (
         dados.funcionarios.length === 0 ? (
           <div className="painel" style={{ marginTop: 16, textAlign: 'center', color: 'var(--tinta-suave)' }}>
-            Nenhum vendedor ou mensagem passada registrada nesse período. Pedidos antigos, de antes desse
+            Nenhum vendedor ou mensagem transmitida registrada nesse período. Pedidos antigos, de antes desse
             registro existir, não aparecem aqui.
           </div>
         ) : (
@@ -353,7 +353,7 @@ function CartaoFuncionario({ funcionario }) {
         <CartaoValor label="Valor Ao Vivo" valor={formatarReais(funcionario.valorVendidoAoVivo)} />
       </div>
       <div className="grade grade-relatorio grade-3" style={{ marginTop: 10 }}>
-        <CartaoValor label="Mensagens passadas (Fonada)" valor={funcionario.mensagensPassadasFonada} />
+        <CartaoValor label="Mensagens transmitidas (Fonada)" valor={funcionario.mensagensPassadasFonada} />
       </div>
     </div>
   );

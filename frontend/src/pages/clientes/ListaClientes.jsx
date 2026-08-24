@@ -10,13 +10,11 @@ const OPCOES_FILTRO = [
   { valor: 'nascimento', label: 'Data de aniversário' },
   { valor: 'endereco', label: 'Endereço' },
   { valor: 'fixo', label: 'Telefone fixo' },
-  { valor: 'whatsapp', label: 'WhatsApp' },
 ];
 
 const MASCARA_POR_FILTRO = {
   nascimento: formatarData,
   celular: formatarCelular,
-  whatsapp: formatarCelular,
   fixo: formatarFixo,
 };
 

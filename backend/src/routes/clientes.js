@@ -86,8 +86,9 @@ function nomesParecidos(nomeA, nomeB) {
 const FILTROS_CLIENTE = {
   nome: { coluna: 'nome', tipo: 'texto' },
   nascimento: { coluna: 'nascimento', tipo: 'data' },
-  celular: { coluna: 'celular', tipo: 'texto' },
-  whatsapp: { coluna: 'whatsapp', tipo: 'texto' },
+  // Celular busca tanto no campo celular quanto no whatsapp do
+  // cliente — o mesmo comportamento já usado na busca de fonada.
+  celular: { colunas: ['celular', 'whatsapp'], tipo: 'texto' },
   fixo: { coluna: 'fixo', tipo: 'texto' },
   endereco: { coluna: 'endereco', tipo: 'texto' },
 };
@@ -114,10 +115,17 @@ function montarFiltroCliente(campo, termo, indiceInicial) {
   const padrao = filtro.tipo === 'data' ? `${termo}%` : `%${termo}%`;
   // Datas não têm noção de maiúsculas/minúsculas/acento — LIKE comum
   // já é suficiente e mais rápido (evita a função unaccent à toa).
-  const where = filtro.tipo === 'data'
-    ? `${filtro.coluna} LIKE $${indiceInicial}`
-    : condicaoTexto(filtro.coluna, indiceInicial);
-  return { where, params: [padrao] };
+  if (filtro.tipo === 'data') {
+    return { where: `${filtro.coluna} LIKE $${indiceInicial}`, params: [padrao] };
+  }
+  // Filtros com múltiplas colunas (ex: celular também busca em
+  // whatsapp) usam o mesmo termo repetido em placeholders distintos,
+  // unidas por OR entre parênteses.
+  const colunas = filtro.colunas || [filtro.coluna];
+  const condicoes = colunas.map((coluna, i) => condicaoTexto(coluna, indiceInicial + i));
+  const where = `(${condicoes.join(' OR ')})`;
+  const params = colunas.map(() => padrao);
+  return { where, params };
 }
 
 // Colunas permitidas para ordenação da listagem de clientes — nunca aceitar
@@ -393,6 +401,15 @@ router.post('/mesclar-automatico', async (req, res) => {
       [...valoresFinais, vencedor.id]
     );
     await client.query('UPDATE clientes SET excluido_em = NOW() WHERE id = $1', [perdedor.id]);
+
+    // Sincroniza a cópia do nome em todos os pedidos que agora
+    // pertencem ao vencedor (tanto os que já eram dele quanto os que
+    // acabaram de ser transferidos do perdedor), para a busca de
+    // pedidos continuar batendo com o nome final do cliente mesclado.
+    const nomeFinal = valoresFinais[0];
+    await client.query('UPDATE fonadas SET nome_comprador = $1 WHERE cliente_id = $2 AND excluido_em IS NULL', [nomeFinal, vencedor.id]);
+    await client.query('UPDATE ao_vivo SET comprador = $1 WHERE cliente_id = $2 AND excluido_em IS NULL', [nomeFinal, vencedor.id]);
+
     await client.query('COMMIT');
 
     const atualizado = await client.query('SELECT * FROM clientes WHERE id = $1', [vencedor.id]);
@@ -506,6 +523,26 @@ router.put('/:id', async (req, res) => {
       `UPDATE clientes SET ${setClause}, atualizado_em = NOW() WHERE id = $${idxId}`,
       [...valores, req.params.id]
     );
+
+    // O nome do cliente fica copiado ("congelado") em cada pedido no
+    // momento da criação — nome_comprador em fonadas, comprador em
+    // ao_vivo — porque o pedido precisa manter esse dado mesmo se o
+    // cliente for excluído depois. Mas isso significa que editar o
+    // nome aqui, sem propagar, deixa a busca de pedidos (que usa essa
+    // cópia) desatualizada mesmo que a tela do pedido mostre o nome
+    // certo (ela busca o cliente à parte, ao vivo). Sincroniza as
+    // cópias sempre que o nome mudar, para a busca continuar batendo
+    // com o nome atual do cliente.
+    if (dados.nome !== undefined) {
+      await db.query(
+        `UPDATE fonadas SET nome_comprador = $1 WHERE cliente_id = $2 AND excluido_em IS NULL`,
+        [dados.nome, req.params.id]
+      );
+      await db.query(
+        `UPDATE ao_vivo SET comprador = $1 WHERE cliente_id = $2 AND excluido_em IS NULL`,
+        [dados.nome, req.params.id]
+      );
+    }
 
     const atualizado = await db.query('SELECT * FROM clientes WHERE id = $1', [req.params.id]);
     res.json(atualizado.rows[0]);
@@ -671,6 +708,13 @@ router.post('/:id/mesclar', async (req, res) => {
     // o registro de origem é arquivado (soft delete) sem que seus
     // dados de cadastro sejam copiados para lugar nenhum.
     await client.query('UPDATE clientes SET excluido_em = NOW() WHERE id = $1', [origemId]);
+
+    // Os pedidos migrados da origem ainda carregam a cópia do nome
+    // antigo (nome_comprador / comprador) — sincroniza com o nome do
+    // destino, que é quem prevalece nessa mesclagem manual.
+    await client.query('UPDATE fonadas SET nome_comprador = $1 WHERE cliente_id = $2 AND excluido_em IS NULL', [destino.nome, destinoId]);
+    await client.query('UPDATE ao_vivo SET comprador = $1 WHERE cliente_id = $2 AND excluido_em IS NULL', [destino.nome, destinoId]);
+
     await client.query('COMMIT');
 
     const atualizado = await client.query('SELECT * FROM clientes WHERE id = $1', [destinoId]);

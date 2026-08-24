@@ -179,7 +179,7 @@ export default function ListaFonada() {
               <thead>
                 <tr>
                   <th>O.S.</th>
-                  <th>Comprador</th>
+                  <th>Cliente</th>
                   <th className="col-somente-desktop">Destinatário 1</th>
                   <th className="col-somente-desktop">Destinatário 2</th>
                   <th>Mensagens</th>
@@ -216,7 +216,7 @@ export default function ListaFonada() {
                         {p.senha_os || p.id}
                       </span>
                     </td>
-                    <td data-label="Comprador">{p.nome_comprador}</td>
+                    <td data-label="Cliente">{p.nome_comprador}</td>
                     <td data-label="Destinatário 1" className="col-somente-desktop">{p.p1_para || '—'}</td>
                     <td data-label="Destinatário 2" className="col-somente-desktop">{p.p2_para || '—'}</td>
                     <td data-label="Mensagens">

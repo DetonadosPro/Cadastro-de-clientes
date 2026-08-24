@@ -668,12 +668,12 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onD
         nome={item.nome_comprador}
         whatsapp={item.whatsapp}
       />
-      <div className="fs-sm" style={{ color: 'var(--tinta-suave)', marginBottom: 14 }}>
+      <div className="fs-sm" style={{ color: 'var(--tinta-suave)', marginBottom: 14, paddingBottom: 14, borderBottom: '2px solid var(--papel-alt)' }}>
         {item.horario || '—'}
       </div>
 
       <div className="grade grade-2" style={{ marginBottom: 12 }}>
-        <Info label="Para" valor={item.para} />
+        <Info label="Destinatário" valor={item.para} />
         <Info label="Tema" valor={item.tema ? `${item.tema}${item.codigo ? ' · ' + item.codigo : ''}` : (item.codigo || null)} />
       </div>
 
@@ -895,12 +895,12 @@ function DetalhesAoVivo({ item, ehHoje, salvandoBaixa, navigate, onDarBaixaAoViv
         {!item.ehCobranca && foiEntregue && <span className="tag ok">Entregue</span>}
       </div>
       <div className="fs-lg" style={{ fontWeight: 700, marginBottom: 2 }}>{item.comprador || '—'}</div>
-      <div className="fs-sm" style={{ color: 'var(--tinta-suave)', marginBottom: 14 }}>
+      <div className="fs-sm" style={{ color: 'var(--tinta-suave)', marginBottom: 14, paddingBottom: 14, borderBottom: '2px solid var(--papel-alt)' }}>
         {item.ehCobranca ? 'Cobrança prevista' : (item.horario_entrega || '—')}
       </div>
 
       <div className="grade grade-2" style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid var(--papel-alt)' }}>
-        <Info label="Para" valor={item.para} />
+        <Info label="Destinatário" valor={item.para} />
         <Info label="Endereço" valor={item.endereco} />
         <Info label="Bairro" valor={item.bairro} />
         <Info label="Referência" valor={item.referencia} />
