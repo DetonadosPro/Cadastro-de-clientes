@@ -447,6 +447,7 @@ export default function Agenda() {
                         horario={item.horario}
                         titulo={item.nome_comprador}
                         tagExtra={item.agrupada ? '1ª + 2ª juntas' : `${item.mensagem}ª msg`}
+                        tagExtraDestaque={Boolean(item.agrupada)}
                         status={(!ehHoje || jaPassada) ? (item.resultado ? 'Passada' : 'Pendente') : null}
                         statusOk={Boolean(item.resultado)}
                       />
@@ -675,7 +676,7 @@ function IconeChevron({ aberto }) {
 // Uma linha fina e clicável na lista compacta — horário, nome, tag de
 // urgência/status. Reduz cada item a uma tira baixa, para caber muitos
 // na tela sem rolar, em vez do card grande com todos os campos aberto.
-function LinhaAgenda({ selecionada, onClick, urgencia, jaPassada, senhaOs, horario, titulo, tagExtra, status, statusOk }) {
+function LinhaAgenda({ selecionada, onClick, urgencia, jaPassada, senhaOs, horario, titulo, tagExtra, tagExtraDestaque, status, statusOk }) {
   return (
     <div
       className={`linha-agenda ${selecionada ? 'selecionada' : ''} ${urgencia ? `urgencia-${urgencia}` : ''} ${jaPassada ? 'passada' : ''}`}
@@ -689,7 +690,7 @@ function LinhaAgenda({ selecionada, onClick, urgencia, jaPassada, senhaOs, horar
         {horario || '—'}
       </span>
       <span className="linha-agenda-titulo">{titulo || '—'}</span>
-      {tagExtra && <span className="tag neutro linha-agenda-tag">{tagExtra}</span>}
+      {tagExtra && <span className="tag neutro linha-agenda-tag" style={tagExtraDestaque ? { fontWeight: 700 } : undefined}>{tagExtra}</span>}
       {urgencia === 'atrasada' && <span className="tag pendente linha-agenda-tag">Atrasado</span>}
       {urgencia === 'proxima' && <span className="tag aviso linha-agenda-tag">Chegando</span>}
       {status && <span className={`tag ${statusOk ? 'ok' : 'pendente'} linha-agenda-tag`}>{status}</span>}
@@ -717,7 +718,7 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onD
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
         <span className="carimbo-os carimbo-os-lista">{item.senha_os || item.pedidoId}</span>
         {par ? (
-          <span className="tag neutro">1ª + 2ª mensagem juntas</span>
+          <span className="tag neutro" style={{ fontWeight: 700 }}>1ª + 2ª mensagem juntas</span>
         ) : (
           <span className="tag neutro">{item.mensagem}ª mensagem</span>
         )}
