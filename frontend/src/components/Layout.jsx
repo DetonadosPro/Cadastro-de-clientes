@@ -116,6 +116,9 @@ export default function Layout() {
           <div style={estilos.carimboMini}>PC</div>
           <span style={estilos.marcaTexto}>Pombo-Correio</span>
         </div>
+        <div style={estilos.crachaTopbar} title="Usuário logado no momento">
+          {nomeExibicao}
+        </div>
       </div>
 
       <aside className={`layout-sidebar nao-imprimir ${menuAberto ? 'aberto' : ''}`}>
@@ -198,7 +201,10 @@ export default function Layout() {
           </NavLink>
 
           <div style={estilos.rodapeSidebar}>
-            <span className="fs-xs" style={estilos.usuarioTexto}>{nomeExibicao}</span>
+            <div style={estilos.crachaSidebar} title="Usuário logado no momento">
+              <span style={estilos.crachaSidebarRotulo}>Logado como</span>
+              <span style={estilos.crachaSidebarNome}>{nomeExibicao}</span>
+            </div>
             <button onClick={sair} className="btn-sair-menu">
               Sair
             </button>
@@ -276,15 +282,53 @@ const estilos = {
     fontWeight: 700,
     fontSize: 15,
   },
+  // "Crachá" com o nome de quem está logado, sempre visível na barra
+  // superior (inclusive no mobile, sem precisar abrir o menu) — o
+  // objetivo é que fique impossível não perceber quem está usando o
+  // sistema no momento, para lembrar de trocar quando for o caso.
+  crachaTopbar: {
+    marginLeft: 'auto',
+    fontWeight: 700,
+    fontSize: 14,
+    color: '#ffffff',
+    background: 'rgba(255,255,255,0.16)',
+    border: '1px solid rgba(255,255,255,0.35)',
+    borderRadius: 999,
+    padding: '6px 14px',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    maxWidth: '45vw',
+  },
   rodapeSidebar: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 8,
+    gap: 10,
     paddingTop: 16,
     borderTop: '1px solid rgba(255,255,255,0.15)',
   },
-  usuarioTexto: {
+  // Crachá bem visível com o nome de quem está logado — antes era um
+  // texto pequeno e discreto (fs-xs), fácil de passar batido; agora é
+  // um cartão com fundo próprio, para não ter como não notar quem está
+  // usando o sistema no momento e lembrar de trocar quando for o caso.
+  crachaSidebar: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+    background: 'rgba(255,255,255,0.14)',
+    border: '1px solid rgba(255,255,255,0.3)',
+    borderRadius: 10,
+    padding: '8px 12px',
+  },
+  crachaSidebarRotulo: {
+    fontSize: 11,
     color: '#c9d9ec',
-    paddingLeft: 4,
+    letterSpacing: '0.02em',
+    textTransform: 'uppercase',
+  },
+  crachaSidebarNome: {
+    fontSize: 16,
+    fontWeight: 700,
+    color: '#ffffff',
   },
 };
