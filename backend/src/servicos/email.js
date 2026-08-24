@@ -1,52 +1,64 @@
 // src/servicos/email.js
 //
-// Serviço de envio de email via Gmail, usado tanto pelo backup
-// automático quanto pelo resumo diário. Depende de duas variáveis de
-// ambiente (configuradas no Railway, nunca no código):
-//   GMAIL_USUARIO    — o email do Gmail que envia (ex: seuemail@gmail.com)
-//   GMAIL_SENHA_APP   — uma "senha de app" gerada em
-//                        myaccount.google.com/apppasswords (não é a
-//                        senha normal da conta — Gmail bloqueia login
-//                        de app com a senha normal por segurança)
+// Serviço de envio de email via Resend (API HTTPS), usado tanto pelo
+// backup automático quanto pelo resumo diário. Depende de duas
+// variáveis de ambiente (configuradas no Railway, nunca no código):
+//   RESEND_API_KEY     — chave gerada em resend.com/api-keys
+//   EMAIL_DESTINATARIO — para onde os backups/resumos são enviados
+//                        (ex: pcmensagensbackup@gmail.com)
 //
-// Se essas variáveis não estiverem configuradas, os envios falham
+// Usa Resend em vez de SMTP direto (Gmail) porque o Railway, no plano
+// Hobby, bloqueia conexões SMTP de saída (portas 465/587) — só libera
+// isso a partir do plano Pro. Resend funciona via API HTTPS normal,
+// que não tem essa restrição.
+//
+// Se as variáveis não estiverem configuradas, os envios falham
 // silenciosamente com um aviso no log — o resto do sistema continua
 // funcionando normalmente, o email é só um "extra".
 
-const nodemailer = require('nodemailer');
-
 function transportadorDisponivel() {
-  return Boolean(process.env.GMAIL_USUARIO && process.env.GMAIL_SENHA_APP);
+  return Boolean(process.env.RESEND_API_KEY && process.env.EMAIL_DESTINATARIO);
 }
 
-function criarTransportador() {
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.GMAIL_USUARIO,
-      pass: process.env.GMAIL_SENHA_APP,
-    },
-  });
-}
-
-// Envia um email simples (texto ou com anexo). `destinatario` pode ser
-// omitido — nesse caso envia para o próprio GMAIL_USUARIO (útil para
-// backups e resumos que são "para você mesmo").
+// Envia um email simples (texto ou com anexos) via API do Resend.
+// `anexos` segue o mesmo formato usado antes ({ filename, content }),
+// convertido aqui para o formato que a API do Resend espera
+// (content precisa ser base64).
 async function enviarEmail({ destinatario, assunto, texto, anexos }) {
   if (!transportadorDisponivel()) {
-    console.warn('⚠️  Email não enviado — GMAIL_USUARIO/GMAIL_SENHA_APP não configurados.');
+    console.warn('⚠️  Email não enviado — RESEND_API_KEY/EMAIL_DESTINATARIO não configurados.');
     return { enviado: false, motivo: 'não configurado' };
   }
 
   try {
-    const transportador = criarTransportador();
-    await transportador.sendMail({
-      from: `Pombo-Correio <${process.env.GMAIL_USUARIO}>`,
-      to: destinatario || process.env.GMAIL_USUARIO,
+    const corpo = {
+      from: 'Pombo-Correio <onboarding@resend.dev>',
+      to: [destinatario || process.env.EMAIL_DESTINATARIO],
       subject: assunto,
       text: texto,
-      attachments: anexos || [],
+    };
+
+    if (anexos && anexos.length > 0) {
+      corpo.attachments = anexos.map((a) => ({
+        filename: a.filename,
+        content: Buffer.from(a.content, 'utf-8').toString('base64'),
+      }));
+    }
+
+    const resposta = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(corpo),
     });
+
+    if (!resposta.ok) {
+      const detalhe = await resposta.text().catch(() => '');
+      throw new Error(`Resend respondeu ${resposta.status}: ${detalhe}`);
+    }
+
     return { enviado: true };
   } catch (erro) {
     console.error('❌ Erro ao enviar email:', erro.message);
