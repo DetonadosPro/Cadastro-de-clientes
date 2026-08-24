@@ -130,12 +130,13 @@ export default function Agenda() {
     }, { replace: true });
   }
 
-  async function darBaixa(item) {
+  async function darBaixa(item, par) {
     const chave = `${item.pedidoId}-${item.mensagem}`;
     setSalvandoBaixa(chave);
     try {
       await api.agenda.darBaixaFonada(item.pedidoId, item.mensagem);
-      mostrarToast('Baixa registrada com sucesso.');
+      if (par) await api.agenda.darBaixaFonada(par.pedidoId, par.mensagem);
+      mostrarToast(par ? 'Baixa registrada nas 2 mensagens.' : 'Baixa registrada com sucesso.');
       abrirWhatsappSeExistir(item.whatsapp, mensagemConfirmacao(item.nome_comprador, item.para));
       carregar();
     } catch (err) {
@@ -145,12 +146,13 @@ export default function Agenda() {
     }
   }
 
-  async function desfazerBaixa(item) {
+  async function desfazerBaixa(item, par) {
     const chave = `desfazer-${item.pedidoId}-${item.mensagem}`;
     setSalvandoBaixa(chave);
     try {
       await api.agenda.desfazerBaixaFonada(item.pedidoId, item.mensagem);
-      mostrarToast('Baixa desfeita.');
+      if (par) await api.agenda.desfazerBaixaFonada(par.pedidoId, par.mensagem);
+      mostrarToast(par ? 'Baixa desfeita nas 2 mensagens.' : 'Baixa desfeita.');
       carregar();
     } catch (err) {
       mostrarToast('Não foi possível desfazer. Tente novamente.', 'erro');
@@ -290,7 +292,49 @@ export default function Agenda() {
     });
   }
 
-  const fonadaExibida = ehHoje ? ordenarPendentesPrimeiro(fonada, 'horario') : fonada;
+  // Junta a 1ª e a 2ª mensagem do mesmo pedido numa única linha da
+  // lista quando são para o mesmo destinatário e mesmo horário — é o
+  // caso comum de quem compra as duas mensagens de uma vez e passa as
+  // duas juntas na mesma ligação. Sem isso, as duas apareciam como
+  // linhas separadas e não dava pra perceber, só olhando a lista, que
+  // eram a mesma ligação. Uma mensagem já passada e a outra ainda
+  // pendente não é agrupada — nesse caso já não faz mais sentido tratar
+  // como "uma coisa só" na lista.
+  function agruparMensagensDuplas(lista) {
+    const porPedido = new Map();
+    for (const item of lista) {
+      if (!porPedido.has(item.pedidoId)) porPedido.set(item.pedidoId, []);
+      porPedido.get(item.pedidoId).push(item);
+    }
+
+    const idsAbsorvidos = new Set();
+    for (const item of lista) {
+      if (item.mensagem !== 1) continue;
+      const doMesmoPedido = porPedido.get(item.pedidoId) || [];
+      const par = doMesmoPedido.find((outro) => outro.mensagem === 2);
+      const podeAgrupar = par
+        && (item.para || '').trim().toUpperCase() === (par.para || '').trim().toUpperCase()
+        && (item.para || '').trim() !== ''
+        && item.horario === par.horario
+        && item.horario
+        && item.passada === par.passada;
+      if (podeAgrupar) idsAbsorvidos.add(`${par.pedidoId}-2`);
+    }
+
+    // Mantém a posição original da 1ª mensagem na lista (já ordenada
+    // por horário) — só marca a 2ª mensagem absorvida para não
+    // aparecer de novo como linha própria, sem reordenar nada.
+    return lista
+      .filter((item) => !idsAbsorvidos.has(`${item.pedidoId}-${item.mensagem}`))
+      .map((item) => {
+        if (item.mensagem !== 1) return item;
+        const doMesmoPedido = porPedido.get(item.pedidoId) || [];
+        const par = doMesmoPedido.find((outro) => outro.mensagem === 2 && idsAbsorvidos.has(`${outro.pedidoId}-2`));
+        return par ? { ...item, agrupada: par } : item;
+      });
+  }
+
+  const fonadaExibida = agruparMensagensDuplas(ehHoje ? ordenarPendentesPrimeiro(fonada, 'horario') : fonada);
   const aoVivoExibido = ehHoje ? ordenarPendentesPrimeiro(aoVivo, 'horario_entrega') : aoVivo;
 
   const listaAtual = aba === 'fonada' ? fonadaExibida : aoVivoExibido;
@@ -392,7 +436,7 @@ export default function Agenda() {
                         senhaOs={item.senha_os}
                         horario={item.horario}
                         titulo={item.nome_comprador}
-                        tagExtra={`${item.mensagem}ª msg`}
+                        tagExtra={item.agrupada ? '1ª + 2ª juntas' : `${item.mensagem}ª msg`}
                         status={(!ehHoje || jaPassada) ? (item.resultado ? 'Passada' : 'Pendente') : null}
                         statusOk={Boolean(item.resultado)}
                       />
@@ -651,11 +695,22 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onD
   const jaPassada = ehHoje && item.passada;
   const urgencia = (ehHoje && !jaPassada) ? statusUrgenciaItem(item.horario) : null;
 
+  // Quando as duas mensagens do pedido têm o mesmo destinatário e
+  // horário, vêm juntas nesse item (ver agruparMensagensDuplas) — o
+  // painel mostra o tema/código das duas e dá baixa nas duas de uma vez,
+  // já que na prática são passadas juntas na mesma ligação.
+  const par = item.agrupada;
+  const chavePar = par ? `${par.pedidoId}-${par.mensagem}` : null;
+
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
         <span className="carimbo-os carimbo-os-lista">{item.senha_os || item.pedidoId}</span>
-        <span className="tag neutro">{item.mensagem}ª mensagem</span>
+        {par ? (
+          <span className="tag neutro">1ª + 2ª mensagem juntas</span>
+        ) : (
+          <span className="tag neutro">{item.mensagem}ª mensagem</span>
+        )}
         {urgencia === 'atrasada' && <span className="tag pendente">Atrasado</span>}
         {urgencia === 'proxima' && <span className="tag aviso">Chegando</span>}
         {(!ehHoje || jaPassada) && (
@@ -674,7 +729,17 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onD
 
       <div className="grade grade-2" style={{ marginBottom: 12 }}>
         <Info label="Destinatário" valor={item.para} />
-        <Info label="Tema" valor={item.tema ? `${item.tema}${item.codigo ? ' · ' + item.codigo : ''}` : (item.codigo || null)} />
+        {par ? (
+          <Info
+            label="Tema (1ª + 2ª)"
+            valor={[
+              item.tema ? `${item.tema}${item.codigo ? ' · ' + item.codigo : ''}` : item.codigo,
+              par.tema ? `${par.tema}${par.codigo ? ' · ' + par.codigo : ''}` : par.codigo,
+            ].filter(Boolean).join('  /  ') || null}
+          />
+        ) : (
+          <Info label="Tema" valor={item.tema ? `${item.tema}${item.codigo ? ' · ' + item.codigo : ''}` : (item.codigo || null)} />
+        )}
       </div>
 
       {(item.celular || item.fixo) && (
@@ -692,7 +757,12 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onD
 
       {(!ehHoje || jaPassada) && item.resultado && (
         <div style={{ marginBottom: 14 }}>
-          <Info label="Resultado" valor={item.resultado} />
+          <Info label={par ? 'Resultado (1ª)' : 'Resultado'} valor={item.resultado} />
+        </div>
+      )}
+      {par && (!ehHoje || jaPassada) && par.resultado && (
+        <div style={{ marginBottom: 14 }}>
+          <Info label="Resultado (2ª)" valor={par.resultado} />
         </div>
       )}
 
@@ -715,10 +785,10 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onD
             type="button"
             className="btn-action destaque"
             style={{ flex: 1 }}
-            onClick={() => onDarBaixa(item)}
-            disabled={salvandoBaixa === chave}
+            onClick={() => (par ? onDarBaixa(item, par) : onDarBaixa(item))}
+            disabled={salvandoBaixa === chave || (par && salvandoBaixa === chavePar)}
           >
-            <IconeCheck /> {salvandoBaixa === chave ? 'Salvando...' : 'Marcar passada'}
+            <IconeCheck /> {(salvandoBaixa === chave || (par && salvandoBaixa === chavePar)) ? 'Salvando...' : (par ? 'Marcar as 2 passadas' : 'Marcar passada')}
           </button>
         </div>
       )}
@@ -727,14 +797,15 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onD
           type="button"
           className="btn-action"
           style={{ width: '100%' }}
-          onClick={() => onDesfazerBaixa(item)}
-          disabled={salvandoBaixa === `desfazer-${chave}`}
+          onClick={() => (par ? onDesfazerBaixa(item, par) : onDesfazerBaixa(item))}
+          disabled={salvandoBaixa === `desfazer-${chave}` || (par && salvandoBaixa === `desfazer-${chavePar}`)}
         >
-          {salvandoBaixa === `desfazer-${chave}` ? 'Desfazendo...' : 'Desfazer'}
+          {(salvandoBaixa === `desfazer-${chave}` || (par && salvandoBaixa === `desfazer-${chavePar}`)) ? 'Desfazendo...' : (par ? 'Desfazer as 2' : 'Desfazer')}
         </button>
       )}
 
       <CardRemarcacoes pedidoId={item.pedidoId} mensagem={item.mensagem} />
+      {par && <CardRemarcacoes pedidoId={par.pedidoId} mensagem={par.mensagem} />}
     </div>
   );
 }
