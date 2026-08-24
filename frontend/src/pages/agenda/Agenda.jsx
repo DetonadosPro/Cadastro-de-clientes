@@ -744,13 +744,10 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onD
 
       <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid var(--papel-alt)' }}>
         {par ? (
-          <Info
-            label="Tema (1ª + 2ª)"
-            valor={[
-              item.tema ? `${item.tema}${item.codigo ? ' · ' + item.codigo : ''}` : item.codigo,
-              par.tema ? `${par.tema}${par.codigo ? ' · ' + par.codigo : ''}` : par.codigo,
-            ].filter(Boolean).join('  /  ') || null}
-          />
+          <div className="grade grade-2">
+            <Info label="Tema (1ª)" valor={item.tema ? `${item.tema}${item.codigo ? ' · ' + item.codigo : ''}` : (item.codigo || null)} />
+            <Info label="Tema (2ª)" valor={par.tema ? `${par.tema}${par.codigo ? ' · ' + par.codigo : ''}` : (par.codigo || null)} />
+          </div>
         ) : (
           <Info label="Tema" valor={item.tema ? `${item.tema}${item.codigo ? ' · ' + item.codigo : ''}` : (item.codigo || null)} />
         )}
