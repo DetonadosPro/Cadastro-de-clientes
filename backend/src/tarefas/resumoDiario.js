@@ -1,18 +1,14 @@
 // src/tarefas/resumoDiario.js
 //
 // Todo fim de expediente, monta um resumo do dia (vendido, recebido,
-// pendentes) e envia por email — com um link pronto do WhatsApp
-// (api.whatsapp.com/send?text=...) já preenchido com o resumo, para
-// abrir e enviar com um toque.
-//
-// Isso é uma limitação real do WhatsApp: não existe API gratuita para
-// enviar mensagens de forma 100% automática sem a pessoa tocar em
-// nada — a API oficial (WhatsApp Business Cloud API) tem custo e
-// processo de aprovação. Esse meio-termo (email com link pronto) é a
-// forma mais simples e sem custo de chegar perto do que foi pedido.
+// pendentes) e envia via Telegram — 100% automático, sem precisar
+// tocar em nada (diferente do WhatsApp, que não tem forma gratuita e
+// estável de enviar sem interação manual). Se o Telegram não estiver
+// configurado, cai para o email como alternativa.
 
 const { db } = require('../db/database');
 const { enviarEmail } = require('../servicos/email');
+const { enviarTelegram, telegramDisponivel } = require('../servicos/telegram');
 
 function hojeBr() {
   const agora = new Date();
@@ -76,23 +72,26 @@ async function rodarResumoDiario() {
   try {
     const resumo = await montarResumoDoDia();
 
-    const textoWhatsapp =
+    const texto =
       `📋 Resumo do dia ${resumo.dia} — Pombo-Correio\n\n` +
       `💰 Vendido: ${resumo.quantidadeVendida} pedido(s), ${formatarReais(resumo.valorVendido)}\n` +
       `✅ Recebido: ${resumo.quantidadeRecebida} pagamento(s), ${formatarReais(resumo.valorRecebido)}\n` +
       `⏳ Pendentes no total: ${resumo.quantidadePendente} pedido(s)`;
 
-    const linkWhatsapp = process.env.WHATSAPP_RESUMO_NUMERO
-      ? `https://api.whatsapp.com/send?phone=${process.env.WHATSAPP_RESUMO_NUMERO}&text=${encodeURIComponent(textoWhatsapp)}`
-      : null;
+    if (telegramDisponivel()) {
+      const resultado = await enviarTelegram(texto);
+      if (resultado.enviado) {
+        console.log('✅ Resumo diário enviado por Telegram com sucesso.');
+      } else {
+        console.warn(`⚠️  Resumo gerado, mas não enviado por Telegram: ${resultado.motivo}`);
+      }
+      return;
+    }
 
-    const textoEmail = linkWhatsapp
-      ? `${textoWhatsapp}\n\nToque para abrir no WhatsApp já preenchido:\n${linkWhatsapp}`
-      : `${textoWhatsapp}\n\n(Configure WHATSAPP_RESUMO_NUMERO no Railway para receber também um link pronto do WhatsApp.)`;
-
+    // Sem Telegram configurado — cai para email como alternativa.
     const resultado = await enviarEmail({
       assunto: `Resumo do dia — ${resumo.dia}`,
-      texto: textoEmail,
+      texto: `${texto}\n\n(Configure TELEGRAM_BOT_TOKEN e TELEGRAM_CHAT_ID no Railway para receber isso automaticamente pelo Telegram, sem precisar abrir o email.)`,
     });
 
     if (resultado.enviado) {
