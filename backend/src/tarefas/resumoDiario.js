@@ -39,7 +39,7 @@ function formatarReais(valor) {
 }
 
 async function montarResumoDoDia() {
-  const hoje = '24/08/26'; // coloque aqui a data do dia que quer testar (DD/MM/AA ou DD/MM/AAAA)
+  const hoje = hojeBr();
   const hojeChave = paraChaveComparavel(hoje);
 
   const [fonadasResultado, aoVivoResultado] = await Promise.all([
@@ -48,19 +48,25 @@ async function montarResumoDoDia() {
       FROM fonadas WHERE excluido_em IS NULL
     `),
     db.query(`
-      SELECT valor, data_pedido, pagou, data_pagou
+      SELECT valor, data_pedido, dia_entrega, pagou, data_pagou
       FROM ao_vivo WHERE excluido_em IS NULL
     `),
   ]);
 
-  const fonadas = fonadasResultado.rows.map((l) => ({ ...l, dataPago: l.data_pagamento }));
-  const aoVivo = aoVivoResultado.rows.map((l) => ({ ...l, dataPago: l.data_pagou }));
+  const fonadas = fonadasResultado.rows.map((l) => ({
+    ...l,
+    dataRef: l.data_pedido,
+    dataPago: l.data_pagamento,
+  }));
 
-  // Resume um grupo (fonada ou ao vivo) considerando só o dia de hoje —
-  // tanto o que foi vendido hoje quanto o que foi pago hoje e o que,
-  // dentre o vendido hoje, ainda ficou pendente de pagamento até agora.
+  const aoVivo = aoVivoResultado.rows.map((l) => ({
+    ...l,
+    dataRef: l.dia_entrega,
+    dataPago: l.data_pagou,
+  }));
+
   function resumirGrupo(linhas) {
-    const vendidasHoje = linhas.filter((l) => paraChaveComparavel(l.data_pedido) === hojeChave);
+    const vendidasHoje = linhas.filter((l) => paraChaveComparavel(l.dataRef) === hojeChave);
     const valorVendido = vendidasHoje.reduce((soma, l) => soma + (l.valor || 0), 0);
 
     const recebidasHoje = linhas.filter((l) => paraChaveComparavel(l.dataPago) === hojeChave && l.pagou === 'SIM');
