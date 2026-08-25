@@ -300,7 +300,7 @@ export default function FormFonada() {
     setSalvandoBaixa(mensagem);
     try {
       await api.agenda.darBaixaFonada(id, mensagem);
-      mostrarToast('Baixa registrada com sucesso.');
+      mostrarToast('BAIXA DADA COM SUCESSO');
       await carregarPedido();
     } catch (err) {
       mostrarToast('Não foi possível registrar a baixa. Tente novamente.', 'erro');

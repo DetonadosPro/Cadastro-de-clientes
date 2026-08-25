@@ -136,7 +136,7 @@ export default function Agenda() {
     try {
       await api.agenda.darBaixaFonada(item.pedidoId, item.mensagem);
       if (par) await api.agenda.darBaixaFonada(par.pedidoId, par.mensagem);
-      mostrarToast(par ? 'Baixa registrada nas 2 mensagens.' : 'Baixa registrada com sucesso.');
+      mostrarToast('BAIXA DADA COM SUCESSO');
       abrirWhatsappSeExistir(item.whatsapp, mensagemConfirmacao(item.nome_comprador, item.para));
       carregar();
     } catch (err) {
@@ -166,7 +166,7 @@ export default function Agenda() {
     setSalvandoBaixa(chave);
     try {
       await api.aoVivo.darBaixa(item.id, entregue);
-      mostrarToast(entregue ? 'Entrega registrada com sucesso.' : 'Registrado como não entregue.');
+      mostrarToast(entregue ? 'BAIXA DADA COM SUCESSO' : 'Registrado como não entregue.');
       carregar();
     } catch (err) {
       mostrarToast('Não foi possível registrar. Tente novamente.', 'erro');

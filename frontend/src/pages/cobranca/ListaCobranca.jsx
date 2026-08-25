@@ -143,7 +143,7 @@ export default function ListaCobranca() {
     setSalvandoBaixa(true);
     try {
       await api.cobranca.darBaixa(itemBaixaAberto.id, 'SIM', statusBaixa.trim() || null, dataBaixa);
-      mostrarToast(`"${itemBaixaAberto.nome}" foi marcado como pago.`);
+      mostrarToast('BAIXA DADA COM SUCESSO');
       setItemBaixaAberto(null);
       buscar();
     } catch (err) {
