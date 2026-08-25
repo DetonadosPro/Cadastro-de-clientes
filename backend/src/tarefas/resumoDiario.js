@@ -39,7 +39,7 @@ function formatarReais(valor) {
 }
 
 async function montarResumoDoDia() {
-  const hoje = hojeBr();
+  const hoje = '24/08/26'; // coloque aqui a data do dia que quer testar (DD/MM/AA ou DD/MM/AAAA)
   const hojeChave = paraChaveComparavel(hoje);
 
   const [fonadasResultado, aoVivoResultado] = await Promise.all([
