@@ -1,10 +1,4 @@
 // src/tarefas/resumoDiario.js
-//
-// Todo fim de expediente, monta um resumo do dia (vendido, recebido,
-// pendentes) e envia via Telegram — 100% automático, sem precisar
-// tocar em nada (diferente do WhatsApp, que não tem forma gratuita e
-// estável de enviar sem interação manual). Se o Telegram não estiver
-// configurado, cai para o email como alternativa.
 
 const { db } = require('../db/database');
 const { enviarEmail } = require('../servicos/email');
@@ -39,7 +33,7 @@ function formatarReais(valor) {
 }
 
 async function montarResumoDoDia() {
-  const hoje = hojeBr();
+  const hoje = hojeBr(); // Para testar outra data, altere para 'DD/MM/AA'
   const hojeChave = paraChaveComparavel(hoje);
 
   const [fonadasResultado, aoVivoResultado] = await Promise.all([
@@ -48,45 +42,60 @@ async function montarResumoDoDia() {
       FROM fonadas WHERE excluido_em IS NULL
     `),
     db.query(`
-      SELECT valor, data_pedido, dia_entrega, pagou, data_pagou
+      SELECT valor, data_pedido, dia_entrega, pagamento, pagou, data_pagou
       FROM ao_vivo WHERE excluido_em IS NULL
     `),
   ]);
 
-  const fonadas = fonadasResultado.rows.map((l) => ({
-    ...l,
-    dataRef: l.data_pedido,
-    dataPago: l.data_pagamento,
-  }));
+  // --- FONADA ---
+  const fonadas = fonadasResultado.rows;
+  const fonadasVendidasHoje = fonadas.filter((l) => paraChaveComparavel(l.data_pedido) === hojeChave);
+  const fonadasRecebidasHoje = fonadas.filter((l) => paraChaveComparavel(l.data_pagamento) === hojeChave && l.pagou === 'SIM');
+  const fonadasPendentesHoje = fonadasVendidasHoje.filter((l) => l.pagou !== 'SIM');
 
-  const aoVivo = aoVivoResultado.rows.map((l) => ({
-    ...l,
-    dataRef: l.dia_entrega,
-    dataPago: l.data_pagou,
-  }));
+  const resumoFonada = {
+    quantidadeVendida: fonadasVendidasHoje.length,
+    valorVendido: fonadasVendidasHoje.reduce((soma, l) => soma + (l.valor || 0), 0),
+    quantidadeRecebida: fonadasRecebidasHoje.length,
+    valorRecebido: fonadasRecebidasHoje.reduce((soma, l) => soma + (l.valor || 0), 0),
+    quantidadePendente: fonadasPendentesHoje.length,
+    valorPendente: fonadasPendentesHoje.reduce((soma, l) => soma + (l.valor || 0), 0),
+  };
 
-  function resumirGrupo(linhas) {
-    const vendidasHoje = linhas.filter((l) => paraChaveComparavel(l.dataRef) === hojeChave);
-    const valorVendido = vendidasHoje.reduce((soma, l) => soma + (l.valor || 0), 0);
+  // --- AO VIVO ---
+  const ehPrazo = (pagamento) => String(pagamento || '').startsWith('PRAZO');
+  const aoVivo = aoVivoResultado.rows;
 
-    const recebidasHoje = linhas.filter((l) => paraChaveComparavel(l.dataPago) === hojeChave && l.pagou === 'SIM');
-    const valorRecebido = recebidasHoje.reduce((soma, l) => soma + (l.valor || 0), 0);
+  // Vendido: pedidos feitos hoje
+  const aoVivoVendidasHoje = aoVivo.filter((l) => paraChaveComparavel(l.data_pedido) === hojeChave);
 
-    const pendentesHoje = vendidasHoje.filter((l) => l.pagou !== 'SIM');
-    const valorPendente = pendentesHoje.reduce((soma, l) => soma + (l.valor || 0), 0);
+  // Recebido:
+  // - Se à vista: entra no dia da entrega (dia_entrega)
+  // - Se a prazo: entra apenas quando pagou = 'SIM', pela data de pagamento (data_pagou)
+  const aoVivoRecebidasHoje = aoVivo.filter((l) => {
+    if (!ehPrazo(l.pagamento)) {
+      return paraChaveComparavel(l.dia_entrega) === hojeChave;
+    }
+    return l.pagou === 'SIM' && paraChaveComparavel(l.data_pagou) === hojeChave;
+  });
 
-    return {
-      quantidadeVendida: vendidasHoje.length,
-      valorVendido,
-      quantidadeRecebida: recebidasHoje.length,
-      valorRecebido,
-      quantidadePendente: pendentesHoje.length,
-      valorPendente,
-    };
-  }
+  // Pendentes de hoje: pedidos feitos hoje que ainda não foram recebidos
+  const aoVivoPendentesHoje = aoVivoVendidasHoje.filter((l) => {
+    if (!ehPrazo(l.pagamento)) {
+      // À vista: se o dia de entrega ainda não foi hoje ou se não foi concluído
+      return paraChaveComparavel(l.dia_entrega) !== hojeChave;
+    }
+    return l.pagou !== 'SIM';
+  });
 
-  const resumoFonada = resumirGrupo(fonadas);
-  const resumoAoVivo = resumirGrupo(aoVivo);
+  const resumoAoVivo = {
+    quantidadeVendida: aoVivoVendidasHoje.length,
+    valorVendido: aoVivoVendidasHoje.reduce((soma, l) => soma + (l.valor || 0), 0),
+    quantidadeRecebida: aoVivoRecebidasHoje.length,
+    valorRecebido: aoVivoRecebidasHoje.reduce((soma, l) => soma + (l.valor || 0), 0),
+    quantidadePendente: aoVivoPendentesHoje.length,
+    valorPendente: aoVivoPendentesHoje.reduce((soma, l) => soma + (l.valor || 0), 0),
+  };
 
   return {
     dia: hoje,
@@ -134,7 +143,6 @@ async function rodarResumoDiario() {
       return;
     }
 
-    // Sem Telegram configurado — cai para email como alternativa.
     const resultado = await enviarEmail({
       assunto: `Resumo do dia — ${resumo.dia}`,
       texto: `${texto}\n\n(Configure TELEGRAM_BOT_TOKEN e TELEGRAM_CHAT_ID no Railway para receber isso automaticamente pelo Telegram, sem precisar abrir o email.)`,
