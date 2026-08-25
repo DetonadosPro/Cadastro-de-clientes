@@ -24,7 +24,7 @@ function iniciarAgendador() {
   });
 
   // Resumo diário — todo dia às 21h (horário de Brasília) = 00h UTC.
-  const cronResumo = process.env.CRON_RESUMO || '0 0 * * *';
+  const cronResumo = process.env.CRON_RESUMO || '0 1 * * *';
   cron.schedule(cronResumo, () => {
     rodarResumoDiario();
   });
