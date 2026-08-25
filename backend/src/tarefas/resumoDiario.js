@@ -11,9 +11,18 @@ const { enviarEmail } = require('../servicos/email');
 const { enviarTelegram, telegramDisponivel } = require('../servicos/telegram');
 
 function hojeBr() {
-  const agora = new Date();
-  const pad = (n) => String(n).padStart(2, '0');
-  return `${pad(agora.getDate())}/${pad(agora.getMonth() + 1)}/${String(agora.getFullYear()).slice(-2)}`;
+  const partes = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+  }).formatToParts(new Date());
+
+  const dia = partes.find((p) => p.type === 'day').value;
+  const mes = partes.find((p) => p.type === 'month').value;
+  const ano = partes.find((p) => p.type === 'year').value;
+
+  return `${dia}/${mes}/${ano}`;
 }
 
 function paraChaveComparavel(dataBr) {
