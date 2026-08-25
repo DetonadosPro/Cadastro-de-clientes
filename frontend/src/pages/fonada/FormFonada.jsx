@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../../api.js';
 import { useRascunhos } from '../../RascunhosContext.jsx';
 import { useToast } from '../../ToastContext.jsx';
@@ -92,6 +92,13 @@ function IconeExcluir() {
     </svg>
   );
 }
+function IconeVoltar() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M19 12H5M12 19l-7-7 7-7" />
+    </svg>
+  );
+}
 function IconeFechar() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -123,6 +130,7 @@ export default function FormFonada() {
   const clienteIdUrl = searchParams.get('clienteId');
   const editando = Boolean(id);
   const navigate = useNavigate();
+  const location = useLocation();
   const { rascunhoFonada, setRascunhoFonada, limparRascunhoFonada } = useRascunhos();
   const { mostrarToast } = useToast();
 
@@ -339,7 +347,9 @@ export default function FormFonada() {
   function set(campo, valor) {
     const novo = { ...dados, [campo]: valor };
     setDados(novo);
-    setRascunhoFonada({ chave: chaveRascunho, dados: novo, cliente });
+    // O atalho "Continuar pedido" representa somente um pedido novo ainda
+    // não salvo. Editar um pedido existente não pode substituir esse rascunho.
+    if (!editando) setRascunhoFonada({ chave: chaveRascunho, dados: novo, cliente });
   }
 
   function setComMascara(campo, valorBruto, tipoMascara) {
@@ -362,6 +372,9 @@ export default function FormFonada() {
   // (passar) da 1ª mensagem, que deveria copiar tema E número, só
   // copiar o último campo copiado (o número), perdendo o tema.
   function copiarEntreMensagens(nomesCampos, deMensagem) {
+    // Pedido interurbano não possui 2ª mensagem. Além de desabilitar os
+    // botões na interface, protege a ação aqui para impedir qualquer cópia.
+    if (deMensagem === 1 && !segundaMensagemLiberada(dados)) return;
     const campos = Array.isArray(nomesCampos) ? nomesCampos : [nomesCampos];
     const origemPrefixo = deMensagem === 1 ? 'p1' : 'p2';
     const destinoPrefixo = deMensagem === 1 ? 'p2' : 'p1';
@@ -370,13 +383,13 @@ export default function FormFonada() {
       novo[`${destinoPrefixo}_${nomeCampo}`] = dados[`${origemPrefixo}_${nomeCampo}`];
     }
     setDados(novo);
-    setRascunhoFonada({ chave: chaveRascunho, dados: novo, cliente });
+    if (!editando) setRascunhoFonada({ chave: chaveRascunho, dados: novo, cliente });
   }
 
   function limpar() {
     const preservado = { ...VAZIO, cliente_id: dados.cliente_id, senha_os: dados.senha_os };
     setDados(preservado);
-    setRascunhoFonada({ chave: chaveRascunho, dados: preservado, cliente });
+    if (!editando) setRascunhoFonada({ chave: chaveRascunho, dados: preservado, cliente });
   }
 
   async function salvar() {
@@ -429,7 +442,6 @@ export default function FormFonada() {
       const payload = { ...dados, valor: valorMonetarioParaNumero(dados.valor) };
       if (editando) {
         await api.fonada.atualizar(id, payload);
-        limparRascunhoFonada();
         mostrarToast('Pedido salvo com sucesso.');
       } else {
         const novo = await api.fonada.criar(payload);
@@ -449,7 +461,6 @@ export default function FormFonada() {
     if (!confirm('Tem certeza que deseja excluir este pacote? Essa ação não pode ser desfeita.')) return;
     try {
       await api.fonada.apagar(id);
-      limparRascunhoFonada();
       if (cliente) navigate(`/clientes/${cliente.id}`);
       else navigate('/fonada');
     } catch (err) {
@@ -458,7 +469,13 @@ export default function FormFonada() {
   }
 
   function fechar() {
-    limparRascunhoFonada();
+    // Só "Fechar" um pedido novo descarta o rascunho. Em pedidos já salvos,
+    // esta ação é apenas "Voltar" e preserva o pedido pendente da lateral.
+    if (!editando) limparRascunhoFonada();
+    if (location.state?.returnTo) {
+      navigate(location.state.returnTo);
+      return;
+    }
     // Volta para a página de onde realmente veio (lista, "Hoje", busca, etc).
     // Quando existe contexto de navegação por busca (contextoNavegacao),
     // ele é a fonte de verdade mais confiável — reflete a página atual
@@ -543,6 +560,7 @@ export default function FormFonada() {
             <div className="duas-colunas-mensagem">
               <ColunaMensagem
                 numero={1} dados={dados} set={set} setComMascara={setComMascara} onCopiar={copiarEntreMensagens}
+                copiarBloqueado={!segundaLiberada}
                 editando={editando} dataNoPassado={p1DiaNoPassado}
                 salvandoBaixa={salvandoBaixa} onDarBaixa={darBaixaMensagem} onNaoAtendeu={abrirRemarcarMensagem}
               />
@@ -620,7 +638,7 @@ export default function FormFonada() {
                       recall_codigo: novoValor === 'SIM' ? dados.recall_codigo : '',
                     };
                     setDados(novo);
-                    setRascunhoFonada({ chave: chaveRascunho, dados: novo, cliente });
+                    if (!editando) setRascunhoFonada({ chave: chaveRascunho, dados: novo, cliente });
                   }}
                   style={{ maxWidth: 90 }}
                 >
@@ -642,7 +660,7 @@ export default function FormFonada() {
                 <span>Cliente</span>
                 {cliente && (
                   <button type="button" className="btn-small" onClick={() => navigate(`/clientes/${cliente.id}`)}>
-                    Ver/editar cliente
+                    Abrir ficha do cliente
                   </button>
                 )}
               </div>
@@ -771,7 +789,7 @@ export default function FormFonada() {
                 style={{ gridColumn: editando ? undefined : 'span 2', pointerEvents: 'auto' }}
                 onClick={fechar}
               >
-                <IconeFechar /> Fechar
+                {editando ? <IconeVoltar /> : <IconeFechar />} {editando ? 'Voltar' : 'Fechar'}
               </button>
             </div>
           </div>
@@ -853,7 +871,7 @@ export default function FormFonada() {
 // a 1ª e copiar dali para a 2ª, não o contrário. Reúne o que antes
 // eram duas seções separadas ("Ordem de serviço" e "Transmissão") —
 // na prática é a mesma ordem de serviço, só com campos diferentes.
-function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada, editando, dataNoPassado, salvandoBaixa, onDarBaixa, onNaoAtendeu }) {
+function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada, copiarBloqueado, editando, dataNoPassado, salvandoBaixa, onDarBaixa, onNaoAtendeu }) {
   const p = numero === 1 ? 'p1' : 'p2';
   const mostrarBotaoP = numero === 1;
   const diaPreenchido = Boolean(dados[`${p}_dia`]);
@@ -882,10 +900,11 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
           <BotaoP
             onClick={() => onCopiar(['tema', 'mensagem'], numero)}
             titulo="Copiar tema/nº para a 2ª mensagem"
+            desabilitado={copiarBloqueado}
           />
         )}
       </div>
-      <CampoComP label="Para" nomeCampo="para" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} />
+      <CampoComP label="Para" nomeCampo="para" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} copiarBloqueado={copiarBloqueado} />
       <div className="form-row linha-fixo-celular">
         <label>Fixo:</label>
         <input value={dados[`${p}_fixo`]} onChange={(e) => setComMascara(`${p}_fixo`, e.target.value, 'fixo')} disabled={bloqueada} className="campo-fixo-fonada" style={{ flex: '1 1 100px', minWidth: 90 }} />
@@ -895,6 +914,7 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
           <BotaoP
             onClick={() => onCopiar(['fixo', 'celular'], numero)}
             titulo="Copiar telefones para a 2ª mensagem"
+            desabilitado={copiarBloqueado}
           />
         )}
       </div>
@@ -920,6 +940,7 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
           <BotaoP
             onClick={() => onCopiar(['dia', 'horario'], numero)}
             titulo="Copiar dia/horário para a 2ª mensagem"
+            desabilitado={copiarBloqueado}
           />
         )}
       </div>
@@ -928,8 +949,8 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
           O dia não pode ser anterior a hoje.
         </p>
       )}
-      <CampoComP label="Quem oferece" nomeCampo="quem_oferece" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} negrito classeExtra="campo-quem-oferece" multilinha />
-      <CampoComP label="Resultado" nomeCampo="resultado" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} negrito cor="var(--selo)" classeExtra="campo-resultado" />
+      <CampoComP label="Quem oferece" nomeCampo="quem_oferece" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} copiarBloqueado={copiarBloqueado} negrito classeExtra="campo-quem-oferece" multilinha />
+      <CampoComP label="Resultado" nomeCampo="resultado" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} copiarBloqueado={copiarBloqueado} negrito cor="var(--selo)" classeExtra="campo-resultado" />
 
       {editando && diaPreenchido && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 8, borderTop: '1px dashed var(--papel-alt)' }}>
@@ -968,7 +989,7 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
   );
 }
 
-function CampoComP({ label, nomeCampo, prefixo, numero, dados, set, onCopiar, mostrarBotaoP, desabilitado, negrito, cor, classeExtra, multilinha }) {
+function CampoComP({ label, nomeCampo, prefixo, numero, dados, set, onCopiar, mostrarBotaoP, desabilitado, copiarBloqueado, negrito, cor, classeExtra, multilinha }) {
   const valor = dados[`${prefixo}_${nomeCampo}`];
   return (
     <div className={`form-row ${classeExtra || ''}`}>
@@ -990,15 +1011,22 @@ function CampoComP({ label, nomeCampo, prefixo, numero, dados, set, onCopiar, mo
         />
       )}
       {mostrarBotaoP && (
-        <BotaoP onClick={() => onCopiar(nomeCampo, numero)} titulo="Copiar para a 2ª mensagem" />
+        <BotaoP onClick={() => onCopiar(nomeCampo, numero)} titulo="Copiar para a 2ª mensagem" desabilitado={copiarBloqueado} />
       )}
     </div>
   );
 }
 
-function BotaoP({ onClick, titulo }) {
+function BotaoP({ onClick, titulo, desabilitado }) {
   return (
-    <button type="button" className="btn-small botao-p-copiar" title={titulo} onClick={onClick} style={{ flexShrink: 0 }}>
+    <button
+      type="button"
+      className="btn-small botao-p-copiar"
+      title={desabilitado ? 'Disponível apenas para DDD 34' : titulo}
+      onClick={onClick}
+      disabled={desabilitado}
+      style={{ flexShrink: 0 }}
+    >
       P
     </button>
   );

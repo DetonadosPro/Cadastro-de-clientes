@@ -96,7 +96,7 @@ export default function FichaCliente() {
       mostrarToast('Este cliente está bloqueado. Desbloqueie antes de criar um novo pedido.', 'erro');
       return;
     }
-    navigate(`/fonada/novo?clienteId=${id}`);
+    navigate(`/fonada/novo?clienteId=${id}`, { state: { returnTo: `/clientes/${id}` } });
   }
 
   function novoPedidoAoVivo() {
@@ -104,7 +104,7 @@ export default function FichaCliente() {
       mostrarToast('Este cliente está bloqueado. Desbloqueie antes de criar um novo pedido.', 'erro');
       return;
     }
-    navigate(`/ao-vivo/novo?clienteId=${id}`);
+    navigate(`/ao-vivo/novo?clienteId=${id}`, { state: { returnTo: `/clientes/${id}` } });
   }
 
   async function confirmarBloqueio() {
@@ -373,7 +373,7 @@ export default function FichaCliente() {
                     </thead>
                     <tbody>
                       {pedidosFonada.map((p) => (
-                        <tr key={p.id} onClick={() => navigate(`/fonada/${p.id}`)}>
+                        <tr key={p.id} onClick={() => navigate(`/fonada/${p.id}`, { state: { returnTo: `/clientes/${id}` } })}>
                           <td><span className="carimbo-os carimbo-os-lista">{p.senha_os || p.id}</span></td>
                           <td>{p.data_pedido || '—'}</td>
                           <td>
@@ -427,7 +427,7 @@ export default function FichaCliente() {
                     </thead>
                     <tbody>
                       {pedidosAoVivo.map((p) => (
-                        <tr key={p.id} onClick={() => navigate(`/ao-vivo/${p.id}`)}>
+                        <tr key={p.id} onClick={() => navigate(`/ao-vivo/${p.id}`, { state: { returnTo: `/clientes/${id}` } })}>
                           <td><span className="carimbo-os carimbo-os-lista">{p.numero_os || p.id}</span></td>
                           <td>{p.data_pedido || '—'}</td>
                           <td>{p.dia_entrega || '—'}</td>

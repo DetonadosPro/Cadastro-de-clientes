@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../../api.js';
 import { useRascunhos } from '../../RascunhosContext.jsx';
 import { useToast } from '../../ToastContext.jsx';
@@ -125,6 +125,13 @@ function IconeExcluir() {
     </svg>
   );
 }
+function IconeVoltar() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M19 12H5M12 19l-7-7 7-7" />
+    </svg>
+  );
+}
 function IconeFechar() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -139,6 +146,7 @@ export default function FormAoVivo() {
   const clienteIdUrl = searchParams.get('clienteId');
   const editando = Boolean(id);
   const navigate = useNavigate();
+  const location = useLocation();
   const { rascunhoAoVivo, setRascunhoAoVivo, limparRascunhoAoVivo } = useRascunhos();
   const { mostrarToast } = useToast();
 
@@ -226,7 +234,9 @@ export default function FormAoVivo() {
   function set(campo, valor) {
     const novo = { ...dados, [campo]: valor };
     setDados(novo);
-    setRascunhoAoVivo({ chave: chaveRascunho, dados: novo, cliente });
+    // O atalho "Continuar pedido" representa somente um pedido novo ainda
+    // não salvo. Editar um pedido existente não pode substituir esse rascunho.
+    if (!editando) setRascunhoAoVivo({ chave: chaveRascunho, dados: novo, cliente });
   }
 
   function setComMascara(campo, valorBruto, tipoMascara) {
@@ -262,7 +272,7 @@ export default function FormAoVivo() {
     setDados(preservado);
     setQtdMensagens(MIN_MENSAGENS);
     setQtdMusicas(MIN_MUSICAS);
-    setRascunhoAoVivo({ chave: chaveRascunho, dados: preservado, cliente });
+    if (!editando) setRascunhoAoVivo({ chave: chaveRascunho, dados: preservado, cliente });
   }
 
   async function salvar() {
@@ -290,7 +300,6 @@ export default function FormAoVivo() {
       const payload = { ...dados, valor: valorMonetarioParaNumero(dados.valor) };
       if (editando) {
         await api.aoVivo.atualizar(id, payload);
-        limparRascunhoAoVivo();
         mostrarToast('Pedido salvo com sucesso.');
       } else {
         const novo = await api.aoVivo.criar(payload);
@@ -310,7 +319,6 @@ export default function FormAoVivo() {
     if (!confirm('Tem certeza que deseja excluir este pedido? Essa ação não pode ser desfeita.')) return;
     try {
       await api.aoVivo.apagar(id);
-      limparRascunhoAoVivo();
       if (cliente) navigate(`/clientes/${cliente.id}`);
       else navigate('/ao-vivo');
     } catch (err) {
@@ -319,8 +327,12 @@ export default function FormAoVivo() {
   }
 
   function fechar() {
-    limparRascunhoAoVivo();
-    if (window.history.state && window.history.state.idx > 0) {
+    // Só "Fechar" um pedido novo descarta o rascunho. Em pedidos já salvos,
+    // esta ação é apenas "Voltar" e preserva o pedido pendente da lateral.
+    if (!editando) limparRascunhoAoVivo();
+    if (location.state?.returnTo) {
+      navigate(location.state.returnTo);
+    } else if (window.history.state && window.history.state.idx > 0) {
       navigate(-1);
     } else if (cliente) {
       navigate(`/clientes/${cliente.id}`);
@@ -558,7 +570,7 @@ export default function FormAoVivo() {
                   <span>Cliente</span>
                   {cliente && (
                     <button type="button" className="btn-small" onClick={() => navigate(`/clientes/${cliente.id}`)}>
-                      Ver/editar cliente
+                      Abrir ficha do cliente
                     </button>
                   )}
                 </div>
@@ -617,7 +629,7 @@ export default function FormAoVivo() {
                 style={{ gridColumn: editando ? undefined : 'span 2', pointerEvents: 'auto' }}
                 onClick={fechar}
               >
-                <IconeFechar /> Fechar
+                {editando ? <IconeVoltar /> : <IconeFechar />} {editando ? 'Voltar' : 'Fechar'}
               </button>
             </div>
           </div>
