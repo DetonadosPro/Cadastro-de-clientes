@@ -33,7 +33,7 @@ function formatarReais(valor) {
 }
 
 async function montarResumoDoDia() {
-  const hoje = hojeBr(); // Para testar outra data, altere para 'DD/MM/AA'
+  const hoje = hojeBr(); // Troque por 'DD/MM/AA' se for fazer testes
   const hojeChave = paraChaveComparavel(hoje);
 
   const [fonadasResultado, aoVivoResultado] = await Promise.all([
@@ -42,7 +42,7 @@ async function montarResumoDoDia() {
       FROM fonadas WHERE excluido_em IS NULL
     `),
     db.query(`
-      SELECT valor, data_pedido, dia_entrega, pagamento, pagou, data_pagou
+      SELECT valor, data_pedido, dia_entrega, pagamento, pagou, data_pagou, resultado_entrega
       FROM ao_vivo WHERE excluido_em IS NULL
     `),
   ]);
@@ -64,26 +64,27 @@ async function montarResumoDoDia() {
 
   // --- AO VIVO ---
   const ehPrazo = (pagamento) => String(pagamento || '').startsWith('PRAZO');
+  const foiEntregue = (resultado) => String(resultado || '').startsWith('ENTREGUE');
   const aoVivo = aoVivoResultado.rows;
 
-  // Vendido: pedidos feitos hoje
+  // Vendido: pedidos criados hoje
   const aoVivoVendidasHoje = aoVivo.filter((l) => paraChaveComparavel(l.data_pedido) === hojeChave);
 
   // Recebido:
-  // - Se à vista: entra no dia da entrega (dia_entrega)
-  // - Se a prazo: entra apenas quando pagou = 'SIM', pela data de pagamento (data_pagou)
+  // - À vista: dia de entrega é hoje E foi marcado como ENTREGUE
+  // - A prazo: marcado como pagou = 'SIM' com data_pagou sendo hoje
   const aoVivoRecebidasHoje = aoVivo.filter((l) => {
     if (!ehPrazo(l.pagamento)) {
-      return paraChaveComparavel(l.dia_entrega) === hojeChave;
+      return paraChaveComparavel(l.dia_entrega) === hojeChave && foiEntregue(l.resultado_entrega);
     }
     return l.pagou === 'SIM' && paraChaveComparavel(l.data_pagou) === hojeChave;
   });
 
-  // Pendentes de hoje: pedidos feitos hoje que ainda não foram recebidos
+  // Pendentes de hoje: pedidos criados hoje que ainda não foram recebidos
   const aoVivoPendentesHoje = aoVivoVendidasHoje.filter((l) => {
     if (!ehPrazo(l.pagamento)) {
-      // À vista: se o dia de entrega ainda não foi hoje ou se não foi concluído
-      return paraChaveComparavel(l.dia_entrega) !== hojeChave;
+      // Se não for prazo, é pendente se ainda NÃO foi entregue hoje
+      return !(paraChaveComparavel(l.dia_entrega) === hojeChave && foiEntregue(l.resultado_entrega));
     }
     return l.pagou !== 'SIM';
   });
