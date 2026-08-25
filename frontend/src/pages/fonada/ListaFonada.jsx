@@ -39,6 +39,22 @@ function formatarReais(v) {
   return (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
+// Mostra o nome do destinatário com o dia agendado da mensagem logo
+// abaixo, em fonte menor — assim dá para ver na própria lista para
+// quando cada mensagem está marcada, sem abrir o pedido.
+function CelulaDestinatario({ nome, dia }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25 }}>
+      <span>{nome || '—'}</span>
+      {dia && (
+        <span className="fs-xs" style={{ color: 'var(--tinta-suave)', fontVariantNumeric: 'tabular-nums' }}>
+          {dia}
+        </span>
+      )}
+    </div>
+  );
+}
+
 export default function ListaFonada() {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -217,8 +233,12 @@ export default function ListaFonada() {
                       </span>
                     </td>
                     <td data-label="Cliente">{p.nome_comprador}</td>
-                    <td data-label="Destinatário 1" className="col-somente-desktop">{p.p1_para || '—'}</td>
-                    <td data-label="Destinatário 2" className="col-somente-desktop">{p.p2_para || '—'}</td>
+                    <td data-label="Destinatário 1" className="col-somente-desktop">
+                      <CelulaDestinatario nome={p.p1_para} dia={p.p1_dia} />
+                    </td>
+                    <td data-label="Destinatário 2" className="col-somente-desktop">
+                      <CelulaDestinatario nome={p.p2_para} dia={p.p2_dia} />
+                    </td>
                     <td data-label="Mensagens">
                       <span className="indicador-msgs">
                         <span
