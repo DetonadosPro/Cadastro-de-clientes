@@ -113,7 +113,9 @@ export default function ImpressaoAoVivo({ pedido }) {
         <Campo label="Referência:" valor={pedido.referencia} grow={1.75} />
       </div>
 
-      <div className="impresso-secao-titulo">MENSAGENS</div>
+      <div className="impresso-divisor-secao">
+        <span>MENSAGENS</span>
+      </div>
 
       <div className="impresso-linha">
         <Campo label="Mensagem 1:" valor={juntarTemaEMensagem(pedido.tema1, pedido.msg1)} largura={40} />
@@ -146,7 +148,9 @@ export default function ImpressaoAoVivo({ pedido }) {
         />
       </div>
 
-      <div className="impresso-secao-titulo">DADOS SOLICITANTE</div>
+      <div className="impresso-divisor-secao">
+        <span>DADOS SOLICITANTE</span>
+      </div>
 
       <div className="impresso-linha">
         <Campo label="Cliente:" valor={pedido.nomeComprador} grow={1.6} />

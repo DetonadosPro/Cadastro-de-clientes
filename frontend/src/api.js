@@ -207,6 +207,8 @@ export const api = {
       chamar('/cobranca/acoes/baixa-lote', { method: 'PUT', body: JSON.stringify({ ids, recebi, dataPagamento }) }),
     reagendarEmLote: (ids, cobrarDia) =>
       chamar('/cobranca/acoes/reagendar-lote', { method: 'PUT', body: JSON.stringify({ ids, cobrarDia }) }),
+    marcarImpressos: (ids) =>
+      chamar('/cobranca/acoes/marcar-impressos', { method: 'PUT', body: JSON.stringify({ ids }) }),
   },
 
   // ---------- Relatórios financeiros por período ----------

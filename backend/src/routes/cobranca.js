@@ -68,7 +68,7 @@ router.get('/', async (req, res) => {
 
     const linhasResultado = await db.query(`
       SELECT id, senha_os, nome_comprador, data_pedido, valor, cobranca, cobranca_reagendada,
-             periodo, pagou, recebi, data_pagamento, p1_dia,
+             periodo, pagou, recebi, data_pagamento, p1_dia, impresso,
              comprador_fixo, comprador_celular, comprador_endereco, comprador_complemento,
              comprador_bairro, comprador_referencia, cliente_id
       FROM fonadas
@@ -103,6 +103,7 @@ router.get('/', async (req, res) => {
         pagou: l.pagou,
         recebi: l.recebi,
         dataPagamento: l.data_pagamento,
+        impresso: l.impresso,
         formaPagamento: formaPagamento(l.periodo),
         nome: cliente ? cliente.nome : l.nome_comprador,
         fixo: cliente ? cliente.fixo : l.comprador_fixo,
@@ -180,6 +181,28 @@ function idsValidos(corpo) {
   if (!Array.isArray(corpo)) return [];
   return [...new Set(corpo.map(Number).filter((id) => Number.isInteger(id) && id > 0))];
 }
+
+// PUT /api/cobranca/acoes/marcar-impressos
+// Registra que o recibo foi preparado para impressão. A coluna já faz
+// parte dos pedidos Fonada e aceita os registros antigos normalmente.
+router.put('/acoes/marcar-impressos', async (req, res) => {
+  try {
+    const ids = idsValidos(req.body.ids);
+    if (ids.length === 0) return res.status(400).json({ erro: 'Selecione pelo menos um pedido.' });
+
+    const resultado = await db.query(`
+      UPDATE fonadas
+      SET impresso = 'SIM', atualizado_em = NOW()
+      WHERE id = ANY($1::int[]) AND excluido_em IS NULL
+      RETURNING id
+    `, [ids]);
+
+    res.json({ ok: true, quantidade: resultado.rows.length });
+  } catch (erro) {
+    console.error('Erro ao registrar impressão dos recibos:', erro);
+    res.status(500).json({ erro: 'Não foi possível registrar a impressão dos recibos.' });
+  }
+});
 
 async function verificarClientesBloqueados(ids) {
   const resultado = await db.query(`
