@@ -3288,6 +3288,12 @@ tr:hover .alca-arrastar {
     background: none;
     padding: 0;
   }
+  /* A tela de edição é ampliada no desktop para facilitar a leitura.
+     Como a impressão individual fica dentro do mesmo contêiner, esse
+     zoom também ampliava a folha A4 e cortava sua lateral direita. */
+  .pagina-aovivo-ampliada {
+    zoom: 1 !important;
+  }
 }
 
 .impresso-aovivo {
