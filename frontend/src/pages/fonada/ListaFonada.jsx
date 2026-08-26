@@ -140,10 +140,14 @@ export default function ListaFonada() {
     return params;
   }
 
-  function aoSubmeterBusca(e) {
-    e.preventDefault();
-    setSearchParams(montarParams(busca, campoFiltro, 1), { replace: true });
-  }
+  useEffect(() => {
+    if (busca === buscaUrl && campoFiltro === campoUrl) return undefined;
+    const temporizador = setTimeout(() => {
+      setSearchParams(montarParams(busca, campoFiltro, 1), { replace: true });
+    }, 300);
+    return () => clearTimeout(temporizador);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busca, campoFiltro, buscaUrl, campoUrl, setSearchParams]);
 
   function irParaPagina(novaPagina) {
     setSearchParams(montarParams(busca, campoFiltro, novaPagina), { replace: true });
@@ -184,7 +188,7 @@ export default function ListaFonada() {
         </button>
       </div>
 
-      <form onSubmit={aoSubmeterBusca} className="lista-fonada-busca">
+      <div className="lista-fonada-busca">
         <select
           value={campoFiltro}
           onChange={(e) => aoMudarFiltro(e.target.value)}
@@ -204,9 +208,8 @@ export default function ListaFonada() {
             className="busca-input"
           />
         </div>
-        <button type="submit" className="btn secundario">Buscar</button>
         {(buscaUrl || campoUrl) && <button type="button" className="btn secundario" onClick={limparBusca}>Limpar</button>}
-      </form>
+      </div>
 
       <div className="lista-fonada-meta">
         <div className="legenda-chip">
