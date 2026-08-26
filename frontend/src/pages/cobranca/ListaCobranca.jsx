@@ -1,397 +1,417 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarData } from '../../mascaras.js';
 import PaginaImpressaoRecibos from './PaginaImpressaoRecibos.jsx';
 import CampoData from '../../components/CampoData.jsx';
 
-// Data de hoje no formato dd/mm/aa, pré-preenchida no campo de dia da
-// baixa — mesma lógica usada na Agenda (fuso do navegador, que na
-// prática corresponde ao horário local de quem está usando o sistema).
-function hojeFormatado() {
-  const agora = new Date();
-  const dd = String(agora.getDate()).padStart(2, '0');
-  const mm = String(agora.getMonth() + 1).padStart(2, '0');
-  const aa = String(agora.getFullYear()).slice(-2);
-  return `${dd}/${mm}/${aa}`;
+function dataLocalFormatada(deslocamento = 0) {
+  const data = new Date();
+  data.setDate(data.getDate() + deslocamento);
+  const dd = String(data.getDate()).padStart(2, '0');
+  const mm = String(data.getMonth() + 1).padStart(2, '0');
+  return `${dd}/${mm}/${String(data.getFullYear()).slice(-2)}`;
+}
+
+function hojeSemHora() {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  return hoje;
+}
+
+function dataBrParaUtc(valor) {
+  const partes = String(valor || '').match(/^(\d{2})\/(\d{2})\/(\d{2}|\d{4})$/);
+  if (!partes) return null;
+  const ano = Number(partes[3].length === 2 ? `20${partes[3]}` : partes[3]);
+  return Date.UTC(ano, Number(partes[2]) - 1, Number(partes[1]));
+}
+
+function diferencaParaHoje(dataBr) {
+  const alvo = dataBrParaUtc(dataBr);
+  if (alvo == null) return null;
+  const hoje = new Date();
+  const hojeUtc = Date.UTC(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+  return Math.round((alvo - hojeUtc) / 86400000);
+}
+
+function estaNaSemana(diff) {
+  if (diff == null || diff < 0) return false;
+  const hoje = new Date();
+  return diff <= 7 - (hoje.getDay() || 7);
+}
+
+function formatarReais(valor) {
+  return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function somarPedidos(pedidos) {
+  return pedidos.reduce((total, pedido) => total + Number(pedido.valor || 0), 0);
+}
+
+function dataDaAgenda(pedido) {
+  return pedido.cobrancaReagendada || pedido.cobranca;
+}
+
+function valorInformado(valor) {
+  const texto = String(valor || '').trim();
+  return texto && texto !== '0' && texto !== '-' ? texto : '';
+}
+
+function foiRecebidoNoMesAtual(pedido) {
+  const partes = String(pedido.dataPagamento || '').match(/^\d{2}\/(\d{2})\/(\d{2}|\d{4})$/);
+  if (!partes) return false;
+  const hoje = new Date();
+  const ano = Number(partes[2].length === 2 ? `20${partes[2]}` : partes[2]);
+  return Number(partes[1]) === hoje.getMonth() + 1 && ano === hoje.getFullYear();
+}
+
+function rotuloUrgencia(pedido) {
+  if (pedido.pagou === 'SIM') return pedido.dataPagamento ? `Recebido em ${pedido.dataPagamento}` : 'Recebido';
+  const diff = diferencaParaHoje(pedido.cobranca);
+  if (diff == null) return 'Sem data';
+  if (diff < 0) return `${Math.abs(diff)} dia${Math.abs(diff) === 1 ? '' : 's'} atrasada`;
+  if (diff === 0) return 'Hoje';
+  if (diff === 1) return 'Amanhã';
+  return `Daqui a ${diff} dias`;
+}
+
+function classeUrgencia(pedido) {
+  if (pedido.pagou === 'SIM') return 'recebida';
+  const diff = diferencaParaHoje(pedido.cobranca);
+  if (diff == null) return 'sem-data';
+  if (diff < 0) return 'atrasada';
+  if (diff === 0) return 'hoje';
+  return 'futura';
+}
+
+function filtrarPorSituacao(pedidos, filtro) {
+  if (filtro === 'recebidas') return pedidos;
+  return pedidos.filter((pedido) => {
+    const diffOriginal = diferencaParaHoje(pedido.cobranca);
+    const diffAgenda = diferencaParaHoje(dataDaAgenda(pedido));
+    if (filtro === 'atrasadas') return diffOriginal != null && diffOriginal < 0;
+    if (filtro === 'hoje') return diffAgenda === 0;
+    if (filtro === 'amanha') return diffAgenda === 1;
+    if (filtro === 'semana') return estaNaSemana(diffAgenda);
+    if (filtro === 'proximas') return diffAgenda != null && diffAgenda > 0;
+    if (filtro === 'sem_data') return diffAgenda == null;
+    return true;
+  });
+}
+
+function agruparPedidos(pedidos) {
+  const mapa = new Map();
+  for (const pedido of pedidos) {
+    const cliente = pedido.cliente_id ? `cliente-${pedido.cliente_id}` : `nome-${String(pedido.nome || '').trim().toUpperCase()}`;
+    const dataAgenda = dataDaAgenda(pedido);
+    const chave = `${cliente}-${dataAgenda || 'sem-data'}-${pedido.pagou === 'SIM' ? 'pago' : 'pendente'}`;
+    if (!mapa.has(chave)) {
+      mapa.set(chave, {
+        chave, nome: pedido.nome || 'Cliente não informado', cobranca: pedido.cobranca,
+        cobrancaReagendada: pedido.cobrancaReagendada, dataAgenda,
+        cliente_id: pedido.cliente_id, whatsapp: pedido.whatsapp || pedido.celular,
+        endereco: pedido.endereco, complemento: pedido.complemento,
+        bairro: pedido.bairro, referencia: pedido.referencia, pedidos: [],
+      });
+    }
+    mapa.get(chave).pedidos.push(pedido);
+  }
+  return [...mapa.values()]
+    .map((grupo) => ({ ...grupo, valorTotal: somarPedidos(grupo.pedidos) }))
+    .sort((a, b) => {
+      if (a.pedidos[0].pagou === 'SIM' && b.pedidos[0].pagou === 'SIM') {
+        return String(b.pedidos[0].dataPagamento || '').localeCompare(String(a.pedidos[0].dataPagamento || ''));
+      }
+      const diffA = diferencaParaHoje(a.dataAgenda);
+      const diffB = diferencaParaHoje(b.dataAgenda);
+      if (diffA == null) return 1;
+      if (diffB == null) return -1;
+      return diffA - diffB || a.nome.localeCompare(b.nome);
+    });
+}
+
+function linkWhatsApp(numero) {
+  let digitos = String(numero || '').replace(/\D/g, '');
+  if (digitos.length < 10) return null;
+  if (digitos.length <= 11) digitos = `55${digitos}`;
+  return `https://api.whatsapp.com/send?phone=${digitos}`;
 }
 
 function IconeImpressora() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-      <path d="M6 9V3h12v6" />
-      <rect x="4" y="9" width="16" height="8" rx="1.5" />
-      <path d="M6 14h12v7H6z" />
-    </svg>
-  );
+  return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9V3h12v6" /><rect x="4" y="9" width="16" height="8" rx="1.5" /><path d="M6 14h12v7H6z" /></svg>;
 }
 
 export default function ListaCobranca() {
+  const [parametrosUrl] = useSearchParams();
   const [cobrarDia, setCobrarDia] = useState('');
-  const [pagouFiltro, setPagouFiltro] = useState('NAO');
-  const [nome, setNome] = useState('');
+  const [filtroRapido, setFiltroRapido] = useState('todas');
+  const [nome, setNome] = useState(() => parametrosUrl.get('nome') || '');
   const [os, setOs] = useState('');
-
-  const [pedidos, setPedidos] = useState([]);
-  const [resumo, setResumo] = useState(null);
+  const [pendentes, setPendentes] = useState([]);
+  const [recebidas, setRecebidas] = useState([]);
   const [carregando, setCarregando] = useState(false);
   const [jaBuscou, setJaBuscou] = useState(false);
   const [erro, setErro] = useState('');
+  const [expandidos, setExpandidos] = useState(new Set());
   const [selecionados, setSelecionados] = useState(new Set());
   const [pedidosImpressao, setPedidosImpressao] = useState([]);
-
-  const [itemBaixaAberto, setItemBaixaAberto] = useState(null);
+  const [pedidosBaixa, setPedidosBaixa] = useState([]);
   const [dataBaixa, setDataBaixa] = useState('');
   const [statusBaixa, setStatusBaixa] = useState('');
   const [salvandoBaixa, setSalvandoBaixa] = useState(false);
-
-  // Ordenação da tabela: por padrão vem "os" crescente (mesma ordem que
-  // o backend já devolve), e clicar em O.S./Comprador alterna a direção
-  // — feito no cliente (sem nova busca), já que o volume de uma busca de
-  // cobrança é pequeno o bastante para isso ser instantâneo.
-  const [ordenarPor, setOrdenarPor] = useState('os');
-  const [direcaoOrdenacao, setDirecaoOrdenacao] = useState('asc');
-
+  const [pedidosReagendar, setPedidosReagendar] = useState([]);
+  const [novaData, setNovaData] = useState('');
+  const [salvandoReagendamento, setSalvandoReagendamento] = useState(false);
+  const [limitePagas, setLimitePagas] = useState(50);
+  const ultimaBusca = useRef(0);
   const navigate = useNavigate();
   const { mostrarToast } = useToast();
+  const recebidasNoMes = useMemo(() => recebidas.filter(foiRecebidoNoMesAtual), [recebidas]);
+  const pagasOrdenadas = useMemo(() => [...recebidas].sort((a, b) => {
+    const dataA = dataBrParaUtc(a.dataPagamento) ?? 0;
+    const dataB = dataBrParaUtc(b.dataPagamento) ?? 0;
+    return dataB - dataA || Number(b.id || 0) - Number(a.id || 0);
+  }), [recebidas]);
 
-  function aoClicarOrdenacao(coluna) {
-    if (ordenarPor === coluna) {
-      setDirecaoOrdenacao((d) => (d === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setOrdenarPor(coluna);
-      setDirecaoOrdenacao('asc');
-    }
-  }
+  const pedidosVisiveis = useMemo(() => {
+    if (filtroRapido === 'pagas') return pagasOrdenadas.slice(0, limitePagas);
+    if (filtroRapido === 'recebidas') return recebidasNoMes;
+    if (filtroRapido === 'data') return pendentes;
+    return filtrarPorSituacao(pendentes, filtroRapido);
+  }, [filtroRapido, pendentes, pagasOrdenadas, recebidasNoMes, limitePagas]);
+  const grupos = useMemo(() => agruparPedidos(pedidosVisiveis), [pedidosVisiveis]);
+  const pedidosSelecionados = useMemo(() => pedidosVisiveis.filter((pedido) => selecionados.has(pedido.id)), [pedidosVisiveis, selecionados]);
+  const atrasadas = pendentes.filter((p) => (diferencaParaHoje(p.cobranca) ?? 1) < 0);
+  const paraHoje = pendentes.filter((p) => diferencaParaHoje(dataDaAgenda(p)) === 0);
+  const futuras = pendentes.filter((p) => (diferencaParaHoje(dataDaAgenda(p)) ?? -1) > 0);
 
-  const pedidosOrdenados = [...pedidos].sort((a, b) => {
-    let resultado;
-    if (ordenarPor === 'comprador') {
-      resultado = (a.nome || '').localeCompare(b.nome || '');
-    } else {
-      // "os": compara numericamente quando possível, senão cai para
-      // comparação de texto (mesmo critério de fallback do backend).
-      const numA = parseInt(a.senha_os, 10);
-      const numB = parseInt(b.senha_os, 10);
-      const ambosNumericos = !Number.isNaN(numA) && !Number.isNaN(numB);
-      resultado = ambosNumericos
-        ? numA - numB
-        : String(a.senha_os || '').localeCompare(String(b.senha_os || ''));
-    }
-    return direcaoOrdenacao === 'asc' ? resultado : -resultado;
-  });
-
-  async function buscar(e) {
-    if (e) e.preventDefault();
-    setCarregando(true);
-    setErro('');
-    setJaBuscou(true);
-    setOrdenarPor('os');
-    setDirecaoOrdenacao('asc');
-    try {
-      const resp = await api.cobranca.buscar(cobrarDia, pagouFiltro, nome, os);
-      setPedidos(resp.pedidos);
-      setResumo(resp.resumo);
-      setSelecionados(new Set());
-    } catch (err) {
-      setErro(err.message);
-    } finally {
+  useEffect(() => {
+    const idBusca = ++ultimaBusca.current;
+    const dataIncompleta = filtroRapido === 'data' && cobrarDia !== '' && !/^\d{2}\/\d{2}\/\d{2}$/.test(cobrarDia);
+    if (dataIncompleta) {
       setCarregando(false);
+      return undefined;
+    }
+
+    const espera = nome.trim() || os.trim() ? 350 : 100;
+    const temporizador = setTimeout(() => {
+      buscar({ filtro: filtroRapido, cobrarDia, nome, os, idBusca });
+    }, espera);
+
+    return () => clearTimeout(temporizador);
+    // A busca acompanha automaticamente todos os filtros.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cobrarDia, filtroRapido, nome, os]);
+
+  async function buscar(opcoes = {}) {
+    const idBusca = opcoes.idBusca ?? ++ultimaBusca.current;
+    setCarregando(true); setErro(''); setJaBuscou(true);
+    try {
+      const filtroDaBusca = opcoes.filtro ?? filtroRapido;
+      const dataDaBusca = opcoes.cobrarDia ?? cobrarDia;
+      const nomeDaBusca = opcoes.nome ?? nome;
+      const osDaBusca = opcoes.os ?? os;
+      const dataExata = filtroDaBusca === 'data' ? dataDaBusca : '';
+      const [respPendentes, respRecebidas] = await Promise.all([
+        api.cobranca.buscar(dataExata, 'NAO', nomeDaBusca, osDaBusca), api.cobranca.buscar(dataExata, 'SIM', nomeDaBusca, osDaBusca),
+      ]);
+      if (idBusca !== ultimaBusca.current) return;
+      setPendentes(respPendentes.pedidos || []); setRecebidas(respRecebidas.pedidos || []); setExpandidos(new Set()); setSelecionados(new Set());
+    } catch (err) {
+      if (idBusca === ultimaBusca.current) setErro(err.message);
+    } finally {
+      if (idBusca === ultimaBusca.current) setCarregando(false);
     }
   }
 
-  function alternarSelecao(id, e) {
-    e.stopPropagation();
+  function aplicarFiltro(filtro) {
+    setFiltroRapido((atual) => atual === filtro ? 'todas' : filtro);
+    setCobrarDia('');
+    setLimitePagas(50);
+  }
+  function alternarGrupo(chave) {
+    setExpandidos((atual) => { const novo = new Set(atual); if (novo.has(chave)) novo.delete(chave); else novo.add(chave); return novo; });
+  }
+  function alternarSelecao(pedidos) {
     setSelecionados((atual) => {
       const novo = new Set(atual);
-      if (novo.has(id)) novo.delete(id);
-      else novo.add(id);
+      const todosSelecionados = pedidos.every((pedido) => novo.has(pedido.id));
+      pedidos.forEach((pedido) => todosSelecionados ? novo.delete(pedido.id) : novo.add(pedido.id));
       return novo;
     });
   }
-
-  function alternarSelecionarTodos() {
-    setSelecionados((atual) => (
-      atual.size === pedidos.length ? new Set() : new Set(pedidos.map((p) => p.id))
-    ));
+  function imprimir(pedidos) {
+    if (!pedidos.length) return mostrarToast('Não há pedidos para imprimir.', 'erro');
+    setPedidosImpressao(pedidos); setTimeout(() => window.print(), 50);
   }
-
-  function imprimir() {
-    const alvo = selecionados.size > 0 ? pedidosOrdenados.filter((p) => selecionados.has(p.id)) : pedidosOrdenados;
-    if (alvo.length === 0) {
-      mostrarToast('Não há pedidos para imprimir.', 'erro');
-      return;
-    }
-    setPedidosImpressao(alvo);
-    // Aguarda o próximo ciclo de renderização (área de impressão já
-    // populada com os pedidos certos) antes de abrir o diálogo do navegador.
-    setTimeout(() => window.print(), 50);
-  }
-
-  function abrirBaixa(pedido) {
-    setItemBaixaAberto(pedido);
-    setDataBaixa(hojeFormatado());
-    setStatusBaixa(pedido.recebi || '');
-  }
-
-  function fecharBaixa() {
-    setItemBaixaAberto(null);
-  }
-
+  function abrirBaixa(pedidos) { setPedidosBaixa(pedidos); setDataBaixa(dataLocalFormatada()); setStatusBaixa(pedidos[0]?.recebi || ''); }
   async function confirmarBaixa() {
     setSalvandoBaixa(true);
     try {
-      await api.cobranca.darBaixa(itemBaixaAberto.id, 'SIM', statusBaixa.trim() || null, dataBaixa);
-      mostrarToast(`"${itemBaixaAberto.nome}" foi marcado como pago.`);
-      setItemBaixaAberto(null);
-      buscar();
-    } catch (err) {
-      mostrarToast('Não foi possível salvar. Tente novamente.', 'erro');
-    } finally {
-      setSalvandoBaixa(false);
-    }
+      await api.cobranca.darBaixaEmLote(pedidosBaixa.map((p) => p.id), statusBaixa, dataBaixa);
+      mostrarToast('BAIXA DADA COM SUCESSO'); setPedidosBaixa([]); await buscar();
+    } catch (err) { mostrarToast(err.message || 'Não foi possível salvar.', 'erro'); } finally { setSalvandoBaixa(false); }
   }
-
-  function formatarReais(v) {
-    return (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  function abrirReagendamento(pedidos) {
+    const atual = dataDaAgenda(pedidos[0]);
+    setPedidosReagendar(pedidos);
+    setNovaData(diferencaParaHoje(atual) != null && diferencaParaHoje(atual) >= 0 ? atual : dataLocalFormatada(1));
   }
-
-  function classeFormaPagamento(forma) {
-    if (forma === 'PIX') return 'ok';
-    if (forma === 'DEPÓSITO') return 'aviso';
-    return 'neutro';
+  async function confirmarReagendamento() {
+    if (!novaData) return mostrarToast('Informe a nova data.', 'erro');
+    setSalvandoReagendamento(true);
+    try {
+      await api.cobranca.reagendarEmLote(pedidosReagendar.map((p) => p.id), novaData);
+      mostrarToast('COBRANÇA REAGENDADA COM SUCESSO'); setPedidosReagendar([]); await buscar();
+    } catch (err) { mostrarToast(err.message || 'Não foi possível reagendar.', 'erro'); } finally { setSalvandoReagendamento(false); }
   }
 
   return (
     <div>
-      <div className="nao-imprimir" style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <h1 style={{ marginBottom: 2 }}>Cobrança</h1>
-          <p className="fs-sm" style={{ color: 'var(--tinta-suave)', margin: 0 }}>
-            Busque pelo dia em que o cobrador passa para receber
-          </p>
-        </div>
-        {pedidos.length > 0 && (
-          <button type="button" className="btn" onClick={imprimir} style={{ gap: 8 }}>
-            <IconeImpressora />
-            {selecionados.size > 0
-              ? `Imprimir selecionados (${selecionados.size})`
-              : `Imprimir tudo (${pedidos.length})`}
+      <div className="cobranca-cabecalho nao-imprimir">
+        <div><h1 style={{ marginBottom: 2 }}>Cobrança</h1><p className="fs-sm texto-suave" style={{ margin: 0 }}>Organize a rota por urgência e dê baixa nos recebimentos</p></div>
+        {pedidosVisiveis.length > 0 && <div className="cobranca-acoes-impressao">
+          {pedidosSelecionados.length > 0 && <button type="button" className="btn-small" onClick={() => setSelecionados(new Set())}>Limpar seleção</button>}
+          <button type="button" className="btn cobranca-imprimir" onClick={() => imprimir(pedidosSelecionados.length > 0 ? pedidosSelecionados : pedidosVisiveis)}>
+            <IconeImpressora /> {pedidosSelecionados.length > 0 ? `Imprimir selecionados (${pedidosSelecionados.length})` : `Imprimir lista (${pedidosVisiveis.length})`}
           </button>
-        )}
+        </div>}
       </div>
 
-      <form onSubmit={buscar} className="painel nao-imprimir" style={estilos.formBusca}>
-        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <div className="campo" style={{ flex: '0 0 auto', width: 130, marginBottom: 0 }}>
-            <label>Cobrar dia</label>
-            <CampoData
-              placeholder="dd/mm/aa"
-              value={cobrarDia}
-              onChange={(v) => setCobrarDia(formatarData(v))}
-            />
-          </div>
-          <div className="campo" style={{ flex: '0 0 auto', width: 270, marginBottom: 0 }}>
-            <label>Nome</label>
-            <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do comprador" />
-          </div>
-          <div className="campo" style={{ flex: '0 0 auto', width: 100, marginBottom: 0 }}>
-            <label>O.S.</label>
-            <input value={os} onChange={(e) => setOs(e.target.value)} placeholder="Número exato" />
-          </div>
-          <div className="campo" style={{ flex: '0 0 auto', width: 150, marginBottom: 0 }}>
-            <label>Pagou</label>
-            <select value={pagouFiltro} onChange={(e) => setPagouFiltro(e.target.value)}>
-              <option value="NAO">Não pagou</option>
-              <option value="SIM">Já pagou</option>
-              <option value="TODOS">Todos</option>
-            </select>
-          </div>
-          <button type="submit" className="btn" disabled={carregando} style={{ flex: '0 0 auto' }}>
-            {carregando ? 'Buscando...' : 'Buscar'}
-          </button>
+      <div className="painel cobranca-filtros nao-imprimir">
+        <div className="cobranca-atalhos">
+          {[
+            ['atrasadas', 'Atrasadas'], ['hoje', 'Hoje'], ['amanha', 'Amanhã'],
+            ['semana', 'Esta semana'], ['proximas', 'Próximas'], ['pagas', 'Recebidas'], ['recebidas', 'Recebidas no mês'],
+          ].map(([valor, rotulo]) => <button key={valor} type="button" className={filtroRapido === valor ? 'ativo' : ''} onClick={() => aplicarFiltro(valor)}>{rotulo}</button>)}
         </div>
-      </form>
+        <div className="cobranca-campos-filtro">
+          <div className="campo"><label>Data exata</label><CampoData placeholder="dd/mm/aa" value={cobrarDia} onChange={(v) => { const data = formatarData(v); setCobrarDia(data); setFiltroRapido(data ? 'data' : 'todas'); }} /></div>
+          <div className="campo cobranca-filtro-os"><label>O.S.</label><input value={os} onChange={(e) => setOs(e.target.value)} placeholder="Número exato" /></div>
+          <div className="campo cobranca-filtro-nome"><label>Nome</label><input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do comprador" /></div>
+        </div>
+      </div>
 
       {erro && <p className="nao-imprimir" style={{ color: 'var(--selo)' }}>{erro}</p>}
-
-      {resumo && (
-        <div className="section-box nao-imprimir">
-          <div className="grade-resumo-cobranca">
-            <CartaoResumo label="Total de pedidos" valor={resumo.totalPedidos} />
-            <CartaoResumo label="PIX" valor={resumo.totalPix} />
-            <CartaoResumo label="Depósito" valor={resumo.totalDeposito} />
-            <CartaoResumo label="Presencial" valor={resumo.totalPresencial} />
-            <CartaoResumo label="Valor total" valor={formatarReais(resumo.valorTotal)} destaque />
-          </div>
+      {jaBuscou && !carregando && (
+        <div className="grade-resumo-cobranca-operacional nao-imprimir">
+          <ResumoCobranca titulo="Atrasadas" pedidos={atrasadas} classe="atrasada" onClick={() => aplicarFiltro('atrasadas')} />
+          <ResumoCobranca titulo="Para hoje" pedidos={paraHoje} classe="hoje" onClick={() => aplicarFiltro('hoje')} />
+          <ResumoCobranca titulo="Próximas" pedidos={futuras} classe="futura" onClick={() => aplicarFiltro('proximas')} />
+          <ResumoCobranca titulo="Recebidas no mês" pedidos={recebidasNoMes} classe="recebida" onClick={() => aplicarFiltro('recebidas')} />
+          <ResumoCobranca titulo="Total pendente" pedidos={pendentes} classe="total" onClick={() => aplicarFiltro('todas')} />
         </div>
       )}
 
-      {!jaBuscou ? (
-        <div className="painel nao-imprimir" style={{ textAlign: 'center', color: 'var(--tinta-suave)' }}>
-          Escolha os filtros acima e clique em Buscar.
-        </div>
-      ) : carregando ? (
-        <p className="nao-imprimir" style={{ color: 'var(--tinta-suave)' }}>Carregando...</p>
-      ) : pedidos.length === 0 ? (
-        <div className="painel nao-imprimir" style={{ textAlign: 'center', color: 'var(--tinta-suave)' }}>
-          Nenhum pedido encontrado com esses filtros.
-        </div>
-      ) : (
-        <div className="painel nao-imprimir" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ overflowX: 'auto' }}>
-            <table className="tabela-lista tabela-cobranca">
-              <thead>
-                <tr>
-                  <th style={{ width: 36 }}>
-                    <input
-                      type="checkbox"
-                      checked={selecionados.size === pedidos.length}
-                      onChange={alternarSelecionarTodos}
-                      title="Selecionar todos"
-                    />
-                  </th>
-                  <th
-                    onClick={() => aoClicarOrdenacao('os')}
-                    style={{ cursor: 'pointer', userSelect: 'none' }}
-                  >
-                    O.S.{ordenarPor === 'os' && (direcaoOrdenacao === 'asc' ? ' ▲' : ' ▼')}
-                  </th>
-                  <th
-                    onClick={() => aoClicarOrdenacao('comprador')}
-                    style={{ cursor: 'pointer', userSelect: 'none' }}
-                  >
-                    Comprador{ordenarPor === 'comprador' && (direcaoOrdenacao === 'asc' ? ' ▲' : ' ▼')}
-                  </th>
-                  <th>Pagou</th>
-                  <th>Cobrar dia</th>
-                  <th>Forma</th>
-                  <th>Valor</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {pedidosOrdenados.map((p) => (
-                  <tr key={p.id} onClick={() => abrirBaixa(p)}>
-                    <td data-label="Selecionar" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        checked={selecionados.has(p.id)}
-                        onChange={(e) => alternarSelecao(p.id, e)}
-                      />
-                    </td>
-                    <td data-label="O.S."><span className="carimbo-os carimbo-os-lista">{p.senha_os || p.id}</span></td>
-                    <td data-label="Comprador">{p.nome}</td>
-                    <td data-label="Pagou">
-                      <span className={`tag ${p.pagou === 'SIM' ? 'ok' : 'pendente'}`}>
-                        {p.pagou === 'SIM' ? 'Pago' : 'Pendente'}
-                      </span>
-                    </td>
-                    <td data-label="Cobrar dia">{p.cobranca || '—'}</td>
-                    <td data-label="Forma">
-                      <span className={`tag ${classeFormaPagamento(p.formaPagamento)}`}>
-                        {p.formaPagamento}
-                      </span>
-                    </td>
-                    <td data-label="Valor">{p.valor != null ? formatarReais(p.valor) : '—'}</td>
-                    <td data-label="Ação">
-                      <button type="button" className="btn-small" onClick={(e) => { e.stopPropagation(); abrirBaixa(p); }}>
-                        Dar baixa
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {itemBaixaAberto && (
-        <div className="modal-fundo nao-imprimir" onClick={fecharBaixa}>
-          <div className="modal-caixa" onClick={(e) => e.stopPropagation()}>
-            <div className="section-title">Cobrança — {itemBaixaAberto.nome}</div>
-
-            <div className="grade grade-2" style={{ marginBottom: 14 }}>
-              <InfoSomenteLeitura label="O.S." valor={itemBaixaAberto.senha_os || itemBaixaAberto.id} />
-              <InfoSomenteLeitura label="Data da compra" valor={itemBaixaAberto.data_pedido} />
-              <InfoSomenteLeitura label="Valor" valor={itemBaixaAberto.valor != null ? formatarReais(itemBaixaAberto.valor) : '—'} />
-              <InfoSomenteLeitura label="Forma" valor={itemBaixaAberto.formaPagamento} />
-              <InfoSomenteLeitura label="Celular" valor={itemBaixaAberto.celular} />
-              <InfoSomenteLeitura label="Fixo" valor={itemBaixaAberto.fixo} />
-              <InfoSomenteLeitura label="WhatsApp" valor={itemBaixaAberto.whatsapp} />
-              <InfoSomenteLeitura label="Endereço" valor={itemBaixaAberto.endereco} />
-              <InfoSomenteLeitura label="Bairro" valor={itemBaixaAberto.bairro} />
-              <InfoSomenteLeitura label="Referência" valor={itemBaixaAberto.referencia} />
-            </div>
-
-            <div className="campo" style={{ maxWidth: 130 }}>
-              <label>Dia do pagamento</label>
-              <CampoData
-                placeholder="dd/mm/aa"
-                value={dataBaixa}
-                onChange={(v) => setDataBaixa(formatarData(v))}
-              />
-            </div>
-            <div className="campo">
-              <label>Status</label>
-              <input
-                placeholder="Observação de lançamento..."
-                value={statusBaixa}
-                onChange={(e) => setStatusBaixa(e.target.value)}
-              />
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 14 }}>
-              {itemBaixaAberto.cliente_id && (
-                <button type="button" className="btn-small" onClick={() => navigate(`/clientes/${itemBaixaAberto.cliente_id}`)}>
-                  Ver cliente
-                </button>
+      {!jaBuscou ? <div className="painel estado-cobranca nao-imprimir">Carregando cobranças...</div>
+        : carregando ? <p className="texto-suave nao-imprimir">Carregando...</p>
+          : grupos.length === 0 ? <div className="painel estado-cobranca nao-imprimir">Nenhuma cobrança encontrada nesse grupo.</div>
+            : <>
+              <ListaGrupos grupos={grupos} pedidosVisiveis={pedidosVisiveis} expandidos={expandidos} selecionados={selecionados} alternarGrupo={alternarGrupo} alternarSelecao={alternarSelecao} imprimir={imprimir} abrirBaixa={abrirBaixa} abrirReagendamento={abrirReagendamento} navigate={navigate} />
+              {filtroRapido === 'pagas' && limitePagas < pagasOrdenadas.length && (
+                <div className="nao-imprimir" style={{ textAlign: 'center', marginTop: 16 }}>
+                  <button type="button" className="btn secundario" onClick={() => setLimitePagas((atual) => atual + 50)}>
+                    Mostrar mais recebidas ({pagasOrdenadas.length - limitePagas} restantes)
+                  </button>
+                </div>
               )}
-              <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
-                <button type="button" className="btn secundario" onClick={fecharBaixa}>Cancelar</button>
-                <button type="button" className="btn" onClick={confirmarBaixa} disabled={salvandoBaixa}>
-                  {salvandoBaixa ? 'Salvando...' : 'Salvar'}
-                </button>
+            </>}
+
+      {pedidosBaixa.length > 0 && (
+        <Modal titulo={`Dar baixa — ${pedidosBaixa[0].nome}`} onClose={() => setPedidosBaixa([])}>
+          <div className="resumo-modal-cobranca"><strong>{pedidosBaixa.length} pedido(s)</strong><strong>{formatarReais(somarPedidos(pedidosBaixa))}</strong></div>
+          <div className="campo" style={{ maxWidth: 150 }}><label>Dia do pagamento</label><CampoData placeholder="dd/mm/aa" value={dataBaixa} onChange={(v) => setDataBaixa(formatarData(v))} /></div>
+          <div className="campo"><label>Observação</label><input placeholder="Observação do recebimento..." value={statusBaixa} onChange={(e) => setStatusBaixa(e.target.value)} /></div>
+          <AcoesModal onCancelar={() => setPedidosBaixa([])} onConfirmar={confirmarBaixa} salvando={salvandoBaixa} rotulo="Confirmar baixa" />
+        </Modal>
+      )}
+      {pedidosReagendar.length > 0 && (
+        <Modal titulo={`Reagendar — ${pedidosReagendar[0].nome}`} onClose={() => setPedidosReagendar([])}>
+          <p className="fs-sm texto-suave">A nova data será aplicada a {pedidosReagendar.length} pedido(s).</p>
+          <div className="campo" style={{ maxWidth: 150 }}><label>Nova data</label><CampoData placeholder="dd/mm/aa" value={novaData} minimo={hojeSemHora()} onChange={(v) => setNovaData(formatarData(v))} /></div>
+          <AcoesModal onCancelar={() => setPedidosReagendar([])} onConfirmar={confirmarReagendamento} salvando={salvandoReagendamento} rotulo="Reagendar" />
+        </Modal>
+      )}
+      {pedidosImpressao.length > 0 && <div className="somente-imprimir"><PaginaImpressaoRecibos pedidos={pedidosImpressao} /></div>}
+    </div>
+  );
+}
+
+function ListaGrupos({ grupos, pedidosVisiveis, expandidos, selecionados, alternarGrupo, alternarSelecao, imprimir, abrirBaixa, abrirReagendamento, navigate }) {
+  return (
+    <div className="lista-grupos-cobranca nao-imprimir">
+      <div className="lista-grupos-meta"><strong>{grupos.length} cliente(s)</strong><span>{pedidosVisiveis.length} pedido(s) · {formatarReais(somarPedidos(pedidosVisiveis))}</span></div>
+      {grupos.map((grupo) => {
+        const aberto = expandidos.has(grupo.chave); const primeiro = grupo.pedidos[0]; const whatsapp = linkWhatsApp(grupo.whatsapp);
+        return (
+          <div className={`grupo-cobranca ${classeUrgencia(primeiro)}`} key={grupo.chave}>
+            <div className="grupo-cobranca-principal">
+              <div className="grupo-cobranca-controles">
+                <CaixaSelecaoGrupo pedidos={grupo.pedidos} selecionados={selecionados} onChange={() => alternarSelecao(grupo.pedidos)} />
+                <button type="button" className="grupo-cobranca-expandir" onClick={() => alternarGrupo(grupo.chave)} aria-label={aberto ? 'Recolher pedidos' : 'Expandir pedidos'}>{aberto ? '−' : '+'}</button>
+              </div>
+              <div className="grupo-cobranca-urgencia">
+                <span>{rotuloUrgencia(primeiro)}</span>
+                <small>{grupo.cobrancaReagendada ? `${grupo.cobranca || 'Sem data'} → ${grupo.cobrancaReagendada}` : grupo.cobranca || 'Sem cobrança'}</small>
+              </div>
+              <div className="grupo-cobranca-cliente"><strong>{grupo.nome}</strong><span>{grupo.pedidos.length} pedido(s) · O.S. {grupo.pedidos.map((p) => p.senha_os || p.id).join(', ')}</span></div>
+              <div className="grupo-cobranca-valor"><strong>{formatarReais(grupo.valorTotal)}</strong><span>{[...new Set(grupo.pedidos.map((p) => p.formaPagamento))].join(' · ')}</span></div>
+              <div className="grupo-cobranca-acoes">
+                {whatsapp && <a className="btn-small" href={whatsapp} target="_blank" rel="noreferrer">WhatsApp</a>}
+                <button type="button" className="btn-small" onClick={() => imprimir(grupo.pedidos)}><IconeImpressora /> Recibo</button>
+                {primeiro.pagou !== 'SIM' && <button type="button" className="btn-small" onClick={() => abrirReagendamento(grupo.pedidos)}>Reagendar</button>}
+                {primeiro.pagou !== 'SIM' && <button type="button" className="btn-small primario" onClick={() => abrirBaixa(grupo.pedidos)}>Dar baixa {grupo.pedidos.length > 1 ? 'em todos' : ''}</button>}
               </div>
             </div>
+            {aberto && <DetalhesGrupo grupo={grupo} selecionados={selecionados} alternarSelecao={alternarSelecao} imprimir={imprimir} abrirBaixa={abrirBaixa} navigate={navigate} />}
           </div>
-        </div>
-      )}
-
-      {/* Área de impressão: invisível na tela normal, só aparece via @media print. */}
-      {pedidosImpressao.length > 0 && (
-        <div className="somente-imprimir">
-          <PaginaImpressaoRecibos pedidos={pedidosImpressao} />
-        </div>
-      )}
+        );
+      })}
     </div>
   );
 }
 
-function InfoSomenteLeitura({ label, valor }) {
+function DetalhesGrupo({ grupo, selecionados, alternarSelecao, imprimir, abrirBaixa, navigate }) {
   return (
-    <div>
-      <div className="fs-xs" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--tinta-suave)', marginBottom: 2 }}>
-        {label}
+    <div className="grupo-cobranca-detalhes">
+      <div className="grupo-cobranca-endereco">
+        <div><span>Endereço</span><strong>{[valorInformado(grupo.endereco), valorInformado(grupo.complemento)].filter(Boolean).join(' - ') || 'Não informado'}</strong></div>
+        <div><span>Bairro</span><strong>{valorInformado(grupo.bairro) || 'Não informado'}</strong></div>
+        <div><span>Referência</span><strong>{valorInformado(grupo.referencia) || 'Não informada'}</strong></div>
+        {grupo.cliente_id && <button type="button" className="btn-small" onClick={() => navigate(`/clientes/${grupo.cliente_id}`)}>Ver cliente</button>}
       </div>
-      <div className="fs-md">{valor || '—'}</div>
+      <div className="grupo-cobranca-pedidos">
+        {grupo.pedidos.map((pedido) => (
+          <div className="pedido-cobranca-individual" key={pedido.id}>
+            <input type="checkbox" checked={selecionados.has(pedido.id)} onChange={() => alternarSelecao([pedido])} aria-label={`Selecionar O.S. ${pedido.senha_os || pedido.id} para impressão`} />
+            <span className="carimbo-os carimbo-os-lista">{pedido.senha_os || pedido.id}</span><span>Compra: {pedido.data_pedido || '—'}</span>
+            <span className={`tag ${pedido.formaPagamento === 'PIX' ? 'ok' : pedido.formaPagamento === 'DEPÓSITO' ? 'aviso' : 'neutro'}`}>{pedido.formaPagamento}</span>
+            <strong>{formatarReais(pedido.valor)}</strong><button type="button" className="btn-small" onClick={() => imprimir([pedido])}>Imprimir</button>
+            {pedido.pagou !== 'SIM' && <button type="button" className="btn-small primario" onClick={() => abrirBaixa([pedido])}>Dar baixa</button>}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
-function CartaoResumo({ label, valor, destaque }) {
-  return (
-    <div className={`cartao-valor ${destaque ? 'destaque' : ''}`}>
-      <div className="cartao-valor-label">{label}</div>
-      <div className="cartao-valor-numero">{valor}</div>
-    </div>
-  );
+function CaixaSelecaoGrupo({ pedidos, selecionados, onChange }) {
+  const referencia = useRef(null);
+  const quantidade = pedidos.filter((pedido) => selecionados.has(pedido.id)).length;
+  const todos = quantidade === pedidos.length;
+  useEffect(() => {
+    if (referencia.current) referencia.current.indeterminate = quantidade > 0 && !todos;
+  }, [quantidade, todos]);
+  return <input ref={referencia} type="checkbox" checked={todos} onChange={onChange} aria-label={`Selecionar ${pedidos.length} pedido(s) deste cliente para impressão`} />;
 }
 
-const estilos = {
-  formBusca: {
-    marginBottom: 20,
-  },
-};
+function ResumoCobranca({ titulo, pedidos, classe, onClick }) {
+  return <button type="button" className={`resumo-cobranca-operacional ${classe}`} onClick={onClick}><span>{titulo}</span><strong>{formatarReais(somarPedidos(pedidos))}</strong><small>{pedidos.length} pedido(s)</small></button>;
+}
+function Modal({ titulo, onClose, children }) {
+  return <div className="modal-fundo nao-imprimir" onClick={onClose}><div className="modal-caixa" onClick={(e) => e.stopPropagation()}><div className="section-title">{titulo}</div>{children}</div></div>;
+}
+function AcoesModal({ onCancelar, onConfirmar, salvando, rotulo }) {
+  return <div className="acoes-modal-cobranca"><button type="button" className="btn secundario" onClick={onCancelar}>Cancelar</button><button type="button" className="btn" onClick={onConfirmar} disabled={salvando}>{salvando ? 'Salvando...' : rotulo}</button></div>;
+}

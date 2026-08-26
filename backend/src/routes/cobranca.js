@@ -22,6 +22,18 @@ function formaPagamento(periodo) {
   return 'PRESENCIAL';
 }
 
+function chaveData(dataBr) {
+  const partes = String(dataBr || '').match(/^(\d{2})\/(\d{2})\/(\d{2}|\d{4})$/);
+  if (!partes) return null;
+  const ano = partes[3].length === 2 ? `20${partes[3]}` : partes[3];
+  return `${ano}-${partes[2]}-${partes[1]}`;
+}
+
+function chaveHojeBrasilia() {
+  const agora = agoraBrasilia();
+  return `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
+}
+
 // GET /api/cobranca?cobrarDia=X&pagou=NAO|SIM|TODOS&nome=X&os=X
 router.get('/', async (req, res) => {
   try {
@@ -35,7 +47,7 @@ router.get('/', async (req, res) => {
 
     if (cobrarDia) {
       params.push(cobrarDia);
-      condicoes.push(`cobranca = $${params.length}`);
+      condicoes.push(`(cobranca = $${params.length} OR cobranca_reagendada = $${params.length})`);
     }
     if (pagouFiltro === 'SIM') {
       condicoes.push("pagou = 'SIM'");
@@ -55,7 +67,8 @@ router.get('/', async (req, res) => {
     const where = `WHERE ${condicoes.join(' AND ')}`;
 
     const linhasResultado = await db.query(`
-      SELECT id, senha_os, nome_comprador, data_pedido, valor, cobranca, periodo, pagou, recebi, p1_dia,
+      SELECT id, senha_os, nome_comprador, data_pedido, valor, cobranca, cobranca_reagendada,
+             periodo, pagou, recebi, data_pagamento, p1_dia,
              comprador_fixo, comprador_celular, comprador_endereco, comprador_complemento,
              comprador_bairro, comprador_referencia, cliente_id
       FROM fonadas
@@ -84,10 +97,12 @@ router.get('/', async (req, res) => {
         data_pedido: l.data_pedido,
         valor: l.valor,
         cobranca: l.cobranca,
+        cobrancaReagendada: l.cobranca_reagendada,
         periodo: l.periodo,
         transmissao: l.p1_dia,
         pagou: l.pagou,
         recebi: l.recebi,
+        dataPagamento: l.data_pagamento,
         formaPagamento: formaPagamento(l.periodo),
         nome: cliente ? cliente.nome : l.nome_comprador,
         fixo: cliente ? cliente.fixo : l.comprador_fixo,
@@ -158,6 +173,80 @@ router.put('/:id/baixa', async (req, res) => {
   } catch (erro) {
     console.error('Erro ao dar baixa:', erro);
     res.status(500).json({ erro: 'Erro ao dar baixa.' });
+  }
+});
+
+function idsValidos(corpo) {
+  if (!Array.isArray(corpo)) return [];
+  return [...new Set(corpo.map(Number).filter((id) => Number.isInteger(id) && id > 0))];
+}
+
+async function verificarClientesBloqueados(ids) {
+  const resultado = await db.query(`
+    SELECT f.id
+    FROM fonadas f
+    JOIN clientes c ON c.id = f.cliente_id
+    WHERE f.id = ANY($1::int[]) AND c.bloqueado = TRUE
+    LIMIT 1
+  `, [ids]);
+  return resultado.rows.length > 0;
+}
+
+// PUT /api/cobranca/baixa-lote
+router.put('/acoes/baixa-lote', async (req, res) => {
+  try {
+    const ids = idsValidos(req.body.ids);
+    if (ids.length === 0) return res.status(400).json({ erro: 'Selecione pelo menos um pedido.' });
+    if (await verificarClientesBloqueados(ids)) {
+      return res.status(403).json({ erro: 'Há um cliente bloqueado entre os pedidos selecionados.' });
+    }
+
+    let dataFinal = String(req.body.dataPagamento || '').trim();
+    if (!dataFinal) {
+      const agora = agoraBrasilia();
+      const dd = String(agora.getDate()).padStart(2, '0');
+      const mm = String(agora.getMonth() + 1).padStart(2, '0');
+      dataFinal = `${dd}/${mm}/${String(agora.getFullYear()).slice(-2)}`;
+    }
+
+    const resultado = await db.query(`
+      UPDATE fonadas
+      SET pagou = 'SIM', recebi = $1, data_pagamento = $2, atualizado_em = NOW()
+      WHERE id = ANY($3::int[]) AND excluido_em IS NULL
+      RETURNING id
+    `, [String(req.body.recebi || '').trim() || null, dataFinal, ids]);
+
+    res.json({ ok: true, quantidade: resultado.rows.length, dataPagamento: dataFinal });
+  } catch (erro) {
+    console.error('Erro ao dar baixa em lote:', erro);
+    res.status(500).json({ erro: 'Erro ao dar baixa nos pedidos.' });
+  }
+});
+
+// PUT /api/cobranca/acoes/reagendar-lote
+router.put('/acoes/reagendar-lote', async (req, res) => {
+  try {
+    const ids = idsValidos(req.body.ids);
+    const cobrarDia = String(req.body.cobrarDia || '').trim();
+    if (ids.length === 0) return res.status(400).json({ erro: 'Selecione pelo menos um pedido.' });
+    if (!/^\d{2}\/\d{2}\/\d{2}(?:\d{2})?$/.test(cobrarDia)) {
+      return res.status(400).json({ erro: 'Informe uma data válida para reagendar.' });
+    }
+    if (chaveData(cobrarDia) < chaveHojeBrasilia()) {
+      return res.status(400).json({ erro: 'A nova data de cobrança não pode estar no passado.' });
+    }
+
+    const resultado = await db.query(`
+      UPDATE fonadas
+      SET cobranca_reagendada = $1, atualizado_em = NOW()
+      WHERE id = ANY($2::int[]) AND excluido_em IS NULL
+      RETURNING id
+    `, [cobrarDia, ids]);
+
+    res.json({ ok: true, quantidade: resultado.rows.length, cobrarDia });
+  } catch (erro) {
+    console.error('Erro ao reagendar cobranças:', erro);
+    res.status(500).json({ erro: 'Erro ao reagendar os pedidos.' });
   }
 });
 

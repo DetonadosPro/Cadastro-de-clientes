@@ -27,6 +27,34 @@ function IconeEditar() {
   );
 }
 
+function valorUtil(valor) {
+  const texto = String(valor || '').trim();
+  return texto && !/^0+$/.test(texto) && texto !== '-' && texto !== '00/00/0000' ? texto : '';
+}
+
+function nascimentoValido(valor) {
+  const texto = valorUtil(valor);
+  const partes = texto.match(/^(\d{2})\/(\d{2})(?:\/(\d{2}|\d{4}))?$/);
+  if (!partes) return false;
+  const dia = Number(partes[1]); const mes = Number(partes[2]);
+  const ano = partes[3] ? Number(partes[3].length === 2 ? `20${partes[3]}` : partes[3]) : 2000;
+  return mes >= 1 && mes <= 12 && dia >= 1 && dia <= new Date(ano, mes, 0).getDate();
+}
+
+function dataBrParaNumero(valor) {
+  const partes = String(valor || '').match(/^(\d{2})\/(\d{2})\/(\d{2}|\d{4})$/);
+  if (!partes) return null;
+  const ano = Number(partes[3].length === 2 ? `20${partes[3]}` : partes[3]);
+  return Date.UTC(ano, Number(partes[2]) - 1, Number(partes[1]));
+}
+
+function linkWhatsApp(numero) {
+  let digitos = String(numero || '').replace(/\D/g, '');
+  if (digitos.length < 10) return null;
+  if (digitos.length <= 11) digitos = `55${digitos}`;
+  return `https://api.whatsapp.com/send?phone=${digitos}`;
+}
+
 export default function FichaCliente() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -85,7 +113,7 @@ export default function FichaCliente() {
       setEditando(false);
       mostrarToast('Dados do cliente atualizados.');
     } catch (err) {
-      mostrarToast('Não foi possível salvar. Tente novamente.', 'erro');
+      mostrarToast(err.message || 'Não foi possível salvar. Tente novamente.', 'erro');
     } finally {
       setSalvando(false);
     }
@@ -167,6 +195,24 @@ export default function FichaCliente() {
   const totalFonada = pedidosFonada.reduce((soma, p) => soma + (p.valor || 0), 0);
   const totalAoVivo = pedidosAoVivo.reduce((soma, p) => soma + (p.valor || 0), 0);
   const totalGeral = totalFonada + totalAoVivo;
+  const totalPedidos = pedidosFonada.length + pedidosAoVivo.length;
+  const valorPendente = pedidosFonada
+    .filter((p) => p.pagou !== 'SIM' && valorUtil(p.cobranca))
+    .reduce((soma, p) => soma + Number(p.valor || 0), 0)
+    + pedidosAoVivo
+      .filter((p) => p.pagou !== 'SIM' && String(p.pagamento || '').toUpperCase().includes('PRAZO'))
+      .reduce((soma, p) => soma + Number(p.valor || 0), 0);
+  const todosPedidos = [...pedidosFonada, ...pedidosAoVivo];
+  const ultimoPedido = todosPedidos
+    .map((p) => p.data_pedido).filter((data) => dataBrParaNumero(data) != null)
+    .sort((a, b) => dataBrParaNumero(b) - dataBrParaNumero(a))[0];
+  const hojeUtc = Date.UTC(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+  const proximaCobranca = pedidosFonada
+    .map((p) => p.cobranca_reagendada || p.cobranca)
+    .filter((data) => dataBrParaNumero(data) != null && dataBrParaNumero(data) >= hojeUtc)
+    .sort((a, b) => dataBrParaNumero(a) - dataBrParaNumero(b))[0];
+  const whatsappLink = linkWhatsApp(cliente.whatsapp || cliente.celular);
+  const cadastroIncompleto = !nascimentoValido(cliente.nascimento) || !valorUtil(cliente.whatsapp || cliente.celular || cliente.fixo);
 
   function formatarReais(v) {
     return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -179,24 +225,17 @@ export default function FichaCliente() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <h1 style={{ marginBottom: 4 }}>{cliente.nome}</h1>
             {cliente.bloqueado && <span className="tag pendente" style={{ marginBottom: 4 }}>Bloqueado</span>}
+            {cadastroIncompleto && <span className="tag aviso" style={{ marginBottom: 4 }}>Revisar cadastro</span>}
           </div>
           <p className="fs-sm" style={{ color: 'var(--tinta-suave)', margin: 0 }}>
             Cliente desde {new Date(cliente.criado_em).toLocaleDateString('pt-BR')}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {cliente.bloqueado ? (
-            <button className="btn" onClick={desbloquear}>
-              Desbloquear cliente
-            </button>
-          ) : (
-            <button className="btn perigo" onClick={() => setMostrandoBloqueio(true)}>
-              Bloquear cliente
-            </button>
-          )}
-          <button className="btn perigo" onClick={excluirCliente}>
-            Excluir cliente
-          </button>
+        <div className="acoes-ficha-cliente">
+          <button className="btn" onClick={novoPedidoFonada}>Nova fonada</button>
+          <button className="btn" onClick={novoPedidoAoVivo}>Novo ao vivo</button>
+          {whatsappLink && <a className="btn secundario" href={whatsappLink} target="_blank" rel="noreferrer">WhatsApp</a>}
+          <button className="btn secundario" onClick={() => navigate(`/cobranca?nome=${encodeURIComponent(cliente.nome)}`)}>Ver cobrança</button>
           <button className="btn secundario" onClick={voltar} style={{ gap: 6 }}>
             <IconeVoltar /> Voltar
           </button>
@@ -241,23 +280,25 @@ export default function FichaCliente() {
       <div className="section-box">
         <div className="section-title">
           <span>Dados do cliente</span>
-          {!editando && (
-            <button type="button" className="btn-small" onClick={iniciarEdicao} style={{ gap: 5 }}>
-              <IconeEditar /> Editar
-            </button>
-          )}
+          {!editando && <div className="acoes-dados-cliente">
+            <button type="button" className="btn-small" onClick={iniciarEdicao} style={{ gap: 5 }}><IconeEditar /> Editar</button>
+            {cliente.bloqueado
+              ? <button type="button" className="btn-small" onClick={desbloquear}>Desbloquear</button>
+              : <button type="button" className="btn-small" onClick={() => setMostrandoBloqueio(true)}>Bloquear</button>}
+            <button type="button" className="btn-small perigo" onClick={excluirCliente}>Excluir</button>
+          </div>}
         </div>
 
         {!editando ? (
           <div className="grade grade-3">
-            <Info label="Nascimento" valor={cliente.nascimento} />
-            <Info label="Telefone fixo" valor={cliente.fixo} />
-            <Info label="WhatsApp" valor={cliente.whatsapp} />
-            <Info label="Celular" valor={cliente.celular} />
-            <Info label="Endereço" valor={cliente.endereco} />
-            <Info label="Complemento" valor={cliente.complemento} />
-            <Info label="Bairro" valor={cliente.bairro} />
-            <Info label="Referência" valor={cliente.referencia} />
+            <Info label="Nascimento" valor={nascimentoValido(cliente.nascimento) ? cliente.nascimento : ''} />
+            <Info label="Telefone fixo" valor={valorUtil(cliente.fixo)} />
+            <Info label="WhatsApp" valor={valorUtil(cliente.whatsapp)} />
+            <Info label="Celular" valor={valorUtil(cliente.celular)} />
+            <Info label="Endereço" valor={valorUtil(cliente.endereco)} />
+            <Info label="Complemento" valor={valorUtil(cliente.complemento)} />
+            <Info label="Bairro" valor={valorUtil(cliente.bairro)} />
+            <Info label="Referência" valor={valorUtil(cliente.referencia)} />
           </div>
         ) : (
           <>
@@ -314,11 +355,13 @@ export default function FichaCliente() {
       </div>
 
       <div className="section-box">
-        <div className="section-title">Valor gasto</div>
-        <div className="grade grade-3 grade-resumo-financeiro">
-          <CartaoValor label="Fonada" valor={totalFonada} formatarReais={formatarReais} />
-          <CartaoValor label="Ao vivo" valor={totalAoVivo} formatarReais={formatarReais} />
-          <CartaoValor label="Total geral" valor={totalGeral} formatarReais={formatarReais} destaque />
+        <div className="section-title">Resumo do cliente</div>
+        <div className="resumo-operacional-cliente">
+          <CartaoIndicador label="Último pedido" valor={ultimoPedido || 'Sem pedidos'} />
+          <CartaoIndicador label="Total de pedidos" valor={String(totalPedidos)} detalhe={`${pedidosFonada.length} fonada · ${pedidosAoVivo.length} ao vivo`} />
+          <CartaoIndicador label="Total gasto" valor={formatarReais(totalGeral)} />
+          <CartaoIndicador label="Valor pendente" valor={formatarReais(valorPendente)} destaque={valorPendente > 0} />
+          <CartaoIndicador label="Próxima cobrança" valor={proximaCobranca || 'Nenhuma'} />
         </div>
       </div>
 
@@ -365,10 +408,11 @@ export default function FichaCliente() {
                       <tr>
                         <th>O.S.</th>
                         <th>Data</th>
-                        <th>Para (1ª)</th>
-                        <th>Para (2ª)</th>
-                        <th>Valor</th>
-                        <th>Pagou</th>
+                        <th>Destinatários</th>
+                        <th>Situação</th>
+                        <th>Pagamento</th>
+                        <th>Cobrança</th>
+                        <th style={{ textAlign: 'right' }}>Valor</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -377,27 +421,13 @@ export default function FichaCliente() {
                           <td><span className="carimbo-os carimbo-os-lista">{p.senha_os || p.id}</span></td>
                           <td>{p.data_pedido || '—'}</td>
                           <td>
-                            <span
-                              className={`bolinha-status ${p.p1_dia ? 'usada' : 'livre'}`}
-                              title={p.p1_dia ? `1ª mensagem marcada para ${p.p1_dia}` : '1ª mensagem ainda disponível'}
-                              style={{ marginLeft: 0, marginRight: 6 }}
-                            />
-                            {p.p1_para || '—'}
+                            <span className="historico-destinatario"><strong>1ª:</strong> {valorUtil(p.p1_para) || '—'}</span>
+                            {valorUtil(p.p2_para) && <span className="historico-destinatario"><strong>2ª:</strong> {valorUtil(p.p2_para)}</span>}
                           </td>
-                          <td>
-                            <span
-                              className={`bolinha-status ${p.p2_dia ? 'usada' : 'livre'}`}
-                              title={p.p2_dia ? `2ª mensagem marcada para ${p.p2_dia}` : '2ª mensagem ainda disponível'}
-                              style={{ marginLeft: 0, marginRight: 6 }}
-                            />
-                            {p.p2_para || '—'}
-                          </td>
-                          <td>{p.valor != null ? formatarReais(p.valor) : '—'}</td>
-                          <td>
-                            <span className={`tag ${p.pagou === 'SIM' ? 'ok' : 'pendente'}`}>
-                              {p.pagou === 'SIM' ? 'Pago' : 'Pendente'}
-                            </span>
-                          </td>
+                          <td><span className={`historico-situacao ${p.p1_passada_por || p.p2_passada_por || p.p1_resultado || p.p2_resultado ? 'transmitida' : ''}`}>{p.p1_passada_por || p.p2_passada_por || p.p1_resultado || p.p2_resultado ? 'Transmitida' : 'Agendada'}</span></td>
+                          <td><span className={`tag ${p.pagou === 'SIM' ? 'ok' : 'pendente'}`}>{p.pagou === 'SIM' ? 'Recebido' : 'Pendente'}</span><span className="historico-cliente-secundario">{p.periodo || 'Presencial'}</span></td>
+                          <td>{p.cobranca_reagendada || p.cobranca || '—'}</td>
+                          <td style={{ textAlign: 'right' }}>{p.valor != null ? formatarReais(p.valor) : '—'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -422,7 +452,9 @@ export default function FichaCliente() {
                         <th>Data</th>
                         <th>Entrega</th>
                         <th>Para</th>
-                        <th>Valor</th>
+                        <th>Situação</th>
+                        <th>Pagamento</th>
+                        <th style={{ textAlign: 'right' }}>Valor</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -432,7 +464,9 @@ export default function FichaCliente() {
                           <td>{p.data_pedido || '—'}</td>
                           <td>{p.dia_entrega || '—'}</td>
                           <td>{p.para || '—'}</td>
-                          <td>{p.valor != null ? formatarReais(p.valor) : '—'}</td>
+                          <td><span className={`tag ${String(p.resultado_entrega || '').startsWith('ENTREGUE') ? 'ok' : 'pendente'}`}>{String(p.resultado_entrega || '').startsWith('ENTREGUE') ? 'Entregue' : 'Pendente'}</span></td>
+                          <td><span className={`tag ${p.pagou === 'SIM' ? 'ok' : 'neutro'}`}>{p.pagou === 'SIM' ? 'Recebido' : (valorUtil(p.pagamento) || 'Presencial')}</span></td>
+                          <td style={{ textAlign: 'right' }}>{p.valor != null ? formatarReais(p.valor) : '—'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -458,11 +492,12 @@ function Info({ label, valor }) {
   );
 }
 
-function CartaoValor({ label, valor, formatarReais, destaque }) {
+function CartaoIndicador({ label, valor, detalhe, destaque }) {
   return (
     <div className={`cartao-valor ${destaque ? 'destaque' : ''}`}>
       <div className="cartao-valor-label">{label}</div>
-      <div className="cartao-valor-numero">{formatarReais(valor)}</div>
+      <div className="cartao-valor-numero">{valor}</div>
+      {detalhe && <div className="historico-cliente-secundario">{detalhe}</div>}
     </div>
   );
 }

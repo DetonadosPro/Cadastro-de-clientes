@@ -4,19 +4,40 @@ import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
 
-const OPCOES_FILTRO = [
-  { valor: '', label: 'Nome' },
-  { valor: 'celular', label: 'Celular' },
-  { valor: 'nascimento', label: 'Data de aniversário' },
-  { valor: 'endereco', label: 'Endereço' },
-  { valor: 'fixo', label: 'Telefone fixo' },
+const FILTROS_RAPIDOS = [
+  ['pendencia', 'Com cobrança pendente'],
+  ['bloqueados', 'Bloqueados'],
 ];
 
-const MASCARA_POR_FILTRO = {
-  nascimento: formatarData,
-  celular: formatarCelular,
-  fixo: formatarFixo,
-};
+const CAMPOS_MESCLA = [
+  ['nome', 'Nome'], ['nascimento', 'Nascimento'], ['whatsapp', 'WhatsApp'], ['celular', 'Celular'],
+  ['fixo', 'Telefone fixo'], ['endereco', 'Endereço'], ['complemento', 'Complemento'], ['bairro', 'Bairro'], ['referencia', 'Referência'],
+];
+
+function formatarTelefonePesquisa(valor) {
+  const digitos = String(valor || '').replace(/\D/g, '').slice(0, 11);
+  if (digitos.length < 10) return digitos;
+  return digitos.length === 10 ? formatarFixo(digitos) : formatarCelular(digitos);
+}
+
+function valorUtil(valor) {
+  const texto = String(valor || '').trim();
+  return texto && !/^0+$/.test(texto) && texto !== '-' && texto !== '00/00/0000' ? texto : '';
+}
+
+function nascimentoValido(valor) {
+  const texto = valorUtil(valor);
+  if (!texto) return false;
+  const partes = texto.match(/^(\d{2})\/(\d{2})(?:\/(\d{2}|\d{4}))?$/);
+  if (!partes) return false;
+  const dia = Number(partes[1]); const mes = Number(partes[2]);
+  const ano = partes[3] ? Number(partes[3].length === 2 ? `20${partes[3]}` : partes[3]) : 2000;
+  return mes >= 1 && mes <= 12 && dia >= 1 && dia <= new Date(ano, mes, 0).getDate();
+}
+
+function formatarReais(valor) {
+  return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
 
 // Alça de arrastar — seis pontos em duas colunas, o desenho universal
 // de "isso é arrastável" em interfaces de lista.
@@ -69,24 +90,32 @@ export default function ListaClientes() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const buscaUrl = searchParams.get('busca') || '';
-  const campoUrl = searchParams.get('campo') || '';
+  const telefoneUrl = searchParams.get('telefone') || '';
+  const aniversarioUrl = searchParams.get('aniversario') || '';
+  const situacaoUrl = searchParams.get('situacao') || '';
   const paginaUrl = parseInt(searchParams.get('pagina') || '1', 10);
   const ordenarPorUrl = searchParams.get('ordenarPor') || 'nome';
   const direcaoUrl = searchParams.get('direcao') || 'asc';
 
   const [busca, setBusca] = useState(buscaUrl);
-  const [campoFiltro, setCampoFiltro] = useState(campoUrl);
+  const [telefone, setTelefone] = useState(telefoneUrl);
+  const [aniversario, setAniversario] = useState(aniversarioUrl);
+  const [situacao, setSituacao] = useState(situacaoUrl);
   const [itens, setItens] = useState([]);
   const [total, setTotal] = useState(0);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
+  const [selecionados, setSelecionados] = useState(() => new Set());
+  const [excluindoSelecionados, setExcluindoSelecionados] = useState(false);
   const [arrastandoId, setArrastandoId] = useState(null);
   const [sobreId, setSobreId] = useState(null);
   const [mesclando, setMesclando] = useState(false);
   const [sugestoesDuplicata, setSugestoesDuplicata] = useState([]);
   const [descartadas, setDescartadas] = useState(() => new Set());
-  const [mesclandoAutomatico, setMesclandoAutomatico] = useState(null);
   const [duplicatasAbertas, setDuplicatasAbertas] = useState(false);
+  const [comparacaoMescla, setComparacaoMescla] = useState(null);
+  const [destinoMescla, setDestinoMescla] = useState(null);
+  const [fontesMescla, setFontesMescla] = useState({});
   const navigate = useNavigate();
   const { mostrarToast } = useToast();
 
@@ -95,13 +124,14 @@ export default function ListaClientes() {
   const porPagina = 30;
   const totalPaginas = Math.max(Math.ceil(total / porPagina), 1);
 
-  const carregar = useCallback(async (termo, pag, campo, ordenarPor, direcao) => {
+  const carregar = useCallback(async (termo, pag, ordenarPor, direcao, extras = {}) => {
     setCarregando(true);
     setErro('');
     try {
-      const resposta = await api.clientes.listar(termo, pag, campo, ordenarPor, direcao);
+      const resposta = await api.clientes.listar(termo, pag, 'nome', ordenarPor, direcao, extras);
       setItens(resposta.clientes);
       setTotal(resposta.total);
+      setSelecionados(new Set());
     } catch (err) {
       setErro(err.message);
     } finally {
@@ -111,10 +141,24 @@ export default function ListaClientes() {
 
   useEffect(() => {
     setBusca(buscaUrl);
-    setCampoFiltro(campoUrl);
-    carregar(buscaUrl, paginaUrl, campoUrl, ordenarPorUrl, direcaoUrl);
+    setTelefone(telefoneUrl);
+    setAniversario(aniversarioUrl);
+    setSituacao(situacaoUrl);
+    carregar(buscaUrl, paginaUrl, ordenarPorUrl, direcaoUrl, { telefone: telefoneUrl, aniversario: aniversarioUrl, situacao: situacaoUrl });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [buscaUrl, campoUrl, paginaUrl, ordenarPorUrl, direcaoUrl, carregar]);
+  }, [buscaUrl, telefoneUrl, aniversarioUrl, situacaoUrl, paginaUrl, ordenarPorUrl, direcaoUrl, carregar]);
+
+  useEffect(() => {
+    const temporizador = setTimeout(() => {
+      const atuais = {
+        busca: buscaUrl, telefone: telefoneUrl, aniversario: aniversarioUrl, situacao: situacaoUrl,
+      };
+      if (busca === atuais.busca && telefone === atuais.telefone && aniversario === atuais.aniversario && situacao === atuais.situacao) return;
+      setSearchParams(montarParams(busca, telefone, aniversario, situacao, 1, ordenarPorUrl, direcaoUrl), { replace: true });
+    }, 350);
+    return () => clearTimeout(temporizador);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busca, telefone, aniversario, situacao]);
 
   // Busca sugestões de possíveis duplicatas uma vez ao entrar na tela
   // — é uma varredura da base inteira, então não precisa refazer a
@@ -153,65 +197,114 @@ export default function ListaClientes() {
     }
   }
 
-  async function mesclarSugestao(par) {
-    const chave = chaveDoPar(par);
-    setMesclandoAutomatico(chave);
+  function abrirComparacao(a, b, destinoInicial = a.id, chave = null) {
+    setComparacaoMescla({ a, b, chave });
+    setDestinoMescla(destinoInicial);
+    setFontesMescla(Object.fromEntries(CAMPOS_MESCLA.map(([campo]) => [campo, String(destinoInicial)])));
+  }
+
+  function preSelecionarCadastro(clienteId) {
+    setDestinoMescla(clienteId);
+    setFontesMescla(Object.fromEntries(CAMPOS_MESCLA.map(([campo]) => [campo, String(clienteId)])));
+  }
+
+  async function confirmarMesclagem() {
+    if (!comparacaoMescla || !destinoMescla) return;
+    const destino = String(comparacaoMescla.a.id) === String(destinoMescla) ? comparacaoMescla.a : comparacaoMescla.b;
+    const origem = destino === comparacaoMescla.a ? comparacaoMescla.b : comparacaoMescla.a;
+    setMesclando(true);
     try {
-      const resp = await api.clientes.mesclarAutomatico(par.a.id, par.b.id);
-      const vencedorNome = resp.vencedorId === par.a.id ? par.a.nome : par.b.nome;
-      mostrarToast(`Clientes mesclados. Cadastro mantido: "${vencedorNome}".`);
-      setDescartadas((antigo) => new Set(antigo).add(chave));
+      const dadosFinais = Object.fromEntries(CAMPOS_MESCLA.map(([campo]) => {
+        const fonte = String(fontesMescla[campo]) === String(comparacaoMescla.a.id) ? comparacaoMescla.a : comparacaoMescla.b;
+        const valor = valorUtil(fonte[campo]);
+        return [campo, campo === 'nascimento' && valor && !nascimentoValido(valor) ? '' : valor];
+      }));
+      await api.clientes.mesclar(destino.id, origem.id, dadosFinais);
+      mostrarToast(`Clientes mesclados. Cadastro mantido: "${destino.nome}".`);
+      if (comparacaoMescla.chave) setDescartadas((antigo) => new Set(antigo).add(comparacaoMescla.chave));
+      setComparacaoMescla(null);
+      setDestinoMescla(null);
       buscarSugestoes();
-      carregar(buscaUrl, paginaUrl, campoUrl, ordenarPorUrl, direcaoUrl);
+      carregar(buscaUrl, paginaUrl, ordenarPorUrl, direcaoUrl, { telefone: telefoneUrl, aniversario: aniversarioUrl, situacao: situacaoUrl });
     } catch (err) {
       mostrarToast('Não foi possível mesclar. Tente novamente.', 'erro');
     } finally {
-      setMesclandoAutomatico(null);
+      setMesclando(false);
     }
   }
 
   const sugestoesVisiveis = sugestoesDuplicata.filter((par) => !descartadas.has(chaveDoPar(par)));
 
-  function montarParams(novaBusca, novoCampo, novaPagina, novoOrdenarPor, novaDirecao) {
+  function montarParams(novaBusca, novoTelefone, novoAniversario, novaSituacao, novaPagina, novoOrdenarPor, novaDirecao) {
     const params = {};
     if (novaBusca) params.busca = novaBusca;
-    if (novoCampo) params.campo = novoCampo;
+    if (novoTelefone) params.telefone = novoTelefone;
+    if (novoAniversario) params.aniversario = novoAniversario;
+    if (novaSituacao) params.situacao = novaSituacao;
     params.pagina = String(novaPagina);
     if (novoOrdenarPor && novoOrdenarPor !== 'nome') params.ordenarPor = novoOrdenarPor;
     if (novaDirecao && novaDirecao !== 'asc') params.direcao = novaDirecao;
     return params;
   }
 
-  function aoSubmeterBusca(e) {
-    e.preventDefault();
-    setSearchParams(montarParams(busca, campoFiltro, 1, ordenarPorUrl, direcaoUrl), { replace: true });
+  function irParaPagina(novaPagina) {
+    setSearchParams(montarParams(busca, telefone, aniversario, situacao, novaPagina, ordenarPorUrl, direcaoUrl), { replace: true });
   }
 
-  function irParaPagina(novaPagina) {
-    setSearchParams(montarParams(busca, campoFiltro, novaPagina, ordenarPorUrl, direcaoUrl), { replace: true });
+  function aplicarFiltroRapido(valor) {
+    const novaSituacao = situacao === valor ? '' : valor;
+    setSituacao(novaSituacao);
+    setCarregando(true);
+    setSearchParams(
+      montarParams(busca, telefone, aniversario, novaSituacao, 1, ordenarPorUrl, direcaoUrl),
+      { replace: true }
+    );
+  }
+
+  function alternarSelecao(clienteId) {
+    setSelecionados((atuais) => {
+      const novos = new Set(atuais);
+      if (novos.has(clienteId)) novos.delete(clienteId);
+      else novos.add(clienteId);
+      return novos;
+    });
+  }
+
+  function alternarTodosVisiveis() {
+    const todosSelecionados = itens.length > 0 && itens.every((cliente) => selecionados.has(cliente.id));
+    setSelecionados(todosSelecionados ? new Set() : new Set(itens.map((cliente) => cliente.id)));
+  }
+
+  async function excluirClientesSelecionados() {
+    if (selecionados.size === 0) return;
+    const quantidade = selecionados.size;
+    const confirmar = window.confirm(
+      `Enviar ${quantidade} cliente${quantidade > 1 ? 's' : ''} e seus pedidos para a Lixeira?`
+    );
+    if (!confirmar) return;
+
+    setExcluindoSelecionados(true);
+    try {
+      await Promise.all([...selecionados].map((clienteId) => api.clientes.excluir(clienteId)));
+      mostrarToast(`${quantidade} cliente${quantidade > 1 ? 's enviados' : ' enviado'} para a Lixeira.`);
+      setSelecionados(new Set());
+      buscarSugestoes();
+      carregar(buscaUrl, paginaUrl, ordenarPorUrl, direcaoUrl, { telefone: telefoneUrl, aniversario: aniversarioUrl, situacao: situacaoUrl });
+    } catch (err) {
+      mostrarToast(err.message || 'Não foi possível excluir os clientes selecionados.', 'erro');
+    } finally {
+      setExcluindoSelecionados(false);
+    }
   }
 
   // Clicar numa coluna ordenável: se já é a coluna ativa, inverte a
   // direção; se é uma coluna nova, começa em ordem crescente.
   function aoClicarOrdenacao(coluna) {
-    const novaDirecao = ordenarPorUrl === coluna && direcaoUrl === 'asc' ? 'desc' : 'asc';
-    setSearchParams(montarParams(busca, campoFiltro, 1, coluna, novaDirecao), { replace: true });
+    const novaDirecao = ordenarPorUrl === coluna
+      ? (direcaoUrl === 'asc' ? 'desc' : 'asc')
+      : (['ultimo_pedido', 'total_pedidos', 'valor_pendente'].includes(coluna) ? 'desc' : 'asc');
+    setSearchParams(montarParams(busca, telefone, aniversario, situacao, 1, coluna, novaDirecao), { replace: true });
   }
-
-  function aoMudarFiltro(novoCampo) {
-    setCampoFiltro(novoCampo);
-    const mascara = MASCARA_POR_FILTRO[novoCampo];
-    setBusca((atual) => (mascara ? mascara(atual) : atual));
-  }
-
-  function aoDigitarBusca(valor) {
-    const mascara = MASCARA_POR_FILTRO[campoFiltro];
-    setBusca(mascara ? mascara(valor) : valor);
-  }
-
-  const placeholderBusca = campoFiltro
-    ? `Buscar por ${OPCOES_FILTRO.find((o) => o.valor === campoFiltro)?.label.toLowerCase()}...`
-    : 'Buscar por nome...';
 
   function aoClicarLinha(cliente) {
     if (acabouDeArrastar.current) {
@@ -255,25 +348,7 @@ export default function ListaClientes() {
     const origem = itens.find((c) => c.id === origemId);
     if (!origem) return;
 
-    const totalPedidosOrigem = (origem.total_fonada || 0) + (origem.total_aovivo || 0);
-    const confirmar = confirm(
-      `Mesclar "${origem.nome}" dentro de "${clienteDestino.nome}"?\n\n` +
-      `${totalPedidosOrigem} pedido(s) de "${origem.nome}" passarão para "${clienteDestino.nome}", ` +
-      `e o cadastro de "${origem.nome}" será enviado para a lixeira.\n\n` +
-      `Essa ação pode ser conferida depois na Lixeira.`
-    );
-    if (!confirmar) return;
-
-    setMesclando(true);
-    try {
-      await api.clientes.mesclar(clienteDestino.id, origemId);
-      mostrarToast(`"${origem.nome}" foi mesclado em "${clienteDestino.nome}".`);
-      carregar(buscaUrl, paginaUrl, campoUrl, ordenarPorUrl, direcaoUrl);
-    } catch (err) {
-      mostrarToast('Não foi possível mesclar. Tente novamente.', 'erro');
-    } finally {
-      setMesclando(false);
-    }
+    abrirComparacao(origem, clienteDestino, clienteDestino.id);
   }
 
   return (
@@ -282,12 +357,19 @@ export default function ListaClientes() {
         <div>
           <h1 style={{ marginBottom: 2 }}>Clientes</h1>
           <p className="fs-sm" style={{ color: 'var(--tinta-suave)', margin: 0 }}>
-            Cadastro único de compradores — arraste um cliente sobre outro para mesclar
+            Encontre contatos, acompanhe o histórico e identifique pendências
           </p>
         </div>
-        <button className="btn" onClick={() => navigate('/clientes/novo')} style={{ gap: 8 }}>
-          <IconeMais /> Novo cliente
-        </button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {selecionados.size > 0 && (
+            <button className="btn perigo" onClick={excluirClientesSelecionados} disabled={excluindoSelecionados}>
+              {excluindoSelecionados ? 'Excluindo...' : `Excluir selecionados (${selecionados.size})`}
+            </button>
+          )}
+          <button className="btn" onClick={() => navigate('/clientes/novo')} style={{ gap: 8 }}>
+            <IconeMais /> Novo cliente
+          </button>
+        </div>
       </div>
 
       {sugestoesVisiveis.length > 0 && (
@@ -332,10 +414,9 @@ export default function ListaClientes() {
                       <button
                         type="button"
                         className="btn secundario"
-                        onClick={() => mesclarSugestao(par)}
-                        disabled={mesclandoAutomatico === chave}
+                        onClick={() => abrirComparacao(par.a, par.b, par.a.id, chave)}
                       >
-                        {mesclandoAutomatico === chave ? 'Mesclando...' : 'Mesclar'}
+                        Comparar e mesclar
                       </button>
                     </div>
                   </div>
@@ -346,25 +427,19 @@ export default function ListaClientes() {
         </div>
       )}
 
-      <form onSubmit={aoSubmeterBusca} style={estilos.buscaForm}>
-        <select
-          value={campoFiltro}
-          onChange={(e) => aoMudarFiltro(e.target.value)}
-          className="busca-select"
-        >
-          {OPCOES_FILTRO.map((o) => (
-            <option key={o.valor} value={o.valor}>{o.label}</option>
+      <div className="painel clientes-filtros">
+        <div className="clientes-filtros-rapidos">
+          {FILTROS_RAPIDOS.map(([valor, rotulo]) => (
+            <button key={valor} type="button" className={situacao === valor ? 'ativo' : ''} onClick={() => aplicarFiltroRapido(valor)}>{rotulo}</button>
           ))}
-        </select>
-        <input
-          type="text"
-          placeholder={placeholderBusca}
-          value={busca}
-          onChange={(e) => aoDigitarBusca(e.target.value)}
-          className="busca-input"
-        />
-        <button type="submit" className="btn secundario">Buscar</button>
-      </form>
+        </div>
+        <div className="clientes-campos-busca">
+          <div className="campo clientes-campo-nome"><label>Nome</label><input type="text" placeholder="Nome do cliente" value={busca} onChange={(e) => setBusca(e.target.value)} /></div>
+          <div className="campo"><label>Telefone ou WhatsApp</label><input type="text" inputMode="numeric" placeholder="(34) 9 9999-9999" value={telefone} onChange={(e) => setTelefone(formatarTelefonePesquisa(e.target.value))} /></div>
+          <div className="campo"><label>Aniversário</label><input type="text" inputMode="numeric" placeholder="dd/mm" value={aniversario} onChange={(e) => setAniversario(formatarData(e.target.value))} /></div>
+          {(busca || telefone || aniversario || situacao) && <button type="button" className="btn-small" onClick={() => { setBusca(''); setTelefone(''); setAniversario(''); setSituacao(''); }}>Limpar filtros</button>}
+        </div>
+      </div>
 
       {erro && <p style={{ color: 'var(--selo)' }}>{erro}</p>}
       {mesclando && <p className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Mesclando clientes...</p>}
@@ -382,28 +457,31 @@ export default function ListaClientes() {
               <table className="tabela-lista tabela-clientes">
                 <thead>
                   <tr>
+                    <th style={{ width: 38 }}>
+                      <input
+                        type="checkbox"
+                        checked={itens.length > 0 && itens.every((cliente) => selecionados.has(cliente.id))}
+                        onChange={alternarTodosVisiveis}
+                        title="Selecionar todos os clientes desta página"
+                        aria-label="Selecionar todos os clientes desta página"
+                      />
+                    </th>
                     <th
                       onClick={() => aoClicarOrdenacao('nome')}
                       style={estilos.colunaOrdenavel}
                     >
                       Nome{indicadorOrdenacao('nome', ordenarPorUrl, direcaoUrl)}
                     </th>
-                    <th>Celular</th>
-                    <th>WhatsApp</th>
-                    <th>Nascimento</th>
+                    <th>Contato</th>
                     <th>Bairro</th>
                     <th
-                      onClick={() => aoClicarOrdenacao('total_fonada')}
-                      style={{ ...estilos.colunaOrdenavel, textAlign: 'center' }}
+                      onClick={() => aoClicarOrdenacao('ultimo_pedido')}
+                      style={estilos.colunaOrdenavel}
                     >
-                      Fonada{indicadorOrdenacao('total_fonada', ordenarPorUrl, direcaoUrl)}
+                      Último pedido{indicadorOrdenacao('ultimo_pedido', ordenarPorUrl, direcaoUrl)}
                     </th>
-                    <th
-                      onClick={() => aoClicarOrdenacao('total_aovivo')}
-                      style={{ ...estilos.colunaOrdenavel, textAlign: 'center' }}
-                    >
-                      Ao vivo{indicadorOrdenacao('total_aovivo', ordenarPorUrl, direcaoUrl)}
-                    </th>
+                    <th onClick={() => aoClicarOrdenacao('total_pedidos')} style={{ ...estilos.colunaOrdenavel, textAlign: 'center' }}>Pedidos{indicadorOrdenacao('total_pedidos', ordenarPorUrl, direcaoUrl)}</th>
+                    <th onClick={() => aoClicarOrdenacao('valor_pendente')} style={{ ...estilos.colunaOrdenavel, textAlign: 'right' }}>Pendente{indicadorOrdenacao('valor_pendente', ordenarPorUrl, direcaoUrl)}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -422,20 +500,30 @@ export default function ListaClientes() {
                         (sobreId === c.id ? 'linha-soltar-aqui' : '')
                       }
                     >
+                      <td data-label="Selecionar" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selecionados.has(c.id)}
+                          onChange={() => alternarSelecao(c.id)}
+                          aria-label={`Selecionar ${c.nome}`}
+                        />
+                      </td>
                       <td style={{ fontWeight: 700 }} data-label="Nome">
                         <span className="alca-arrastar" title="Arraste para mesclar com outro cliente"><IconeAlca /></span>
                         {c.nome}
+                        {(!nascimentoValido(c.nascimento) || !valorUtil(c.whatsapp || c.celular || c.fixo)) && <span className="tag aviso cliente-revisar">Revisar cadastro</span>}
                       </td>
-                      <td data-label="Celular">{c.celular || c.fixo || '—'}</td>
-                      <td data-label="WhatsApp">{c.whatsapp || '—'}</td>
-                      <td data-label="Nascimento">{c.nascimento || '—'}</td>
-                      <td data-label="Bairro">{c.bairro || '—'}</td>
-                      <td style={{ textAlign: 'center' }} data-label="Fonada">
-                        <span className="contagem-pedidos">{c.total_fonada || 0}</span>
+                      <td data-label="Contato">
+                        <strong className="cliente-contato-principal">{valorUtil(c.whatsapp) || valorUtil(c.celular) || valorUtil(c.fixo) || '—'}</strong>
+                        {valorUtil(c.whatsapp) && <span className="cliente-contato-tipo">WhatsApp</span>}
                       </td>
-                      <td style={{ textAlign: 'center' }} data-label="Ao vivo">
-                        <span className="contagem-pedidos">{c.total_aovivo || 0}</span>
+                      <td data-label="Bairro">{valorUtil(c.bairro) || '—'}</td>
+                      <td data-label="Último pedido">{c.ultimo_pedido_data || 'Sem pedidos'}</td>
+                      <td style={{ textAlign: 'center' }} data-label="Pedidos">
+                        <span className="contagem-pedidos">{Number(c.total_fonada || 0) + Number(c.total_aovivo || 0)}</span>
+                        <span className="cliente-contagem-detalhe">{c.total_fonada || 0} fonada · {c.total_aovivo || 0} ao vivo</span>
                       </td>
+                      <td style={{ textAlign: 'right', fontWeight: 700 }} data-label="Pendente">{Number(c.valor_pendente || 0) > 0 ? formatarReais(c.valor_pendente) : '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -456,13 +544,52 @@ export default function ListaClientes() {
           </div>
         </>
       )}
+
+      {comparacaoMescla && (
+        <div className="modal-fundo" onClick={() => setComparacaoMescla(null)}>
+          <div className="modal-caixa modal-mesclar-clientes" onClick={(e) => e.stopPropagation()}>
+            <div className="section-title">Comparar e mesclar clientes</div>
+            <p className="fs-sm texto-suave">Escolha qual cadastro será mantido. Todos os pedidos do outro cadastro serão transferidos, e ele irá para a lixeira.</p>
+            <div className="comparacao-clientes">
+              {[comparacaoMescla.a, comparacaoMescla.b].map((clienteComparado) => (
+                <label key={clienteComparado.id} className={`cartao-comparacao-cliente ${String(destinoMescla) === String(clienteComparado.id) ? 'selecionado' : ''}`}>
+                  <input type="radio" name="destinoMescla" checked={String(destinoMescla) === String(clienteComparado.id)} onChange={() => preSelecionarCadastro(clienteComparado.id)} />
+                  <strong>{clienteComparado.nome}</strong>
+                  <span>Nascimento: {valorUtil(clienteComparado.nascimento) || 'Não informado'}</span>
+                  <span>WhatsApp: {valorUtil(clienteComparado.whatsapp) || 'Não informado'}</span>
+                  <span>Celular: {valorUtil(clienteComparado.celular) || 'Não informado'}</span>
+                  <span>Fixo: {valorUtil(clienteComparado.fixo) || 'Não informado'}</span>
+                  <span>Endereço: {valorUtil(clienteComparado.endereco) || 'Não informado'}</span>
+                  <span>Pedidos: {Number(clienteComparado.total_fonada || 0) + Number(clienteComparado.total_aovivo || 0)}</span>
+                </label>
+              ))}
+            </div>
+            <div className="section-title" style={{ marginTop: 8 }}>Dados que serão mantidos</div>
+            <div className="campos-mescla-clientes">
+              {CAMPOS_MESCLA.map(([campo, rotulo]) => (
+                <div className="campo-mescla-cliente" key={campo}>
+                  <label>{rotulo}</label>
+                  <select value={fontesMescla[campo] || ''} onChange={(e) => setFontesMescla((atual) => ({ ...atual, [campo]: e.target.value }))}>
+                    <option value={comparacaoMescla.a.id}>{comparacaoMescla.a.nome}: {valorUtil(comparacaoMescla.a[campo]) || 'Não informado'}</option>
+                    <option value={comparacaoMescla.b.id}>{comparacaoMescla.b.nome}: {valorUtil(comparacaoMescla.b[campo]) || 'Não informado'}</option>
+                  </select>
+                </div>
+              ))}
+            </div>
+            <div className="aviso-mesclagem-clientes">Confira os dados com atenção. A ação poderá ser conferida posteriormente na Lixeira.</div>
+            <div className="acoes-modal-cobranca">
+              <button type="button" className="btn secundario" onClick={() => setComparacaoMescla(null)}>Cancelar</button>
+              <button type="button" className="btn" onClick={confirmarMesclagem} disabled={mesclando}>{mesclando ? 'Mesclando...' : 'Confirmar mesclagem'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 const estilos = {
   cabecalho: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
-  buscaForm: { display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' },
   paginacao: { display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, marginTop: 20 },
   colunaOrdenavel: { cursor: 'pointer', userSelect: 'none' },
   avisoDuplicata: {
