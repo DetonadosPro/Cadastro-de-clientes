@@ -18,6 +18,7 @@ const VAZIO = {
   tema_3: '', mensagem_codigo_3: '', tema_4: '', mensagem_codigo_4: '',
   musica_1: '', musica_2: '', musica_3: '', musica_4: '', musica_5: '', musica_6: '',
   valor: '', pagamento: '', brinde: '', observacoes: '', pagou: '', data_pagou: '',
+  data_cobranca: '', valor_recebido: '', forma_recebimento: '', pagamento_recebido_por: '',
 };
 
 const MIN_MENSAGENS = 1;
@@ -162,6 +163,11 @@ export default function FormAoVivo() {
   const [erro, setErro] = useState('');
   const [campoObrigatorioFaltando, setCampoObrigatorioFaltando] = useState(null);
   const [pedidosImpressao, setPedidosImpressao] = useState(null);
+  const [modalPagamento, setModalPagamento] = useState(false);
+  const [dataRecebimento, setDataRecebimento] = useState('');
+  const [valorRecebimento, setValorRecebimento] = useState('');
+  const [formaRecebimento, setFormaRecebimento] = useState('PIX');
+  const [salvandoPagamento, setSalvandoPagamento] = useState(false);
   const refValor = useRef(null);
 
   function contarPreenchidos(d, prefixo, minimo, maximo) {
@@ -351,6 +357,50 @@ export default function FormAoVivo() {
       setTimeout(() => window.print(), 100);
     } catch (err) {
       mostrarToast(err.message || 'Não foi possível preparar a impressão.', 'erro');
+    }
+  }
+
+  function abrirPagamento() {
+    setDataRecebimento(dataHoraAtual().data);
+    setValorRecebimento(String(valorMonetarioParaNumero(dados.valor) || 0));
+    const pagamento = String(dados.pagamento || '').toUpperCase();
+    setFormaRecebimento(pagamento.includes('PIX') ? 'PIX' : pagamento.includes('DINHEIRO') ? 'DINHEIRO' : pagamento.includes('CART') ? 'CARTÃO' : 'PRESENCIAL');
+    setModalPagamento(true);
+  }
+
+  async function confirmarPagamento() {
+    setSalvandoPagamento(true);
+    try {
+      const resposta = await api.cobranca.darBaixaAoVivo(id, {
+        dataPagamento: dataRecebimento,
+        valorRecebido: Number(String(valorRecebimento).replace(',', '.')),
+        formaRecebimento,
+      });
+      setDados((atual) => ({
+        ...atual,
+        pagou: 'SIM',
+        data_pagou: resposta.dataPagamento,
+        valor_recebido: resposta.valorRecebido,
+        forma_recebimento: resposta.formaRecebimento,
+        pagamento_recebido_por: resposta.recebidoPor,
+      }));
+      setModalPagamento(false);
+      mostrarToast('PAGAMENTO RECEBIDO');
+    } catch (err) {
+      mostrarToast(err.message || 'Não foi possível registrar o pagamento.', 'erro');
+    } finally {
+      setSalvandoPagamento(false);
+    }
+  }
+
+  async function desfazerPagamento() {
+    if (!confirm('Deseja desfazer a baixa financeira deste pedido?')) return;
+    try {
+      await api.cobranca.desfazerBaixaAoVivo(id);
+      setDados((atual) => ({ ...atual, pagou: '', data_pagou: '', valor_recebido: '', forma_recebimento: '', pagamento_recebido_por: '' }));
+      mostrarToast('Baixa financeira desfeita.');
+    } catch (err) {
+      mostrarToast(err.message || 'Não foi possível desfazer a baixa.', 'erro');
     }
   }
 
@@ -659,17 +709,29 @@ export default function FormAoVivo() {
             </div>
           </div>
 
-          {String(dados.pagamento || '').startsWith('PRAZO') && (
-            <div className="section-box section-box-somente-leitura">
-              <div className="section-title">Lançamento</div>
+          {editando && (
+            <div className={`section-box pagamento-aovivo-card ${dados.pagou === 'SIM' ? 'pago' : 'pendente'}`}>
+              <div className="section-title">Pagamento</div>
               <div className="info-linha">
-                <span className="info-label">Pagou</span>
-                <span className="info-valor">{dados.pagou === 'SIM' ? 'Sim' : 'Não'}</span>
+                <span className="info-label">Status</span>
+                <span className={`tag ${dados.pagou === 'SIM' ? 'ok' : 'pendente'}`}>{dados.pagou === 'SIM' ? 'PAGO' : 'PENDENTE'}</span>
               </div>
               <div className="info-linha">
                 <span className="info-label">Data do pagamento</span>
                 <span className="info-valor">{dados.data_pagou || '—'}</span>
               </div>
+              <div className="info-linha">
+                <span className="info-label">Valor recebido</span>
+                <span className="info-valor">{dados.pagou === 'SIM' ? numeroParaValorMonetario(dados.valor_recebido ?? valorMonetarioParaNumero(dados.valor)) : '—'}</span>
+              </div>
+              <div className="info-linha">
+                <span className="info-label">Forma</span>
+                <span className="info-valor">{dados.forma_recebimento || dados.pagamento || '—'}</span>
+              </div>
+              {dados.pagamento_recebido_por && <div className="info-linha"><span className="info-label">Registrado por</span><span className="info-valor">{dados.pagamento_recebido_por}</span></div>}
+              {dados.pagou === 'SIM'
+                ? <button type="button" className="btn-small" style={{ width: '100%', marginTop: 8 }} onClick={desfazerPagamento}>Desfazer baixa</button>
+                : <button type="button" className="btn-action destaque" style={{ width: '100%', marginTop: 8 }} onClick={abrirPagamento}>Dar baixa no pagamento</button>}
             </div>
           )}
 
@@ -693,6 +755,20 @@ export default function FormAoVivo() {
       {pedidosImpressao && (
         <div className="somente-imprimir">
           <PaginaImpressaoAoVivo pedidos={pedidosImpressao} />
+        </div>
+      )}
+
+      {modalPagamento && (
+        <div className="modal-fundo nao-imprimir" onClick={() => setModalPagamento(false)}>
+          <div className="modal-caixa" onClick={(e) => e.stopPropagation()}>
+            <div className="section-title">Receber pagamento — O.S. {dados.numero_os || id}</div>
+            <div className="grade grade-3">
+              <div className="campo"><label>Data</label><CampoData value={dataRecebimento} onChange={(v) => setDataRecebimento(formatarData(v))} /></div>
+              <div className="campo"><label>Valor recebido</label><input type="number" min="0" step="0.01" value={valorRecebimento} onChange={(e) => setValorRecebimento(e.target.value)} /></div>
+              <div className="campo"><label>Forma</label><select value={formaRecebimento} onChange={(e) => setFormaRecebimento(e.target.value)}><option>PIX</option><option>DINHEIRO</option><option>CARTÃO</option><option>DEPÓSITO</option><option>PRESENCIAL</option><option>OUTRO</option></select></div>
+            </div>
+            <div className="acoes-modal-cobranca"><button type="button" className="btn secundario" onClick={() => setModalPagamento(false)}>Cancelar</button><button type="button" className="btn" onClick={confirmarPagamento} disabled={salvandoPagamento}>{salvandoPagamento ? 'Salvando...' : 'Confirmar pagamento'}</button></div>
+          </div>
         </div>
       )}
     </div>

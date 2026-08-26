@@ -63,11 +63,6 @@ function formatarReais(v) {
   return (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-// Status de entrega de um pedido ao vivo, para o indicador visual na
-// listagem: 'futuro' (data ainda não chegou, sem indicador), 'entregue'
-// (confirmado), ou 'pendente' (data já passou — hoje ou antes — e não
-// há confirmação de entrega, incluindo o caso de nunca ter recebido
-// baixa nenhuma).
 function statusEntrega(pedido) {
   const dataEntrega = paraData(pedido.dia_entrega);
   if (!dataEntrega) return 'futuro';
@@ -77,9 +72,8 @@ function statusEntrega(pedido) {
   dataEntrega.setHours(0, 0, 0, 0);
 
   if (dataEntrega > hoje) return 'futuro';
-
-  const foiEntregue = (pedido.resultado_entrega || '').startsWith('ENTREGUE');
-  return foiEntregue ? 'entregue' : 'pendente';
+  if (dataEntrega.getTime() === hoje.getTime()) return 'hoje';
+  return 'passado';
 }
 
 // Indicador visual de status de entrega, usado na coluna da listagem.
@@ -88,28 +82,13 @@ function statusEntrega(pedido) {
 // vermelho = pendente/atrasado). 'futuro' não mostra nada — a data
 // ainda não chegou, não há o que indicar.
 function IndicadorEntrega({ status }) {
-  if (status === 'entregue') {
-    return <span className="tag ok">Entregue</span>;
-  }
-  if (status === 'pendente') {
-    return <span className="tag pendente">Atrasado</span>;
-  }
+  if (status === 'hoje') return <span className="tag aviso">Hoje</span>;
+  if (status === 'passado') return <span className="tag neutro">Evento passado</span>;
   return <span className="tag neutro">Agendado</span>;
 }
 
 function IndicadorPagamento({ pedido }) {
-  const aPrazo = String(pedido.pagamento || '').startsWith('PRAZO');
-
-  if (aPrazo) {
-    return (
-      <span className={`tag ${pedido.pagou === 'SIM' ? 'ok' : 'pendente'}`}>
-        {pedido.pagou === 'SIM' ? 'Recebido' : 'A receber'}
-      </span>
-    );
-  }
-
-  const entregue = statusEntrega(pedido) === 'entregue';
-  return <span className={`tag ${entregue ? 'ok' : 'neutro'}`}>{entregue ? 'Pago' : 'No ato'}</span>;
+  return <span className={`tag ${pedido.pagou === 'SIM' ? 'ok' : 'pendente'}`}>{pedido.pagou === 'SIM' ? 'Recebido' : 'A receber'}</span>;
 }
 
 export default function ListaAoVivo() {

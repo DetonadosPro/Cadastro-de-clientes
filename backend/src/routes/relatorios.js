@@ -60,10 +60,6 @@ function ehPrazoAoVivo(pagamento) {
   return String(pagamento || '').trim().toUpperCase().startsWith('PRAZO');
 }
 
-function foiEntregueAoVivo(resultado) {
-  return String(resultado || '').trim().toUpperCase().startsWith('ENTREGUE');
-}
-
 function formaPagamentoAoVivo(pagamento) {
   const texto = String(pagamento || '').trim();
   return texto ? texto.split(/[\s-]+/)[0].toUpperCase() : 'NÃO INFORMADO';
@@ -282,55 +278,47 @@ router.get('/recebimentos', async (req, res) => {
 
     if (sistema === 'AOVIVO' || sistema === 'TODOS') {
       const aoVivoResultado = await db.query(`
-        SELECT id, valor, dia_entrega, comprador, numero_os, pagamento, pagou, data_pagou, resultado_entrega
+        SELECT id, valor, comprador, numero_os, pagamento, pagou, data_pagou,
+               valor_recebido, forma_recebimento
         FROM ao_vivo
         WHERE excluido_em IS NULL
       `);
 
-      // Pagamento a PRAZO só conta como recebido de verdade quando
-      // pagou = 'SIM' — antes disso é só uma previsão de cobrança, não
-      // um recebimento. Por isso entra no relatório pela data em que
-      // foi efetivamente marcado como recebido (data_pagou), não pela
-      // data de entrega da mensagem. Pagamento à vista (qualquer outra
-      // forma) continua entrando pela data de entrega, como sempre foi.
-      const linhasAVista = aoVivoResultado.rows.filter((l) =>
-        !ehPrazoAoVivo(l.pagamento) && foiEntregueAoVivo(l.resultado_entrega)
+      // Todo recebimento Ao Vivo usa a baixa financeira. A data do evento
+      // e o antigo resultado de entrega não movimentam mais o caixa.
+      const linhasRecebidas = aoVivoResultado.rows.filter((l) =>
+        String(l.pagou || '').toUpperCase() === 'SIM' && l.data_pagou
       );
-      const linhasPrazoRecebidas = aoVivoResultado.rows.filter((l) =>
-        ehPrazoAoVivo(l.pagamento) && String(l.pagou || '').toUpperCase() === 'SIM'
-      );
-
-      const noPeriodoAVista = filtrarPorIntervalo(linhasAVista, 'dia_entrega', inicio, fim);
-      const noPeriodoPrazo = filtrarPorIntervalo(linhasPrazoRecebidas, 'data_pagou', inicio, fim);
-      const noPeriodo = [...noPeriodoAVista, ...noPeriodoPrazo];
+      const noPeriodo = filtrarPorIntervalo(linhasRecebidas, 'data_pagou', inicio, fim);
+      const noPeriodoAVista = noPeriodo.filter((l) => !ehPrazoAoVivo(l.pagamento));
+      const noPeriodoPrazo = noPeriodo.filter((l) => ehPrazoAoVivo(l.pagamento));
       if (periodoAnterior) {
-        valorRecebidoAnterior += [
-          ...filtrarPorIntervalo(linhasAVista, 'dia_entrega', periodoAnterior.inicio, periodoAnterior.fim),
-          ...filtrarPorIntervalo(linhasPrazoRecebidas, 'data_pagou', periodoAnterior.inicio, periodoAnterior.fim),
-        ].reduce((soma, l) => soma + valorNumero(l.valor), 0);
+        valorRecebidoAnterior += filtrarPorIntervalo(
+          linhasRecebidas, 'data_pagou', periodoAnterior.inicio, periodoAnterior.fim
+        ).reduce((soma, l) => soma + valorNumero(l.valor_recebido ?? l.valor), 0);
       }
 
       aoVivoResumo = {
         quantidade: noPeriodo.length,
-        valorTotal: noPeriodo.reduce((soma, l) => soma + valorNumero(l.valor), 0),
+        valorTotal: noPeriodo.reduce((soma, l) => soma + valorNumero(l.valor_recebido ?? l.valor), 0),
         quantidadeAVista: noPeriodoAVista.length,
-        valorAVista: noPeriodoAVista.reduce((soma, l) => soma + valorNumero(l.valor), 0),
+        valorAVista: noPeriodoAVista.reduce((soma, l) => soma + valorNumero(l.valor_recebido ?? l.valor), 0),
         quantidadePrazo: noPeriodoPrazo.length,
-        valorPrazo: noPeriodoPrazo.reduce((soma, l) => soma + valorNumero(l.valor), 0),
+        valorPrazo: noPeriodoPrazo.reduce((soma, l) => soma + valorNumero(l.valor_recebido ?? l.valor), 0),
       };
 
       for (const l of noPeriodoAVista) {
         itensDetalhados.push({
           id: l.id, sistema: 'AOVIVO', os: l.numero_os || l.id,
-          nome: l.comprador || '—', valor: valorNumero(l.valor),
-          forma: formaPagamentoAoVivo(l.pagamento), data: l.dia_entrega,
+          nome: l.comprador || '—', valor: valorNumero(l.valor_recebido ?? l.valor),
+          forma: l.forma_recebimento || formaPagamentoAoVivo(l.pagamento), data: l.data_pagou,
         });
       }
       for (const l of noPeriodoPrazo) {
         itensDetalhados.push({
           id: l.id, sistema: 'AOVIVO', os: l.numero_os || l.id,
-          nome: l.comprador || '—', valor: valorNumero(l.valor),
-          forma: 'PRAZO', data: l.data_pagou,
+          nome: l.comprador || '—', valor: valorNumero(l.valor_recebido ?? l.valor),
+          forma: l.forma_recebimento || 'PRAZO', data: l.data_pagou,
         });
       }
     }
@@ -342,29 +330,33 @@ router.get('/recebimentos', async (req, res) => {
 
     let valorVendido = 0;
     let valorAReceberVendasPeriodo = 0;
+    let valorRecebidoVendasPeriodo = 0;
     if (sistema === 'FONADA' || sistema === 'TODOS') {
       const fonadasVendidasResultado = await db.query(`
         SELECT valor, data_pedido, pagou FROM fonadas WHERE excluido_em IS NULL
       `);
       const vendidas = filtrarPorIntervalo(fonadasVendidasResultado.rows, 'data_pedido', inicio, fim);
       valorVendido += vendidas.reduce((soma, l) => soma + valorNumero(l.valor), 0);
+      valorRecebidoVendasPeriodo += vendidas
+        .filter((l) => String(l.pagou || '').toUpperCase() === 'SIM')
+        .reduce((soma, l) => soma + valorNumero(l.valor), 0);
       valorAReceberVendasPeriodo += vendidas
         .filter((l) => String(l.pagou || '').toUpperCase() !== 'SIM')
         .reduce((soma, l) => soma + valorNumero(l.valor), 0);
     }
     if (sistema === 'AOVIVO' || sistema === 'TODOS') {
       const aoVivoVendidoResultado = await db.query(`
-        SELECT valor, data_pedido, pagamento, pagou, resultado_entrega FROM ao_vivo WHERE excluido_em IS NULL
+        SELECT valor, valor_recebido, data_pedido, pagou FROM ao_vivo WHERE excluido_em IS NULL
       `);
       const vendidos = filtrarPorIntervalo(aoVivoVendidoResultado.rows, 'data_pedido', inicio, fim);
       valorVendido += vendidos.reduce((soma, l) => soma + valorNumero(l.valor), 0);
+      valorRecebidoVendasPeriodo += vendidos
+        .filter((l) => String(l.pagou || '').toUpperCase() === 'SIM')
+        .reduce((soma, l) => soma + valorNumero(l.valor_recebido ?? l.valor), 0);
       valorAReceberVendasPeriodo += vendidos
-        .filter((l) => ehPrazoAoVivo(l.pagamento)
-          ? String(l.pagou || '').toUpperCase() !== 'SIM'
-          : !foiEntregueAoVivo(l.resultado_entrega))
+        .filter((l) => String(l.pagou || '').toUpperCase() !== 'SIM')
         .reduce((soma, l) => soma + valorNumero(l.valor), 0);
     }
-    const valorRecebidoVendasPeriodo = valorVendido - valorAReceberVendasPeriodo;
     const detalhes = prepararItens(itensDetalhados);
 
     res.json({

@@ -34,6 +34,175 @@ function chaveHojeBrasilia() {
   return `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
 }
 
+function hojeFormatado() {
+  const agora = agoraBrasilia();
+  return `${String(agora.getDate()).padStart(2, '0')}/${String(agora.getMonth() + 1).padStart(2, '0')}/${String(agora.getFullYear()).slice(-2)}`;
+}
+
+function dataPrazoAoVivo(texto) {
+  return String(texto || '').match(/PRAZO\s*-\s*DIA\s*(\d{2}\/\d{2}\/(?:\d{2}|\d{4}))/i)?.[1] || null;
+}
+
+async function nomeUsuarioLogado(req) {
+  const resultado = await db.query('SELECT nome, usuario FROM usuarios WHERE id = $1', [req.usuario.id]);
+  const usuario = resultado.rows[0];
+  return usuario ? (usuario.nome || usuario.usuario) : req.usuario.usuario;
+}
+
+async function clienteAoVivoBloqueado(clienteId) {
+  if (!clienteId) return false;
+  const resultado = await db.query('SELECT bloqueado FROM clientes WHERE id = $1', [clienteId]);
+  return Boolean(resultado.rows[0]?.bloqueado);
+}
+
+// Central financeira dos pedidos Ao Vivo. Todos os pedidos têm estado
+// financeiro próprio, independentemente de a mensagem já ter acontecido.
+router.get('/ao-vivo', async (req, res) => {
+  try {
+    const pagouFiltro = String(req.query.pagou || 'NAO').trim().toUpperCase();
+    const nome = String(req.query.nome || '').trim();
+    const os = String(req.query.os || '').trim();
+    const condicoes = ['a.excluido_em IS NULL'];
+    const params = [];
+
+    if (pagouFiltro === 'SIM') condicoes.push("a.pagou = 'SIM'");
+    else if (pagouFiltro === 'NAO') condicoes.push("COALESCE(a.pagou, '') != 'SIM'");
+    if (nome) {
+      params.push(`%${nome}%`);
+      condicoes.push(`COALESCE(c.nome, a.comprador) ILIKE $${params.length}`);
+    }
+    if (os) {
+      params.push(os);
+      condicoes.push(`a.numero_os = $${params.length}`);
+    }
+
+    const resultado = await db.query(`
+      SELECT a.id, a.numero_os, a.cliente_id, a.comprador, a.data_pedido,
+             a.dia_entrega, a.horario_entrega, a.para, a.valor, a.pagamento,
+             a.pagou, a.data_pagou, a.data_cobranca, a.valor_recebido,
+             a.forma_recebimento, a.pagamento_recebido_por,
+             a.fixo_local, a.celular, a.whatsapp, a.endereco, a.bairro, a.referencia,
+             c.nome AS cliente_nome, c.fixo AS cliente_fixo,
+             c.celular AS cliente_celular, c.whatsapp AS cliente_whatsapp,
+             c.endereco AS cliente_endereco, c.bairro AS cliente_bairro,
+             c.referencia AS cliente_referencia
+      FROM ao_vivo a
+      LEFT JOIN clientes c ON c.id = a.cliente_id
+      WHERE ${condicoes.join(' AND ')}
+      ORDER BY
+        CASE WHEN a.numero_os ~ '^\\d+$' THEN a.numero_os::INTEGER END ASC NULLS LAST,
+        a.numero_os ASC
+    `, params);
+
+    const pedidos = resultado.rows.map((l) => ({
+      id: l.id,
+      tipo: 'AOVIVO',
+      numero_os: l.numero_os,
+      cliente_id: l.cliente_id,
+      nome: l.cliente_nome || l.comprador,
+      dataPedido: l.data_pedido,
+      dataEvento: l.dia_entrega,
+      horarioEvento: l.horario_entrega,
+      destinatario: l.para,
+      valor: l.valor,
+      pagamentoPrevisto: l.pagamento,
+      dataCobranca: l.data_cobranca || dataPrazoAoVivo(l.pagamento) || l.dia_entrega,
+      pagou: l.pagou,
+      dataPagamento: l.data_pagou,
+      valorRecebido: l.valor_recebido,
+      formaRecebimento: l.forma_recebimento,
+      recebidoPor: l.pagamento_recebido_por,
+      fixo: l.cliente_fixo || l.fixo_local,
+      celular: l.cliente_celular || l.celular,
+      whatsapp: l.cliente_whatsapp || l.whatsapp,
+      endereco: l.cliente_endereco || l.endereco,
+      bairro: l.cliente_bairro || l.bairro,
+      referencia: l.cliente_referencia || l.referencia,
+    }));
+
+    res.json({
+      pedidos,
+      resumo: {
+        totalPedidos: pedidos.length,
+        valorTotal: pedidos.reduce((total, p) => total + Number(p.valor || 0), 0),
+      },
+    });
+  } catch (erro) {
+    console.error('Erro ao buscar cobranças Ao Vivo:', erro);
+    res.status(500).json({ erro: 'Erro ao buscar cobranças Ao Vivo.' });
+  }
+});
+
+router.put('/ao-vivo/:id/baixa', async (req, res) => {
+  try {
+    const existente = await db.query('SELECT id, cliente_id, valor, pagamento FROM ao_vivo WHERE id = $1 AND excluido_em IS NULL', [req.params.id]);
+    if (!existente.rows.length) return res.status(404).json({ erro: 'Pedido Ao Vivo não encontrado.' });
+    if (await clienteAoVivoBloqueado(existente.rows[0].cliente_id)) {
+      return res.status(403).json({ erro: 'Este cliente está bloqueado. Não é possível dar baixa no pagamento.' });
+    }
+
+    const dataPagamento = String(req.body.dataPagamento || '').trim() || hojeFormatado();
+    if (!/^\d{2}\/\d{2}\/(?:\d{2}|\d{4})$/.test(dataPagamento)) {
+      return res.status(400).json({ erro: 'Informe uma data válida para o recebimento.' });
+    }
+    const valorRecebidoInformado = Number(req.body.valorRecebido);
+    const valorRecebido = Number.isFinite(valorRecebidoInformado) ? valorRecebidoInformado : Number(existente.rows[0].valor || 0);
+    const formaRecebimento = String(req.body.formaRecebimento || existente.rows[0].pagamento || 'PRESENCIAL').trim();
+    if (valorRecebido < 0) return res.status(400).json({ erro: 'O valor recebido não pode ser negativo.' });
+    if (!formaRecebimento) return res.status(400).json({ erro: 'Informe a forma de recebimento.' });
+    const recebidoPor = await nomeUsuarioLogado(req);
+
+    await db.query(`
+      UPDATE ao_vivo
+      SET pagou = 'SIM', data_pagou = $1, valor_recebido = $2,
+          forma_recebimento = $3, pagamento_recebido_por = $4, atualizado_em = NOW()
+      WHERE id = $5
+    `, [dataPagamento, valorRecebido, formaRecebimento, recebidoPor, req.params.id]);
+
+    res.json({ ok: true, dataPagamento, valorRecebido, formaRecebimento, recebidoPor });
+  } catch (erro) {
+    console.error('Erro ao dar baixa no pagamento Ao Vivo:', erro);
+    res.status(500).json({ erro: 'Não foi possível dar baixa no pagamento Ao Vivo.' });
+  }
+});
+
+router.put('/ao-vivo/:id/desfazer-baixa', async (req, res) => {
+  try {
+    const resultado = await db.query(`
+      UPDATE ao_vivo
+      SET pagou = NULL, data_pagou = NULL, valor_recebido = NULL,
+          forma_recebimento = NULL, pagamento_recebido_por = NULL, atualizado_em = NOW()
+      WHERE id = $1 AND excluido_em IS NULL RETURNING id
+    `, [req.params.id]);
+    if (!resultado.rows.length) return res.status(404).json({ erro: 'Pedido Ao Vivo não encontrado.' });
+    res.json({ ok: true });
+  } catch (erro) {
+    console.error('Erro ao desfazer baixa Ao Vivo:', erro);
+    res.status(500).json({ erro: 'Não foi possível desfazer a baixa.' });
+  }
+});
+
+router.put('/ao-vivo/:id/reagendar', async (req, res) => {
+  try {
+    const dataCobranca = String(req.body.dataCobranca || '').trim();
+    if (!/^\d{2}\/\d{2}\/(?:\d{2}|\d{4})$/.test(dataCobranca)) {
+      return res.status(400).json({ erro: 'Informe uma data válida para a cobrança.' });
+    }
+    if (chaveData(dataCobranca) < chaveHojeBrasilia()) {
+      return res.status(400).json({ erro: 'A cobrança não pode ser reagendada para o passado.' });
+    }
+    const resultado = await db.query(`
+      UPDATE ao_vivo SET data_cobranca = $1, atualizado_em = NOW()
+      WHERE id = $2 AND excluido_em IS NULL RETURNING id
+    `, [dataCobranca, req.params.id]);
+    if (!resultado.rows.length) return res.status(404).json({ erro: 'Pedido Ao Vivo não encontrado.' });
+    res.json({ ok: true, dataCobranca });
+  } catch (erro) {
+    console.error('Erro ao reagendar cobrança Ao Vivo:', erro);
+    res.status(500).json({ erro: 'Não foi possível reagendar a cobrança.' });
+  }
+});
+
 // GET /api/cobranca?cobrarDia=X&pagou=NAO|SIM|TODOS&nome=X&os=X
 router.get('/', async (req, res) => {
   try {

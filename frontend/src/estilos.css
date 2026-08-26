@@ -2596,6 +2596,35 @@ tr:hover .alca-arrastar {
 .resumo-modal-cobranca { display:flex; justify-content:space-between; gap:12px; margin-bottom:15px; padding:11px 13px; border-radius:8px; background:var(--papel-alt); }
 .acoes-modal-cobranca { display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
 
+.cobranca-abas-sistema { margin-bottom:14px; }
+.cobranca-aovivo-filtros { margin-bottom:14px; }
+.lista-cobranca-aovivo { display:grid; gap:9px; }
+.cobranca-aovivo-card { display:grid; grid-template-columns:95px minmax(240px,1fr) 150px 130px minmax(260px,auto); align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--borda); border-left:4px solid var(--aviso); border-radius:10px; background:#fff; box-shadow:var(--sombra); }
+.cobranca-aovivo-card.atrasada { border-left-color:var(--selo); }
+.cobranca-aovivo-card.recebida { border-left-color:var(--ok); }
+.cobranca-aovivo-os, .cobranca-aovivo-cliente, .cobranca-aovivo-data, .cobranca-aovivo-valor { display:flex; flex-direction:column; gap:3px; min-width:0; }
+.cobranca-aovivo-os small, .cobranca-aovivo-cliente span, .cobranca-aovivo-data span, .cobranca-aovivo-valor span { color:var(--tinta-suave); font-size:10.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cobranca-aovivo-cliente button { overflow:hidden; padding:0; border:0; background:transparent; color:var(--tinta); font:inherit; font-weight:800; text-align:left; text-overflow:ellipsis; white-space:nowrap; cursor:pointer; }
+.cobranca-aovivo-cliente button:hover { color:var(--carimbo); text-decoration:underline; }
+.cobranca-aovivo-data strong { font-size:12px; }
+.cobranca-aovivo-valor { text-align:right; }
+.cobranca-aovivo-valor strong { font-family:var(--fonte-mono); font-size:15px; }
+.cobranca-aovivo-acoes { display:flex; justify-content:flex-end; align-items:center; flex-wrap:wrap; gap:5px; }
+.cobranca-aovivo-acoes .btn-small { text-decoration:none; white-space:nowrap; }
+.pagamento-aovivo-card { border-left:4px solid var(--aviso); }
+.pagamento-aovivo-card.pago { border-left-color:var(--ok); background:var(--ok-suave); }
+.pagamento-aovivo-card .info-linha { gap:8px; }
+
+@media (max-width:1200px) {
+  .cobranca-aovivo-card { grid-template-columns:85px minmax(210px,1fr) 140px 120px; }
+  .cobranca-aovivo-acoes { grid-column:2/-1; justify-content:flex-start; }
+}
+@media (max-width:700px) {
+  .cobranca-aovivo-card { grid-template-columns:80px 1fr; }
+  .cobranca-aovivo-data, .cobranca-aovivo-valor, .cobranca-aovivo-acoes { grid-column:1/-1; text-align:left; }
+  .cobranca-aovivo-acoes { justify-content:flex-start; }
+}
+
 /* ---------- Clientes operacional ---------- */
 .clientes-filtros { margin-bottom:18px; padding:14px 16px; }
 .clientes-filtros-rapidos { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }

@@ -209,6 +209,18 @@ export const api = {
       chamar('/cobranca/acoes/reagendar-lote', { method: 'PUT', body: JSON.stringify({ ids, cobrarDia }) }),
     marcarImpressos: (ids) =>
       chamar('/cobranca/acoes/marcar-impressos', { method: 'PUT', body: JSON.stringify({ ids }) }),
+    buscarAoVivo: (pagou = 'NAO', nome = '', os = '') => {
+      const params = new URLSearchParams({ pagou });
+      if (nome) params.set('nome', nome);
+      if (os) params.set('os', os);
+      return chamar(`/cobranca/ao-vivo?${params.toString()}`);
+    },
+    darBaixaAoVivo: (pedidoId, dados) =>
+      chamar(`/cobranca/ao-vivo/${pedidoId}/baixa`, { method: 'PUT', body: JSON.stringify(dados) }),
+    desfazerBaixaAoVivo: (pedidoId) =>
+      chamar(`/cobranca/ao-vivo/${pedidoId}/desfazer-baixa`, { method: 'PUT' }),
+    reagendarAoVivo: (pedidoId, dataCobranca) =>
+      chamar(`/cobranca/ao-vivo/${pedidoId}/reagendar`, { method: 'PUT', body: JSON.stringify({ dataCobranca }) }),
   },
 
   // ---------- Relatórios financeiros por período ----------

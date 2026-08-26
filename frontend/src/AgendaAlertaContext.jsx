@@ -61,13 +61,9 @@ function itensAtrasados(itensFonada, itensAoVivo) {
       atrasados.push(`fonada-${item.pedidoId}-${item.mensagem}`);
     }
   }
-  for (const item of itensAoVivo) {
-    if (item.passada || item.ehCobranca) continue;
-    const diff = minutosAteHorario(item.horario_entrega, agora);
-    if (diff !== null && diff < 0) {
-      atrasados.push(`aovivo-${item.id}`);
-    }
-  }
+  // Ao Vivo é apenas compromisso de agenda e não possui mais uma ação
+  // manual para encerrar o item. Por isso não permanece como atrasado
+  // depois do horário; o alerta serve somente antes do evento.
 
   return atrasados;
 }
@@ -88,11 +84,9 @@ function corAgregada(itensFonada, itensAoVivo) {
     else if (diff <= LIMIAR_PROXIMA_MINUTOS) temProxima = true;
   }
   for (const item of itensAoVivo) {
-    if (item.passada || item.ehCobranca) continue;
     const diff = minutosAteHorario(item.horario_entrega, agora);
     if (diff === null) continue;
-    if (diff < 0) temAtrasada = true;
-    else if (diff <= LIMIAR_PROXIMA_MINUTOS) temProxima = true;
+    if (diff >= 0 && diff <= LIMIAR_PROXIMA_MINUTOS) temProxima = true;
   }
 
   if (temAtrasada) return 'vermelho';
