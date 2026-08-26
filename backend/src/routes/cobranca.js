@@ -11,6 +11,17 @@ const { agoraBrasilia } = require('../utils/dataHora');
 
 const router = express.Router();
 
+function formaPagamento(periodo) {
+  const texto = String(periodo || '')
+    .trim()
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  if (texto.includes('PIX')) return 'PIX';
+  if (texto.includes('DEPOSITO')) return 'DEPÓSITO';
+  return 'PRESENCIAL';
+}
+
 // GET /api/cobranca?cobrarDia=X&pagou=NAO|SIM|TODOS&nome=X&os=X
 router.get('/', async (req, res) => {
   try {
@@ -77,7 +88,7 @@ router.get('/', async (req, res) => {
         transmissao: l.p1_dia,
         pagou: l.pagou,
         recebi: l.recebi,
-        formaPagamento: (l.periodo || '').trim().toUpperCase() === 'PIX' ? 'PIX' : 'RECIBO',
+        formaPagamento: formaPagamento(l.periodo),
         nome: cliente ? cliente.nome : l.nome_comprador,
         fixo: cliente ? cliente.fixo : l.comprador_fixo,
         whatsapp: cliente ? cliente.whatsapp : null,
@@ -91,7 +102,8 @@ router.get('/', async (req, res) => {
     });
 
     const totalPix = resultado.filter((r) => r.formaPagamento === 'PIX').length;
-    const totalRecibo = resultado.filter((r) => r.formaPagamento === 'RECIBO').length;
+    const totalDeposito = resultado.filter((r) => r.formaPagamento === 'DEPÓSITO').length;
+    const totalPresencial = resultado.filter((r) => r.formaPagamento === 'PRESENCIAL').length;
     const valorTotal = resultado.reduce((soma, r) => soma + (r.valor || 0), 0);
 
     res.json({
@@ -99,7 +111,8 @@ router.get('/', async (req, res) => {
       resumo: {
         totalPedidos: resultado.length,
         totalPix,
-        totalRecibo,
+        totalDeposito,
+        totalPresencial,
         valorTotal,
       },
     });

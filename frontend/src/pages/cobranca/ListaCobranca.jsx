@@ -157,6 +157,12 @@ export default function ListaCobranca() {
     return (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
+  function classeFormaPagamento(forma) {
+    if (forma === 'PIX') return 'ok';
+    if (forma === 'DEPÓSITO') return 'aviso';
+    return 'neutro';
+  }
+
   return (
     <div>
       <div className="nao-imprimir" style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -212,10 +218,11 @@ export default function ListaCobranca() {
 
       {resumo && (
         <div className="section-box nao-imprimir">
-          <div className="grade grade-4 grade-resumo-financeiro">
+          <div className="grade-resumo-cobranca">
             <CartaoResumo label="Total de pedidos" valor={resumo.totalPedidos} />
             <CartaoResumo label="PIX" valor={resumo.totalPix} />
-            <CartaoResumo label="Presencial" valor={resumo.totalRecibo} />
+            <CartaoResumo label="Depósito" valor={resumo.totalDeposito} />
+            <CartaoResumo label="Presencial" valor={resumo.totalPresencial} />
             <CartaoResumo label="Valor total" valor={formatarReais(resumo.valorTotal)} destaque />
           </div>
         </div>
@@ -283,8 +290,8 @@ export default function ListaCobranca() {
                     </td>
                     <td data-label="Cobrar dia">{p.cobranca || '—'}</td>
                     <td data-label="Forma">
-                      <span className={`tag ${p.formaPagamento === 'PIX' ? 'ok' : 'neutro'}`}>
-                        {p.formaPagamento === 'PIX' ? 'PIX' : 'PRESENCIAL'}
+                      <span className={`tag ${classeFormaPagamento(p.formaPagamento)}`}>
+                        {p.formaPagamento}
                       </span>
                     </td>
                     <td data-label="Valor">{p.valor != null ? formatarReais(p.valor) : '—'}</td>
@@ -310,7 +317,7 @@ export default function ListaCobranca() {
               <InfoSomenteLeitura label="O.S." valor={itemBaixaAberto.senha_os || itemBaixaAberto.id} />
               <InfoSomenteLeitura label="Data da compra" valor={itemBaixaAberto.data_pedido} />
               <InfoSomenteLeitura label="Valor" valor={itemBaixaAberto.valor != null ? formatarReais(itemBaixaAberto.valor) : '—'} />
-              <InfoSomenteLeitura label="Forma" valor={itemBaixaAberto.formaPagamento === 'PIX' ? 'PIX' : 'PRESENCIAL'} />
+              <InfoSomenteLeitura label="Forma" valor={itemBaixaAberto.formaPagamento} />
               <InfoSomenteLeitura label="Celular" valor={itemBaixaAberto.celular} />
               <InfoSomenteLeitura label="Fixo" valor={itemBaixaAberto.fixo} />
               <InfoSomenteLeitura label="WhatsApp" valor={itemBaixaAberto.whatsapp} />

@@ -32,7 +32,14 @@ function filtrarPorIntervalo(linhas, campoData, inicioBr, fimBr) {
 }
 
 function formaPagamento(periodo) {
-  return (periodo || '').trim().toUpperCase() === 'PIX' ? 'PIX' : 'RECIBO';
+  const texto = String(periodo || '')
+    .trim()
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  if (texto.includes('PIX')) return 'PIX';
+  if (texto.includes('DEPOSITO')) return 'DEPÓSITO';
+  return 'PRESENCIAL';
 }
 
 function calcularPercentual(parte, total) {
@@ -40,9 +47,96 @@ function calcularPercentual(parte, total) {
   return Math.round((parte / total) * 1000) / 10;
 }
 
+function valorNumero(valor) {
+  const numero = Number(valor);
+  return Number.isFinite(numero) ? numero : 0;
+}
+
+function calcularTicketMedio(valor, quantidade) {
+  return quantidade ? valorNumero(valor) / quantidade : 0;
+}
+
+function ehPrazoAoVivo(pagamento) {
+  return String(pagamento || '').trim().toUpperCase().startsWith('PRAZO');
+}
+
+function foiEntregueAoVivo(resultado) {
+  return String(resultado || '').trim().toUpperCase().startsWith('ENTREGUE');
+}
+
+function formaPagamentoAoVivo(pagamento) {
+  const texto = String(pagamento || '').trim();
+  return texto ? texto.split(/[\s-]+/)[0].toUpperCase() : 'NÃO INFORMADO';
+}
+
+function prepararItens(itens) {
+  const LIMITE = 200;
+  const ordenados = [...itens].sort((a, b) => {
+    const porData = String(paraChaveComparavel(b.data) || '').localeCompare(
+      String(paraChaveComparavel(a.data) || '')
+    );
+    return porData || valorNumero(b.id) - valorNumero(a.id);
+  });
+  return {
+    itens: ordenados.slice(0, LIMITE),
+    itensLimitados: itens.length > LIMITE,
+  };
+}
+
 function resolverIntervalo(inicio, fim) {
   if (inicio && !fim) return { inicio, fim: inicio };
   return { inicio, fim };
+}
+
+function dataBrParaUtc(dataBr) {
+  const chave = paraChaveComparavel(dataBr);
+  if (!chave) return null;
+  const [ano, mes, dia] = chave.split('-').map(Number);
+  return new Date(Date.UTC(ano, mes - 1, dia));
+}
+
+function utcParaDataBr(data) {
+  const dia = String(data.getUTCDate()).padStart(2, '0');
+  const mes = String(data.getUTCMonth() + 1).padStart(2, '0');
+  return `${dia}/${mes}/${String(data.getUTCFullYear()).slice(-2)}`;
+}
+
+function resolverPeriodoAnterior(inicio, fim) {
+  const dataInicio = dataBrParaUtc(inicio);
+  const dataFim = dataBrParaUtc(fim || inicio);
+  if (!dataInicio || !dataFim || dataFim < dataInicio) return null;
+
+  let inicioAnterior;
+  let fimAnterior;
+  if (dataInicio.getUTCDate() === 1) {
+    inicioAnterior = new Date(Date.UTC(dataInicio.getUTCFullYear(), dataInicio.getUTCMonth() - 1, 1));
+    const ultimoDiaAnterior = new Date(Date.UTC(dataInicio.getUTCFullYear(), dataInicio.getUTCMonth(), 0)).getUTCDate();
+    fimAnterior = new Date(Date.UTC(
+      inicioAnterior.getUTCFullYear(),
+      inicioAnterior.getUTCMonth(),
+      Math.min(dataFim.getUTCDate(), ultimoDiaAnterior)
+    ));
+  } else {
+    const duracaoDias = Math.round((dataFim - dataInicio) / 86400000) + 1;
+    fimAnterior = new Date(dataInicio.getTime() - 86400000);
+    inicioAnterior = new Date(fimAnterior.getTime() - ((duracaoDias - 1) * 86400000));
+  }
+
+  return { inicio: utcParaDataBr(inicioAnterior), fim: utcParaDataBr(fimAnterior) };
+}
+
+function montarComparacao(valorAtual, valorAnterior, periodoAnterior) {
+  const atual = valorNumero(valorAtual);
+  const anterior = valorNumero(valorAnterior);
+  const diferenca = atual - anterior;
+  return {
+    ...periodoAnterior,
+    valorAtual: atual,
+    valorAnterior: anterior,
+    diferenca,
+    percentual: anterior ? Math.round((diferenca / anterior) * 1000) / 10 : null,
+    direcao: diferenca > 0 ? 'ALTA' : diferenca < 0 ? 'QUEDA' : 'ESTAVEL',
+  };
 }
 
 // GET /api/relatorios/vendas?inicio=dd/mm/aa&fim=dd/mm/aa&sistema=FONADA|AOVIVO|TODOS
@@ -53,11 +147,8 @@ router.get('/vendas', async (req, res) => {
       (req.query.fim || '').trim()
     );
     const sistema = (req.query.sistema || 'TODOS').trim().toUpperCase();
-    // A tabela detalhada por pessoa só faz sentido para um dia único —
-    // num período de vários dias a lista ficaria longa demais para
-    // ser útil aqui (o relatório já mostra os agregados nesse caso).
-    const diaUnico = Boolean(inicio) && inicio === fim;
-
+    const periodoAnterior = resolverPeriodoAnterior(inicio, fim);
+    let valorAnterior = 0;
     let resumoFonada = null;
     let resumoAoVivo = null;
     const itensDetalhados = [];
@@ -67,6 +158,11 @@ router.get('/vendas', async (req, res) => {
         SELECT id, valor, periodo, data_pedido, recall, nome_comprador, senha_os FROM fonadas WHERE excluido_em IS NULL
       `);
       const noPeriodo = filtrarPorIntervalo(fonadasResultado.rows, 'data_pedido', inicio, fim);
+      if (periodoAnterior) {
+        valorAnterior += filtrarPorIntervalo(
+          fonadasResultado.rows, 'data_pedido', periodoAnterior.inicio, periodoAnterior.fim
+        ).reduce((soma, l) => soma + valorNumero(l.valor), 0);
+      }
       const totalPix = noPeriodo.filter((l) => formaPagamento(l.periodo) === 'PIX').length;
       const totalRecibo = noPeriodo.length - totalPix;
       const totalRecall = noPeriodo.filter((l) => (l.recall || '').trim().toUpperCase() === 'SIM').length;
@@ -82,17 +178,16 @@ router.get('/vendas', async (req, res) => {
         totalOutros,
         percentualRecall: calcularPercentual(totalRecall, noPeriodo.length),
         percentualOutros: calcularPercentual(totalOutros, noPeriodo.length),
-        valorTotal: noPeriodo.reduce((soma, l) => soma + (l.valor || 0), 0),
+        valorTotal: noPeriodo.reduce((soma, l) => soma + valorNumero(l.valor), 0),
       };
+      resumoFonada.ticketMedio = calcularTicketMedio(resumoFonada.valorTotal, resumoFonada.quantidade);
 
-      if (diaUnico) {
-        for (const l of noPeriodo) {
-          itensDetalhados.push({
-            id: l.id, sistema: 'FONADA', os: l.senha_os || l.id,
-            nome: l.nome_comprador || '—', valor: l.valor || 0,
-            forma: formaPagamento(l.periodo),
-          });
-        }
+      for (const l of noPeriodo) {
+        itensDetalhados.push({
+          id: l.id, sistema: 'FONADA', os: l.senha_os || l.id,
+          nome: l.nome_comprador || '—', valor: valorNumero(l.valor),
+          forma: formaPagamento(l.periodo), data: l.data_pedido,
+        });
       }
     }
 
@@ -101,31 +196,37 @@ router.get('/vendas', async (req, res) => {
         SELECT id, valor, data_pedido, comprador, numero_os, pagamento FROM ao_vivo WHERE excluido_em IS NULL
       `);
       const noPeriodo = filtrarPorIntervalo(aoVivoResultado.rows, 'data_pedido', inicio, fim);
+      if (periodoAnterior) {
+        valorAnterior += filtrarPorIntervalo(
+          aoVivoResultado.rows, 'data_pedido', periodoAnterior.inicio, periodoAnterior.fim
+        ).reduce((soma, l) => soma + valorNumero(l.valor), 0);
+      }
       resumoAoVivo = {
         quantidade: noPeriodo.length,
-        valorTotal: noPeriodo.reduce((soma, l) => soma + (l.valor || 0), 0),
+        valorTotal: noPeriodo.reduce((soma, l) => soma + valorNumero(l.valor), 0),
       };
+      resumoAoVivo.ticketMedio = calcularTicketMedio(resumoAoVivo.valorTotal, resumoAoVivo.quantidade);
 
-      if (diaUnico) {
-        for (const l of noPeriodo) {
-          itensDetalhados.push({
-            id: l.id, sistema: 'AOVIVO', os: l.numero_os || l.id,
-            nome: l.comprador || '—', valor: l.valor || 0,
-            forma: formaPagamento(l.pagamento),
-          });
-        }
+      for (const l of noPeriodo) {
+        itensDetalhados.push({
+          id: l.id, sistema: 'AOVIVO', os: l.numero_os || l.id,
+          nome: l.comprador || '—', valor: valorNumero(l.valor),
+          forma: formaPagamentoAoVivo(l.pagamento), data: l.data_pedido,
+        });
       }
     }
 
     const quantidade = (resumoFonada?.quantidade || 0) + (resumoAoVivo?.quantidade || 0);
     const valorTotal = (resumoFonada?.valorTotal || 0) + (resumoAoVivo?.valorTotal || 0);
 
+    const detalhes = prepararItens(itensDetalhados);
     res.json({
       inicio, fim, sistema,
       fonada: resumoFonada,
       aoVivo: resumoAoVivo,
-      geral: { quantidade, valorTotal },
-      itens: diaUnico ? itensDetalhados : null,
+      geral: { quantidade, valorTotal, ticketMedio: calcularTicketMedio(valorTotal, quantidade) },
+      comparacao: periodoAnterior ? montarComparacao(valorTotal, valorAnterior, periodoAnterior) : null,
+      ...detalhes,
     });
   } catch (erro) {
     console.error('Erro ao gerar relatório de vendas:', erro);
@@ -141,8 +242,8 @@ router.get('/recebimentos', async (req, res) => {
       (req.query.fim || '').trim()
     );
     const sistema = (req.query.sistema || 'TODOS').trim().toUpperCase();
-    const diaUnico = Boolean(inicio) && inicio === fim;
-
+    const periodoAnterior = resolverPeriodoAnterior(inicio, fim);
+    let valorRecebidoAnterior = 0;
     let fonadaResumo = null;
     let aoVivoResumo = null;
     const itensDetalhados = [];
@@ -154,6 +255,11 @@ router.get('/recebimentos', async (req, res) => {
         WHERE excluido_em IS NULL AND pagou = 'SIM' AND data_pagamento IS NOT NULL
       `);
       const noPeriodo = filtrarPorIntervalo(fonadasResultado.rows, 'data_pagamento', inicio, fim);
+      if (periodoAnterior) {
+        valorRecebidoAnterior += filtrarPorIntervalo(
+          fonadasResultado.rows, 'data_pagamento', periodoAnterior.inicio, periodoAnterior.fim
+        ).reduce((soma, l) => soma + valorNumero(l.valor), 0);
+      }
       const totalPix = noPeriodo.filter((l) => formaPagamento(l.periodo) === 'PIX').length;
       const totalRecibo = noPeriodo.length - totalPix;
       fonadaResumo = {
@@ -162,23 +268,21 @@ router.get('/recebimentos', async (req, res) => {
         totalRecibo,
         percentualPix: calcularPercentual(totalPix, noPeriodo.length),
         percentualRecibo: calcularPercentual(totalRecibo, noPeriodo.length),
-        valorTotal: noPeriodo.reduce((soma, l) => soma + (l.valor || 0), 0),
+        valorTotal: noPeriodo.reduce((soma, l) => soma + valorNumero(l.valor), 0),
       };
 
-      if (diaUnico) {
-        for (const l of noPeriodo) {
-          itensDetalhados.push({
-            id: l.id, sistema: 'FONADA', os: l.senha_os || l.id,
-            nome: l.nome_comprador || '—', valor: l.valor || 0,
-            forma: formaPagamento(l.periodo),
-          });
-        }
+      for (const l of noPeriodo) {
+        itensDetalhados.push({
+          id: l.id, sistema: 'FONADA', os: l.senha_os || l.id,
+          nome: l.nome_comprador || '—', valor: valorNumero(l.valor),
+          forma: formaPagamento(l.periodo), data: l.data_pagamento,
+        });
       }
     }
 
     if (sistema === 'AOVIVO' || sistema === 'TODOS') {
       const aoVivoResultado = await db.query(`
-        SELECT id, valor, dia_entrega, comprador, numero_os, pagamento, pagou, data_pagou
+        SELECT id, valor, dia_entrega, comprador, numero_os, pagamento, pagou, data_pagou, resultado_entrega
         FROM ao_vivo
         WHERE excluido_em IS NULL
       `);
@@ -189,27 +293,45 @@ router.get('/recebimentos', async (req, res) => {
       // foi efetivamente marcado como recebido (data_pagou), não pela
       // data de entrega da mensagem. Pagamento à vista (qualquer outra
       // forma) continua entrando pela data de entrega, como sempre foi.
-      const ehPrazo = (pagamento) => String(pagamento || '').startsWith('PRAZO');
-      const linhasAVista = aoVivoResultado.rows.filter((l) => !ehPrazo(l.pagamento));
-      const linhasPrazoRecebidas = aoVivoResultado.rows.filter((l) => ehPrazo(l.pagamento) && l.pagou === 'SIM');
+      const linhasAVista = aoVivoResultado.rows.filter((l) =>
+        !ehPrazoAoVivo(l.pagamento) && foiEntregueAoVivo(l.resultado_entrega)
+      );
+      const linhasPrazoRecebidas = aoVivoResultado.rows.filter((l) =>
+        ehPrazoAoVivo(l.pagamento) && String(l.pagou || '').toUpperCase() === 'SIM'
+      );
 
       const noPeriodoAVista = filtrarPorIntervalo(linhasAVista, 'dia_entrega', inicio, fim);
       const noPeriodoPrazo = filtrarPorIntervalo(linhasPrazoRecebidas, 'data_pagou', inicio, fim);
       const noPeriodo = [...noPeriodoAVista, ...noPeriodoPrazo];
+      if (periodoAnterior) {
+        valorRecebidoAnterior += [
+          ...filtrarPorIntervalo(linhasAVista, 'dia_entrega', periodoAnterior.inicio, periodoAnterior.fim),
+          ...filtrarPorIntervalo(linhasPrazoRecebidas, 'data_pagou', periodoAnterior.inicio, periodoAnterior.fim),
+        ].reduce((soma, l) => soma + valorNumero(l.valor), 0);
+      }
 
       aoVivoResumo = {
         quantidade: noPeriodo.length,
-        valorTotal: noPeriodo.reduce((soma, l) => soma + (l.valor || 0), 0),
+        valorTotal: noPeriodo.reduce((soma, l) => soma + valorNumero(l.valor), 0),
+        quantidadeAVista: noPeriodoAVista.length,
+        valorAVista: noPeriodoAVista.reduce((soma, l) => soma + valorNumero(l.valor), 0),
+        quantidadePrazo: noPeriodoPrazo.length,
+        valorPrazo: noPeriodoPrazo.reduce((soma, l) => soma + valorNumero(l.valor), 0),
       };
 
-      if (diaUnico) {
-        for (const l of noPeriodo) {
-          itensDetalhados.push({
-            id: l.id, sistema: 'AOVIVO', os: l.numero_os || l.id,
-            nome: l.comprador || '—', valor: l.valor || 0,
-            forma: formaPagamento(l.pagamento),
-          });
-        }
+      for (const l of noPeriodoAVista) {
+        itensDetalhados.push({
+          id: l.id, sistema: 'AOVIVO', os: l.numero_os || l.id,
+          nome: l.comprador || '—', valor: valorNumero(l.valor),
+          forma: formaPagamentoAoVivo(l.pagamento), data: l.dia_entrega,
+        });
+      }
+      for (const l of noPeriodoPrazo) {
+        itensDetalhados.push({
+          id: l.id, sistema: 'AOVIVO', os: l.numero_os || l.id,
+          nome: l.comprador || '—', valor: valorNumero(l.valor),
+          forma: 'PRAZO', data: l.data_pagou,
+        });
       }
     }
 
@@ -219,30 +341,44 @@ router.get('/recebimentos', async (req, res) => {
     const totalRecibo = fonadaResumo?.totalRecibo || 0;
 
     let valorVendido = 0;
+    let valorAReceberVendasPeriodo = 0;
     if (sistema === 'FONADA' || sistema === 'TODOS') {
       const fonadasVendidasResultado = await db.query(`
-        SELECT valor, data_pedido FROM fonadas WHERE excluido_em IS NULL
+        SELECT valor, data_pedido, pagou FROM fonadas WHERE excluido_em IS NULL
       `);
-      valorVendido += filtrarPorIntervalo(fonadasVendidasResultado.rows, 'data_pedido', inicio, fim)
-        .reduce((soma, l) => soma + (l.valor || 0), 0);
+      const vendidas = filtrarPorIntervalo(fonadasVendidasResultado.rows, 'data_pedido', inicio, fim);
+      valorVendido += vendidas.reduce((soma, l) => soma + valorNumero(l.valor), 0);
+      valorAReceberVendasPeriodo += vendidas
+        .filter((l) => String(l.pagou || '').toUpperCase() !== 'SIM')
+        .reduce((soma, l) => soma + valorNumero(l.valor), 0);
     }
     if (sistema === 'AOVIVO' || sistema === 'TODOS') {
       const aoVivoVendidoResultado = await db.query(`
-        SELECT valor, data_pedido FROM ao_vivo WHERE excluido_em IS NULL
+        SELECT valor, data_pedido, pagamento, pagou, resultado_entrega FROM ao_vivo WHERE excluido_em IS NULL
       `);
-      valorVendido += filtrarPorIntervalo(aoVivoVendidoResultado.rows, 'data_pedido', inicio, fim)
-        .reduce((soma, l) => soma + (l.valor || 0), 0);
+      const vendidos = filtrarPorIntervalo(aoVivoVendidoResultado.rows, 'data_pedido', inicio, fim);
+      valorVendido += vendidos.reduce((soma, l) => soma + valorNumero(l.valor), 0);
+      valorAReceberVendasPeriodo += vendidos
+        .filter((l) => ehPrazoAoVivo(l.pagamento)
+          ? String(l.pagou || '').toUpperCase() !== 'SIM'
+          : !foiEntregueAoVivo(l.resultado_entrega))
+        .reduce((soma, l) => soma + valorNumero(l.valor), 0);
     }
-    const diferencaVendidoRecebido = valorVendido - valorTotal;
+    const valorRecebidoVendasPeriodo = valorVendido - valorAReceberVendasPeriodo;
+    const detalhes = prepararItens(itensDetalhados);
 
     res.json({
       inicio, fim, sistema,
       quantidade, valorTotal, totalPix, totalRecibo,
       valorVendido,
-      diferencaVendidoRecebido,
+      valorRecebidoVendasPeriodo,
+      valorAReceberVendasPeriodo,
+      comparacao: periodoAnterior
+        ? montarComparacao(valorTotal, valorRecebidoAnterior, periodoAnterior)
+        : null,
       fonada: fonadaResumo,
       aoVivo: aoVivoResumo,
-      itens: diaUnico ? itensDetalhados : null,
+      ...detalhes,
     });
   } catch (erro) {
     console.error('Erro ao gerar relatório de recebimentos:', erro);
@@ -252,11 +388,9 @@ router.get('/recebimentos', async (req, res) => {
 
 // GET /api/relatorios/desempenho?inicio=dd/mm/aa&fim=dd/mm/aa&sistema=FONADA|AOVIVO|TODOS
 //
-// Desempenho por funcionário: quantas mensagens de Fonada cada um
-// passou no período, quantos pedidos vendeu (Fonada e Ao Vivo,
-// separados), e o valor vendido em cada sistema. Só considera pedidos
-// criados a partir de quando os campos vendedor_usuario/passada_por
-// passaram a existir — pedidos antigos não aparecem aqui.
+// Desempenho por funcionário: quantos pedidos cada pessoa vendeu em
+// Fonada e Ao Vivo, além do valor vendido em cada sistema. Pedidos
+// antigos, criados antes do registro de vendedor, não aparecem aqui.
 router.get('/desempenho', async (req, res) => {
   try {
     const { inicio, fim } = resolverIntervalo(
@@ -264,6 +398,8 @@ router.get('/desempenho', async (req, res) => {
       (req.query.fim || '').trim()
     );
     const sistema = (req.query.sistema || 'TODOS').trim().toUpperCase();
+    const periodoAnterior = resolverPeriodoAnterior(inicio, fim);
+    let valorEquipeAnterior = 0;
 
     // Mapa por nome de usuário -> acumulador de métricas.
     const porFuncionario = {};
@@ -274,7 +410,6 @@ router.get('/desempenho', async (req, res) => {
           usuario: nome,
           vendasFonada: 0, valorVendidoFonada: 0,
           vendasAoVivo: 0, valorVendidoAoVivo: 0,
-          mensagensPassadasFonada: 0,
         };
       }
       return porFuncionario[nome];
@@ -282,40 +417,24 @@ router.get('/desempenho', async (req, res) => {
 
     if (sistema === 'FONADA' || sistema === 'TODOS') {
       const fonadasResultado = await db.query(`
-        SELECT valor, data_pedido, vendedor_usuario,
-               p1_dia, p1_resultado, p1_passada_por,
-               p2_dia, p2_resultado, p2_passada_por
+        SELECT valor, data_pedido, vendedor_usuario
         FROM fonadas WHERE excluido_em IS NULL
       `);
 
       // Vendas: conta pelo dia do PEDIDO (quando foi vendido).
       const vendidasNoPeriodo = filtrarPorIntervalo(fonadasResultado.rows, 'data_pedido', inicio, fim);
+      if (periodoAnterior) {
+        valorEquipeAnterior += filtrarPorIntervalo(
+          fonadasResultado.rows.filter((l) => l.vendedor_usuario),
+          'data_pedido', periodoAnterior.inicio, periodoAnterior.fim
+        ).reduce((soma, l) => soma + valorNumero(l.valor), 0);
+      }
       for (const l of vendidasNoPeriodo) {
         const acc = acumulador(l.vendedor_usuario);
         if (acc) {
           acc.vendasFonada += 1;
-          acc.valorVendidoFonada += l.valor || 0;
+          acc.valorVendidoFonada += valorNumero(l.valor);
         }
-      }
-
-      // Mensagens passadas: cada mensagem (p1/p2) conta separadamente,
-      // pelo dia em que ela estava marcada (p1_dia/p2_dia) — não pelo
-      // dia do pedido, já que a mensagem pode ser passada bem depois
-      // da venda.
-      const linhasP1 = fonadasResultado.rows
-        .filter((l) => l.p1_resultado && l.p1_passada_por)
-        .map((l) => ({ dia: l.p1_dia, passada_por: l.p1_passada_por }));
-      const linhasP2 = fonadasResultado.rows
-        .filter((l) => l.p2_resultado && l.p2_passada_por)
-        .map((l) => ({ dia: l.p2_dia, passada_por: l.p2_passada_por }));
-
-      for (const l of filtrarPorIntervalo(linhasP1, 'dia', inicio, fim)) {
-        const acc = acumulador(l.passada_por);
-        if (acc) acc.mensagensPassadasFonada += 1;
-      }
-      for (const l of filtrarPorIntervalo(linhasP2, 'dia', inicio, fim)) {
-        const acc = acumulador(l.passada_por);
-        if (acc) acc.mensagensPassadasFonada += 1;
       }
     }
 
@@ -326,24 +445,45 @@ router.get('/desempenho', async (req, res) => {
       `);
 
       const vendidosNoPeriodo = filtrarPorIntervalo(aoVivoResultado.rows, 'data_pedido', inicio, fim);
+      if (periodoAnterior) {
+        valorEquipeAnterior += filtrarPorIntervalo(
+          aoVivoResultado.rows.filter((l) => l.vendedor_usuario),
+          'data_pedido', periodoAnterior.inicio, periodoAnterior.fim
+        ).reduce((soma, l) => soma + valorNumero(l.valor), 0);
+      }
       for (const l of vendidosNoPeriodo) {
         const acc = acumulador(l.vendedor_usuario);
         if (acc) {
           acc.vendasAoVivo += 1;
-          acc.valorVendidoAoVivo += l.valor || 0;
+          acc.valorVendidoAoVivo += valorNumero(l.valor);
         }
       }
     }
 
+    const valorEquipe = Object.values(porFuncionario)
+      .reduce((total, f) => total + f.valorVendidoFonada + f.valorVendidoAoVivo, 0);
     const funcionarios = Object.values(porFuncionario)
       .map((f) => ({
         ...f,
         vendasTotal: f.vendasFonada + f.vendasAoVivo,
         valorVendidoTotal: f.valorVendidoFonada + f.valorVendidoAoVivo,
+        ticketMedio: calcularTicketMedio(
+          f.valorVendidoFonada + f.valorVendidoAoVivo,
+          f.vendasFonada + f.vendasAoVivo
+        ),
+        participacaoPercentual: calcularPercentual(
+          f.valorVendidoFonada + f.valorVendidoAoVivo,
+          valorEquipe
+        ),
       }))
       .sort((a, b) => b.valorVendidoTotal - a.valorVendidoTotal);
 
-    res.json({ inicio, fim, sistema, funcionarios });
+    res.json({
+      inicio, fim, sistema, valorEquipe, funcionarios,
+      comparacao: periodoAnterior
+        ? montarComparacao(valorEquipe, valorEquipeAnterior, periodoAnterior)
+        : null,
+    });
   } catch (erro) {
     console.error('Erro ao gerar relatório de desempenho:', erro);
     res.status(500).json({ erro: 'Erro ao gerar relatório de desempenho.' });
