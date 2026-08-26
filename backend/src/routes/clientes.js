@@ -12,6 +12,7 @@
 
 const express = require('express');
 const { db, pool, unaccentEstaDisponivel } = require('../db/database');
+const { formatarDataBrasilia } = require('../utils/dataHora');
 
 const router = express.Router();
 
@@ -93,6 +94,22 @@ const FILTROS_CLIENTE = {
   endereco: { coluna: 'endereco', tipo: 'texto' },
 };
 
+function somenteDigitos(valor) {
+  return String(valor || '').replace(/\D/g, '');
+}
+
+function nascimentoValido(valor) {
+  const texto = String(valor || '').trim();
+  if (!texto) return true;
+  const partes = texto.match(/^(\d{2})\/(\d{2})(?:\/(\d{2}|\d{4}))?$/);
+  if (!partes) return false;
+  const dia = Number(partes[1]);
+  const mes = Number(partes[2]);
+  if (mes < 1 || mes > 12 || dia < 1) return false;
+  const ano = partes[3] ? Number(partes[3].length === 2 ? `20${partes[3]}` : partes[3]) : 2000;
+  return dia <= new Date(ano, mes, 0).getDate();
+}
+
 // Monta a cláusula WHERE de um filtro específico. "indiceInicial" é o
 // número do próximo placeholder $N disponível — precisa ser passado
 // porque essa cláusula pode vir depois de outras já montadas na mesma
@@ -134,6 +151,9 @@ const ORDENACAO_PERMITIDA = {
   nome: 'c.nome',
   total_fonada: 'total_fonada',
   total_aovivo: 'total_aovivo',
+  total_pedidos: 'total_pedidos',
+  ultimo_pedido: 'ultimo_pedido_em',
+  valor_pendente: 'valor_pendente',
 };
 
 // GET /api/clientes?busca=nome&campo=nome&pagina=1&ordenarPor=nome&direcao=asc
@@ -141,6 +161,9 @@ router.get('/', async (req, res) => {
   try {
     const busca = (req.query.busca || '').trim();
     const campo = (req.query.campo || '').trim();
+    const telefone = somenteDigitos(req.query.telefone);
+    const aniversario = (req.query.aniversario || '').trim();
+    const situacao = (req.query.situacao || '').trim();
     const pagina = Math.max(parseInt(req.query.pagina) || 1, 1);
     const porPagina = Math.min(parseInt(req.query.porPagina) || 30, 200);
     const offset = (pagina - 1) * porPagina;
@@ -148,21 +171,51 @@ router.get('/', async (req, res) => {
     const colunaOrdenacao = ORDENACAO_PERMITIDA[req.query.ordenarPor] || ORDENACAO_PERMITIDA.nome;
     const direcao = req.query.direcao === 'desc' ? 'DESC' : 'ASC';
 
-    let where = 'WHERE excluido_em IS NULL';
+    let where = 'WHERE c.excluido_em IS NULL';
     let params = [];
 
     if (busca && campo) {
       const filtro = montarFiltroCliente(campo, busca, 1);
       if (filtro) {
-        where += ` AND ${filtro.where}`;
+        where += ` AND ${filtro.where.replace(/\b(nome|nascimento|celular|whatsapp|fixo|endereco)\b/g, 'c.$1')}`;
         params = filtro.params;
       }
     } else if (busca) {
-      where += ` AND ${condicaoTexto('nome', 1)}`;
+      where += ` AND ${condicaoTexto('c.nome', 1)}`;
       params = [`%${busca}%`];
     }
 
-    const totalResultado = await db.query(`SELECT COUNT(*) as n FROM clientes ${where}`, params);
+    if (telefone) {
+      params.push(`%${telefone}%`);
+      where += ` AND (
+        regexp_replace(COALESCE(c.fixo, ''), '\\D', '', 'g') LIKE $${params.length} OR
+        regexp_replace(COALESCE(c.celular, ''), '\\D', '', 'g') LIKE $${params.length} OR
+        regexp_replace(COALESCE(c.whatsapp, ''), '\\D', '', 'g') LIKE $${params.length}
+      )`;
+    }
+    if (aniversario) {
+      params.push(`${aniversario}%`);
+      where += ` AND c.nascimento LIKE $${params.length}`;
+    }
+    if (situacao === 'pendencia') {
+      where += ` AND (
+        EXISTS (SELECT 1 FROM fonadas f WHERE f.cliente_id = c.id AND f.excluido_em IS NULL AND COALESCE(f.pagou, '') != 'SIM' AND COALESCE(f.cobranca, '') != '') OR
+        EXISTS (SELECT 1 FROM ao_vivo a WHERE a.cliente_id = c.id AND a.excluido_em IS NULL AND COALESCE(a.pagou, '') != 'SIM' AND UPPER(COALESCE(a.pagamento, '')) LIKE '%PRAZO%')
+      )`;
+    } else if (situacao === 'recentes') {
+      where += ` AND c.criado_em >= NOW() - INTERVAL '30 days'`;
+    } else if (situacao === 'sem_pedidos') {
+      where += ` AND NOT EXISTS (SELECT 1 FROM fonadas f WHERE f.cliente_id = c.id AND f.excluido_em IS NULL)
+                 AND NOT EXISTS (SELECT 1 FROM ao_vivo a WHERE a.cliente_id = c.id AND a.excluido_em IS NULL)`;
+    } else if (situacao === 'bloqueados') {
+      where += ` AND c.bloqueado = TRUE`;
+    } else if (situacao === 'aniversariantes') {
+      const diaMesHojeBrasilia = formatarDataBrasilia().slice(0, 5);
+      params.push(diaMesHojeBrasilia);
+      where += ` AND substring(TRIM(COALESCE(c.nascimento, '')) from 1 for 5) = $${params.length}`;
+    }
+
+    const totalResultado = await db.query(`SELECT COUNT(*) as n FROM clientes c ${where}`, params);
     const total = parseInt(totalResultado.rows[0].n, 10);
 
     // LIMIT/OFFSET usam os próximos dois placeholders depois dos já
@@ -171,9 +224,59 @@ router.get('/', async (req, res) => {
     const idxOffset = params.length + 2;
     const linhasResultado = await db.query(`
       SELECT c.*,
-        (SELECT COUNT(*) FROM fonadas WHERE cliente_id = c.id AND excluido_em IS NULL) as total_fonada,
-        (SELECT COUNT(*) FROM ao_vivo WHERE cliente_id = c.id AND excluido_em IS NULL) as total_aovivo
+        COALESCE(f_stats.total, 0) as total_fonada,
+        COALESCE(a_stats.total, 0) as total_aovivo,
+        COALESCE(f_stats.total, 0) + COALESCE(a_stats.total, 0) as total_pedidos,
+        ultimo.data_pedido as ultimo_pedido_data,
+        ultimo.data_ordenacao as ultimo_pedido_em,
+        COALESCE(f_stats.valor_pendente, 0) + COALESCE(a_stats.valor_pendente, 0) as valor_pendente
       FROM clientes c
+      LEFT JOIN (
+        SELECT cliente_id, COUNT(*)::INTEGER as total,
+          COALESCE(SUM(valor) FILTER (WHERE COALESCE(pagou, '') != 'SIM' AND COALESCE(cobranca, '') != ''), 0) as valor_pendente
+        FROM fonadas
+        WHERE excluido_em IS NULL
+        GROUP BY cliente_id
+      ) f_stats ON f_stats.cliente_id = c.id
+      LEFT JOIN (
+        SELECT cliente_id, COUNT(*)::INTEGER as total,
+          COALESCE(SUM(valor) FILTER (WHERE COALESCE(pagou, '') != 'SIM' AND UPPER(COALESCE(pagamento, '')) LIKE '%PRAZO%'), 0) as valor_pendente
+        FROM ao_vivo
+        WHERE excluido_em IS NULL
+        GROUP BY cliente_id
+      ) a_stats ON a_stats.cliente_id = c.id
+      LEFT JOIN LATERAL (
+        SELECT datas.data_pedido, datas.data_ordenacao
+        FROM (
+          SELECT pedidos.data_pedido,
+            CASE
+              WHEN length(pedidos.data_pedido) = 8 THEN
+                (2000 + right(pedidos.data_pedido, 2)::INTEGER) * 10000 +
+                substring(pedidos.data_pedido from 4 for 2)::INTEGER * 100 +
+                left(pedidos.data_pedido, 2)::INTEGER
+              ELSE
+                right(pedidos.data_pedido, 4)::INTEGER * 10000 +
+                substring(pedidos.data_pedido from 4 for 2)::INTEGER * 100 +
+                left(pedidos.data_pedido, 2)::INTEGER
+            END as data_ordenacao
+          FROM (
+            SELECT data_pedido FROM fonadas WHERE cliente_id = c.id AND excluido_em IS NULL
+            UNION ALL
+            SELECT data_pedido FROM ao_vivo WHERE cliente_id = c.id AND excluido_em IS NULL
+          ) pedidos
+          WHERE pedidos.data_pedido ~ '^\\d{2}/\\d{2}/(\\d{2}|\\d{4})$'
+            AND substring(pedidos.data_pedido from 4 for 2)::INTEGER BETWEEN 1 AND 12
+            AND left(pedidos.data_pedido, 2)::INTEGER BETWEEN 1 AND
+              CASE
+                WHEN substring(pedidos.data_pedido from 4 for 2)::INTEGER = 2 THEN 29
+                WHEN substring(pedidos.data_pedido from 4 for 2)::INTEGER IN (4, 6, 9, 11) THEN 30
+                ELSE 31
+              END
+        ) datas
+        WHERE datas.data_ordenacao <= to_char(CURRENT_DATE, 'YYYYMMDD')::INTEGER
+        ORDER BY datas.data_ordenacao DESC NULLS LAST
+        LIMIT 1
+      ) ultimo ON TRUE
       ${where}
       ORDER BY ${colunaOrdenacao} ${direcao}, c.nome ASC
       LIMIT $${idxLimit} OFFSET $${idxOffset}
@@ -274,7 +377,7 @@ router.get('/verificar-duplicidade', async (req, res) => {
 router.get('/possiveis-duplicatas', async (req, res) => {
   try {
     const resultado = await db.query(`
-      SELECT id, nome, nascimento, fixo, whatsapp, celular
+      SELECT id, nome, nascimento, fixo, whatsapp, celular, endereco, complemento, bairro, referencia
       FROM clientes
       WHERE excluido_em IS NULL AND nascimento IS NOT NULL AND nascimento != ''
       ORDER BY id
@@ -431,13 +534,16 @@ router.get('/:id', async (req, res) => {
     if (!cliente) return res.status(404).json({ erro: 'Cliente não encontrado.' });
 
     const pedidosFonadaResultado = await db.query(`
-      SELECT id, senha_os, data_pedido, p1_dia, p1_para, p2_dia, p2_para, valor, pagou
-      FROM fonadas WHERE cliente_id = $1 ORDER BY id DESC
+      SELECT id, senha_os, data_pedido, p1_dia, p1_para, p1_resultado, p1_passada_por,
+             p2_dia, p2_para, p2_resultado, p2_passada_por,
+             valor, pagou, cobranca, cobranca_reagendada, periodo, data_pagamento, status, criado_em
+      FROM fonadas WHERE cliente_id = $1 AND excluido_em IS NULL ORDER BY id DESC
     `, [req.params.id]);
 
     const pedidosAoVivoResultado = await db.query(`
-      SELECT id, numero_os, data_pedido, dia_entrega, para, valor
-      FROM ao_vivo WHERE cliente_id = $1 ORDER BY id DESC
+      SELECT id, numero_os, data_pedido, dia_entrega, para, valor, pagamento, pagou, data_pagou,
+             resultado_entrega, criado_em
+      FROM ao_vivo WHERE cliente_id = $1 AND excluido_em IS NULL ORDER BY id DESC
     `, [req.params.id]);
 
     res.json({
@@ -457,6 +563,9 @@ router.post('/', async (req, res) => {
     const dados = req.body;
     if (!dados.nome || !dados.nome.trim()) {
       return res.status(400).json({ erro: 'O nome é obrigatório.' });
+    }
+    if (!nascimentoValido(dados.nascimento)) {
+      return res.status(400).json({ erro: 'Informe uma data de nascimento válida.' });
     }
 
     const campos = CAMPOS.filter((c) => dados[c] !== undefined);
@@ -512,6 +621,9 @@ router.put('/:id', async (req, res) => {
     if (existente.rows.length === 0) return res.status(404).json({ erro: 'Cliente não encontrado.' });
 
     const dados = req.body;
+    if (dados.nascimento !== undefined && !nascimentoValido(dados.nascimento)) {
+      return res.status(400).json({ erro: 'Informe uma data de nascimento válida.' });
+    }
     const campos = CAMPOS.filter((c) => dados[c] !== undefined);
     if (campos.length === 0) return res.status(400).json({ erro: 'Nenhum campo para atualizar.' });
 
@@ -672,6 +784,7 @@ router.delete('/:id/definitivo', async (req, res) => {
 router.post('/:id/mesclar', async (req, res) => {
   const destinoId = req.params.id;
   const origemId = req.body.origemId;
+  const dadosFinais = req.body.dadosFinais || {};
 
   if (!origemId) return res.status(400).json({ erro: 'Informe o cliente de origem (origemId).' });
   if (String(origemId) === String(destinoId)) {
@@ -698,6 +811,22 @@ router.post('/:id/mesclar', async (req, res) => {
     }
 
     await client.query('BEGIN');
+    const camposFinais = CAMPOS.filter((campo) => dadosFinais[campo] !== undefined);
+    if (camposFinais.length > 0) {
+      if (dadosFinais.nome !== undefined && !String(dadosFinais.nome || '').trim()) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ erro: 'O nome final do cliente é obrigatório.' });
+      }
+      if (dadosFinais.nascimento !== undefined && !nascimentoValido(dadosFinais.nascimento)) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ erro: 'A data de nascimento escolhida não é válida.' });
+      }
+      const setDados = camposFinais.map((campo, indice) => `${campo} = $${indice + 1}`).join(', ');
+      await client.query(
+        `UPDATE clientes SET ${setDados}, atualizado_em = NOW() WHERE id = $${camposFinais.length + 1}`,
+        [...camposFinais.map((campo) => dadosFinais[campo] || null), destinoId]
+      );
+    }
     await client.query('UPDATE fonadas SET cliente_id = $1 WHERE cliente_id = $2', [destinoId, origemId]);
     await client.query('UPDATE ao_vivo SET cliente_id = $1 WHERE cliente_id = $2', [destinoId, origemId]);
 
@@ -712,8 +841,9 @@ router.post('/:id/mesclar', async (req, res) => {
     // Os pedidos migrados da origem ainda carregam a cópia do nome
     // antigo (nome_comprador / comprador) — sincroniza com o nome do
     // destino, que é quem prevalece nessa mesclagem manual.
-    await client.query('UPDATE fonadas SET nome_comprador = $1 WHERE cliente_id = $2 AND excluido_em IS NULL', [destino.nome, destinoId]);
-    await client.query('UPDATE ao_vivo SET comprador = $1 WHERE cliente_id = $2 AND excluido_em IS NULL', [destino.nome, destinoId]);
+    const nomeFinal = dadosFinais.nome || destino.nome;
+    await client.query('UPDATE fonadas SET nome_comprador = $1 WHERE cliente_id = $2 AND excluido_em IS NULL', [nomeFinal, destinoId]);
+    await client.query('UPDATE ao_vivo SET comprador = $1 WHERE cliente_id = $2 AND excluido_em IS NULL', [nomeFinal, destinoId]);
 
     await client.query('COMMIT');
 

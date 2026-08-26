@@ -147,8 +147,13 @@ export const api = {
 
   // ---------- Clientes (cadastro único, compartilhado) ----------
   clientes: {
-    listar: (busca = '', pagina = 1, campo = '', ordenarPor = '', direcao = '') =>
-      chamar(`/clientes?busca=${encodeURIComponent(busca)}&pagina=${pagina}&campo=${encodeURIComponent(campo)}&ordenarPor=${encodeURIComponent(ordenarPor)}&direcao=${encodeURIComponent(direcao)}`),
+    listar: (busca = '', pagina = 1, campo = '', ordenarPor = '', direcao = '', extras = {}) => {
+      const params = new URLSearchParams({ busca, pagina: String(pagina), campo, ordenarPor, direcao });
+      if (extras.telefone) params.set('telefone', extras.telefone);
+      if (extras.aniversario) params.set('aniversario', extras.aniversario);
+      if (extras.situacao) params.set('situacao', extras.situacao);
+      return chamar(`/clientes?${params.toString()}`);
+    },
     listarLixeira: (busca = '', pagina = 1) =>
       chamar(`/clientes/lixeira?busca=${encodeURIComponent(busca)}&pagina=${pagina}`),
     buscar: (id) => chamar(`/clientes/${id}`),
@@ -158,8 +163,8 @@ export const api = {
     restaurar: (id) => chamar(`/clientes/${id}/restaurar`, { method: 'POST' }),
     pedidosLixeira: (id) => chamar(`/clientes/${id}/pedidos-lixeira`),
     apagarDefinitivo: (id) => chamar(`/clientes/${id}/definitivo`, { method: 'DELETE' }),
-    mesclar: (destinoId, origemId) =>
-      chamar(`/clientes/${destinoId}/mesclar`, { method: 'POST', body: JSON.stringify({ origemId }) }),
+    mesclar: (destinoId, origemId, dadosFinais) =>
+      chamar(`/clientes/${destinoId}/mesclar`, { method: 'POST', body: JSON.stringify({ origemId, dadosFinais }) }),
     verificarDuplicidade: (nome, nascimento) =>
       chamar(`/clientes/verificar-duplicidade?nome=${encodeURIComponent(nome)}&nascimento=${encodeURIComponent(nascimento)}`),
     possiveisDuplicatas: () => chamar('/clientes/possiveis-duplicatas'),
@@ -198,6 +203,10 @@ export const api = {
     },
     darBaixa: (pedidoId, pagou, recebi, dataPagamento) =>
       chamar(`/cobranca/${pedidoId}/baixa`, { method: 'PUT', body: JSON.stringify({ pagou, recebi, dataPagamento }) }),
+    darBaixaEmLote: (ids, recebi, dataPagamento) =>
+      chamar('/cobranca/acoes/baixa-lote', { method: 'PUT', body: JSON.stringify({ ids, recebi, dataPagamento }) }),
+    reagendarEmLote: (ids, cobrarDia) =>
+      chamar('/cobranca/acoes/reagendar-lote', { method: 'PUT', body: JSON.stringify({ ids, cobrarDia }) }),
   },
 
   // ---------- Relatórios financeiros por período ----------

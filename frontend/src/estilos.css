@@ -2522,6 +2522,131 @@ tr:hover .alca-arrastar {
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
 }
+
+/* ---------- Central diária de cobrança ---------- */
+.cobranca-cabecalho { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:18px; }
+.cobranca-acoes-impressao { display:flex; align-items:center; gap:8px; }
+.cobranca-imprimir { display:inline-flex; align-items:center; gap:7px; white-space:nowrap; }
+.cobranca-filtros { margin-bottom:16px; padding:14px 16px; }
+.cobranca-atalhos { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+.cobranca-atalhos button { padding:6px 11px; border:1px solid var(--borda); border-radius:999px; background:#fff; color:var(--tinta-suave); font-size:11.5px; font-weight:700; cursor:pointer; }
+.cobranca-atalhos button:hover, .cobranca-atalhos button.ativo { border-color:var(--carimbo); background:var(--carimbo); color:#fff; }
+.cobranca-campos-filtro { display:grid; grid-template-columns:150px 120px 260px; gap:10px; align-items:end; justify-content:start; }
+.cobranca-campos-filtro .campo { width:auto; margin:0; }
+.cobranca-campos-filtro .btn { height:42px; }
+.grade-resumo-cobranca-operacional { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:9px; margin-bottom:16px; }
+.resumo-cobranca-operacional { text-align:left; padding:12px 14px; border:1px solid var(--borda); border-top:4px solid var(--tinta-suave); border-radius:10px; background:#fff; cursor:pointer; }
+.resumo-cobranca-operacional:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(28,27,25,.08); }
+.resumo-cobranca-operacional span, .resumo-cobranca-operacional small { display:block; color:var(--tinta-suave); }
+.resumo-cobranca-operacional span { margin-bottom:5px; font-size:10.5px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; }
+.resumo-cobranca-operacional strong { display:block; margin-bottom:3px; font-family:var(--fonte-mono); font-size:18px; color:var(--tinta); }
+.resumo-cobranca-operacional small { font-size:11px; }
+.resumo-cobranca-operacional.atrasada { border-top-color:var(--selo); }
+.resumo-cobranca-operacional.hoje { border-top-color:var(--aviso); }
+.resumo-cobranca-operacional.futura { border-top-color:var(--carimbo); }
+.resumo-cobranca-operacional.recebida { border-top-color:var(--ok); }
+.resumo-cobranca-operacional.total { border-top-color:var(--tinta); }
+.estado-cobranca { text-align:center; color:var(--tinta-suave); }
+.lista-grupos-cobranca { display:flex; flex-direction:column; gap:9px; }
+.lista-grupos-meta { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:0 4px 4px; color:var(--tinta-suave); font-size:12px; }
+.grupo-cobranca { overflow:hidden; border:1px solid var(--borda); border-left:5px solid var(--tinta-suave); border-radius:11px; background:#fff; box-shadow:0 1px 2px rgba(28,27,25,.04); }
+.grupo-cobranca.atrasada { border-left-color:var(--selo); }
+.grupo-cobranca.hoje { border-left-color:var(--aviso); }
+.grupo-cobranca.futura { border-left-color:var(--carimbo); }
+.grupo-cobranca.recebida { border-left-color:var(--ok); }
+.grupo-cobranca-principal { display:grid; grid-template-columns:62px 125px minmax(220px,1fr) 125px minmax(250px,auto); align-items:center; gap:10px; padding:12px 14px; }
+.grupo-cobranca-controles { display:flex; align-items:center; gap:7px; }
+.grupo-cobranca-controles input, .pedido-cobranca-individual input { width:17px; height:17px; margin:0; accent-color:var(--carimbo); cursor:pointer; }
+.grupo-cobranca-expandir { width:28px; height:28px; border:1px solid var(--borda); border-radius:7px; background:var(--papel-alt); color:var(--carimbo); font-size:18px; line-height:1; cursor:pointer; }
+.grupo-cobranca-urgencia span, .grupo-cobranca-cliente strong, .grupo-cobranca-valor strong { display:block; }
+.grupo-cobranca-urgencia span { font-size:12px; font-weight:800; }
+.grupo-cobranca-urgencia small, .grupo-cobranca-cliente span, .grupo-cobranca-valor span { display:block; margin-top:3px; color:var(--tinta-suave); font-size:10.5px; line-height:1.3; }
+.grupo-cobranca-cliente { min-width:0; }
+.grupo-cobranca-cliente strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13.5px; }
+.grupo-cobranca-cliente span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.grupo-cobranca-valor { text-align:right; }
+.grupo-cobranca-valor strong { font-family:var(--fonte-mono); font-size:15px; }
+.grupo-cobranca-acoes { display:flex; justify-content:flex-end; align-items:center; flex-wrap:wrap; gap:5px; }
+.grupo-cobranca-acoes .btn-small { display:inline-flex; align-items:center; gap:5px; text-decoration:none; white-space:nowrap; }
+.btn-small.primario { border-color:var(--carimbo); background:var(--carimbo); color:#fff; }
+.grupo-cobranca-detalhes { padding:13px 16px 15px 58px; border-top:1px solid var(--borda); background:var(--papel-alt); }
+.grupo-cobranca-endereco { display:grid; grid-template-columns:minmax(220px,2fr) minmax(120px,1fr) minmax(180px,1.5fr) auto; align-items:end; gap:14px; margin-bottom:12px; }
+.grupo-cobranca-endereco span { display:block; margin-bottom:3px; color:var(--tinta-suave); font-size:9.5px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; }
+.grupo-cobranca-endereco strong { display:block; font-size:12px; }
+.grupo-cobranca-pedidos { overflow:hidden; border:1px solid var(--borda); border-radius:8px; background:#fff; }
+.pedido-cobranca-individual { display:grid; grid-template-columns:20px 90px minmax(130px,1fr) 100px 100px auto auto; align-items:center; gap:10px; padding:8px 10px; border-bottom:1px solid var(--borda); font-size:11.5px; }
+.pedido-cobranca-individual:last-child { border-bottom:0; }
+.pedido-cobranca-individual > strong { font-family:var(--fonte-mono); text-align:right; }
+.resumo-modal-cobranca { display:flex; justify-content:space-between; gap:12px; margin-bottom:15px; padding:11px 13px; border-radius:8px; background:var(--papel-alt); }
+.acoes-modal-cobranca { display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
+
+/* ---------- Clientes operacional ---------- */
+.clientes-filtros { margin-bottom:18px; padding:14px 16px; }
+.clientes-filtros-rapidos { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+.clientes-filtros-rapidos button { padding:6px 11px; border:1px solid var(--borda); border-radius:999px; background:#fff; color:var(--tinta-suave); font-size:11.5px; font-weight:700; cursor:pointer; }
+.clientes-filtros-rapidos button:hover, .clientes-filtros-rapidos button.ativo { border-color:var(--carimbo); background:var(--carimbo); color:#fff; }
+.clientes-campos-busca { display:grid; grid-template-columns:300px 210px 120px auto; gap:10px; align-items:end; justify-content:start; }
+.clientes-campos-busca .campo { width:auto; margin:0; }
+.cliente-contato-principal, .cliente-contato-tipo, .cliente-contagem-detalhe { display:block; }
+.cliente-contato-principal { font-size:12px; }
+.cliente-contato-tipo, .cliente-contagem-detalhe { margin-top:2px; color:var(--tinta-suave); font-size:9.5px; }
+.cliente-revisar { margin-left:8px; vertical-align:middle; font-size:8px; }
+.modal-mesclar-clientes { max-width:760px; max-height:calc(100vh - 32px); overflow-y:auto; }
+.comparacao-clientes { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:15px 0; }
+.cartao-comparacao-cliente { display:grid; grid-template-columns:22px 1fr; gap:5px 8px; padding:14px; border:2px solid var(--borda); border-radius:10px; cursor:pointer; }
+.cartao-comparacao-cliente.selecionado { border-color:var(--carimbo); background:var(--carimbo-suave); }
+.cartao-comparacao-cliente input { grid-row:1/8; align-self:start; width:17px; height:17px; accent-color:var(--carimbo); }
+.cartao-comparacao-cliente strong, .cartao-comparacao-cliente span { grid-column:2; }
+.cartao-comparacao-cliente span { color:var(--tinta-suave); font-size:11px; }
+.campos-mescla-clientes { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px 12px; margin:10px 0 15px; }
+.campo-mescla-cliente label { display:block; margin-bottom:3px; color:var(--tinta-suave); font-size:9px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; }
+.campo-mescla-cliente select { width:100%; min-width:0; padding:8px 9px; border:1px solid var(--borda); border-radius:7px; background:#fff; color:var(--tinta); font-size:11px; }
+.aviso-mesclagem-clientes { padding:10px 12px; border-radius:8px; background:var(--aviso-suave); color:var(--aviso); font-size:11px; font-weight:700; }
+.acoes-ficha-cliente, .acoes-dados-cliente { display:flex; flex-wrap:wrap; align-items:center; gap:7px; }
+.acoes-ficha-cliente .btn { white-space:nowrap; }
+.btn-small.perigo { border-color:rgba(173,54,47,.3); color:var(--selo); }
+.resumo-operacional-cliente { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; }
+.historico-cliente-secundario { display:block; margin-top:3px; color:var(--tinta-suave); font-size:9.5px; font-weight:500; }
+.historico-destinatario { display:block; line-height:1.45; }
+.historico-destinatario + .historico-destinatario { margin-top:2px; }
+.historico-situacao { display:inline-block; color:var(--tinta-suave); font-size:10.5px; font-weight:700; }
+.historico-situacao.transmitida { color:var(--ok); }
+
+@media (max-width:1100px) {
+  .resumo-operacional-cliente { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .grade-resumo-cobranca-operacional { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .grupo-cobranca-principal { grid-template-columns:62px 110px minmax(180px,1fr) 110px; }
+  .grupo-cobranca-acoes { grid-column:2/-1; justify-content:flex-start; }
+  .grupo-cobranca-endereco { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (max-width:700px) {
+  .clientes-campos-busca { grid-template-columns:1fr; }
+  .comparacao-clientes { grid-template-columns:1fr; }
+  .campos-mescla-clientes { grid-template-columns:1fr; }
+  .acoes-ficha-cliente { width:100%; }
+  .resumo-operacional-cliente { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .tabela-lista.tabela-clientes td[data-label="Contato"] { grid-column:1/3; grid-row:2; color:var(--carimbo); }
+  .tabela-lista.tabela-clientes td[data-label="Bairro"] { grid-column:1; grid-row:3; text-align:left; }
+  .tabela-lista.tabela-clientes td[data-label="Último pedido"] { grid-column:2; grid-row:3; text-align:right; color:var(--tinta-suave); }
+  .tabela-lista.tabela-clientes td[data-label="Pedidos"] { grid-column:1; grid-row:4; text-align:left !important; }
+  .tabela-lista.tabela-clientes td[data-label="Pendente"] { grid-column:2; grid-row:4; text-align:right !important; }
+  .cobranca-cabecalho { flex-direction:column; }
+  .cobranca-acoes-impressao { width:100%; flex-wrap:wrap; }
+  .cobranca-imprimir { width:100%; justify-content:center; }
+  .cobranca-campos-filtro { grid-template-columns:1fr 1fr; }
+  .cobranca-filtro-nome { grid-column:1/-1; }
+  .cobranca-campos-filtro .btn { grid-column:1/-1; }
+  .grade-resumo-cobranca-operacional { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .grupo-cobranca-principal { grid-template-columns:62px 1fr auto; gap:8px; padding:11px 10px; }
+  .grupo-cobranca-urgencia { grid-column:2; }
+  .grupo-cobranca-cliente { grid-column:1/-1; }
+  .grupo-cobranca-valor { grid-column:1/-1; display:flex; justify-content:space-between; align-items:center; text-align:left; }
+  .grupo-cobranca-acoes { grid-column:1/-1; }
+  .grupo-cobranca-detalhes { padding:12px 10px; }
+  .grupo-cobranca-endereco { grid-template-columns:1fr; }
+  .pedido-cobranca-individual { grid-template-columns:20px 80px 1fr auto; }
+  .pedido-cobranca-individual > * { min-width:0; }
+}
 @media (max-width: 900px) {
   .grade-resumo-cobranca {
     grid-template-columns: repeat(3, minmax(0, 1fr));
