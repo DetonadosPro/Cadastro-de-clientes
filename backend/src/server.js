@@ -8,10 +8,39 @@
 // Postgres a conexão de rede pode levar um instante.
 
 // Carrega variáveis do arquivo .env (só tem efeito localmente — no
-// Railway, as variáveis já vêm do próprio ambiente, e chamar isso não
-// causa problema nenhum). Precisa ser a primeira coisa a rodar, antes
-// de qualquer outro require que dependa de process.env (como database.js).
-require('dotenv').config();
+// Railway, as variáveis já vêm do próprio ambiente). Em uma worktree, o
+// .env não é copiado pelo Git; nesse caso, localiza com segurança o .env
+// do checkout principal por meio do ponteiro do arquivo .git.
+// Precisa rodar antes de qualquer require que dependa de process.env.
+const fs = require('fs');
+const path = require('path');
+const dotenv = require('dotenv');
+
+function localizarArquivoEnv() {
+  const envLocal = path.resolve(__dirname, '../.env');
+  if (fs.existsSync(envLocal)) return envLocal;
+
+  const ponteiroGit = path.resolve(__dirname, '../../.git');
+  try {
+    if (!fs.statSync(ponteiroGit).isFile()) return envLocal;
+    const conteudo = fs.readFileSync(ponteiroGit, 'utf8').trim();
+    const correspondencia = conteudo.match(/^gitdir:\s*(.+)$/i);
+    if (!correspondencia) return envLocal;
+
+    const diretorioGit = path.resolve(path.dirname(ponteiroGit), correspondencia[1]);
+    const marcadorWorktree = `${path.sep}.git${path.sep}worktrees${path.sep}`;
+    const indiceWorktree = diretorioGit.toLowerCase().lastIndexOf(marcadorWorktree.toLowerCase());
+    if (indiceWorktree < 0) return envLocal;
+
+    const raizPrincipal = diretorioGit.slice(0, indiceWorktree);
+    const envPrincipal = path.join(raizPrincipal, 'backend', '.env');
+    return fs.existsSync(envPrincipal) ? envPrincipal : envLocal;
+  } catch (erro) {
+    return envLocal;
+  }
+}
+
+dotenv.config({ path: localizarArquivoEnv() });
 
 const express = require('express');
 const cors = require('cors');

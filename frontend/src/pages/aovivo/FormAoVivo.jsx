@@ -432,7 +432,7 @@ export default function FormAoVivo() {
                 <textarea
                   value={dados.oferecimento}
                   onChange={(e) => set('oferecimento', e.target.value)}
-                  rows={3}
+                  rows={4}
                   style={{ resize: 'vertical', flex: '1 1 auto', minWidth: 0 }}
                 />
               </div>
@@ -460,7 +460,7 @@ export default function FormAoVivo() {
                     value={dados[`tema_${n}`]}
                     onChange={(e) => set(`tema_${n}`, e.target.value)}
                     className="campo-tema-aovivo"
-                    style={{ width: 240, flex: '0 0 auto' }}
+                    style={{ width: 120, flex: '0 0 auto' }}
                   />
                   <label style={{ minWidth: 'auto', marginLeft: 6 }} className="label-codigo-aovivo">Código:</label>
                   <input
@@ -492,7 +492,7 @@ export default function FormAoVivo() {
                     value={dados[`musica_${n}`]}
                     onChange={(e) => set(`musica_${n}`, e.target.value)}
                     className="campo-musica-aovivo"
-                    style={{ width: 391, flex: '0 0 auto' }}
+                    style={{ width: 293, flex: '0 0 auto' }}
                   />
                 </div>
               ))}

@@ -141,6 +141,17 @@ function linkWhatsApp(numero) {
 function IconeImpressora() {
   return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9V3h12v6" /><rect x="4" y="9" width="16" height="8" rx="1.5" /><path d="M6 14h12v7H6z" /></svg>;
 }
+function IconeWhatsApp() {
+  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20.5 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.6-4.7A8.5 8.5 0 1 1 20.5 11.5Z" /><path d="M8.1 7.8c.3-.7.7-.7 1-.7h.4c.2 0 .4.1.5.4l.8 1.8c.1.3.1.5-.1.7l-.6.8c-.2.2-.1.4 0 .6.7 1.2 1.7 2.1 2.9 2.7.2.1.4.1.6-.1l.8-1c.2-.2.4-.3.7-.2l1.8.9c.3.1.4.3.4.5 0 .3-.2 1.5-1 2.1-.6.5-1.4.8-2.3.6-1.1-.2-2.6-.8-4.4-2.4-1.5-1.4-2.5-3.1-2.8-4.2-.3-1 0-1.9.3-2.5Z" /></svg>;
+}
+function IconeAbrir() {
+  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 5h5v5M19 5l-8 8" /><path d="M19 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5" /></svg>;
+}
+
+function reciboJaImpresso(pedido) {
+  const valor = String(pedido.impresso || '').trim().toUpperCase();
+  return valor !== '' && valor !== 'NÃO' && valor !== 'NAO' && valor !== '0';
+}
 
 export default function ListaCobranca() {
   const [parametrosUrl] = useSearchParams();
@@ -241,9 +252,24 @@ export default function ListaCobranca() {
       return novo;
     });
   }
-  function imprimir(pedidos) {
+  async function imprimir(pedidos) {
     if (!pedidos.length) return mostrarToast('Não há pedidos para imprimir.', 'erro');
-    setPedidosImpressao(pedidos); setTimeout(() => window.print(), 50);
+    const ids = pedidos.map((pedido) => pedido.id);
+    const preparados = pedidos.map((pedido) => ({ ...pedido, impresso: 'SIM' }));
+    const atualizar = (lista) => lista.map((pedido) => ids.includes(pedido.id) ? { ...pedido, impresso: 'SIM' } : pedido);
+    setPedidosImpressao(preparados);
+    setPendentes(atualizar);
+    setRecebidas(atualizar);
+    setTimeout(() => window.print(), 50);
+    try {
+      await api.cobranca.marcarImpressos(ids);
+    } catch (err) {
+      try {
+        await Promise.all(ids.map((pedidoId) => api.fonadas.atualizar(pedidoId, { impresso: 'SIM' })));
+      } catch (erroFallback) {
+        mostrarToast('O recibo foi aberto, mas não foi possível salvar o status de impressão.', 'erro');
+      }
+    }
   }
   function abrirBaixa(pedidos) { setPedidosBaixa(pedidos); setDataBaixa(dataLocalFormatada()); setStatusBaixa(pedidos[0]?.recebi || ''); }
   async function confirmarBaixa() {
@@ -344,6 +370,7 @@ function ListaGrupos({ grupos, pedidosVisiveis, expandidos, selecionados, altern
       <div className="lista-grupos-meta"><strong>{grupos.length} cliente(s)</strong><span>{pedidosVisiveis.length} pedido(s) · {formatarReais(somarPedidos(pedidosVisiveis))}</span></div>
       {grupos.map((grupo) => {
         const aberto = expandidos.has(grupo.chave); const primeiro = grupo.pedidos[0]; const whatsapp = linkWhatsApp(grupo.whatsapp);
+        const quantidadeImpressos = grupo.pedidos.filter(reciboJaImpresso).length;
         return (
           <div className={`grupo-cobranca ${classeUrgencia(primeiro)}`} key={grupo.chave}>
             <div className="grupo-cobranca-principal">
@@ -355,11 +382,21 @@ function ListaGrupos({ grupos, pedidosVisiveis, expandidos, selecionados, altern
                 <span>{rotuloUrgencia(primeiro)}</span>
                 <small>{grupo.cobrancaReagendada ? `${grupo.cobranca || 'Sem data'} → ${grupo.cobrancaReagendada}` : grupo.cobranca || 'Sem cobrança'}</small>
               </div>
-              <div className="grupo-cobranca-cliente"><strong>{grupo.nome}</strong><span>{grupo.pedidos.length} pedido(s) · O.S. {grupo.pedidos.map((p) => p.senha_os || p.id).join(', ')}</span></div>
+              <div className="grupo-cobranca-cliente">
+                {grupo.cliente_id ? (
+                  <button type="button" className="cobranca-link-cliente" onClick={() => navigate(`/clientes/${grupo.cliente_id}`)} title="Abrir cadastro do cliente">
+                    <strong>{grupo.nome}</strong><IconeAbrir />
+                  </button>
+                ) : <strong>{grupo.nome}</strong>}
+                <span>{grupo.pedidos.length} pedido(s) · O.S. {grupo.pedidos.map((p) => p.senha_os || p.id).join(', ')}</span>
+              </div>
+              <div className="grupo-cobranca-status-impressao">{grupo.pedidos.length > 0 && quantidadeImpressos === grupo.pedidos.length ? 'Impresso' : ''}</div>
               <div className="grupo-cobranca-valor"><strong>{formatarReais(grupo.valorTotal)}</strong><span>{[...new Set(grupo.pedidos.map((p) => p.formaPagamento))].join(' · ')}</span></div>
               <div className="grupo-cobranca-acoes">
-                {whatsapp && <a className="btn-small" href={whatsapp} target="_blank" rel="noreferrer">WhatsApp</a>}
-                <button type="button" className="btn-small" onClick={() => imprimir(grupo.pedidos)}><IconeImpressora /> Recibo</button>
+                {whatsapp && <a className="btn-small cobranca-whatsapp" href={whatsapp} target="_blank" rel="noreferrer" aria-label={`Abrir WhatsApp de ${grupo.nome}`} title="Abrir WhatsApp"><IconeWhatsApp /></a>}
+                <button type="button" className="btn-small cobranca-recibo-icone" onClick={() => imprimir(grupo.pedidos)} title={`Imprimir recibo — ${quantidadeImpressos} de ${grupo.pedidos.length} impresso(s)`} aria-label={`Imprimir recibo de ${grupo.nome}`}>
+                  <IconeImpressora />
+                </button>
                 {primeiro.pagou !== 'SIM' && <button type="button" className="btn-small" onClick={() => abrirReagendamento(grupo.pedidos)}>Reagendar</button>}
                 {primeiro.pagou !== 'SIM' && <button type="button" className="btn-small primario" onClick={() => abrirBaixa(grupo.pedidos)}>Dar baixa {grupo.pedidos.length > 1 ? 'em todos' : ''}</button>}
               </div>
@@ -379,16 +416,21 @@ function DetalhesGrupo({ grupo, selecionados, alternarSelecao, imprimir, abrirBa
         <div><span>Endereço</span><strong>{[valorInformado(grupo.endereco), valorInformado(grupo.complemento)].filter(Boolean).join(' - ') || 'Não informado'}</strong></div>
         <div><span>Bairro</span><strong>{valorInformado(grupo.bairro) || 'Não informado'}</strong></div>
         <div><span>Referência</span><strong>{valorInformado(grupo.referencia) || 'Não informada'}</strong></div>
-        {grupo.cliente_id && <button type="button" className="btn-small" onClick={() => navigate(`/clientes/${grupo.cliente_id}`)}>Ver cliente</button>}
       </div>
       <div className="grupo-cobranca-pedidos">
         {grupo.pedidos.map((pedido) => (
-          <div className="pedido-cobranca-individual" key={pedido.id}>
+          <div className={`pedido-cobranca-individual ${grupo.pedidos.length === 1 ? 'pedido-unico' : ''}`} key={pedido.id}>
             <input type="checkbox" checked={selecionados.has(pedido.id)} onChange={() => alternarSelecao([pedido])} aria-label={`Selecionar O.S. ${pedido.senha_os || pedido.id} para impressão`} />
-            <span className="carimbo-os carimbo-os-lista">{pedido.senha_os || pedido.id}</span><span>Compra: {pedido.data_pedido || '—'}</span>
+            <span className="carimbo-os carimbo-os-lista">{pedido.senha_os || pedido.id}</span>
+            <span className="pedido-cobranca-datas"><span>Compra: {pedido.data_pedido || '—'}</span><span>Cobrança: {pedido.cobrancaReagendada ? `${pedido.cobranca || '—'} → ${pedido.cobrancaReagendada}` : pedido.cobranca || '—'}</span></span>
             <span className={`tag ${pedido.formaPagamento === 'PIX' ? 'ok' : pedido.formaPagamento === 'DEPÓSITO' ? 'aviso' : 'neutro'}`}>{pedido.formaPagamento}</span>
-            <strong>{formatarReais(pedido.valor)}</strong><button type="button" className="btn-small" onClick={() => imprimir([pedido])}>Imprimir</button>
-            {pedido.pagou !== 'SIM' && <button type="button" className="btn-small primario" onClick={() => abrirBaixa([pedido])}>Dar baixa</button>}
+            <strong>{formatarReais(pedido.valor)}</strong>
+            {grupo.pedidos.length > 1 && <span className={`recibo-status ${reciboJaImpresso(pedido) ? 'impresso' : ''}`}><IconeImpressora /> {reciboJaImpresso(pedido) ? 'Impresso' : 'Não impresso'}</span>}
+            <div className="pedido-cobranca-acoes">
+              <button type="button" className="btn-small" onClick={() => navigate(`/fonada/${pedido.id}`)}><IconeAbrir /> Abrir pedido</button>
+              <button type="button" className="btn-small" onClick={() => imprimir([pedido])}>Imprimir</button>
+              {pedido.pagou !== 'SIM' && <button type="button" className="btn-small primario" onClick={() => abrirBaixa([pedido])}>Dar baixa</button>}
+            </div>
           </div>
         ))}
       </div>

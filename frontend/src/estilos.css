@@ -755,7 +755,7 @@ input, select, textarea {
     max-width: none !important;
   }
 
-  /* Tema + Código: o campo de tema (240px fixo) é o que mais aperta —
+  /* Tema + Código: o campo de tema fixo é o que mais aperta —
      ganha a largura toda da linha, o código fica pequeno ao lado. */
   .linha-tema-codigo-aovivo {
     flex-wrap: wrap;
@@ -768,7 +768,7 @@ input, select, textarea {
     flex: 0 0 80px !important;
   }
 
-  /* Música: 391px fixo é largo demais para telas pequenas. */
+  /* Música: a largura fixa do desktop é larga demais para telas pequenas. */
   .campo-musica-aovivo {
     width: auto !important;
     flex: 1 1 auto !important;
@@ -825,7 +825,7 @@ input, select, textarea {
   max-width: 212px;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1350px) {
   .duas-colunas-mensagem {
     grid-template-columns: 1fr;
   }
@@ -2554,7 +2554,7 @@ tr:hover .alca-arrastar {
 .grupo-cobranca.hoje { border-left-color:var(--aviso); }
 .grupo-cobranca.futura { border-left-color:var(--carimbo); }
 .grupo-cobranca.recebida { border-left-color:var(--ok); }
-.grupo-cobranca-principal { display:grid; grid-template-columns:62px 125px minmax(220px,1fr) 125px minmax(250px,auto); align-items:center; gap:10px; padding:12px 14px; }
+.grupo-cobranca-principal { display:grid; grid-template-columns:62px 125px minmax(220px,1fr) 82px 125px minmax(250px,auto); align-items:center; gap:10px; padding:12px 14px; }
 .grupo-cobranca-controles { display:flex; align-items:center; gap:7px; }
 .grupo-cobranca-controles input, .pedido-cobranca-individual input { width:17px; height:17px; margin:0; accent-color:var(--carimbo); cursor:pointer; }
 .grupo-cobranca-expandir { width:28px; height:28px; border:1px solid var(--borda); border-radius:7px; background:var(--papel-alt); color:var(--carimbo); font-size:18px; line-height:1; cursor:pointer; }
@@ -2564,19 +2564,35 @@ tr:hover .alca-arrastar {
 .grupo-cobranca-cliente { min-width:0; }
 .grupo-cobranca-cliente strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13.5px; }
 .grupo-cobranca-cliente span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.grupo-cobranca-status-impressao { min-height:20px; color:var(--ok); font-size:10px; font-weight:900; letter-spacing:.05em; text-align:center; text-transform:uppercase; }
+.cobranca-link-cliente { display:inline-flex; max-width:100%; align-items:center; gap:5px; padding:0; border:0; background:transparent; color:var(--tinta); cursor:pointer; font:inherit; text-align:left; }
+.cobranca-link-cliente:hover { color:var(--carimbo); text-decoration:underline; }
+.cobranca-link-cliente svg { flex-shrink:0; }
 .grupo-cobranca-valor { text-align:right; }
 .grupo-cobranca-valor strong { font-family:var(--fonte-mono); font-size:15px; }
 .grupo-cobranca-acoes { display:flex; justify-content:flex-end; align-items:center; flex-wrap:wrap; gap:5px; }
 .grupo-cobranca-acoes .btn-small { display:inline-flex; align-items:center; gap:5px; text-decoration:none; white-space:nowrap; }
+.grupo-cobranca-acoes .cobranca-whatsapp { width:31px; height:29px; padding:0; justify-content:center; border-color:#25a765; color:#16834c; border-radius:50%; }
+.grupo-cobranca-acoes .cobranca-whatsapp:hover { background:#e7f7ef; color:#10733f; }
+.grupo-cobranca-acoes .cobranca-recibo-icone { width:31px; height:29px; padding:0; justify-content:center; border-radius:50%; }
+.grupo-cobranca-acoes .cobranca-recibo-icone svg { width:16px; height:16px; }
 .btn-small.primario { border-color:var(--carimbo); background:var(--carimbo); color:#fff; }
 .grupo-cobranca-detalhes { padding:13px 16px 15px 58px; border-top:1px solid var(--borda); background:var(--papel-alt); }
-.grupo-cobranca-endereco { display:grid; grid-template-columns:minmax(220px,2fr) minmax(120px,1fr) minmax(180px,1.5fr) auto; align-items:end; gap:14px; margin-bottom:12px; }
+.grupo-cobranca-endereco { display:grid; grid-template-columns:minmax(220px,2fr) minmax(120px,1fr) minmax(180px,1.5fr); align-items:end; gap:14px; margin-bottom:12px; }
 .grupo-cobranca-endereco span { display:block; margin-bottom:3px; color:var(--tinta-suave); font-size:9.5px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; }
 .grupo-cobranca-endereco strong { display:block; font-size:12px; }
 .grupo-cobranca-pedidos { overflow:hidden; border:1px solid var(--borda); border-radius:8px; background:#fff; }
-.pedido-cobranca-individual { display:grid; grid-template-columns:20px 90px minmax(130px,1fr) 100px 100px auto auto; align-items:center; gap:10px; padding:8px 10px; border-bottom:1px solid var(--borda); font-size:11.5px; }
+.pedido-cobranca-individual { display:grid; grid-template-columns:20px 90px minmax(190px,1fr) 92px 95px 105px minmax(250px,auto); align-items:center; gap:10px; padding:8px 10px; border-bottom:1px solid var(--borda); font-size:11.5px; }
+.pedido-cobranca-individual.pedido-unico { grid-template-columns:20px 90px minmax(190px,1fr) 92px 95px minmax(250px,auto); }
 .pedido-cobranca-individual:last-child { border-bottom:0; }
 .pedido-cobranca-individual > strong { font-family:var(--fonte-mono); text-align:right; }
+.pedido-cobranca-datas { display:flex; flex-direction:column; gap:3px; min-width:0; }
+.pedido-cobranca-datas > span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.recibo-status { display:inline-flex; align-items:center; justify-content:center; gap:4px; padding:4px 7px; border:1px solid var(--borda); border-radius:999px; background:var(--papel-alt); color:var(--tinta-suave); font-size:9.5px; font-weight:800; white-space:nowrap; }
+.recibo-status.impresso { border-color:rgba(39,125,86,.28); background:var(--ok-suave); color:var(--ok); }
+.recibo-status svg { width:12px; height:12px; }
+.pedido-cobranca-acoes { display:flex; justify-content:flex-end; align-items:center; flex-wrap:wrap; gap:5px; }
+.pedido-cobranca-acoes .btn-small { display:inline-flex; align-items:center; gap:4px; white-space:nowrap; }
 .resumo-modal-cobranca { display:flex; justify-content:space-between; gap:12px; margin-bottom:15px; padding:11px 13px; border-radius:8px; background:var(--papel-alt); }
 .acoes-modal-cobranca { display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
 
@@ -2615,9 +2631,12 @@ tr:hover .alca-arrastar {
 @media (max-width:1100px) {
   .resumo-operacional-cliente { grid-template-columns:repeat(3,minmax(0,1fr)); }
   .grade-resumo-cobranca-operacional { grid-template-columns:repeat(3,minmax(0,1fr)); }
-  .grupo-cobranca-principal { grid-template-columns:62px 110px minmax(180px,1fr) 110px; }
+  .grupo-cobranca-principal { grid-template-columns:62px 110px minmax(180px,1fr) 78px 110px; }
   .grupo-cobranca-acoes { grid-column:2/-1; justify-content:flex-start; }
   .grupo-cobranca-endereco { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .pedido-cobranca-individual { grid-template-columns:20px 80px minmax(170px,1fr) 92px 95px 105px; }
+  .pedido-cobranca-individual.pedido-unico { grid-template-columns:20px 80px minmax(170px,1fr) 92px 95px; }
+  .pedido-cobranca-acoes { grid-column:2/-1; justify-content:flex-start; }
 }
 @media (max-width:700px) {
   .clientes-campos-busca { grid-template-columns:1fr; }
@@ -2640,12 +2659,18 @@ tr:hover .alca-arrastar {
   .grupo-cobranca-principal { grid-template-columns:62px 1fr auto; gap:8px; padding:11px 10px; }
   .grupo-cobranca-urgencia { grid-column:2; }
   .grupo-cobranca-cliente { grid-column:1/-1; }
+  .grupo-cobranca-status-impressao { grid-column:1/3; text-align:left; }
   .grupo-cobranca-valor { grid-column:1/-1; display:flex; justify-content:space-between; align-items:center; text-align:left; }
   .grupo-cobranca-acoes { grid-column:1/-1; }
   .grupo-cobranca-detalhes { padding:12px 10px; }
   .grupo-cobranca-endereco { grid-template-columns:1fr; }
-  .pedido-cobranca-individual { grid-template-columns:20px 80px 1fr auto; }
+  .pedido-cobranca-individual { grid-template-columns:20px 80px minmax(0,1fr) auto; }
   .pedido-cobranca-individual > * { min-width:0; }
+  .pedido-cobranca-datas { grid-column:3/5; }
+  .pedido-cobranca-individual > .tag { grid-column:2; }
+  .pedido-cobranca-individual > strong { grid-column:3; text-align:left; }
+  .recibo-status { grid-column:4; }
+  .pedido-cobranca-acoes { grid-column:1/-1; justify-content:flex-start; }
 }
 @media (max-width: 900px) {
   .grade-resumo-cobranca {
@@ -3143,7 +3168,8 @@ tr:hover .alca-arrastar {
 }
 
 .recibo {
-  border: 1.5px solid #1a1a1a;
+  border: 1px solid #aaa39b;
+  border-radius: 4px;
   padding: 2.5mm 4mm;
   padding-bottom: 6mm;
   box-sizing: border-box;
@@ -3159,7 +3185,7 @@ tr:hover .alca-arrastar {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Inter, 'Segoe UI', Arial, sans-serif;
 }
 
 .recibo-cabecalho {
@@ -3170,27 +3196,37 @@ tr:hover .alca-arrastar {
   margin-bottom: 2mm;
 }
 .recibo-titulo {
-  font-family: Arial, Helvetica, sans-serif;
-  font-weight: 700;
+  font-family: Inter, 'Segoe UI', Arial, sans-serif;
+  font-weight: 600;
   font-size: 22px;
   color: #1e4a8a;
   flex-shrink: 0;
 }
 .recibo-nome-empresa {
-  font-family: 'Brush Script MT', 'Segoe Script', cursive;
-  font-style: italic;
-  font-weight: 700;
+  font-family: 'Dancing Script', 'Segoe Print', 'Segoe Script', cursive;
+  font-style: normal;
+  font-weight: 600;
   font-size: 34px;
-  color: #cc0000;
+  color: #b73535;
   flex: 1;
   text-align: center;
 }
 .recibo-telefone-empresa {
-  font-family: 'Brush Script MT', 'Segoe Script', cursive;
-  font-style: italic;
-  font-weight: 700;
-  font-size: 29px;
-  color: #cc0000;
+  font-family: Inter, 'Segoe UI', Arial, sans-serif;
+  font-style: normal;
+  font-weight: 600;
+  font-size: 20px;
+  color: #943434;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.recibo-whatsapp-icone {
+  width: 21px;
+  height: 21px;
+  fill: #168b55;
   flex-shrink: 0;
 }
 
@@ -3214,42 +3250,47 @@ tr:hover .alca-arrastar {
   width: 90px;
 }
 .recibo-rotulo {
-  font-family: Calibri, Arial, sans-serif;
-  font-weight: 700;
-  font-size: 18px;
-  color: #000099;
+  font-family: Inter, 'Segoe UI', Arial, sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  color: #244f87;
   white-space: nowrap;
   flex-shrink: 0;
 }
 .recibo-rotulo-valor {
-  font-size: 20px;
-  color: #cc0000;
+  font-size: 18px;
+  color: #b73535;
 }
 .recibo-campo {
-  border: 1px solid #999999;
-  font-family: Calibri, Arial, sans-serif;
-  font-size: 18px;
+  border: 1px solid #aaa39b;
+  background: #fbfaf8;
+  font-family: Inter, 'Segoe UI', Arial, sans-serif;
+  font-size: 16px;
   color: #1a1a1a;
   display: flex;
   align-items: center;
-  padding: 2px 6px;
+  padding: 0 5px;
+  line-height: 1.05;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
   flex: 1;
   min-width: 0;
-  min-height: 1.3em;
+  min-height: 1.12em;
 }
 
 .recibo-os {
-  font-family: Calibri, Arial, sans-serif;
-  font-weight: 700;
-  font-size: 16px;
-  color: #1a1a1a;
+  font-family: Inter, 'Segoe UI', Arial, sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: #244f87;
+  background: #eef3f8;
+  border: 1px solid #b9c9d9;
+  border-radius: 4px;
+  padding: 2px 7px;
   white-space: nowrap;
-  position: absolute;
-  right: 4mm;
-  bottom: 2mm;
+  align-self: flex-end;
+  margin-top: -0.8mm;
 }
 
 @media print {
@@ -3297,10 +3338,16 @@ tr:hover .alca-arrastar {
 }
 
 .impresso-aovivo {
-  font-family: Verdana, Geneva, sans-serif;
+  width: calc(100% - 6mm);
+  margin: 3mm;
+  padding: 5mm;
+  border: 1px solid #c9c3ba;
+  border-radius: 5px;
+  box-sizing: border-box;
+  font-family: Inter, 'Segoe UI', Arial, sans-serif;
   display: flex;
   flex-direction: column;
-  gap: 3.2mm;
+  gap: 2.6mm;
 }
 
 .impresso-secao-titulo {
@@ -3309,11 +3356,37 @@ tr:hover .alca-arrastar {
   border: 1.5px solid #1a1a1a;
   border-radius: 4px;
   padding: 3px 20px;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 16px;
-  color: #d4198a;
+  color: #b52b76;
   letter-spacing: 0.02em;
   margin: 1mm 0;
+}
+
+.impresso-divisor-secao {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 12px;
+  margin: 1.5mm 0 0.5mm;
+  color: #b52b76;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+.impresso-divisor-secao::before,
+.impresso-divisor-secao::after {
+  content: '';
+  height: 1px;
+  background: #d8d1c9;
+  flex: 1;
+}
+.impresso-divisor-secao span {
+  padding: 2px 12px;
+  border: 1px solid #b9b1a8;
+  border-radius: 4px;
+  white-space: nowrap;
 }
 
 .impresso-linha {
@@ -3328,9 +3401,10 @@ tr:hover .alca-arrastar {
   min-width: 0;
 }
 .impresso-rotulo {
-  font-weight: 700;
+  font-family: Inter, 'Segoe UI', Arial, sans-serif;
+  font-weight: 600;
   font-size: 14px;
-  color: #dc0000;
+  color: #b73535;
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -3340,12 +3414,13 @@ tr:hover .alca-arrastar {
 .impresso-campo {
   display: flex;
   align-items: center;
-  border: 1px solid #999999;
+  border: 1px solid #aaa39b;
+  background: #fbfaf8;
   font-size: 14px;
   line-height: 1.2;
   color: #1a1a1a;
-  padding: 0 8px;
-  height: 26px;
+  padding: 0 5px;
+  height: 23px;
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -3358,7 +3433,7 @@ tr:hover .alca-arrastar {
   background: #fdf1d6;
   border: 1.5px solid #c9a227;
   border-radius: 4px;
-  padding: 8px 16px;
+  padding: 5px 12px;
   min-height: 14mm;
   max-height: 30mm;
   overflow: hidden;
@@ -3367,8 +3442,8 @@ tr:hover .alca-arrastar {
   justify-content: center;
 }
 .impresso-caixa-dedicatoria-texto {
-  font-weight: 700;
-  color: #000099;
+  font-weight: 600;
+  color: #244f87;
   text-align: center;
 }
 
@@ -3386,17 +3461,18 @@ tr:hover .alca-arrastar {
   visibility: hidden;
 }
 .impresso-os-header {
-  font-weight: 700;
+  font-weight: 600;
   font-size: 14px;
-  color: #1a1a1a;
-  border: 1.5px solid #1a1a1a;
+  color: #244f87;
+  background: #eef3f8;
+  border: 1px solid #b9c9d9;
   border-radius: 4px;
   padding: 5px 14px;
   white-space: nowrap;
 }
 
 .impresso-valor-destaque {
-  background: #c0392b;
+  background: #b8493e;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
   color-adjust: exact;
@@ -3643,11 +3719,53 @@ input[type="password"] {
   zoom: 1.2;
 }
 
+/* A Fonada tem duas mensagens completas e uma coluna de ações. Em
+   notebooks e janelas reduzidas, 120% de zoom deixa essas áreas sem
+   largura útil; usa a mesma escala intermediária aprovada no Ao Vivo. */
+@media (min-width: 701px) and (max-width: 1700px) {
+  .pagina-fonada-ampliada {
+    zoom: 1.05;
+  }
+}
+
+/* Quando as mensagens já precisam ficar uma abaixo da outra, Financeiro
+   e Cliente também deixam de disputar a mesma linha. Isso evita telefone,
+   endereço e referência quebrando caractere por caractere. */
+@media (min-width: 701px) and (max-width: 1350px) {
+  .pagina-fonada-ampliada .grade-comprador-lateral {
+    grid-template-columns: 1fr;
+  }
+  .pagina-fonada-ampliada .secao-comprador .grade-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 /* Página de pedido Ao Vivo — mesmo princípio, zoom um pouco menor
    porque a tela já é mais densa (mais campos) e precisa continuar
    cabendo sem cortar o financeiro. */
 .pagina-aovivo-ampliada {
   zoom: 1.12;
+}
+
+/* Em notebooks e janelas menores, mantém a leitura confortável sem a
+   ampliação de desktop ocupar espaço demais. Também dá ao destinatário
+   uma linha realmente utilizável em vez de espremê-lo entre data e hora. */
+@media (min-width: 701px) and (max-width: 1700px) {
+  .pagina-aovivo-ampliada {
+    zoom: 1.05;
+  }
+
+  .linha-para-dia-aovivo {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+  .linha-para-dia-aovivo .campo-para-aovivo {
+    flex: 1 1 calc(100% - 6rem) !important;
+    min-width: 220px !important;
+  }
+  .linha-para-dia-aovivo .label-dia-aovivo {
+    margin-left: 0 !important;
+  }
 }
 
 /* Em mobile, o zoom amplia a largura efetiva de tudo, empurrando

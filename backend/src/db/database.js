@@ -283,6 +283,7 @@ async function iniciarBanco() {
     { tabela: 'ao_vivo', coluna: 'excluido_em', tipo: 'TIMESTAMP' },
     { tabela: 'fonadas', coluna: 'data_pagamento', tipo: 'TEXT' },
     { tabela: 'fonadas', coluna: 'cobranca_reagendada', tipo: 'TEXT' },
+    { tabela: 'fonadas', coluna: 'impresso', tipo: 'TEXT' },
     { tabela: 'usuarios', coluna: 'nome', tipo: 'TEXT' },
     { tabela: 'usuarios', coluna: 'data_nascimento', tipo: 'TEXT' },
     { tabela: 'fonadas', coluna: 'recall_codigo', tipo: 'TEXT' },
