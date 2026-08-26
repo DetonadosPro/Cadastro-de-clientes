@@ -15,7 +15,7 @@ import FormNovoCliente from './pages/clientes/FormNovoCliente.jsx';
 import FichaCliente from './pages/clientes/FichaCliente.jsx';
 import Lixeira from './pages/clientes/Lixeira.jsx';
 import Agenda from './pages/agenda/Agenda.jsx';
-import ListaCobranca from './pages/cobranca/ListaCobranca.jsx';
+import CentralCobranca from './pages/cobranca/CentralCobranca.jsx';
 import Relatorios from './pages/relatorios/Relatorios.jsx';
 
 function RotaProtegida({ children }) {
@@ -41,7 +41,7 @@ export default function App() {
         <Route index element={<Navigate to="/agenda" replace />} />
 
         <Route path="agenda" element={<Agenda />} />
-        <Route path="cobranca" element={<ListaCobranca />} />
+        <Route path="cobranca" element={<CentralCobranca />} />
         <Route path="relatorios" element={<Relatorios />} />
 
         <Route path="clientes" element={<ListaClientes />} />

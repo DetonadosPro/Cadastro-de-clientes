@@ -200,7 +200,7 @@ router.get('/', async (req, res) => {
     if (situacao === 'pendencia') {
       where += ` AND (
         EXISTS (SELECT 1 FROM fonadas f WHERE f.cliente_id = c.id AND f.excluido_em IS NULL AND COALESCE(f.pagou, '') != 'SIM' AND COALESCE(f.cobranca, '') != '') OR
-        EXISTS (SELECT 1 FROM ao_vivo a WHERE a.cliente_id = c.id AND a.excluido_em IS NULL AND COALESCE(a.pagou, '') != 'SIM' AND UPPER(COALESCE(a.pagamento, '')) LIKE '%PRAZO%')
+        EXISTS (SELECT 1 FROM ao_vivo a WHERE a.cliente_id = c.id AND a.excluido_em IS NULL AND COALESCE(a.pagou, '') != 'SIM')
       )`;
     } else if (situacao === 'recentes') {
       where += ` AND c.criado_em >= NOW() - INTERVAL '30 days'`;
@@ -240,7 +240,7 @@ router.get('/', async (req, res) => {
       ) f_stats ON f_stats.cliente_id = c.id
       LEFT JOIN (
         SELECT cliente_id, COUNT(*)::INTEGER as total,
-          COALESCE(SUM(valor) FILTER (WHERE COALESCE(pagou, '') != 'SIM' AND UPPER(COALESCE(pagamento, '')) LIKE '%PRAZO%'), 0) as valor_pendente
+          COALESCE(SUM(valor) FILTER (WHERE COALESCE(pagou, '') != 'SIM'), 0) as valor_pendente
         FROM ao_vivo
         WHERE excluido_em IS NULL
         GROUP BY cliente_id
@@ -542,7 +542,7 @@ router.get('/:id', async (req, res) => {
 
     const pedidosAoVivoResultado = await db.query(`
       SELECT id, numero_os, data_pedido, dia_entrega, para, valor, pagamento, pagou, data_pagou,
-             resultado_entrega, criado_em
+             criado_em
       FROM ao_vivo WHERE cliente_id = $1 AND excluido_em IS NULL ORDER BY id DESC
     `, [req.params.id]);
 

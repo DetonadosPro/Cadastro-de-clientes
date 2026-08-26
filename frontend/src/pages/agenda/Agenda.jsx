@@ -70,15 +70,6 @@ export default function Agenda() {
   const [remarcadoHorario, setRemarcadoHorario] = useState('');
   const [salvandoRemarcacao, setSalvandoRemarcacao] = useState(false);
 
-  // Mesma ideia, mas para o prazo de pagamento do Ao Vivo — sem
-  // horário, e em estados separados para não misturar com o fluxo da
-  // Fonada (podem estar abertos em telas diferentes, embora não ao
-  // mesmo tempo na prática).
-  const [itemRemarcarPrazoAberto, setItemRemarcarPrazoAberto] = useState(null);
-  const [observacaoPrazo, setObservacaoPrazo] = useState('');
-  const [remarcadoDiaPrazo, setRemarcadoDiaPrazo] = useState('');
-  const [salvandoRemarcacaoPrazo, setSalvandoRemarcacaoPrazo] = useState(false);
-
   // Item selecionado na lista compacta — chave única por tipo+id, já
   // que fonada usa pedidoId+mensagem e ao vivo usa só id.
   const [chaveSelecionada, setChaveSelecionada] = useState(null);
@@ -161,48 +152,6 @@ export default function Agenda() {
     }
   }
 
-  async function darBaixaAoVivo(item, entregue) {
-    const chave = `aovivo-${item.id}`;
-    setSalvandoBaixa(chave);
-    try {
-      await api.aoVivo.darBaixa(item.id, entregue);
-      mostrarToast(entregue ? 'BAIXA DADA COM SUCESSO' : 'Registrado como não entregue.');
-      carregar();
-    } catch (err) {
-      mostrarToast('Não foi possível registrar. Tente novamente.', 'erro');
-    } finally {
-      setSalvandoBaixa(null);
-    }
-  }
-
-  async function desfazerBaixaAoVivo(item) {
-    const chave = `aovivo-desfazer-${item.id}`;
-    setSalvandoBaixa(chave);
-    try {
-      await api.aoVivo.desfazerBaixa(item.id);
-      mostrarToast('Baixa desfeita.');
-      carregar();
-    } catch (err) {
-      mostrarToast('Não foi possível desfazer. Tente novamente.', 'erro');
-    } finally {
-      setSalvandoBaixa(null);
-    }
-  }
-
-  async function marcarPagouAoVivo(item, pagou) {
-    const chave = `aovivo-pagou-${item.id}`;
-    setSalvandoBaixa(chave);
-    try {
-      await api.aoVivo.marcarPagou(item.id, pagou);
-      mostrarToast(pagou === 'SIM' ? 'Pagamento registrado como recebido.' : 'Registrado como não recebido.');
-      carregar();
-    } catch (err) {
-      mostrarToast('Não foi possível registrar. Tente novamente.', 'erro');
-    } finally {
-      setSalvandoBaixa(null);
-    }
-  }
-
   function abrirRemarcar(item) {
     setItemRemarcarAberto({
       pedidoId: item.pedidoId, mensagem: item.mensagem, nome: item.nome_comprador,
@@ -247,38 +196,6 @@ export default function Agenda() {
       mostrarToast('Não foi possível registrar. Tente novamente.', 'erro');
     } finally {
       setSalvandoRemarcacao(false);
-    }
-  }
-
-  function abrirRemarcarPrazo(item) {
-    setItemRemarcarPrazoAberto({ pedidoId: item.id, nome: item.comprador });
-    setObservacaoPrazo('');
-    setRemarcadoDiaPrazo('');
-  }
-
-  function cancelarRemarcarPrazo() {
-    setItemRemarcarPrazoAberto(null);
-  }
-
-  async function confirmarRemarcarPrazo() {
-    if (!remarcadoDiaPrazo.trim()) {
-      mostrarToast('Informe o novo dia para remarcar o prazo.', 'erro');
-      return;
-    }
-    setSalvandoRemarcacaoPrazo(true);
-    try {
-      await api.aoVivo.naoRecebeu(
-        itemRemarcarPrazoAberto.pedidoId,
-        observacaoPrazo.trim() || null,
-        remarcadoDiaPrazo.trim()
-      );
-      mostrarToast('Tentativa registrada e prazo remarcado.');
-      setItemRemarcarPrazoAberto(null);
-      carregar();
-    } catch (err) {
-      mostrarToast('Não foi possível registrar. Tente novamente.', 'erro');
-    } finally {
-      setSalvandoRemarcacaoPrazo(false);
     }
   }
 
@@ -464,31 +381,20 @@ export default function Agenda() {
                 ) : (
                   aoVivoExibido.map((item) => {
                     const chave = `aovivo-${item.id}`;
-                    const jaPassada = ehHoje && item.passada;
-                    const foiEntregue = Boolean(item.resultado_entrega);
-                    const urgencia = (ehHoje && !jaPassada && !item.ehCobranca) ? statusUrgenciaItem(item.horario_entrega) : null;
-                    let status = null;
-                    let statusOk = false;
-                    if (item.ehCobranca) {
-                      status = item.pagou === 'SIM' ? 'Recebido' : 'A receber';
-                      statusOk = item.pagou === 'SIM';
-                    } else if (foiEntregue) {
-                      status = 'Entregue';
-                      statusOk = true;
-                    }
+                    const urgencia = ehHoje ? statusUrgenciaItem(item.horario_entrega) : null;
                     return (
                       <LinhaAgenda
                         key={chave}
                         selecionada={chaveSelecionada === chave}
                         onClick={() => setChaveSelecionada(chave)}
                         urgencia={urgencia}
-                        jaPassada={jaPassada}
+                        jaPassada={false}
                         senhaOs={item.numero_os}
-                        horario={item.ehCobranca ? null : item.horario_entrega}
+                        horario={item.horario_entrega}
                         titulo={item.comprador}
-                        tagExtra={item.ehCobranca ? 'Cobrança' : null}
-                        status={status}
-                        statusOk={statusOk}
+                        tagExtra="Agendado"
+                        status={item.pagou === 'SIM' ? 'Pago' : null}
+                        statusOk={item.pagou === 'SIM'}
                       />
                     );
                   })
@@ -525,12 +431,7 @@ export default function Agenda() {
                 <DetalhesAoVivo
                   item={itemSelecionado}
                   ehHoje={ehHoje}
-                  salvandoBaixa={salvandoBaixa}
                   navigate={navigate}
-                  onDarBaixaAoVivo={darBaixaAoVivo}
-                  onDesfazerBaixaAoVivo={desfazerBaixaAoVivo}
-                  onMarcarPagouAoVivo={marcarPagouAoVivo}
-                  onAbrirRemarcarPrazo={abrirRemarcarPrazo}
                 />
               )}
             </div>
@@ -587,40 +488,6 @@ export default function Agenda() {
         </div>
       )}
 
-      {itemRemarcarPrazoAberto && (
-        <div className="modal-fundo" onClick={cancelarRemarcarPrazo}>
-          <div className="modal-caixa" onClick={(e) => e.stopPropagation()}>
-            <div className="section-title">Não recebeu — {itemRemarcarPrazoAberto.nome}</div>
-            <p className="fs-sm" style={{ color: 'var(--tinta-suave)', marginBottom: 10 }}>
-              A tentativa fica registrada no horário atual do sistema. Escolha o novo dia
-              para remarcar o prazo de pagamento.
-            </p>
-            <div className="campo">
-              <label>Novo dia *</label>
-              <CampoData
-                placeholder="dd/mm/aa"
-                value={remarcadoDiaPrazo}
-                onChange={(v) => setRemarcadoDiaPrazo(formatarData(v))}
-                autoFocus
-              />
-            </div>
-            <div className="campo">
-              <label>Observação (opcional)</label>
-              <input
-                placeholder="Ex: pediu mais alguns dias..."
-                value={observacaoPrazo}
-                onChange={(e) => setObservacaoPrazo(e.target.value)}
-              />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
-              <button type="button" className="btn secundario" onClick={cancelarRemarcarPrazo}>Cancelar</button>
-              <button type="button" className="btn" onClick={confirmarRemarcarPrazo} disabled={salvandoRemarcacaoPrazo}>
-                {salvandoRemarcacaoPrazo ? 'Salvando...' : 'Registrar e remarcar'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -967,101 +834,30 @@ function CardRemarcacoesPrazo({ pedidoId }) {
   );
 }
 
-function DetalhesAoVivo({ item, ehHoje, salvandoBaixa, navigate, onDarBaixaAoVivo, onDesfazerBaixaAoVivo, onMarcarPagouAoVivo, onAbrirRemarcarPrazo }) {
-  const chave = `aovivo-${item.id}`;
-  const jaPassada = ehHoje && item.passada;
-  const foiEntregue = Boolean(item.resultado_entrega);
-  const urgencia = (ehHoje && !jaPassada && !item.ehCobranca) ? statusUrgenciaItem(item.horario_entrega) : null;
-
+function DetalhesAoVivo({ item, ehHoje, navigate }) {
+  const urgencia = ehHoje ? statusUrgenciaItem(item.horario_entrega) : null;
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
         <span className="carimbo-os carimbo-os-lista">{item.numero_os || item.id}</span>
-        {item.ehCobranca && <span className="tag aviso">Cobrança prevista — não é entrega</span>}
-        {urgencia === 'atrasada' && <span className="tag pendente">Atrasado</span>}
+        {urgencia === 'atrasada' && <span className="tag neutro">Horário passado</span>}
         {urgencia === 'proxima' && <span className="tag aviso">Chegando</span>}
-        {item.ehCobranca && item.pagou === 'SIM' && <span className="tag ok">Recebido</span>}
-        {!item.ehCobranca && foiEntregue && <span className="tag ok">Entregue</span>}
+        <span className="tag neutro">Agenda</span>
+        {item.pagou === 'SIM' && <span className="tag ok">Pago</span>}
       </div>
       <div className="fs-lg" style={{ fontWeight: 700, marginBottom: 2 }}>{item.comprador || '—'}</div>
-      <div className="fs-sm" style={{ color: 'var(--tinta-suave)', marginBottom: 14, paddingBottom: 14, borderBottom: '2px solid var(--papel-alt)' }}>
-        {item.ehCobranca ? 'Cobrança prevista' : (item.horario_entrega || '—')}
-      </div>
-
+      <div className="fs-sm" style={{ color: 'var(--tinta-suave)', marginBottom: 14, paddingBottom: 14, borderBottom: '2px solid var(--papel-alt)' }}>{item.horario_entrega || '—'}</div>
       <div className="grade grade-2" style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid var(--papel-alt)' }}>
         <Info label="Destinatário" valor={item.para} />
         <Info label="Endereço" valor={item.endereco} />
         <Info label="Bairro" valor={item.bairro} />
         <Info label="Referência" valor={item.referencia} />
       </div>
-
-      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-        {item.cliente_id && (
-          <button type="button" className="btn-action" style={{ flex: 1 }} onClick={() => navigate(`/clientes/${item.cliente_id}`)}>
-            <IconeUsuario /> Ver cliente
-          </button>
-        )}
-        <button type="button" className="btn-action" style={{ flex: 1 }} onClick={() => navigate(`/ao-vivo/${item.id}`)}>
-          <IconePedido /> Abrir pedido
-        </button>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+        {item.cliente_id && <button type="button" className="btn-action" style={{ flex: 1 }} onClick={() => navigate(`/clientes/${item.cliente_id}`)}><IconeUsuario /> Ver cliente</button>}
+        <button type="button" className="btn-action" style={{ flex: 1 }} onClick={() => navigate(`/ao-vivo/${item.id}`)}><IconePedido /> Abrir pedido</button>
       </div>
-
-      {!item.ehCobranca && foiEntregue && (
-        <button
-          type="button"
-          className="btn-action"
-          style={{ width: '100%' }}
-          onClick={() => onDesfazerBaixaAoVivo(item)}
-          disabled={salvandoBaixa === `aovivo-desfazer-${item.id}`}
-        >
-          {salvandoBaixa === `aovivo-desfazer-${item.id}` ? 'Desfazendo...' : 'Desfazer entrega'}
-        </button>
-      )}
-      {!item.ehCobranca && !foiEntregue && (
-        <button
-          type="button"
-          className="btn-action destaque"
-          style={{ width: '100%' }}
-          onClick={() => onDarBaixaAoVivo(item, true)}
-          disabled={salvandoBaixa === chave}
-        >
-          <IconeCheck /> {salvandoBaixa === chave ? 'Salvando...' : 'Confirmar entrega'}
-        </button>
-      )}
-      {item.ehCobranca && item.pagou !== 'SIM' && (
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            type="button"
-            className="btn-action perigo-acao"
-            style={{ flex: 1 }}
-            onClick={() => onAbrirRemarcarPrazo(item)}
-          >
-            <IconeNaoAtendeu /> Não recebeu
-          </button>
-          <button
-            type="button"
-            className="btn-action destaque"
-            style={{ flex: 1 }}
-            onClick={() => onMarcarPagouAoVivo(item, 'SIM')}
-            disabled={salvandoBaixa === `aovivo-pagou-${item.id}`}
-          >
-            <IconeCheck /> {salvandoBaixa === `aovivo-pagou-${item.id}` ? 'Salvando...' : 'Recebido'}
-          </button>
-        </div>
-      )}
-      {item.ehCobranca && item.pagou === 'SIM' && (
-        <button
-          type="button"
-          className="btn-action"
-          style={{ width: '100%' }}
-          onClick={() => onMarcarPagouAoVivo(item, null)}
-          disabled={salvandoBaixa === `aovivo-pagou-${item.id}`}
-        >
-          <IconeNaoAtendeu /> {salvandoBaixa === `aovivo-pagou-${item.id}` ? 'Desfazendo...' : 'Desfazer'}
-        </button>
-      )}
-
-      {item.ehCobranca && <CardRemarcacoesPrazo pedidoId={item.id} />}
+      <p className="fs-xs texto-suave" style={{ margin: 0 }}>A Agenda é somente informativa. O pagamento é controlado na tela de Cobrança.</p>
     </div>
   );
 }

@@ -1,0 +1,252 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { api } from '../../api.js';
+import { useToast } from '../../ToastContext.jsx';
+import { formatarData } from '../../mascaras.js';
+import CampoData from '../../components/CampoData.jsx';
+
+function hojeBr() {
+  const data = new Date();
+  return `${String(data.getDate()).padStart(2, '0')}/${String(data.getMonth() + 1).padStart(2, '0')}/${String(data.getFullYear()).slice(-2)}`;
+}
+
+function dataUtc(valor) {
+  const partes = String(valor || '').match(/^(\d{2})\/(\d{2})\/(\d{2}|\d{4})$/);
+  if (!partes) return null;
+  const ano = Number(partes[3].length === 2 ? `20${partes[3]}` : partes[3]);
+  return Date.UTC(ano, Number(partes[2]) - 1, Number(partes[1]));
+}
+
+function diasAte(valor) {
+  const alvo = dataUtc(valor);
+  const agora = new Date();
+  const hoje = Date.UTC(agora.getFullYear(), agora.getMonth(), agora.getDate());
+  return alvo == null ? null : Math.round((alvo - hoje) / 86400000);
+}
+
+function reais(valor) {
+  return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function formaInicial(pedido) {
+  const texto = String(pedido?.pagamentoPrevisto || '').toUpperCase();
+  if (texto.includes('PIX')) return 'PIX';
+  if (texto.includes('DINHEIRO')) return 'DINHEIRO';
+  if (texto.includes('CART')) return 'CARTÃO';
+  if (texto.includes('DEP')) return 'DEPÓSITO';
+  return 'PRESENCIAL';
+}
+
+function telefoneWhatsApp(numero) {
+  let digitos = String(numero || '').replace(/\D/g, '');
+  if (digitos.length < 10) return null;
+  if (digitos.length <= 11) digitos = `55${digitos}`;
+  return `https://api.whatsapp.com/send?phone=${digitos}`;
+}
+
+function rotuloData(pedido) {
+  if (pedido.pagou === 'SIM') {
+    const recebimento = dataUtc(pedido.dataPagamento);
+    const vencimento = dataUtc(pedido.dataCobranca);
+    if (recebimento != null && vencimento != null && recebimento < vencimento) {
+      const dias = Math.round((vencimento - recebimento) / 86400000);
+      return `Antecipado em ${dias} dia${dias === 1 ? '' : 's'}`;
+    }
+    return pedido.dataPagamento ? `Recebido em ${pedido.dataPagamento}` : 'Recebido';
+  }
+  const dias = diasAte(pedido.dataCobranca);
+  if (dias == null) return 'Sem data';
+  if (dias < 0) return `${Math.abs(dias)} dia${dias === -1 ? '' : 's'} atrasada`;
+  if (dias === 0) return 'Hoje';
+  if (dias === 1) return 'Amanhã';
+  return `Daqui a ${dias} dias`;
+}
+
+export default function CobrancaAoVivo() {
+  const [pendentes, setPendentes] = useState([]);
+  const [recebidas, setRecebidas] = useState([]);
+  const [filtro, setFiltro] = useState('pendentes');
+  const [nome, setNome] = useState('');
+  const [os, setOs] = useState('');
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState('');
+  const [baixa, setBaixa] = useState(null);
+  const [dataPagamento, setDataPagamento] = useState('');
+  const [valorRecebido, setValorRecebido] = useState('');
+  const [formaRecebimento, setFormaRecebimento] = useState('PIX');
+  const [reagendar, setReagendar] = useState(null);
+  const [novaData, setNovaData] = useState('');
+  const [salvando, setSalvando] = useState(false);
+  const navigate = useNavigate();
+  const { mostrarToast } = useToast();
+
+  async function carregar() {
+    setCarregando(true);
+    setErro('');
+    try {
+      const [p, r] = await Promise.all([
+        api.cobranca.buscarAoVivo('NAO', nome, os),
+        api.cobranca.buscarAoVivo('SIM', nome, os),
+      ]);
+      setPendentes(p.pedidos || []);
+      setRecebidas(r.pedidos || []);
+    } catch (e) {
+      setErro(e.message || 'Não foi possível carregar as cobranças Ao Vivo.');
+    } finally {
+      setCarregando(false);
+    }
+  }
+
+  useEffect(() => {
+    const temporizador = setTimeout(() => carregar(), 300);
+    return () => clearTimeout(temporizador);
+    // A busca é intencionalmente refeita ao digitar nome ou O.S.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nome, os]);
+
+  const recebidasNoMes = useMemo(() => {
+    const agora = new Date();
+    return recebidas.filter((pedido) => {
+      const data = dataUtc(pedido.dataPagamento);
+      if (data == null) return false;
+      const recebimento = new Date(data);
+      return recebimento.getUTCMonth() === agora.getMonth() && recebimento.getUTCFullYear() === agora.getFullYear();
+    });
+  }, [recebidas]);
+
+  const visiveis = useMemo(() => {
+    if (filtro === 'recebidas') return recebidasNoMes;
+    if (filtro === 'atrasadas') return pendentes.filter((p) => (diasAte(p.dataCobranca) ?? 0) < 0);
+    if (filtro === 'hoje') return pendentes.filter((p) => diasAte(p.dataCobranca) === 0);
+    if (filtro === 'proximas') return pendentes.filter((p) => (diasAte(p.dataCobranca) ?? -1) > 0);
+    return pendentes;
+  }, [filtro, pendentes, recebidasNoMes]);
+
+  function abrirBaixa(pedido) {
+    setBaixa(pedido);
+    setDataPagamento(hojeBr());
+    setValorRecebido(String(Number(pedido.valor || 0).toFixed(2)));
+    setFormaRecebimento(formaInicial(pedido));
+  }
+
+  async function confirmarBaixa() {
+    setSalvando(true);
+    try {
+      await api.cobranca.darBaixaAoVivo(baixa.id, {
+        dataPagamento,
+        valorRecebido: Number(String(valorRecebido).replace(',', '.')),
+        formaRecebimento,
+      });
+      mostrarToast('PAGAMENTO AO VIVO RECEBIDO');
+      setBaixa(null);
+      await carregar();
+    } catch (e) {
+      mostrarToast(e.message || 'Não foi possível registrar o pagamento.', 'erro');
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  async function desfazer(pedido) {
+    if (!window.confirm(`Desfazer a baixa da O.S. ${pedido.numero_os || pedido.id}?`)) return;
+    try {
+      await api.cobranca.desfazerBaixaAoVivo(pedido.id);
+      mostrarToast('Baixa financeira desfeita.');
+      await carregar();
+    } catch (e) {
+      mostrarToast(e.message || 'Não foi possível desfazer.', 'erro');
+    }
+  }
+
+  async function confirmarReagendamento() {
+    setSalvando(true);
+    try {
+      await api.cobranca.reagendarAoVivo(reagendar.id, novaData);
+      mostrarToast('COBRANÇA AO VIVO REAGENDADA');
+      setReagendar(null);
+      await carregar();
+    } catch (e) {
+      mostrarToast(e.message || 'Não foi possível reagendar.', 'erro');
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  const totalPendente = pendentes.reduce((s, p) => s + Number(p.valor || 0), 0);
+  const totalRecebido = recebidasNoMes.reduce((s, p) => s + Number(p.valorRecebido ?? p.valor ?? 0), 0);
+
+  return (
+    <div>
+      <div className="cobranca-cabecalho nao-imprimir">
+        <div><h1 style={{ marginBottom: 2 }}>Cobrança — Ao Vivo</h1><p className="fs-sm texto-suave" style={{ margin: 0 }}>Pagamento e realização da mensagem são controles independentes</p></div>
+      </div>
+
+      <div className="grade-resumo-cobranca-operacional nao-imprimir">
+        <Resumo titulo="Pendente" valor={totalPendente} quantidade={pendentes.length} classe="total" onClick={() => setFiltro('pendentes')} />
+        <Resumo titulo="Atrasadas" pedidos={pendentes.filter((p) => (diasAte(p.dataCobranca) ?? 0) < 0)} classe="atrasada" onClick={() => setFiltro('atrasadas')} />
+        <Resumo titulo="Para hoje" pedidos={pendentes.filter((p) => diasAte(p.dataCobranca) === 0)} classe="hoje" onClick={() => setFiltro('hoje')} />
+        <Resumo titulo="Próximas" pedidos={pendentes.filter((p) => (diasAte(p.dataCobranca) ?? -1) > 0)} classe="futura" onClick={() => setFiltro('proximas')} />
+        <Resumo titulo="Recebido no mês" valor={totalRecebido} quantidade={recebidasNoMes.length} classe="recebida" onClick={() => setFiltro('recebidas')} />
+      </div>
+
+      <div className="painel cobranca-aovivo-filtros nao-imprimir">
+        <div className="cobranca-atalhos">
+          {[['pendentes', 'Pendentes'], ['atrasadas', 'Atrasadas'], ['hoje', 'Hoje'], ['proximas', 'Próximas'], ['recebidas', 'Recebidas no mês']].map(([v, r]) => <button type="button" key={v} className={filtro === v ? 'ativo' : ''} onClick={() => setFiltro(v)}>{r}</button>)}
+        </div>
+        <div className="cobranca-campos-filtro">
+          <div className="campo cobranca-filtro-os"><label>O.S.</label><input value={os} onChange={(e) => setOs(e.target.value)} placeholder="Número exato" /></div>
+          <div className="campo cobranca-filtro-nome"><label>Cliente</label><input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do comprador" /></div>
+        </div>
+      </div>
+
+      {erro && <p style={{ color: 'var(--selo)' }}>{erro}</p>}
+      {carregando ? <p className="texto-suave">Carregando...</p> : visiveis.length === 0 ? <div className="painel estado-cobranca">Nenhum pagamento Ao Vivo encontrado.</div> : (
+        <div className="lista-cobranca-aovivo nao-imprimir">
+          {visiveis.map((pedido) => {
+            const whatsapp = telefoneWhatsApp(pedido.whatsapp || pedido.celular);
+            return <div className={`cobranca-aovivo-card ${pedido.pagou === 'SIM' ? 'recebida' : (diasAte(pedido.dataCobranca) ?? 0) < 0 ? 'atrasada' : ''}`} key={pedido.id}>
+              <div className="cobranca-aovivo-os"><span className="carimbo-os carimbo-os-lista">{pedido.numero_os || pedido.id}</span><small>{pedido.dataPedido || '—'}</small></div>
+              <div className="cobranca-aovivo-cliente"><button type="button" onClick={() => pedido.cliente_id && navigate(`/clientes/${pedido.cliente_id}`)}>{pedido.nome || 'Cliente não informado'}</button><span>Para: {pedido.destinatario || '—'} · Evento: {pedido.dataEvento || '—'} {pedido.horarioEvento || ''}</span></div>
+              <div className="cobranca-aovivo-data"><strong>{rotuloData(pedido)}</strong><span>{pedido.pagou === 'SIM' ? `Pago em ${pedido.dataPagamento || '—'}${pedido.recebidoPor ? ` · ${pedido.recebidoPor}` : ''}` : `Cobrança: ${pedido.dataCobranca || '—'}`}</span></div>
+              <div className="cobranca-aovivo-valor"><strong>{reais(pedido.pagou === 'SIM' ? (pedido.valorRecebido ?? pedido.valor) : pedido.valor)}</strong><span>{pedido.pagou === 'SIM' ? (pedido.formaRecebimento || 'Recebido') : (pedido.pagamentoPrevisto || 'Forma não informada')}</span></div>
+              <div className="cobranca-aovivo-acoes">
+                {whatsapp && <a className="btn-small" href={whatsapp} target="_blank" rel="noreferrer" title="Abrir WhatsApp">WhatsApp</a>}
+                <button type="button" className="btn-small" onClick={() => navigate(`/ao-vivo/${pedido.id}`)}>Abrir pedido</button>
+                {pedido.pagou === 'SIM' ? <button type="button" className="btn-small" onClick={() => desfazer(pedido)}>Desfazer baixa</button> : <><button type="button" className="btn-small" onClick={() => { setReagendar(pedido); setNovaData(pedido.dataCobranca || hojeBr()); }}>Reagendar</button><button type="button" className="btn-small primario" onClick={() => abrirBaixa(pedido)}>Dar baixa</button></>}
+              </div>
+            </div>;
+          })}
+        </div>
+      )}
+
+      {baixa && <Modal titulo={`Dar baixa — O.S. ${baixa.numero_os || baixa.id}`} fechar={() => setBaixa(null)}>
+        <div className="resumo-modal-cobranca"><strong>{baixa.nome}</strong><strong>{reais(baixa.valor)}</strong></div>
+        <div className="grade grade-3">
+          <div className="campo"><label>Data do recebimento</label><CampoData value={dataPagamento} onChange={(v) => setDataPagamento(formatarData(v))} /></div>
+          <div className="campo"><label>Valor recebido</label><input type="number" min="0" step="0.01" value={valorRecebido} onChange={(e) => setValorRecebido(e.target.value)} /></div>
+          <div className="campo"><label>Forma</label><select value={formaRecebimento} onChange={(e) => setFormaRecebimento(e.target.value)}><option>PIX</option><option>DINHEIRO</option><option>CARTÃO</option><option>DEPÓSITO</option><option>PRESENCIAL</option><option>OUTRO</option></select></div>
+        </div>
+        <Acoes cancelar={() => setBaixa(null)} confirmar={confirmarBaixa} salvando={salvando} rotulo="Confirmar pagamento" />
+      </Modal>}
+
+      {reagendar && <Modal titulo={`Reagendar cobrança — O.S. ${reagendar.numero_os || reagendar.id}`} fechar={() => setReagendar(null)}>
+        <div className="campo" style={{ maxWidth: 180 }}><label>Nova data</label><CampoData value={novaData} onChange={(v) => setNovaData(formatarData(v))} /></div>
+        <Acoes cancelar={() => setReagendar(null)} confirmar={confirmarReagendamento} salvando={salvando} rotulo="Reagendar" />
+      </Modal>}
+    </div>
+  );
+}
+
+function Resumo({ titulo, pedidos, valor, quantidade, classe, onClick }) {
+  const lista = pedidos || [];
+  const total = valor ?? lista.reduce((s, p) => s + Number(p.valor || 0), 0);
+  return <button type="button" className={`resumo-cobranca-operacional ${classe}`} onClick={onClick}><span>{titulo}</span><strong>{reais(total)}</strong><small>{quantidade ?? lista.length} pedido(s)</small></button>;
+}
+
+function Modal({ titulo, fechar, children }) {
+  return <div className="modal-fundo nao-imprimir" onClick={fechar}><div className="modal-caixa" onClick={(e) => e.stopPropagation()}><div className="section-title">{titulo}</div>{children}</div></div>;
+}
+
+function Acoes({ cancelar, confirmar, salvando, rotulo }) {
+  return <div className="acoes-modal-cobranca"><button type="button" className="btn secundario" onClick={cancelar}>Cancelar</button><button type="button" className="btn" onClick={confirmar} disabled={salvando}>{salvando ? 'Salvando...' : rotulo}</button></div>;
+}

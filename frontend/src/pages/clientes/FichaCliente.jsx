@@ -464,8 +464,8 @@ export default function FichaCliente() {
                           <td>{p.data_pedido || '—'}</td>
                           <td>{p.dia_entrega || '—'}</td>
                           <td>{p.para || '—'}</td>
-                          <td><span className={`tag ${String(p.resultado_entrega || '').startsWith('ENTREGUE') ? 'ok' : 'pendente'}`}>{String(p.resultado_entrega || '').startsWith('ENTREGUE') ? 'Entregue' : 'Pendente'}</span></td>
-                          <td><span className={`tag ${p.pagou === 'SIM' ? 'ok' : 'neutro'}`}>{p.pagou === 'SIM' ? 'Recebido' : (valorUtil(p.pagamento) || 'Presencial')}</span></td>
+                          <td><span className="tag neutro">{p.dia_entrega ? 'Agendado' : 'Sem data'}</span></td>
+                          <td><span className={`tag ${p.pagou === 'SIM' ? 'ok' : 'pendente'}`}>{p.pagou === 'SIM' ? 'Recebido' : 'A receber'}</span><span className="historico-cliente-secundario">{valorUtil(p.pagamento) || 'Presencial'}</span></td>
                           <td style={{ textAlign: 'right' }}>{p.valor != null ? formatarReais(p.valor) : '—'}</td>
                         </tr>
                       ))}

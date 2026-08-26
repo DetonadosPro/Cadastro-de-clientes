@@ -42,7 +42,7 @@ async function montarResumoDoDia() {
       FROM fonadas WHERE excluido_em IS NULL
     `),
     db.query(`
-      SELECT valor, data_pedido, dia_entrega, pagamento, pagou, data_pagou, resultado_entrega
+      SELECT valor, valor_recebido, data_pedido, pagou, data_pagou
       FROM ao_vivo WHERE excluido_em IS NULL
     `),
   ]);
@@ -63,37 +63,23 @@ async function montarResumoDoDia() {
   };
 
   // --- AO VIVO ---
-  const ehPrazo = (pagamento) => String(pagamento || '').startsWith('PRAZO');
-  const foiEntregue = (resultado) => String(resultado || '').startsWith('ENTREGUE');
   const aoVivo = aoVivoResultado.rows;
 
   // Vendido: pedidos criados hoje
   const aoVivoVendidasHoje = aoVivo.filter((l) => paraChaveComparavel(l.data_pedido) === hojeChave);
 
-  // Recebido:
-  // - À vista: dia de entrega é hoje E foi marcado como ENTREGUE
-  // - A prazo: marcado como pagou = 'SIM' com data_pagou sendo hoje
-  const aoVivoRecebidasHoje = aoVivo.filter((l) => {
-    if (!ehPrazo(l.pagamento)) {
-      return paraChaveComparavel(l.dia_entrega) === hojeChave && foiEntregue(l.resultado_entrega);
-    }
-    return l.pagou === 'SIM' && paraChaveComparavel(l.data_pagou) === hojeChave;
-  });
+  const aoVivoRecebidasHoje = aoVivo.filter((l) =>
+    l.pagou === 'SIM' && paraChaveComparavel(l.data_pagou) === hojeChave
+  );
 
   // Pendentes de hoje: pedidos criados hoje que ainda não foram recebidos
-  const aoVivoPendentesHoje = aoVivoVendidasHoje.filter((l) => {
-    if (!ehPrazo(l.pagamento)) {
-      // Se não for prazo, é pendente se ainda NÃO foi entregue hoje
-      return !(paraChaveComparavel(l.dia_entrega) === hojeChave && foiEntregue(l.resultado_entrega));
-    }
-    return l.pagou !== 'SIM';
-  });
+  const aoVivoPendentesHoje = aoVivoVendidasHoje.filter((l) => l.pagou !== 'SIM');
 
   const resumoAoVivo = {
     quantidadeVendida: aoVivoVendidasHoje.length,
     valorVendido: aoVivoVendidasHoje.reduce((soma, l) => soma + (l.valor || 0), 0),
     quantidadeRecebida: aoVivoRecebidasHoje.length,
-    valorRecebido: aoVivoRecebidasHoje.reduce((soma, l) => soma + (l.valor || 0), 0),
+    valorRecebido: aoVivoRecebidasHoje.reduce((soma, l) => soma + (l.valor_recebido ?? l.valor ?? 0), 0),
     quantidadePendente: aoVivoPendentesHoje.length,
     valorPendente: aoVivoPendentesHoje.reduce((soma, l) => soma + (l.valor || 0), 0),
   };

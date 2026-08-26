@@ -295,6 +295,11 @@ async function iniciarBanco() {
     { tabela: 'fonadas', coluna: 'comprador_whatsapp', tipo: 'TEXT' },
     { tabela: 'ao_vivo', coluna: 'whatsapp', tipo: 'TEXT' },
     { tabela: 'ao_vivo', coluna: 'data_pagou', tipo: 'TEXT' },
+    { tabela: 'ao_vivo', coluna: 'data_cobranca', tipo: 'TEXT' },
+    { tabela: 'ao_vivo', coluna: 'valor_recebido', tipo: 'REAL' },
+    { tabela: 'ao_vivo', coluna: 'forma_recebimento', tipo: 'TEXT' },
+    { tabela: 'ao_vivo', coluna: 'pagamento_recebido_por', tipo: 'TEXT' },
+    { tabela: 'ao_vivo', coluna: 'financeiro_migrado', tipo: 'BOOLEAN DEFAULT FALSE' },
     { tabela: 'fonadas', coluna: 'vendedor_usuario', tipo: 'TEXT' },
     { tabela: 'ao_vivo', coluna: 'vendedor_usuario', tipo: 'TEXT' },
     { tabela: 'fonadas', coluna: 'p1_passada_por', tipo: 'TEXT' },
@@ -304,6 +309,23 @@ async function iniciarBanco() {
   for (const { tabela, coluna, tipo } of colunasNovas) {
     await pool.query(`ALTER TABLE ${tabela} ADD COLUMN IF NOT EXISTS ${coluna} ${tipo}`);
   }
+
+  // Antes da central financeira, os pedidos Ao Vivo à vista eram
+  // considerados recebidos quando a entrega era marcada. Preserva esse
+  // histórico uma única vez, mas os novos recebimentos passam a depender
+  // exclusivamente de pagou/data_pagou.
+  await pool.query(`
+    UPDATE ao_vivo
+    SET pagou = 'SIM',
+        data_pagou = COALESCE(NULLIF(data_pagou, ''), dia_entrega),
+        valor_recebido = COALESCE(valor_recebido, valor),
+        forma_recebimento = COALESCE(NULLIF(forma_recebimento, ''), NULLIF(pagamento, ''), 'PRESENCIAL')
+    WHERE COALESCE(pagou, '') != 'SIM'
+      AND financeiro_migrado = FALSE
+      AND UPPER(COALESCE(resultado_entrega, '')) LIKE 'ENTREGUE%'
+      AND UPPER(COALESCE(pagamento, '')) NOT LIKE 'PRAZO%'
+  `);
+  await pool.query('UPDATE ao_vivo SET financeiro_migrado = TRUE WHERE financeiro_migrado = FALSE');
 
   // Trava de integridade contra O.S. duplicada: dois pedidos criados ao
   // mesmo tempo em máquinas diferentes podiam, antes desta trava,
