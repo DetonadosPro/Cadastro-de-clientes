@@ -57,6 +57,7 @@ export default function Recibo({ pedido }) {
 
         <div className="recibo-linha">
           <Campo label="Cobrança:" valor={pedido.cobranca} grow={0.8} />
+          <Campo label="Forma:" valor={pedido.formaPagamento} grow={0.8} />
           <Campo label="Período:" valor={pedido.periodo} grow={1.4} />
         </div>
       </div>

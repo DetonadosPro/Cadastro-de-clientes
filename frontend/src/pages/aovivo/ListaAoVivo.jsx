@@ -5,6 +5,32 @@ import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarData } from '../../mascaras.js';
 import PaginaImpressaoAoVivo from './PaginaImpressaoAoVivo.jsx';
 
+function IconeBusca() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-4-4" />
+    </svg>
+  );
+}
+
+function IconeMais() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
+
+function IconeImprimir() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+      <path d="M6 14h12v7H6z" />
+    </svg>
+  );
+}
+
 const OPCOES_FILTRO = [
   { valor: '', label: 'Todos os campos' },
   { valor: 'aniversario', label: 'Aniversário cliente' },
@@ -66,9 +92,24 @@ function IndicadorEntrega({ status }) {
     return <span className="tag ok">Entregue</span>;
   }
   if (status === 'pendente') {
-    return <span className="tag pendente">Pendente</span>;
+    return <span className="tag pendente">Atrasado</span>;
   }
-  return null;
+  return <span className="tag neutro">Agendado</span>;
+}
+
+function IndicadorPagamento({ pedido }) {
+  const aPrazo = String(pedido.pagamento || '').startsWith('PRAZO');
+
+  if (aPrazo) {
+    return (
+      <span className={`tag ${pedido.pagou === 'SIM' ? 'ok' : 'pendente'}`}>
+        {pedido.pagou === 'SIM' ? 'Recebido' : 'A receber'}
+      </span>
+    );
+  }
+
+  const entregue = statusEntrega(pedido) === 'entregue';
+  return <span className={`tag ${entregue ? 'ok' : 'neutro'}`}>{entregue ? 'Pago' : 'No ato'}</span>;
 }
 
 export default function ListaAoVivo() {
@@ -157,6 +198,12 @@ export default function ListaAoVivo() {
     setBusca(mascara ? mascara(valor) : valor);
   }
 
+  function limparBusca() {
+    setBusca('');
+    setCampoFiltro('');
+    setSearchParams({ pagina: '1' }, { replace: true });
+  }
+
   function alternarSelecao(id, e) {
     e.stopPropagation();
     setSelecionados((atual) => {
@@ -195,27 +242,31 @@ export default function ListaAoVivo() {
     : 'Buscar por comprador, destinatário, telefone ou endereço...';
 
   return (
-    <div>
-      <div className="nao-imprimir" style={estilos.cabecalho}>
+    <div className="lista-aovivo-pagina">
+      <div className="nao-imprimir lista-aovivo-cabecalho">
         <div>
-          <h1 style={{ marginBottom: 2 }}>Mensagem ao vivo</h1>
-          <p className="fs-sm" style={{ color: '#6c757d', margin: 0 }}>Pedidos de carro de som — consulta</p>
+          <h1 style={{ marginBottom: 2 }}>Pedidos Ao Vivo</h1>
+          <p className="fs-sm" style={{ color: 'var(--tinta-suave)', margin: 0 }}>Acompanhe eventos, entregas e pagamentos.</p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="lista-aovivo-acoes-topo">
+          <button type="button" className="btn" onClick={() => navigate('/clientes')}>
+            <IconeMais /> Novo pedido
+          </button>
           <button
             type="button"
-            className="btn"
+            className="btn secundario"
             onClick={() => imprimir(selecionados.size > 0 ? [...selecionados] : itens.map((p) => p.id))}
             disabled={imprimindo || itens.length === 0}
           >
+            <IconeImprimir />
             {selecionados.size > 0
-              ? `🖨 Imprimir selecionados (${selecionados.size})`
-              : `🖨 Imprimir tudo (${itens.length})`}
+              ? `Imprimir selecionados (${selecionados.size})`
+              : `Imprimir página (${itens.length})`}
           </button>
         </div>
       </div>
 
-      <form onSubmit={aoSubmeterBusca} className="nao-imprimir" style={estilos.buscaForm}>
+      <form onSubmit={aoSubmeterBusca} className="nao-imprimir lista-aovivo-busca">
         <select
           value={campoFiltro}
           onChange={(e) => aoMudarFiltro(e.target.value)}
@@ -225,15 +276,24 @@ export default function ListaAoVivo() {
             <option key={o.valor} value={o.valor}>{o.label}</option>
           ))}
         </select>
-        <input
-          type="text"
-          placeholder={placeholderBusca}
-          value={busca}
-          onChange={(e) => aoDigitarBusca(e.target.value)}
-          className="busca-input"
-        />
+        <div className="lista-aovivo-campo-busca">
+          <IconeBusca />
+          <input
+            type="text"
+            placeholder={placeholderBusca}
+            value={busca}
+            onChange={(e) => aoDigitarBusca(e.target.value)}
+            className="busca-input"
+          />
+        </div>
         <button type="submit" className="btn secundario">Buscar</button>
+        {(buscaUrl || campoUrl) && <button type="button" className="btn secundario" onClick={limparBusca}>Limpar</button>}
       </form>
+
+      <div className="nao-imprimir lista-aovivo-meta">
+        {!carregando && <span>{total} pedido(s) encontrado(s)</span>}
+        {selecionados.size > 0 && <span className="lista-aovivo-selecionados">{selecionados.size} selecionado(s)</span>}
+      </div>
 
       {erro && <p className="nao-imprimir" style={{ color: '#dc3545' }}>{erro}</p>}
 
@@ -245,7 +305,7 @@ export default function ListaAoVivo() {
         </div>
       ) : (
         <>
-          <div className="painel nao-imprimir" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="painel nao-imprimir lista-aovivo-tabela-painel">
             <div style={{ overflowX: 'auto' }}>
             <table className="tabela-lista tabela-aovivo">
               <thead>
@@ -259,12 +319,10 @@ export default function ListaAoVivo() {
                     />
                   </th>
                   <th>O.S.</th>
-                  <th>Status</th>
                   <th>Cliente</th>
-                  <th>Para</th>
                   <th>Evento</th>
-                  <th>Bairro</th>
-                  <th>Valor</th>
+                  <th>Destinatário e local</th>
+                  <th>Pagamento</th>
                 </tr>
               </thead>
               <tbody>
@@ -290,14 +348,27 @@ export default function ListaAoVivo() {
                         {p.numero_os || p.id}
                       </span>
                     </td>
-                    <td data-label="Status" onClick={(e) => e.stopPropagation()}>
-                      <IndicadorEntrega status={statusEntrega(p)} />
+                    <td data-label="Cliente">
+                      <span className="lista-aovivo-cliente-nome">{p.comprador || '—'}</span>
+                      {(p.celular || p.celular2) && <span className="lista-aovivo-detalhe">{p.celular || p.celular2}</span>}
                     </td>
-                    <td data-label="Cliente">{p.comprador}</td>
-                    <td data-label="Para">{p.para || '—'}</td>
-                    <td data-label="Evento">{p.dia_entrega} {p.horario_entrega ? `— ${p.horario_entrega}` : ''}</td>
-                    <td data-label="Bairro">{p.bairro || '—'}</td>
-                    <td data-label="Valor">{p.valor != null ? formatarReais(p.valor) : '—'}</td>
+                    <td data-label="Evento">
+                      <div className="lista-aovivo-evento">
+                        <span className="lista-aovivo-evento-data">{p.dia_entrega || 'Sem data'}{p.horario_entrega ? ` • ${p.horario_entrega}` : ''}</span>
+                        <IndicadorEntrega status={statusEntrega(p)} />
+                      </div>
+                    </td>
+                    <td data-label="Destino">
+                      {p.para && <span className="lista-aovivo-destino">{p.para}</span>}
+                      {(p.endereco || p.bairro) && <span className="lista-aovivo-detalhe">{[p.endereco, p.bairro].filter(Boolean).join(' • ')}</span>}
+                    </td>
+                    <td data-label="Pagamento">
+                      <div className="lista-aovivo-pagamento">
+                        <span className="lista-aovivo-valor">{p.valor != null ? formatarReais(p.valor) : '—'}</span>
+                        <IndicadorPagamento pedido={p} />
+                      </div>
+                      {p.pagamento && <span className="lista-aovivo-detalhe">{p.pagamento}</span>}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -305,7 +376,7 @@ export default function ListaAoVivo() {
             </div>
           </div>
 
-          <div className="nao-imprimir" style={estilos.paginacao}>
+          <div className="nao-imprimir lista-aovivo-paginacao">
             <button className="btn secundario" disabled={paginaUrl <= 1} onClick={() => irParaPagina(paginaUrl - 1)}>
               ← Anterior
             </button>
@@ -328,8 +399,3 @@ export default function ListaAoVivo() {
   );
 }
 
-const estilos = {
-  cabecalho: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap', gap: 10 },
-  buscaForm: { display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' },
-  paginacao: { display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, marginTop: 20 },
-};

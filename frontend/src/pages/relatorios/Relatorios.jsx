@@ -11,6 +11,7 @@ export default function Relatorios() {
   const [searchParams, setSearchParams] = useSearchParams();
   const aba = searchParams.get('aba') || 'vendas';
   const sistema = searchParams.get('sistema') || 'TODOS';
+  const intervalo = useIntervaloData();
 
   function irParaAba(novaAba) {
     setSearchParams((atual) => {
@@ -74,13 +75,13 @@ export default function Relatorios() {
               Isso preserva período, dados buscados e estado de cada uma ao
               navegar entre elas, em vez de resetar tudo a cada troca. */}
           <div style={{ display: aba === 'vendas' ? 'block' : 'none' }}>
-            <AbaVendas sistema={sistema} />
+            <AbaVendas sistema={sistema} intervalo={intervalo} />
           </div>
           <div style={{ display: aba === 'recebimentos' ? 'block' : 'none' }}>
-            <AbaRecebimentos sistema={sistema} />
+            <AbaRecebimentos sistema={sistema} intervalo={intervalo} />
           </div>
           <div style={{ display: aba === 'desempenho' ? 'block' : 'none' }}>
-            <AbaDesempenho sistema={sistema} />
+            <AbaDesempenho sistema={sistema} intervalo={intervalo} />
           </div>
         </div>
       </div>
@@ -102,8 +103,8 @@ function formatarReais(v) {
   return (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-function AbaVendas({ sistema }) {
-  const { inicio, fim, setInicio, setFim } = useIntervaloData();
+function AbaVendas({ sistema, intervalo }) {
+  const { inicio, fim, setInicio, setFim } = intervalo;
   const [dados, setDados] = useState(null);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
@@ -150,11 +151,12 @@ function AbaVendas({ sistema }) {
         <p className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Carregando...</p>
       ) : dados && (
         <>
-          <div className="cartao-valor destaque" style={{ marginBottom: 16, textAlign: 'center' }}>
-            <div className="cartao-valor-label">Total geral</div>
-            <div className="cartao-valor-numero" style={{ fontSize: 28 }}>{formatarReais(dados.geral.valorTotal)}</div>
-            <div className="fs-xs" style={{ marginTop: 4, color: 'rgba(255,255,255,0.75)' }}>{dados.geral.quantidade} pedido(s) no período</div>
+          <div className="grade grade-relatorio grade-3 resumo-principal-relatorio">
+            <CartaoValor label="Vendido no período" valor={formatarReais(dados.geral.valorTotal)} destaque />
+            <CartaoValor label="Pedidos" valor={dados.geral.quantidade} />
+            <CartaoValor label="Ticket médio" valor={formatarReais(dados.geral.ticketMedio)} />
           </div>
+          <ComparacaoPeriodo dados={dados.comparacao} metrica="Vendas" />
 
           {dados.fonada && (
             <BlocoSistema titulo="Fonada" cor="azul">
@@ -164,9 +166,10 @@ function AbaVendas({ sistema }) {
                 <CartaoValor label="Outros" valor={dados.fonada.totalRecibo} sub={`${dados.fonada.percentualRecibo}%`} />
                 <CartaoValor label="Valor total" valor={formatarReais(dados.fonada.valorTotal)} />
               </div>
-              <div className="grade grade-relatorio grade-2" style={{ marginTop: 10 }}>
+              <div className="grade grade-relatorio grade-3" style={{ marginTop: 10 }}>
                 <CartaoValor label="Recall" valor={dados.fonada.totalRecall} sub={`${dados.fonada.percentualRecall}%`} />
                 <CartaoValor label="Clientes" valor={dados.fonada.totalOutros} sub={`${dados.fonada.percentualOutros}%`} />
+                <CartaoValor label="Ticket médio" valor={formatarReais(dados.fonada.ticketMedio)} />
               </div>
             </BlocoSistema>
           )}
@@ -177,18 +180,21 @@ function AbaVendas({ sistema }) {
                 <CartaoValor label="Total de pedidos" valor={dados.aoVivo.quantidade} />
                 <CartaoValor label="Valor total" valor={formatarReais(dados.aoVivo.valorTotal)} />
               </div>
+              <div className="grade grade-relatorio grade-2" style={{ marginTop: 10 }}>
+                <CartaoValor label="Ticket médio" valor={formatarReais(dados.aoVivo.ticketMedio)} />
+              </div>
             </BlocoSistema>
           )}
 
-          {dados.itens && <TabelaDetalhada itens={dados.itens} tituloColunaValor="Venda" />}
+          <TabelaDetalhada itens={dados.itens || []} tituloColunaValor="Venda" limitado={dados.itensLimitados} />
         </>
       )}
     </div>
   );
 }
 
-function AbaRecebimentos({ sistema }) {
-  const { inicio, fim, setInicio, setFim } = useIntervaloData();
+function AbaRecebimentos({ sistema, intervalo }) {
+  const { inicio, fim, setInicio, setFim } = intervalo;
   const [dados, setDados] = useState(null);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
@@ -233,23 +239,12 @@ function AbaRecebimentos({ sistema }) {
         <p className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Carregando...</p>
       ) : dados && (
         <>
-          <div className="cartao-valor destaque" style={{ marginBottom: 16, textAlign: 'center' }}>
-            <div className="cartao-valor-label">Recebido no período</div>
-            <div className="cartao-valor-numero" style={{ fontSize: 28 }}>{formatarReais(dados.valorTotal)}</div>
-            <div className="fs-xs" style={{ marginTop: 4, color: 'rgba(255,255,255,0.75)' }}>{dados.quantidade} registro(s)</div>
+          <div className="grade grade-relatorio grade-3 resumo-principal-relatorio">
+            <CartaoValor label="Recebido no período" valor={formatarReais(dados.valorTotal)} sub={`${dados.quantidade} registro(s)`} destaque />
+            <CartaoValor label="Vendido no período" valor={formatarReais(dados.valorVendido)} sub="Pedidos criados nessas datas" />
+            <CartaoValor label="Ainda a receber" valor={formatarReais(dados.valorAReceberVendasPeriodo)} sub="Dos pedidos vendidos nessas datas" />
           </div>
-
-          <div className={`cartao-diferenca ${dados.diferencaVendidoRecebido > 0 ? 'positiva' : 'neutra'}`} style={{ marginBottom: 16 }}>
-            <div>
-              <div className="fs-xs" style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em', opacity: 0.75 }}>
-                Vendido − recebido no período
-              </div>
-              <div className="fs-xs" style={{ marginTop: 2, opacity: 0.75 }}>
-                Vendido: {formatarReais(dados.valorVendido)} · Recebido: {formatarReais(dados.valorTotal)}
-              </div>
-            </div>
-            <div style={{ fontWeight: 800, fontSize: 20 }}>{formatarReais(dados.diferencaVendidoRecebido)}</div>
-          </div>
+          <ComparacaoPeriodo dados={dados.comparacao} metrica="Recebimentos" />
 
           {dados.fonada && (
             <BlocoSistema titulo="Fonada" cor="azul">
@@ -268,18 +263,22 @@ function AbaRecebimentos({ sistema }) {
                 <CartaoValor label="Total de pedidos" valor={dados.aoVivo.quantidade} />
                 <CartaoValor label="Valor total" valor={formatarReais(dados.aoVivo.valorTotal)} />
               </div>
+              <div className="grade grade-relatorio grade-2" style={{ marginTop: 10 }}>
+                <CartaoValor label="Na entrega" valor={formatarReais(dados.aoVivo.valorAVista)} sub={`${dados.aoVivo.quantidadeAVista} pedido(s)`} />
+                <CartaoValor label="A prazo recebido" valor={formatarReais(dados.aoVivo.valorPrazo)} sub={`${dados.aoVivo.quantidadePrazo} pedido(s)`} />
+              </div>
             </BlocoSistema>
           )}
 
-          {dados.itens && <TabelaDetalhada itens={dados.itens} tituloColunaValor="Recebido" />}
+          <TabelaDetalhada itens={dados.itens || []} tituloColunaValor="Recebido" limitado={dados.itensLimitados} />
         </>
       )}
     </div>
   );
 }
 
-function AbaDesempenho({ sistema }) {
-  const { inicio, fim, setInicio, setFim } = useIntervaloData();
+function AbaDesempenho({ sistema, intervalo }) {
+  const { inicio, fim, setInicio, setFim } = intervalo;
   const [dados, setDados] = useState(null);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
@@ -323,56 +322,106 @@ function AbaDesempenho({ sistema }) {
       ) : carregando ? (
         <p className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Carregando...</p>
       ) : dados && (
-        dados.funcionarios.length === 0 ? (
+        <>
+          <ComparacaoPeriodo dados={dados.comparacao} metrica="Vendas da equipe" />
+          {dados.funcionarios.length === 0 ? (
           <div className="painel" style={{ marginTop: 16, textAlign: 'center', color: 'var(--tinta-suave)' }}>
-            Nenhum vendedor ou mensagem transmitida registrada nesse período. Pedidos antigos, de antes desse
+            Nenhuma venda com vendedor registrado nesse período. Pedidos antigos, de antes desse
             registro existir, não aparecem aqui.
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
-            {dados.funcionarios.map((f) => (
-              <CartaoFuncionario key={f.usuario} funcionario={f} />
-            ))}
-          </div>
-        )
+          <TabelaDesempenho funcionarios={dados.funcionarios} valorEquipe={dados.valorEquipe} />
+          )}
+        </>
       )}
     </div>
   );
 }
 
-function CartaoFuncionario({ funcionario }) {
+function TabelaDesempenho({ funcionarios, valorEquipe }) {
   return (
-    <div className="cartao-funcionario">
-      <div className="cartao-funcionario-cabecalho">
-        <span className="cartao-funcionario-nome">{funcionario.usuario}</span>
-        <span className="cartao-funcionario-total">{formatarReais(funcionario.valorVendidoTotal)}</span>
+    <div className="painel tabela-desempenho-wrap">
+      <div className="cabecalho-desempenho">
+        <div>
+          <strong>Comparativo da equipe</strong>
+          <div className="fs-xs" style={{ color: 'var(--tinta-suave)' }}>Vendas registradas por funcionário no período</div>
+        </div>
+        <strong>{formatarReais(valorEquipe)}</strong>
       </div>
-      <div className="grade grade-relatorio grade-3">
-        <CartaoValor label="Vendas" valor={funcionario.vendasTotal} sub={`${funcionario.vendasFonada} fonada · ${funcionario.vendasAoVivo} ao vivo`} />
-        <CartaoValor label="Valor Fonada" valor={formatarReais(funcionario.valorVendidoFonada)} />
-        <CartaoValor label="Valor Ao Vivo" valor={formatarReais(funcionario.valorVendidoAoVivo)} />
-      </div>
-      <div className="grade grade-relatorio grade-3" style={{ marginTop: 10 }}>
-        <CartaoValor label="Mensagens transmitidas (Fonada)" valor={funcionario.mensagensPassadasFonada} />
+      <div style={{ overflowX: 'auto' }}>
+        <table className="tabela-lista tabela-desempenho">
+          <thead><tr>
+            <th>Funcionário</th><th>Vendas</th><th>Valor</th><th>Ticket médio</th>
+            <th>Participação</th><th>Fonadas vendidas</th><th>Ao vivo vendidos</th>
+          </tr></thead>
+          <tbody>
+            {funcionarios.map((f) => (
+              <tr key={f.usuario}>
+                <td data-label="Funcionário"><strong>{f.usuario}</strong></td>
+                <td data-label="Vendas"><strong>{f.vendasTotal}</strong></td>
+                <td data-label="Valor" className="valor-tabela">{formatarReais(f.valorVendidoTotal)}</td>
+                <td data-label="Ticket médio">{formatarReais(f.ticketMedio)}</td>
+                <td data-label="Participação"><strong>{f.participacaoPercentual}%</strong></td>
+                <td data-label="Fonadas vendidas">{f.vendasFonada}</td>
+                <td data-label="Ao vivo vendidos">{f.vendasAoVivo}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
 }
 
 function FormularioPeriodo({ inicio, fim, setInicio, setFim, onSubmit, carregando }) {
+  function aplicarAtalho(tipo) {
+    const hoje = new Date();
+    let primeiro = new Date(hoje);
+    let ultimo = new Date(hoje);
+    if (tipo === 'ontem') {
+      primeiro.setDate(hoje.getDate() - 1);
+      ultimo = new Date(primeiro);
+    } else if (tipo === 'semana') {
+      const dia = hoje.getDay() || 7;
+      primeiro.setDate(hoje.getDate() - dia + 1);
+    } else if (tipo === 'mes') {
+      primeiro = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    } else if (tipo === 'mes-anterior') {
+      primeiro = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+      ultimo = new Date(hoje.getFullYear(), hoje.getMonth(), 0);
+    }
+    const paraCampo = (data) => {
+      const dd = String(data.getDate()).padStart(2, '0');
+      const mm = String(data.getMonth() + 1).padStart(2, '0');
+      return `${dd}/${mm}/${String(data.getFullYear()).slice(-2)}`;
+    };
+    setInicio(paraCampo(primeiro));
+    setFim(paraCampo(ultimo));
+  }
+
   return (
-    <form onSubmit={onSubmit} className="form-periodo-relatorio">
-      <div className="campo">
-        <label>Data inicial</label>
-        <CampoData placeholder="dd/mm/aa" value={inicio} onChange={setInicio} />
+    <form onSubmit={onSubmit} className="form-periodo-relatorio-wrap">
+      <div className="atalhos-periodo">
+        <span className="fs-xs texto-suave">Período rápido</span>
+        <button type="button" onClick={() => aplicarAtalho('hoje')}>Hoje</button>
+        <button type="button" onClick={() => aplicarAtalho('ontem')}>Ontem</button>
+        <button type="button" onClick={() => aplicarAtalho('semana')}>Esta semana</button>
+        <button type="button" onClick={() => aplicarAtalho('mes')}>Este mês</button>
+        <button type="button" onClick={() => aplicarAtalho('mes-anterior')}>Mês anterior</button>
       </div>
-      <div className="campo">
-        <label>Data final (opcional)</label>
-        <CampoData placeholder="dd/mm/aa" value={fim} onChange={setFim} />
+      <div className="form-periodo-relatorio">
+        <div className="campo">
+          <label>Data inicial</label>
+          <CampoData placeholder="dd/mm/aa" value={inicio} onChange={setInicio} />
+        </div>
+        <div className="campo">
+          <label>Data final</label>
+          <CampoData placeholder="dd/mm/aa" value={fim} onChange={setFim} />
+        </div>
+        <button type="submit" className="btn" disabled={carregando}>
+          {carregando ? 'Buscando...' : 'Buscar'}
+        </button>
       </div>
-      <button type="submit" className="btn" disabled={carregando}>
-        {carregando ? 'Buscando...' : 'Buscar'}
-      </button>
     </form>
   );
 }
@@ -404,28 +453,53 @@ function CartaoValor({ label, valor, sub, destaque }) {
   );
 }
 
-// Tabela com um pedido por linha (comprador, O.S., forma, valor) — só
-// aparece quando a busca é de um dia único (inicio === fim), já que
-// num período de vários dias a lista ficaria longa demais para ser
-// útil junto com os agregados. Clicar na linha abre o pedido, igual
-// às listas de Fonada/Ao Vivo.
-function TabelaDetalhada({ itens, tituloColunaValor }) {
+function ComparacaoPeriodo({ dados, metrica }) {
+  if (!dados) return null;
+  const classe = dados.direcao === 'ALTA' ? 'alta' : dados.direcao === 'QUEDA' ? 'queda' : 'estavel';
+  const titulo = dados.direcao === 'ALTA' ? 'Evolução' : dados.direcao === 'QUEDA' ? 'Queda' : 'Estável';
+  const simbolo = dados.direcao === 'ALTA' ? '↑' : dados.direcao === 'QUEDA' ? '↓' : '→';
+  const diferenca = Math.abs(dados.diferenca || 0);
+
+  return (
+    <div className={`comparacao-periodo ${classe}`}>
+      <div>
+        <div className="comparacao-periodo-titulo">{metrica}: {titulo}</div>
+        <div className="fs-xs texto-suave">
+          Período anterior: {dados.inicio} a {dados.fim} · {formatarReais(dados.valorAnterior)}
+        </div>
+      </div>
+      <div className="comparacao-periodo-resultado">
+        <strong>{simbolo} {dados.percentual == null ? 'Sem base anterior' : `${Math.abs(dados.percentual)}%`}</strong>
+        <span>{formatarReais(diferenca)} {dados.direcao === 'QUEDA' ? 'a menos' : dados.direcao === 'ALTA' ? 'a mais' : 'de diferença'}</span>
+      </div>
+    </div>
+  );
+}
+
+// Tabela com um pedido por linha (comprador, O.S., forma, valor).
+// Clicar na linha abre o pedido, igual às listas de Fonada/Ao Vivo.
+function TabelaDetalhada({ itens, tituloColunaValor, limitado }) {
   const navigate = useNavigate();
 
   if (itens.length === 0) {
     return (
       <div className="painel" style={{ marginTop: 16, textAlign: 'center', color: 'var(--tinta-suave)' }}>
-        Nenhum pedido nesse dia.
+        Nenhum pedido nesse período.
       </div>
     );
   }
 
   return (
     <div className="painel" style={{ marginTop: 16, padding: 0, overflow: 'hidden' }}>
-      <div style={{ overflowX: 'auto' }}>
+      <div className="cabecalho-lista-relatorio">
+        <strong>Pedidos do período</strong>
+        <span className="fs-xs texto-suave">{limitado ? 'Exibindo os primeiros 200 registros' : `${itens.length} registro(s)`}</span>
+      </div>
+      <div className="lista-relatorio-scroll">
         <table className="tabela-lista">
           <thead>
             <tr>
+              <th>Data</th>
               <th>O.S.</th>
               <th>Comprador</th>
               <th>Sistema</th>
@@ -439,6 +513,7 @@ function TabelaDetalhada({ itens, tituloColunaValor }) {
                 key={`${item.sistema}-${item.id}`}
                 onClick={() => navigate(item.sistema === 'FONADA' ? `/fonada/${item.id}` : `/ao-vivo/${item.id}`)}
               >
+                <td data-label="Data">{item.data || '—'}</td>
                 <td data-label="O.S.">
                   <span className="carimbo-os carimbo-os-lista">{item.os}</span>
                 </td>
