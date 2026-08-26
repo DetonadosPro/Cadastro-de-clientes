@@ -75,13 +75,13 @@ export default function Relatorios() {
               Isso preserva período, dados buscados e estado de cada uma ao
               navegar entre elas, em vez de resetar tudo a cada troca. */}
           <div style={{ display: aba === 'vendas' ? 'block' : 'none' }}>
-            <AbaVendas sistema={sistema} intervalo={intervalo} />
+            <AbaVendas sistema={sistema} intervalo={intervalo} ativa={aba === 'vendas'} />
           </div>
           <div style={{ display: aba === 'recebimentos' ? 'block' : 'none' }}>
-            <AbaRecebimentos sistema={sistema} intervalo={intervalo} />
+            <AbaRecebimentos sistema={sistema} intervalo={intervalo} ativa={aba === 'recebimentos'} />
           </div>
           <div style={{ display: aba === 'desempenho' ? 'block' : 'none' }}>
-            <AbaDesempenho sistema={sistema} intervalo={intervalo} />
+            <AbaDesempenho sistema={sistema} intervalo={intervalo} ativa={aba === 'desempenho'} />
           </div>
         </div>
       </div>
@@ -103,7 +103,11 @@ function formatarReais(v) {
   return (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-function AbaVendas({ sistema, intervalo }) {
+function dataCompleta(valor) {
+  return /^\d{2}\/\d{2}\/\d{2}$/.test(valor || '');
+}
+
+function AbaVendas({ sistema, intervalo, ativa }) {
   const { inicio, fim, setInicio, setFim } = intervalo;
   const [dados, setDados] = useState(null);
   const [carregando, setCarregando] = useState(false);
@@ -129,24 +133,23 @@ function AbaVendas({ sistema, intervalo }) {
     }
   }
 
-  // Se já tinha buscado antes, refaz a busca automaticamente quando o
-  // filtro de sistema muda (sem precisar clicar em Buscar de novo).
   React.useEffect(() => {
-    if (jaBuscou) buscar(null, sistema);
+    if (!ativa || !dataCompleta(inicio) || (fim && !dataCompleta(fim))) return undefined;
+    const temporizador = setTimeout(() => buscar(null, sistema), 300);
+    return () => clearTimeout(temporizador);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sistema]);
+  }, [inicio, fim, sistema, ativa]);
 
   return (
     <div>
       <FormularioPeriodo
         inicio={inicio} fim={fim} setInicio={setInicio} setFim={setFim}
-        onSubmit={buscar} carregando={carregando}
       />
 
       {erro && <p className="fs-sm" style={{ color: 'var(--selo)' }}>{erro}</p>}
 
       {!jaBuscou ? (
-        <EstadoVazio texto="Escolha o período e clique em Buscar." />
+        <EstadoVazio texto="Preencha o período para visualizar o relatório." />
       ) : carregando ? (
         <p className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Carregando...</p>
       ) : dados && (
@@ -193,7 +196,7 @@ function AbaVendas({ sistema, intervalo }) {
   );
 }
 
-function AbaRecebimentos({ sistema, intervalo }) {
+function AbaRecebimentos({ sistema, intervalo, ativa }) {
   const { inicio, fim, setInicio, setFim } = intervalo;
   const [dados, setDados] = useState(null);
   const [carregando, setCarregando] = useState(false);
@@ -220,21 +223,22 @@ function AbaRecebimentos({ sistema, intervalo }) {
   }
 
   React.useEffect(() => {
-    if (jaBuscou) buscar(null, sistema);
+    if (!ativa || !dataCompleta(inicio) || (fim && !dataCompleta(fim))) return undefined;
+    const temporizador = setTimeout(() => buscar(null, sistema), 300);
+    return () => clearTimeout(temporizador);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sistema]);
+  }, [inicio, fim, sistema, ativa]);
 
   return (
     <div>
       <FormularioPeriodo
         inicio={inicio} fim={fim} setInicio={setInicio} setFim={setFim}
-        onSubmit={buscar} carregando={carregando}
       />
 
       {erro && <p className="fs-sm" style={{ color: 'var(--selo)' }}>{erro}</p>}
 
       {!jaBuscou ? (
-        <EstadoVazio texto="Escolha o período e clique em Buscar." />
+        <EstadoVazio texto="Preencha o período para visualizar o relatório." />
       ) : carregando ? (
         <p className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Carregando...</p>
       ) : dados && (
@@ -277,7 +281,7 @@ function AbaRecebimentos({ sistema, intervalo }) {
   );
 }
 
-function AbaDesempenho({ sistema, intervalo }) {
+function AbaDesempenho({ sistema, intervalo, ativa }) {
   const { inicio, fim, setInicio, setFim } = intervalo;
   const [dados, setDados] = useState(null);
   const [carregando, setCarregando] = useState(false);
@@ -304,21 +308,22 @@ function AbaDesempenho({ sistema, intervalo }) {
   }
 
   React.useEffect(() => {
-    if (jaBuscou) buscar(null, sistema);
+    if (!ativa || !dataCompleta(inicio) || (fim && !dataCompleta(fim))) return undefined;
+    const temporizador = setTimeout(() => buscar(null, sistema), 300);
+    return () => clearTimeout(temporizador);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sistema]);
+  }, [inicio, fim, sistema, ativa]);
 
   return (
     <div>
       <FormularioPeriodo
         inicio={inicio} fim={fim} setInicio={setInicio} setFim={setFim}
-        onSubmit={buscar} carregando={carregando}
       />
 
       {erro && <p className="fs-sm" style={{ color: 'var(--selo)' }}>{erro}</p>}
 
       {!jaBuscou ? (
-        <EstadoVazio texto="Escolha o período e clique em Buscar." />
+        <EstadoVazio texto="Preencha o período para visualizar o relatório." />
       ) : carregando ? (
         <p className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Carregando...</p>
       ) : dados && (
@@ -373,7 +378,7 @@ function TabelaDesempenho({ funcionarios, valorEquipe }) {
   );
 }
 
-function FormularioPeriodo({ inicio, fim, setInicio, setFim, onSubmit, carregando }) {
+function FormularioPeriodo({ inicio, fim, setInicio, setFim }) {
   function aplicarAtalho(tipo) {
     const hoje = new Date();
     let primeiro = new Date(hoje);
@@ -400,7 +405,7 @@ function FormularioPeriodo({ inicio, fim, setInicio, setFim, onSubmit, carregand
   }
 
   return (
-    <form onSubmit={onSubmit} className="form-periodo-relatorio-wrap">
+    <div className="form-periodo-relatorio-wrap">
       <div className="atalhos-periodo">
         <span className="fs-xs texto-suave">Período rápido</span>
         <button type="button" onClick={() => aplicarAtalho('hoje')}>Hoje</button>
@@ -418,11 +423,8 @@ function FormularioPeriodo({ inicio, fim, setInicio, setFim, onSubmit, carregand
           <label>Data final</label>
           <CampoData placeholder="dd/mm/aa" value={fim} onChange={setFim} />
         </div>
-        <button type="submit" className="btn" disabled={carregando}>
-          {carregando ? 'Buscando...' : 'Buscar'}
-        </button>
       </div>
-    </form>
+    </div>
   );
 }
 

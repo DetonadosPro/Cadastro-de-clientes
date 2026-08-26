@@ -157,10 +157,14 @@ export default function ListaAoVivo() {
     return params;
   }
 
-  function aoSubmeterBusca(e) {
-    e.preventDefault();
-    setSearchParams(montarParams(busca, campoFiltro, 1), { replace: true });
-  }
+  useEffect(() => {
+    if (busca === buscaUrl && campoFiltro === campoUrl) return undefined;
+    const temporizador = setTimeout(() => {
+      setSearchParams(montarParams(busca, campoFiltro, 1), { replace: true });
+    }, 300);
+    return () => clearTimeout(temporizador);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busca, campoFiltro, buscaUrl, campoUrl, setSearchParams]);
 
   function irParaPagina(novaPagina) {
     setSearchParams(montarParams(busca, campoFiltro, novaPagina), { replace: true });
@@ -245,7 +249,7 @@ export default function ListaAoVivo() {
         </div>
       </div>
 
-      <form onSubmit={aoSubmeterBusca} className="nao-imprimir lista-aovivo-busca">
+      <div className="nao-imprimir lista-aovivo-busca">
         <select
           value={campoFiltro}
           onChange={(e) => aoMudarFiltro(e.target.value)}
@@ -265,9 +269,8 @@ export default function ListaAoVivo() {
             className="busca-input"
           />
         </div>
-        <button type="submit" className="btn secundario">Buscar</button>
         {(buscaUrl || campoUrl) && <button type="button" className="btn secundario" onClick={limparBusca}>Limpar</button>}
-      </form>
+      </div>
 
       <div className="nao-imprimir lista-aovivo-meta">
         {!carregando && <span>{total} pedido(s) encontrado(s)</span>}
