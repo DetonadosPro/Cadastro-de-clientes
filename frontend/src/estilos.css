@@ -2239,6 +2239,48 @@ button.nav-grupo-titulo {
   background: var(--carimbo-suave) !important;
 }
 
+/* Lista de Fonada — busca dominante e linhas mais informativas. */
+.lista-fonada-cabecalho { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:18px; }
+.lista-fonada-novo { display:inline-flex; align-items:center; gap:7px; white-space:nowrap; }
+.lista-fonada-busca { display:grid; grid-template-columns:minmax(170px,220px) minmax(260px,1fr) auto auto; gap:9px; align-items:center; margin-bottom:10px; }
+.lista-fonada-campo-busca { position:relative; min-width:0; }
+.lista-fonada-campo-busca > svg { position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--tinta-suave); pointer-events:none; }
+.lista-fonada-campo-busca .busca-input { width:100%; padding-left:35px; }
+.lista-fonada-meta { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+.lista-fonada-meta .legenda-chip { margin:0; }
+.lista-fonada-total { color:var(--tinta-suave); font-size:.78rem; white-space:nowrap; }
+.lista-fonada-tabela-painel { padding:0; overflow:hidden; }
+.lista-fonada-cliente-nome { display:block; font-weight:700; color:var(--tinta); }
+.lista-fonada-cliente-contato { display:block; margin-top:2px; color:var(--tinta-suave); font-size:.74rem; font-variant-numeric:tabular-nums; }
+.resumo-mensagens { display:grid; gap:5px; min-width:250px; }
+.resumo-mensagem { display:grid; grid-template-columns:31px minmax(90px,1fr) auto; align-items:center; gap:7px; line-height:1.2; }
+.resumo-mensagem .ponto-msg { justify-content:center; }
+.resumo-mensagem-destino { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.resumo-mensagem-data { color:var(--tinta-suave); font-size:.72rem; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.resumo-mensagem.bloqueada .resumo-mensagem-destino { color:var(--tinta-suave); font-size:.75rem; }
+.lista-fonada-paginacao { display:flex; justify-content:center; align-items:center; gap:16px; margin-top:18px; }
+
+@media (max-width:900px) {
+  .lista-fonada-busca { grid-template-columns:minmax(150px,190px) minmax(220px,1fr) auto; }
+  .lista-fonada-busca > .btn:last-child:not(:nth-child(3)) { grid-column:1/-1; justify-self:start; }
+}
+
+@media (max-width:700px) {
+  .lista-fonada-cabecalho { align-items:center; }
+  .lista-fonada-busca { display:grid; grid-template-columns:1fr auto; }
+  .lista-fonada-busca .busca-select, .lista-fonada-campo-busca { grid-column:1/-1; }
+  .lista-fonada-busca > .btn:last-child:not(:nth-child(3)) { grid-column:auto; }
+  .lista-fonada-meta { align-items:flex-start; flex-direction:column; }
+  .tabela-lista.tabela-fonada td[data-label="Cliente"] { grid-column:1/3; grid-row:2; }
+  .tabela-lista.tabela-fonada td[data-label="Transmissões"] { grid-column:1/3; grid-row:3; padding:7px 0; }
+  .tabela-lista.tabela-fonada td[data-label="Venda"] { grid-row:4; }
+  .tabela-lista.tabela-fonada td[data-label="Recall"] { grid-row:5; }
+  .tabela-lista.tabela-fonada td[data-label="Valor"] { grid-row:5; }
+  .resumo-mensagens { min-width:0; }
+  .resumo-mensagem { grid-template-columns:31px minmax(0,1fr) auto; }
+  .lista-fonada-paginacao { gap:8px; flex-wrap:wrap; }
+}
+
 /* ---------- Arrastar cliente para mesclar (lista de Clientes) ---------- */
 .alca-arrastar {
   display: inline-flex;
