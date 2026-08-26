@@ -11,6 +11,22 @@ function IconeInfo() {
     </svg>
   );
 }
+function IconeBusca() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-4-4" />
+    </svg>
+  );
+}
+
+function IconeMais() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  );
+}
 
 const OPCOES_FILTRO = [
   { valor: '', label: 'Todos os campos' },
@@ -39,22 +55,30 @@ function formatarReais(v) {
   return (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-// Mostra o nome do destinatário com o dia agendado da mensagem logo
-// abaixo, em fonte menor — assim dá para ver na própria lista para
-// quando cada mensagem está marcada, sem abrir o pedido.
-function CelulaDestinatario({ nome, dia }) {
+function dddDoTelefone(telefone) {
+  const match = String(telefone || '').match(/^\((\d{2})\)/);
+  return match ? match[1] : null;
+}
+
+function pedidoInterurbano(pedido) {
+  const ddds = [pedido.p1_fixo, pedido.p1_celular].map(dddDoTelefone).filter(Boolean);
+  return ddds.length > 0 && !ddds.includes('34');
+}
+
+function LinhaMensagem({ numero, para, dia, horario, resultado, bloqueada }) {
+  const marcada = Boolean(dia);
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25 }}>
-      <span>{nome || '—'}</span>
-      {dia && (
-        <span className="fs-xs" style={{ color: 'var(--tinta-suave)', fontVariantNumeric: 'tabular-nums' }}>
-          {dia}
+    <div className={`resumo-mensagem ${bloqueada ? 'bloqueada' : ''}`}>
+      <span className={`ponto-msg ${bloqueada ? 'bloqueada' : (marcada ? 'usada' : 'livre')}`}>{numero}ª</span>
+      <span className="resumo-mensagem-destino">{bloqueada ? 'Não disponível' : (para || '')}</span>
+      {!bloqueada && (
+        <span className="resumo-mensagem-data">
+          {resultado ? 'Concluída' : (dia ? `${dia}${horario ? ` • ${horario}` : ''}` : 'Disponível')}
         </span>
       )}
     </div>
   );
 }
-
 export default function ListaFonada() {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -136,28 +160,31 @@ export default function ListaFonada() {
     setBusca(mascara ? mascara(valor) : valor);
   }
 
+  function limparBusca() {
+    setBusca('');
+    setCampoFiltro('');
+    setSearchParams({ pagina: '1' }, { replace: true });
+  }
+
   const placeholderBusca = campoFiltro
     ? `Buscar por ${OPCOES_FILTRO.find((o) => o.valor === campoFiltro)?.label.toLowerCase()}...`
     : 'Buscar por nome do comprador, destinatário ou telefone...';
 
   return (
-    <div>
-      <div style={estilos.cabecalho}>
+    <div className="lista-fonada-pagina">
+      <div className="lista-fonada-cabecalho">
         <div>
-          <h1 style={{ marginBottom: 2 }}>Mensagem fonada</h1>
+          <h1 style={{ marginBottom: 2 }}>Pedidos de Fonada</h1>
           <p className="fs-sm" style={{ color: 'var(--tinta-suave)', margin: 0 }}>
-            Pedidos de mensagem por telefone — consulta
+            Encontre e acompanhe pedidos de mensagem por telefone.
           </p>
         </div>
+        <button type="button" className="btn lista-fonada-novo" onClick={() => navigate('/clientes')}>
+          <IconeMais /> Novo pedido
+        </button>
       </div>
 
-      <div className="legenda-chip">
-        <IconeInfo />
-        <span><span className="bolinha-status usada" /> MARCADA</span>
-        <span><span className="bolinha-status livre" /> DISPONÍVEL</span>
-      </div>
-
-      <form onSubmit={aoSubmeterBusca} style={estilos.buscaForm}>
+      <form onSubmit={aoSubmeterBusca} className="lista-fonada-busca">
         <select
           value={campoFiltro}
           onChange={(e) => aoMudarFiltro(e.target.value)}
@@ -167,15 +194,28 @@ export default function ListaFonada() {
             <option key={o.valor} value={o.valor}>{o.label}</option>
           ))}
         </select>
-        <input
-          type="text"
-          placeholder={placeholderBusca}
-          value={busca}
-          onChange={(e) => aoDigitarBusca(e.target.value)}
-          className="busca-input"
-        />
+        <div className="lista-fonada-campo-busca">
+          <IconeBusca />
+          <input
+            type="text"
+            placeholder={placeholderBusca}
+            value={busca}
+            onChange={(e) => aoDigitarBusca(e.target.value)}
+            className="busca-input"
+          />
+        </div>
         <button type="submit" className="btn secundario">Buscar</button>
+        {(buscaUrl || campoUrl) && <button type="button" className="btn secundario" onClick={limparBusca}>Limpar</button>}
       </form>
+
+      <div className="lista-fonada-meta">
+        <div className="legenda-chip">
+          <IconeInfo />
+          <span><span className="bolinha-status usada" /> MARCADA</span>
+          <span><span className="bolinha-status livre" /> DISPONÍVEL</span>
+        </div>
+        {!carregando && <span className="lista-fonada-total">{total} pedido(s) encontrado(s)</span>}
+      </div>
 
       {erro && <p style={{ color: 'var(--selo)' }}>{erro}</p>}
 
@@ -189,16 +229,14 @@ export default function ListaFonada() {
         </div>
       ) : (
         <>
-          <div className="painel" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="painel lista-fonada-tabela-painel">
             <div style={{ overflowX: 'auto' }}>
             <table className="tabela-lista tabela-fonada">
               <thead>
                 <tr>
                   <th>O.S.</th>
                   <th>Cliente</th>
-                  <th className="col-somente-desktop">Destinatário 1</th>
-                  <th className="col-somente-desktop">Destinatário 2</th>
-                  <th>Mensagens</th>
+                  <th>Transmissões</th>
                   <th>Venda</th>
                   <th>Recall</th>
                   <th>Valor</th>
@@ -232,28 +270,17 @@ export default function ListaFonada() {
                         {p.senha_os || p.id}
                       </span>
                     </td>
-                    <td data-label="Cliente">{p.nome_comprador}</td>
-                    <td data-label="Destinatário 1" className="col-somente-desktop">
-                      <CelulaDestinatario nome={p.p1_para} dia={p.p1_dia} />
+                    <td data-label="Cliente">
+                      <span className="lista-fonada-cliente-nome">{p.nome_comprador || '—'}</span>
+                      {(p.comprador_celular || p.comprador_fixo) && (
+                        <span className="lista-fonada-cliente-contato">{p.comprador_celular || p.comprador_fixo}</span>
+                      )}
                     </td>
-                    <td data-label="Destinatário 2" className="col-somente-desktop">
-                      <CelulaDestinatario nome={p.p2_para} dia={p.p2_dia} />
-                    </td>
-                    <td data-label="Mensagens">
-                      <span className="indicador-msgs">
-                        <span
-                          className={`ponto-msg ${p.p1_dia ? 'usada' : 'livre'}`}
-                          title={p.p1_dia ? `1ª mensagem marcada para ${p.p1_dia}` : '1ª mensagem ainda disponível'}
-                        >
-                          1ª
-                        </span>
-                        <span
-                          className={`ponto-msg ${p.p2_dia ? 'usada' : 'livre'}`}
-                          title={p.p2_dia ? `2ª mensagem marcada para ${p.p2_dia}` : '2ª mensagem ainda disponível'}
-                        >
-                          2ª
-                        </span>
-                      </span>
+                    <td data-label="Transmissões">
+                      <div className="resumo-mensagens">
+                        <LinhaMensagem numero={1} para={p.p1_para} dia={p.p1_dia} horario={p.p1_horario} resultado={p.p1_resultado} />
+                        <LinhaMensagem numero={2} para={p.p2_para} dia={p.p2_dia} horario={p.p2_horario} resultado={p.p2_resultado} bloqueada={pedidoInterurbano(p)} />
+                      </div>
                     </td>
                     <td data-label="Venda">{p.data_pedido || '—'}</td>
                     <td data-label="Recall">
@@ -274,7 +301,7 @@ export default function ListaFonada() {
             </div>
           </div>
 
-          <div style={estilos.paginacao}>
+          <div className="lista-fonada-paginacao">
             <button className="btn secundario" disabled={paginaUrl <= 1} onClick={() => irParaPagina(paginaUrl - 1)}>
               ← Anterior
             </button>
@@ -291,8 +318,3 @@ export default function ListaFonada() {
   );
 }
 
-const estilos = {
-  cabecalho: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
-  buscaForm: { display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' },
-  paginacao: { display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, marginTop: 20 },
-};
