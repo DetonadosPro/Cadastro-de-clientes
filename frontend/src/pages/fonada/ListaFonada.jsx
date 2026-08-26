@@ -65,7 +65,7 @@ function pedidoInterurbano(pedido) {
   return ddds.length > 0 && !ddds.includes('34');
 }
 
-function LinhaMensagem({ numero, para, dia, horario, resultado, bloqueada }) {
+function LinhaMensagem({ numero, para, dia, horario, bloqueada }) {
   const marcada = Boolean(dia);
   return (
     <div className={`resumo-mensagem ${bloqueada ? 'bloqueada' : ''}`}>
@@ -73,7 +73,7 @@ function LinhaMensagem({ numero, para, dia, horario, resultado, bloqueada }) {
       <span className="resumo-mensagem-destino">{bloqueada ? 'Não disponível' : (para || '')}</span>
       {!bloqueada && (
         <span className="resumo-mensagem-data">
-          {resultado ? 'Concluída' : (dia ? `${dia}${horario ? ` • ${horario}` : ''}` : 'Disponível')}
+          {dia ? `${dia}${horario ? ` • ${horario}` : ''}` : ''}
         </span>
       )}
     </div>
@@ -281,8 +281,8 @@ export default function ListaFonada() {
                     </td>
                     <td data-label="Transmissões">
                       <div className="resumo-mensagens">
-                        <LinhaMensagem numero={1} para={p.p1_para} dia={p.p1_dia} horario={p.p1_horario} resultado={p.p1_resultado} />
-                        <LinhaMensagem numero={2} para={p.p2_para} dia={p.p2_dia} horario={p.p2_horario} resultado={p.p2_resultado} bloqueada={pedidoInterurbano(p)} />
+                        <LinhaMensagem numero={1} para={p.p1_para} dia={p.p1_dia} horario={p.p1_horario} />
+                        <LinhaMensagem numero={2} para={p.p2_para} dia={p.p2_dia} horario={p.p2_horario} bloqueada={pedidoInterurbano(p)} />
                       </div>
                     </td>
                     <td data-label="Venda">{p.data_pedido || '—'}</td>
