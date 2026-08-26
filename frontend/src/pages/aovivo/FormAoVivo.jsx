@@ -7,6 +7,7 @@ import { formatarCelular, formatarFixo, formatarData, formatarHorario, formatarV
 import CampoData from '../../components/CampoData.jsx';
 import CampoComSugestoes from '../../components/CampoComSugestoes.jsx';
 import CampoSelecao from '../../components/CampoSelecao.jsx';
+import PaginaImpressaoAoVivo from './PaginaImpressaoAoVivo.jsx';
 
 const VAZIO = {
   numero_os: '', cliente_id: null, data_pedido: '', horario_pedido: '', dia_entrega: '', horario_entrega: '',
@@ -160,6 +161,7 @@ export default function FormAoVivo() {
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
   const [campoObrigatorioFaltando, setCampoObrigatorioFaltando] = useState(null);
+  const [pedidosImpressao, setPedidosImpressao] = useState(null);
   const refValor = useRef(null);
 
   function contarPreenchidos(d, prefixo, minimo, maximo) {
@@ -341,6 +343,28 @@ export default function FormAoVivo() {
     }
   }
 
+  async function imprimirPedido() {
+    if (!editando || !id) return;
+    try {
+      const resposta = await api.aoVivo.buscarParaImpressao([id]);
+      setPedidosImpressao(resposta.pedidos);
+      setTimeout(() => window.print(), 100);
+    } catch (err) {
+      mostrarToast(err.message || 'Não foi possível preparar a impressão.', 'erro');
+    }
+  }
+
+  useEffect(() => {
+    function aoPressionarTecla(evento) {
+      if (!editando || !id || !(evento.ctrlKey || evento.metaKey) || evento.key.toLowerCase() !== 'p') return;
+      evento.preventDefault();
+      imprimirPedido();
+    }
+
+    window.addEventListener('keydown', aoPressionarTecla);
+    return () => window.removeEventListener('keydown', aoPressionarTecla);
+  }, [editando, id, dados]);
+
   if (carregando) return <p style={{ color: 'var(--tinta-suave)' }}>Carregando...</p>;
 
   if (erro && !dados.cliente_id) {
@@ -363,7 +387,8 @@ export default function FormAoVivo() {
   const diaEventoNoPassado = diaEventoDigitado && diaEventoDigitado.getTime() < hojeSemHora().getTime();
 
   return (
-    <div className="form-pagina form-compacto pagina-aovivo-ampliada">
+    <div className="pagina-aovivo-ampliada">
+      <div className="form-pagina form-compacto nao-imprimir">
       {estaBloqueado && (
         <div className="aviso-bloqueio" style={{ marginBottom: 16 }}>
           <strong>Cliente bloqueado.</strong> Este pedido está travado para edição — só é possível visualizar.
@@ -662,6 +687,14 @@ export default function FormAoVivo() {
         </div>
 
       </div>
+
+      </div>
+
+      {pedidosImpressao && (
+        <div className="somente-imprimir">
+          <PaginaImpressaoAoVivo pedidos={pedidosImpressao} />
+        </div>
+      )}
     </div>
   );
 }
