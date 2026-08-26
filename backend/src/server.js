@@ -11,7 +11,7 @@
 // Railway, as variáveis já vêm do próprio ambiente, e chamar isso não
 // causa problema nenhum). Precisa ser a primeira coisa a rodar, antes
 // de qualquer outro require que dependa de process.env (como database.js).
-require('dotenv').config({ path: process.env.POMBO_ENV_FILE || undefined });
+require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
