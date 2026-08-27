@@ -90,7 +90,7 @@ export default function CampoData({ value, onChange, placeholder, style, disable
   hoje.setHours(0, 0, 0, 0);
 
   return (
-    <div ref={raizRef} className={`campo-data-raiz ${className || ''}`} style={style}>
+    <div ref={raizRef} className={`campo-data-raiz ${disabled ? 'campo-data-desabilitado' : ''} ${className || ''}`} style={style}>
       <input
         placeholder={placeholder}
         value={value}

@@ -916,7 +916,7 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
         <span className={`bolinha-status ${dados[`${p}_dia`] ? 'usada' : 'livre'}`} /> {numero}ª mensagem
         {numero === 2 && situacaoMensagem && (
           <span className={`tag ${situacaoMensagem.status === 'DISPONIVEL' ? 'ok' : situacaoMensagem.status === 'EXPIRADA' ? 'pendente' : 'neutro'}`} style={{ marginLeft: 'auto' }}>
-            {situacaoMensagem.status === 'DISPONIVEL' ? `Disponível até ${situacaoMensagem.dataExpiracao}` : situacaoMensagem.status === 'UTILIZADA' ? 'Utilizada' : situacaoMensagem.status === 'EXPIRADA' ? `Expirada em ${situacaoMensagem.dataExpiracao}` : 'Sem direito'}
+            {situacaoMensagem.status === 'DISPONIVEL' ? `Disponível até ${situacaoMensagem.dataExpiracao}` : situacaoMensagem.status === 'UTILIZADA' ? 'Utilizada' : situacaoMensagem.status === 'EXPIRADA' ? `Expirada em ${situacaoMensagem.dataExpiracao}` : situacaoMensagem.status === 'NAO_CONCEDIDA' ? 'INTERURBANO' : 'Indisponível'}
           </span>
         )}
       </div>

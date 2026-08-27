@@ -236,6 +236,11 @@ export default function Agenda() {
     return m ? `20${m[3]}-${m[2]}-${m[1]}` : '';
   }
 
+  function dataIsoParaBr(dataIso) {
+    const m = String(dataIso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return m ? `${m[3]}/${m[2]}/${m[1].slice(-2)}` : '';
+  }
+
   function abrirNovoLembrete() {
     setFormLembrete({ titulo: '', data: dataBrParaIso(dataSelecionada), horario: '', observacao: '', concluido: false });
     setLembreteAberto({ novo: true });
@@ -247,7 +252,7 @@ export default function Agenda() {
   }
 
   async function salvarLembrete() {
-    if (!formLembrete.titulo.trim() || !formLembrete.data) {
+    if (!formLembrete.titulo.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(formLembrete.data)) {
       mostrarToast('Informe o título e a data do lembrete.', 'erro');
       return;
     }
@@ -730,7 +735,7 @@ export default function Agenda() {
             <div className="grade grade-2">
               <div className="campo">
                 <label>Data *</label>
-                <input type="date" value={formLembrete.data} onChange={(e) => setFormLembrete((atual) => ({ ...atual, data: e.target.value }))} />
+                <CampoData placeholder="dd/mm/aa" value={dataIsoParaBr(formLembrete.data) || formLembrete.data} onChange={(v) => { const formatada = formatarData(v); setFormLembrete((atual) => ({ ...atual, data: dataBrParaIso(formatada) || formatada })); }} />
               </div>
               <div className="campo">
                 <label>Horário (opcional)</label>
