@@ -1,6 +1,6 @@
 const express = require('express');
 const { db } = require('../db/database');
-const { normalizarTexto, ehTemaAniversario, chavePessoa, dataBrParaIso } = require('../utils/recall');
+const { normalizarTexto, ehTemaAniversario, chavePessoa, nomePessoaValido, dataBrParaIso } = require('../utils/recall');
 
 const router = express.Router();
 const STATUS = new Set(['PENDENTE', 'NAO_ATENDEU', 'RETORNAR', 'SEM_INTERESSE', 'INTERESSADO', 'PEDIDO_CRIADO']);
@@ -25,6 +25,7 @@ function sqlMensagens(filtro1, filtro2) {
 function agrupar(linhas, dataLimite = null, exigirTemaAniversario = true) {
   const grupos = new Map();
   for (const linha of linhas) {
+    if (!nomePessoaValido(linha.cliente_nome) || !nomePessoaValido(linha.aniversariante)) continue;
     if (exigirTemaAniversario && !ehTemaAniversario(linha.tema)) continue;
     const isoMensagem = dataBrParaIso(linha.dia_mensagem);
     if (dataLimite && (!isoMensagem || isoMensagem >= dataLimite)) continue;

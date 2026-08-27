@@ -7,7 +7,13 @@ function isoLocal(data = new Date()) { return `${data.getFullYear()}-${String(da
 function somarDias(iso, dias) { const d=new Date(`${iso}T12:00:00`); d.setDate(d.getDate()+dias); return isoLocal(d); }
 function dataLegivel(iso) { return new Date(`${iso}T12:00:00`).toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'}).replace('.',''); }
 function nomeCurto(nome) { return String(nome||'').trim().split(/\s+/).filter(Boolean).slice(0,2).join(' '); }
-function linkWhatsapp(telefone) { const digitos=String(telefone||'').replace(/\D/g,''); if(!digitos)return null; return `https://wa.me/${digitos.startsWith('55')?digitos:`55${digitos}`}`; }
+function nomePessoaValido(nome) { const texto=String(nome||'').normalize('NFD').replace(/[\u0300-\u036f]/g,''); return /[A-Za-z]/.test(texto)&&!/^.*\d.*$/.test(texto); }
+function linkWhatsapp(telefone) {
+  const digitos=String(telefone||'').replace(/\D/g,'');
+  const nacional=digitos.startsWith('55')&&[12,13].includes(digitos.length)?digitos.slice(2):digitos;
+  if(!/^\d{10,11}$/.test(nacional)||/^0+$/.test(nacional)||!/^\d{2}[2-9]\d{7,8}$/.test(nacional))return null;
+  return `https://wa.me/55${nacional}`;
+}
 function IconeWhatsapp() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.8a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.3-4.7a8.5 8.5 0 1 1 16.2-4Z"/><path d="M8.2 7.8c.2-.5.4-.5.8-.5h.5c.2 0 .4.1.5.4l.8 2c.1.3 0 .5-.2.7l-.6.7c-.2.2-.1.4 0 .6.7 1.2 1.7 2.2 3 2.8.3.1.5.1.7-.1l.8-1c.2-.2.4-.3.7-.2l2 .9c.3.1.4.3.4.5 0 .4-.2 1.5-.9 2.1-.6.6-1.5.8-2.5.5-1.2-.3-2.8-.9-4.7-2.5-1.5-1.3-2.5-2.9-2.8-4-.3-1.2 0-2.3.5-2.9Z"/></svg>; }
 function IconePessoa() { return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20c.7-4.1 3.1-6.2 7.5-6.2s6.8 2.1 7.5 6.2"/></svg>; }
 
@@ -17,7 +23,7 @@ export default function Recall() {
   const [modoFila,setModoFila]=useState(params.get('modo')==='aniversario'?'ANIVERSARIO':'DIA_MENSAGEM');
   const [dados,setDados]=useState(null); const [selecionado,setSelecionado]=useState(null); const [carregando,setCarregando]=useState(false);
 
-  function listaDoModo(resposta=dados, modo=modoFila){return modo==='ANIVERSARIO'?(resposta?.porAniversario||[]):(resposta?.porDiaMensagem||[]);}
+  function listaDoModo(resposta=dados, modo=modoFila){const lista=modo==='ANIVERSARIO'?(resposta?.porAniversario||[]):(resposta?.porDiaMensagem||[]);return lista.filter(i=>nomePessoaValido(i.clienteNome)&&nomePessoaValido(i.aniversariante));}
   async function carregarFila(dataAlvo=data, relacaoAlvo=null, modoAlvo=modoFila) { setCarregando(true); try { const r=await api.recall.fila(dataAlvo); const lista=listaDoModo(r,modoAlvo); setDados(r); setSelecionado((atual)=>lista.find(i=>i.relacaoChave===(relacaoAlvo||atual?.relacaoChave))||lista[0]||null); } catch(e){mostrarToast(e.message,'erro');} finally{setCarregando(false);} }
   useEffect(()=>{ carregarFila(data,params.get('relacao')||null,modoFila); },[data]);
   useEffect(()=>{ setParams((p)=>{ const n=new URLSearchParams(p); n.set('aba','fila'); n.set('data',data); n.set('modo',modoFila==='ANIVERSARIO'?'aniversario':'dia-mensagem'); if(selecionado?.relacaoChave)n.set('relacao',selecionado.relacaoChave);else if(dados)n.delete('relacao'); return n; },{replace:true}); },[data,modoFila,selecionado?.relacaoChave]);
@@ -25,16 +31,16 @@ export default function Recall() {
   function urlRetornoFila(relacao=selecionado?.relacaoChave) { const q=new URLSearchParams({aba:'fila',data,modo:modoFila==='ANIVERSARIO'?'aniversario':'dia-mensagem'}); if(relacao)q.set('relacao',relacao); return `/recall?${q}`; }
   function criarPedido() { const q=new URLSearchParams({clienteId:String(selecionado.clienteId),recallPara:selecionado.aniversariante,recallData:data,recallRelacao:selecionado.relacaoChave}); navigate(`/fonada/novo?${q}`,{state:{returnTo:urlRetornoFila()}}); }
   const dias=useMemo(()=>Array.from({length:7},(_,i)=>somarDias(isoLocal(),i)),[]);
-  const itensAtivos=listaDoModo(); const resumoAtivo=modoFila==='ANIVERSARIO'?dados?.resumos?.porAniversario:dados?.resumos?.porDiaMensagem;
+  const itensAtivos=listaDoModo(); const resumoAtivo=dados?{oportunidades:itensAtivos.length,aniversariantes:new Set(itensAtivos.map(i=>String(i.aniversariante).trim().toUpperCase())).size}:null;
 
   return <div className="recall-page">
     <header className="recall-cabecalho"><div><span className="recall-sobretitulo">Central de relacionamento</span><h1>Recall</h1><p>Duas pesquisas diferentes, organizadas em filas sem pessoas repetidas.</p></div></header>
     <>
       <div className="recall-dias">{dias.map((d,i)=><button key={d} className={d===data?'ativo':''} onClick={()=>setData(d)}><small>{i===0?'Hoje':i===1?'Amanhã':dataLegivel(d).split(' ')[0]}</small><strong>{dataLegivel(d).split(' ').slice(-1)}</strong></button>)}</div>
-      {dados&&<div className="recall-fontes"><button className={modoFila==='DIA_MENSAGEM'?'ativo':''} onClick={()=>setModoFila('DIA_MENSAGEM')}><span>Pesquisa 1</span><strong>Por dia da mensagem</strong><small>Compradores com mensagem de qualquer tipo de aniversário marcada nesta data</small><em>{dados.porDiaMensagem?.length||0} pessoas</em></button><button className={modoFila==='ANIVERSARIO'?'ativo':''} onClick={()=>setModoFila('ANIVERSARIO')}><span>Pesquisa 2</span><strong>Aniversário do cliente</strong><small>Destinatários 1 e 2 de todos os pedidos feitos pelos clientes que aniversariam nesta data</small><em>{dados.porAniversario?.length||0} pessoas</em></button></div>}
+      {dados&&<div className="recall-fontes"><button className={modoFila==='DIA_MENSAGEM'?'ativo':''} onClick={()=>setModoFila('DIA_MENSAGEM')}><span>Pesquisa 1</span><strong>Por dia da mensagem</strong><small>Compradores com mensagem de qualquer tipo de aniversário marcada nesta data</small><em>{listaDoModo(dados,'DIA_MENSAGEM').length} pessoas</em></button><button className={modoFila==='ANIVERSARIO'?'ativo':''} onClick={()=>setModoFila('ANIVERSARIO')}><span>Pesquisa 2</span><strong>Aniversário do cliente</strong><small>Destinatários 1 e 2 de todos os pedidos feitos pelos clientes que aniversariam nesta data</small><em>{listaDoModo(dados,'ANIVERSARIO').length} pessoas</em></button></div>}
       {resumoAtivo&&<div className="recall-metricas"><div><strong>{resumoAtivo.oportunidades}</strong><span>pessoas para ligar</span></div><div><strong>{resumoAtivo.aniversariantes}</strong><span>aniversariantes</span></div></div>}
       {carregando?<div className="painel recall-vazio">Montando a fila…</div>:!itensAtivos.length?<div className="painel recall-vazio"><strong>Fila livre para este dia</strong><span>Nenhuma relação foi encontrada nesta pesquisa.</span></div>:<div className="recall-workspace">
-        <section className="recall-lista">{itensAtivos.map(i=><button key={i.relacaoChave} className={`recall-linha ${selecionado?.relacaoChave===i.relacaoChave?'selecionada':''}`} onClick={()=>setSelecionado(i)}><span className="recall-avatar">{i.clienteNome?.charAt(0)}</span><span><strong className="recall-lista-relacao"><span title={i.clienteNome}>{nomeCurto(i.clienteNome)}{i.clienteBloqueado&&<em className="recall-bloqueado">Bloqueado</em>}</span><b>→</b><span title={i.aniversariante}>{nomeCurto(i.aniversariante)}{i.aniversarianteBloqueado&&<em className="recall-bloqueado">Bloqueado</em>}</span></strong></span></button>)}</section>
+        <section className="recall-lista">{itensAtivos.map(i=><button key={i.relacaoChave} className={`recall-linha ${selecionado?.relacaoChave===i.relacaoChave?'selecionada':''}`} onClick={()=>setSelecionado(i)}><span className="recall-avatar">{i.clienteNome?.charAt(0)}</span><span><strong className="recall-lista-relacao"><span title={i.clienteNome}>{nomeCurto(i.clienteNome)}{i.clienteBloqueado&&<em className="recall-bloqueado">Bloqueado</em>}</span>{!i.clienteBloqueado&&<><b>→</b><span title={i.aniversariante}>{nomeCurto(i.aniversariante)}{i.aniversarianteBloqueado&&<em className="recall-bloqueado">Bloqueado</em>}</span></>}</strong></span></button>)}</section>
         {selecionado&&<Detalhes item={selecionado} modoFila={modoFila} criarPedido={criarPedido} navigate={navigate} returnTo={urlRetornoFila()}/>}
       </div>}
     </>

@@ -16,6 +16,14 @@ function chavePessoa(valor) {
   return normalizarTexto(valor).replace(/\s+/g, '-');
 }
 
+// Cadastros antigos usavam sequências de zero para inutilizar campos. Uma
+// pessoa válida precisa ter ao menos uma letra; assim "0", "00000" e sinais
+// isolados nunca viram relações ou contatos no Recall.
+function nomePessoaValido(valor) {
+  const texto = normalizarTexto(valor);
+  return /[A-Z]/.test(texto) && !/\d/.test(texto);
+}
+
 function dataBrParaIso(valor) {
   const m = String(valor || '').match(/^(\d{2})\/(\d{2})\/(\d{2}|\d{4})$/);
   if (!m) return null;
@@ -23,4 +31,4 @@ function dataBrParaIso(valor) {
   return `${ano}-${m[2]}-${m[1]}`;
 }
 
-module.exports = { normalizarTexto, ehTemaAniversario, chavePessoa, dataBrParaIso };
+module.exports = { normalizarTexto, ehTemaAniversario, chavePessoa, nomePessoaValido, dataBrParaIso };
