@@ -69,11 +69,13 @@ export default function Agenda() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
   const [salvandoBaixa, setSalvandoBaixa] = useState(null);
-  const [inicioJanela, setInicioJanela] = useState(dataSelecionada);
+  const [inicioJanela, setInicioJanela] = useState(() => somarDias(dataSelecionada, -3));
   const [contagensPorData, setContagensPorData] = useState({});
   const [carregandoSemana, setCarregandoSemana] = useState(true);
   const [direcaoCarrossel, setDirecaoCarrossel] = useState(null);
   const temporizadorCarrosselRef = useRef(null);
+  const [direcaoConteudo, setDirecaoConteudo] = useState('');
+  const temporizadorConteudoRef = useRef(null);
 
   const [itemRemarcarAberto, setItemRemarcarAberto] = useState(null);
   const [observacao, setObservacao] = useState('');
@@ -140,9 +142,28 @@ export default function Agenda() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inicioJanela]);
 
-  useEffect(() => () => clearTimeout(temporizadorCarrosselRef.current), []);
+  useEffect(() => () => { clearTimeout(temporizadorCarrosselRef.current); clearTimeout(temporizadorConteudoRef.current); }, []);
+
+  useEffect(() => {
+    function navegarComTeclado(e) {
+      const alvo = e.target;
+      const digitando = alvo instanceof HTMLInputElement || alvo instanceof HTMLTextAreaElement || alvo instanceof HTMLSelectElement || alvo?.isContentEditable;
+      if (digitando || itemRemarcarAberto || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === 'ArrowLeft') { e.preventDefault(); selecionarDiaAdjacente(-1); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); selecionarDiaAdjacente(1); }
+    }
+    document.addEventListener('keydown', navegarComTeclado);
+    return () => document.removeEventListener('keydown', navegarComTeclado);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataSelecionada, inicioJanela, direcaoCarrossel, itemRemarcarAberto]);
 
   function irParaDia(novaData) {
+    if (novaData === dataSelecionada) return;
+    const atual = paraDataSemHora(dataSelecionada);
+    const proxima = paraDataSemHora(novaData);
+    setDirecaoConteudo(atual && proxima && proxima < atual ? 'voltar' : 'avancar');
+    clearTimeout(temporizadorConteudoRef.current);
+    temporizadorConteudoRef.current = setTimeout(() => setDirecaoConteudo(''), 320);
     setSearchParams((atual) => {
       const novo = new URLSearchParams(atual);
       novo.set('data', novaData);
@@ -178,7 +199,7 @@ export default function Agenda() {
     const inicio = paraDataSemHora(inicioJanela);
     clearTimeout(temporizadorCarrosselRef.current);
     setDirecaoCarrossel(null);
-    setInicioJanela(data < inicio ? novaData : somarDias(novaData, -6));
+    setInicioJanela(somarDias(novaData, -3));
     irParaDia(novaData);
   }
 
@@ -363,14 +384,16 @@ export default function Agenda() {
   );
 
   return (
-    <div>
+    <div className="agenda-v2">
       <Relogio />
-      <div style={{ marginBottom: 20 }}>
-        <h1 style={{ marginBottom: 4 }}>Agenda</h1>
-        <div style={estilos.navegacaoData}>
-          <button type="button" className="btn-small" onClick={() => selecionarDiaAdjacente(-1)}>
-            ← Dia anterior
-          </button>
+      <div className="agenda-cabecalho-v2">
+        <div>
+          <span className="pagina-kicker">Operação diária</span>
+          <h1>Agenda</h1>
+          <p>{ehHoje ? 'Acompanhe o ritmo de hoje e as próximas mensagens.' : `Consultando ${rotuloDiaSemana(dataSelecionada)}, ${dataSelecionada}.`}</p>
+        </div>
+        <div className="agenda-controles-v2">
+          <button type="button" className="agenda-seta-dia" onClick={() => selecionarDiaAdjacente(-1)} aria-label="Dia anterior">←</button>
           <CampoData
             className="campo-data-agenda"
             placeholder="dd/mm/aa"
@@ -378,15 +401,13 @@ export default function Agenda() {
             onChange={(v) => selecionarDataGarantindoVisibilidade(formatarData(v))}
           />
           {!ehHoje && (
-            <button type="button" className="btn-small" onClick={() => selecionarDataGarantindoVisibilidade(hojeFormatado())}>
+            <button type="button" className="btn-small agenda-hoje" onClick={() => selecionarDataGarantindoVisibilidade(hojeFormatado())}>
               Hoje
             </button>
           )}
-          <button type="button" className="btn-small" onClick={() => selecionarDiaAdjacente(1)}>
-            Próximo dia →
-          </button>
+          <button type="button" className="agenda-seta-dia" onClick={() => selecionarDiaAdjacente(1)} aria-label="Próximo dia">→</button>
           {!ehHoje && (
-            <span className="aviso-consulta-agenda">Somente visualização</span>
+            <span className="aviso-consulta-agenda"><i /> Somente visualização</span>
           )}
         </div>
       </div>
@@ -401,8 +422,8 @@ export default function Agenda() {
               {datasDosCards.map((data) => {
                 const total = contagensPorData[data];
                 return (
-                  <button key={data} type="button" className={data === dataSelecionada ? 'ativo' : ''} onClick={() => irParaDia(data)}>
-                    <span>{rotuloDiaSemana(data)}</span>
+                  <button key={data} type="button" className={`${data === dataSelecionada ? 'ativo' : ''} ${data === hojeFormatado() ? 'hoje' : ''}`} onClick={() => irParaDia(data)}>
+                    <span>{data === hojeFormatado() ? 'Hoje' : rotuloDiaSemana(data)}</span>
                     <strong>{data.slice(0, 5)}</strong>
                     <small>{total ?? '…'} {total === 1 ? 'compromisso' : 'compromissos'}</small>
                   </button>
@@ -414,10 +435,11 @@ export default function Agenda() {
         <button type="button" className="seta-carrossel-agenda" onClick={() => moverJanela('frente')} disabled={Boolean(direcaoCarrossel)} aria-label="Mostrar próximo dia">›</button>
       </div>
 
-      {erro && <p style={{ color: 'var(--selo)' }}>{erro}</p>}
+      <div key={`${dataSelecionada}-${aba}`} className={`agenda-conteudo-transicao ${direcaoConteudo}`}>
+      {erro && <div className="aviso-bloqueio">{erro}</div>}
 
       {carregando && !dataRef ? (
-        <p style={{ color: 'var(--tinta-suave)' }}>Carregando...</p>
+        <SkeletonAgenda />
       ) : (
         <div className={`section-box secao-relatorios ${carregando ? 'agenda-carregando-dados' : ''}`} aria-busy={carregando}>
           {carregando && <div className="agenda-atualizando">Atualizando agenda...</div>}
@@ -442,9 +464,7 @@ export default function Agenda() {
             <div className="lista-agenda-compacta">
               {aba === 'fonada' && (
                 fonadaExibida.length === 0 ? (
-                  <p className="fs-sm" style={{ color: 'var(--tinta-suave)', textAlign: 'center', padding: '16px 0' }}>
-                    Nenhuma mensagem fonada marcada para {ehHoje ? 'hoje' : 'esse dia'}.
-                  </p>
+                  <AgendaVazia tipo="fonada" ehHoje={ehHoje} onNovo={() => navigate('/fonada/novo')} />
                 ) : (
                   fonadaExibida.map((item) => {
                     const chave = `${item.pedidoId}-${item.mensagem}`;
@@ -472,9 +492,7 @@ export default function Agenda() {
 
               {aba === 'aovivo' && (
                 aoVivoExibido.length === 0 ? (
-                  <p className="fs-sm" style={{ color: 'var(--tinta-suave)', textAlign: 'center', padding: '16px 0' }}>
-                    Nenhuma mensagem ao vivo marcada para {ehHoje ? 'hoje' : 'esse dia'}.
-                  </p>
+                  <AgendaVazia tipo="ao vivo" ehHoje={ehHoje} onNovo={() => navigate('/ao-vivo/novo')} />
                 ) : (
                   aoVivoExibido.map((item) => {
                     const chave = `aovivo-${item.id}`;
@@ -538,6 +556,7 @@ export default function Agenda() {
           </div>
         </div>
       )}
+      </div>
 
       {itemRemarcarAberto && (
         <div className="modal-fundo" onClick={cancelarRemarcar}>
@@ -587,6 +606,14 @@ export default function Agenda() {
 
     </div>
   );
+}
+
+function SkeletonAgenda() {
+  return <div className="agenda-skeleton section-box" aria-label="Carregando agenda"><div className="agenda-skeleton-tabs"><i/><i/></div><div className="agenda-skeleton-grid"><div>{Array.from({ length: 6 }, (_, i) => <span key={i}/>)}</div><aside><b/><i/><i/><i/></aside></div></div>;
+}
+
+function AgendaVazia({ tipo, ehHoje, onNovo }) {
+  return <div className="agenda-vazia"><div className="agenda-vazia-icone">✓</div><strong>Agenda livre {ehHoje ? 'por enquanto' : 'neste dia'}</strong><p>Nenhuma mensagem {tipo} está marcada para {ehHoje ? 'hoje' : 'a data selecionada'}.</p><button type="button" className="btn-small" onClick={onNovo}>+ Criar pedido {tipo}</button></div>;
 }
 
 function IconeUsuario() {

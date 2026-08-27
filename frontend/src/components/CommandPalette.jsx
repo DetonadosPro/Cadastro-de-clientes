@@ -1,0 +1,126 @@
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { api } from '../api.js';
+
+const ACOES = [
+  { id: 'agenda', titulo: 'Abrir Agenda', detalhe: 'Compromissos e entregas do dia', rota: '/agenda', grupo: 'Navegação', termos: 'hoje compromissos agenda' },
+  { id: 'clientes', titulo: 'Ver clientes', detalhe: 'Pesquisar e consultar cadastros', rota: '/clientes', grupo: 'Navegação', termos: 'clientes contatos cadastros' },
+  { id: 'novo-cliente', titulo: 'Novo cliente', detalhe: 'Iniciar um novo cadastro', rota: '/clientes/novo', grupo: 'Ações rápidas', termos: 'cadastrar adicionar novo cliente' },
+  { id: 'nova-fonada', titulo: 'Novo pedido Fonada', detalhe: 'Criar uma mensagem fonada', rota: '/fonada/novo', grupo: 'Ações rápidas', termos: 'pedido telefone fonada' },
+  { id: 'novo-aovivo', titulo: 'Novo pedido Ao Vivo', detalhe: 'Criar uma mensagem ao vivo', rota: '/ao-vivo/novo', grupo: 'Ações rápidas', termos: 'pedido carro som ao vivo' },
+  { id: 'cobranca', titulo: 'Abrir Cobrança', detalhe: 'Pendências e recebimentos', rota: '/cobranca', grupo: 'Navegação', termos: 'financeiro cobrar recebimentos' },
+  { id: 'relatorios', titulo: 'Abrir Relatórios', detalhe: 'Vendas, recebimentos e desempenho', rota: '/relatorios', grupo: 'Navegação', termos: 'relatorios vendas desempenho' },
+];
+
+function IconeBusca() {
+  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>;
+}
+
+export default function CommandPalette({ aberta, onFechar, onNavegar }) {
+  const [termo, setTermo] = useState('');
+  const [clientes, setClientes] = useState([]);
+  const [buscando, setBuscando] = useState(false);
+  const [indice, setIndice] = useState(0);
+  const inputRef = useRef(null);
+  const paletteRef = useRef(null);
+
+  const acoesFiltradas = useMemo(() => {
+    const normalizado = termo.trim().toLocaleLowerCase('pt-BR');
+    if (!normalizado) return ACOES;
+    return ACOES.filter((acao) => `${acao.titulo} ${acao.detalhe} ${acao.termos}`.toLocaleLowerCase('pt-BR').includes(normalizado));
+  }, [termo]);
+
+  const resultados = useMemo(() => [
+    ...acoesFiltradas.map((acao) => ({ ...acao, tipo: 'acao' })),
+    ...clientes.map((cliente) => ({
+      id: `cliente-${cliente.id}`,
+      titulo: cliente.nome,
+      detalhe: cliente.whatsapp || cliente.celular || cliente.fixo || 'Cliente cadastrado',
+      rota: `/clientes/${cliente.id}`,
+      grupo: 'Clientes',
+      tipo: 'cliente',
+    })),
+  ], [acoesFiltradas, clientes]);
+
+  useEffect(() => {
+    if (!aberta) return;
+    setTermo(''); setClientes([]); setIndice(0);
+    requestAnimationFrame(() => inputRef.current?.focus());
+  }, [aberta]);
+
+  useEffect(() => {
+    if (!aberta || termo.trim().length < 2) { setClientes([]); return undefined; }
+    let ativo = true;
+    const timer = setTimeout(async () => {
+      setBuscando(true);
+      try {
+        const resposta = await api.clientes.listar(termo.trim(), 1, 'nome', 'nome', 'asc');
+        if (ativo) setClientes((resposta.clientes || []).slice(0, 6));
+      } catch {
+        if (ativo) setClientes([]);
+      } finally {
+        if (ativo) setBuscando(false);
+      }
+    }, 220);
+    return () => { ativo = false; clearTimeout(timer); };
+  }, [aberta, termo]);
+
+  useEffect(() => { setIndice(0); }, [termo]);
+
+  if (!aberta) return null;
+
+  function executar(item) {
+    if (!item) return;
+    onNavegar(item.rota);
+    onFechar();
+  }
+
+  function aoTeclar(e) {
+    if (e.key === 'Tab') {
+      const focaveis = Array.from(paletteRef.current?.querySelectorAll('input, button, [href], [tabindex]:not([tabindex="-1"])') || [])
+        .filter((elemento) => !elemento.disabled && elemento.getClientRects().length > 0);
+      if (focaveis.length) {
+        const primeiro = focaveis[0];
+        const ultimo = focaveis[focaveis.length - 1];
+        if (e.shiftKey && document.activeElement === primeiro) { e.preventDefault(); ultimo.focus(); }
+        if (!e.shiftKey && document.activeElement === ultimo) { e.preventDefault(); primeiro.focus(); }
+      }
+      return;
+    }
+    if (e.key === 'Escape') { e.preventDefault(); onFechar(); }
+    if (e.key === 'ArrowDown') { e.preventDefault(); setIndice((atual) => Math.min(atual + 1, resultados.length - 1)); }
+    if (e.key === 'ArrowUp') { e.preventDefault(); setIndice((atual) => Math.max(atual - 1, 0)); }
+    if (e.key === 'Enter') { e.preventDefault(); executar(resultados[indice]); }
+  }
+
+  let ultimoGrupo = '';
+  return (
+    <div className="command-overlay nao-imprimir" onMouseDown={onFechar} role="presentation">
+      <div ref={paletteRef} className="command-palette" role="dialog" aria-modal="true" aria-label="Busca global" onMouseDown={(e) => e.stopPropagation()} onKeyDown={aoTeclar}>
+        <div className="command-input-wrap">
+          <IconeBusca />
+          <input ref={inputRef} value={termo} onChange={(e) => setTermo(e.target.value)} placeholder="Busque clientes, páginas ou ações…" aria-label="Buscar no sistema" />
+          <kbd>ESC</kbd>
+        </div>
+        <div className="command-resultados">
+          {resultados.length === 0 && !buscando && <div className="command-vazio">Nenhum resultado. Tente buscar pelo nome do cliente ou por uma ação.</div>}
+          {resultados.map((item, posicao) => {
+            const mostrarGrupo = item.grupo !== ultimoGrupo;
+            ultimoGrupo = item.grupo;
+            return (
+              <React.Fragment key={item.id}>
+                {mostrarGrupo && <div className="command-grupo">{item.grupo}</div>}
+                <button type="button" className={`command-item ${posicao === indice ? 'ativo' : ''}`} onMouseEnter={() => setIndice(posicao)} onClick={() => executar(item)}>
+                  <span className={`command-item-icone ${item.tipo}`}>{item.tipo === 'cliente' ? item.titulo.slice(0, 1).toUpperCase() : '↗'}</span>
+                  <span><strong>{item.titulo}</strong><small>{item.detalhe}</small></span>
+                  <span className="command-enter">↵</span>
+                </button>
+              </React.Fragment>
+            );
+          })}
+          {buscando && <div className="command-buscando"><span /> Buscando clientes…</div>}
+        </div>
+        <div className="command-rodape"><span><kbd>↑</kbd><kbd>↓</kbd> navegar</span><span><kbd>↵</kbd> abrir</span><span>Busca global <strong>Ctrl K</strong></span></div>
+      </div>
+    </div>
+  );
+}

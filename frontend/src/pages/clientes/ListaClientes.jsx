@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
+import ClienteDrawer from '../../components/ClienteDrawer.jsx';
 
 const FILTROS_RAPIDOS = [
   ['pendencia', 'Com cobrança pendente'],
@@ -116,6 +117,8 @@ export default function ListaClientes() {
   const [comparacaoMescla, setComparacaoMescla] = useState(null);
   const [destinoMescla, setDestinoMescla] = useState(null);
   const [fontesMescla, setFontesMescla] = useState({});
+  const [clienteDrawerId, setClienteDrawerId] = useState(null);
+  const [confirmacaoExclusao, setConfirmacaoExclusao] = useState(false);
   const navigate = useNavigate();
   const { mostrarToast } = useToast();
 
@@ -275,19 +278,20 @@ export default function ListaClientes() {
     setSelecionados(todosSelecionados ? new Set() : new Set(itens.map((cliente) => cliente.id)));
   }
 
-  async function excluirClientesSelecionados() {
+  function excluirClientesSelecionados() {
+    if (selecionados.size === 0) return;
+    setConfirmacaoExclusao(true);
+  }
+
+  async function confirmarExclusaoSelecionados() {
     if (selecionados.size === 0) return;
     const quantidade = selecionados.size;
-    const confirmar = window.confirm(
-      `Enviar ${quantidade} cliente${quantidade > 1 ? 's' : ''} e seus pedidos para a Lixeira?`
-    );
-    if (!confirmar) return;
-
     setExcluindoSelecionados(true);
     try {
       await Promise.all([...selecionados].map((clienteId) => api.clientes.excluir(clienteId)));
       mostrarToast(`${quantidade} cliente${quantidade > 1 ? 's enviados' : ' enviado'} para a Lixeira.`);
       setSelecionados(new Set());
+      setConfirmacaoExclusao(false);
       buscarSugestoes();
       carregar(buscaUrl, paginaUrl, ordenarPorUrl, direcaoUrl, { telefone: telefoneUrl, aniversario: aniversarioUrl, situacao: situacaoUrl });
     } catch (err) {
@@ -311,8 +315,11 @@ export default function ListaClientes() {
       acabouDeArrastar.current = false;
       return;
     }
-    navigate(`/clientes/${cliente.id}`);
+    setClienteDrawerId(cliente.id);
   }
+
+  const fecharDrawer = useCallback(() => setClienteDrawerId(null), []);
+  const navegarDoDrawer = useCallback((rota) => { setClienteDrawerId(null); navigate(rota); }, [navigate]);
 
   function aoIniciarArrasto(e, cliente) {
     setArrastandoId(cliente.id);
@@ -352,20 +359,14 @@ export default function ListaClientes() {
   }
 
   return (
-    <div>
-      <div style={estilos.cabecalho}>
+    <div className="clientes-workspace">
+      <div className="pagina-cabecalho-v2">
         <div>
-          <h1 style={{ marginBottom: 2 }}>Clientes</h1>
-          <p className="fs-sm" style={{ color: 'var(--tinta-suave)', margin: 0 }}>
-            Encontre contatos, acompanhe o histórico e identifique pendências
-          </p>
+          <span className="pagina-kicker">Relacionamento</span>
+          <h1>Clientes</h1>
+          <p>Consulte contatos e histórico sem perder o contexto da lista.</p>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          {selecionados.size > 0 && (
-            <button className="btn perigo" onClick={excluirClientesSelecionados} disabled={excluindoSelecionados}>
-              {excluindoSelecionados ? 'Excluindo...' : `Excluir selecionados (${selecionados.size})`}
-            </button>
-          )}
+        <div className="pagina-acoes-v2">
           <button className="btn" onClick={() => navigate('/clientes/novo')} style={{ gap: 8 }}>
             <IconeMais /> Novo cliente
           </button>
@@ -380,7 +381,7 @@ export default function ListaClientes() {
             style={estilos.cabecalhoDuplicata}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--aviso)', fontWeight: 700 }}>
-              <IconeAviso /> {sugestoesVisiveis.length} possível{sugestoesVisiveis.length > 1 ? 'is' : ''} duplicata{sugestoesVisiveis.length > 1 ? 's' : ''} encontrada{sugestoesVisiveis.length > 1 ? 's' : ''}
+              <IconeAviso /> {sugestoesVisiveis.length} {sugestoesVisiveis.length > 1 ? 'possíveis duplicatas encontradas' : 'possível duplicata encontrada'}
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--aviso)' }}>
               <span className="fs-sm">{duplicatasAbertas ? 'Ocultar' : 'Ver'}</span>
@@ -441,14 +442,27 @@ export default function ListaClientes() {
         </div>
       </div>
 
+      {selecionados.size > 0 && (
+        <div className="selecao-toolbar" role="status">
+          <div><span className="selecao-contagem">{selecionados.size}</span><strong>{selecionados.size === 1 ? 'cliente selecionado' : 'clientes selecionados'}</strong><small>As ações se aplicam somente à seleção atual.</small></div>
+          <button type="button" className="btn-small" onClick={() => setSelecionados(new Set())}>Limpar seleção</button>
+          <button className="btn perigo" onClick={excluirClientesSelecionados} disabled={excluindoSelecionados}>Enviar para lixeira</button>
+        </div>
+      )}
+
       {erro && <p style={{ color: 'var(--selo)' }}>{erro}</p>}
       {mesclando && <p className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Mesclando clientes...</p>}
 
       {carregando ? (
-        <p style={{ color: 'var(--tinta-suave)' }}>Carregando...</p>
+        <SkeletonClientes />
       ) : itens.length === 0 ? (
-        <div className="painel" style={{ textAlign: 'center', color: 'var(--tinta-suave)' }}>
-          Nenhum cliente encontrado.
+        <div className="estado-vazio-v2 painel">
+          <div className="estado-vazio-icone">⌕</div>
+          <h3>Nenhum cliente encontrado</h3>
+          <p>{busca || telefone || aniversario || situacao ? 'Revise os filtros ou limpe a busca para ver outros cadastros.' : 'Cadastre o primeiro cliente para começar.'}</p>
+          {busca || telefone || aniversario || situacao
+            ? <button className="btn secundario" onClick={() => { setBusca(''); setTelefone(''); setAniversario(''); setSituacao(''); }}>Limpar filtros</button>
+            : <button className="btn" onClick={() => navigate('/clientes/novo')}>+ Novo cliente</button>}
         </div>
       ) : (
         <>
@@ -584,6 +598,17 @@ export default function ListaClientes() {
           </div>
         </div>
       )}
+      {confirmacaoExclusao && (
+        <div className="modal-fundo" onMouseDown={() => setConfirmacaoExclusao(false)}>
+          <div className="modal-caixa confirmacao-contextual" role="dialog" aria-modal="true" aria-labelledby="titulo-exclusao-clientes" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="confirmacao-icone">!</div>
+            <h2 id="titulo-exclusao-clientes">Enviar para a lixeira?</h2>
+            <p>{selecionados.size} cliente{selecionados.size > 1 ? 's' : ''} e seus pedidos sairão da lista principal. Você poderá revisar e restaurar pela Lixeira.</p>
+            <div className="confirmacao-acoes"><button className="btn secundario" onClick={() => setConfirmacaoExclusao(false)}>Cancelar</button><button className="btn perigo" onClick={confirmarExclusaoSelecionados} disabled={excluindoSelecionados}>{excluindoSelecionados ? 'Enviando…' : 'Confirmar'}</button></div>
+          </div>
+        </div>
+      )}
+      <ClienteDrawer clienteId={clienteDrawerId} onFechar={fecharDrawer} onNavegar={navegarDoDrawer} />
     </div>
   );
 }
@@ -609,3 +634,7 @@ const estilos = {
     fontFamily: 'inherit',
   },
 };
+
+function SkeletonClientes() {
+  return <div className="clientes-skeleton painel" aria-label="Carregando clientes">{Array.from({ length: 7 }, (_, i) => <div className="cliente-skeleton-linha" key={i}><i/><span/><span/><span/><b/></div>)}</div>;
+}

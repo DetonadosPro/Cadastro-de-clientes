@@ -3,6 +3,7 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { getUsuarioLogado, getNomeExibicao, limparSessao } from '../api.js';
 import { useRascunhos } from '../RascunhosContext.jsx';
 import { useAgendaAlerta } from '../AgendaAlertaContext.jsx';
+import CommandPalette from './CommandPalette.jsx';
 
 // Converte a chave do rascunho ("novo" ou "editar-123") na rota do formulário correspondente.
 function rotaDoRascunho(prefixoRota, chave) {
@@ -81,6 +82,8 @@ export default function Layout() {
   const usuario = getUsuarioLogado();
   const nomeExibicao = getNomeExibicao();
   const [menuAberto, setMenuAberto] = useState(false);
+  const [sidebarCompacta, setSidebarCompacta] = useState(() => localStorage.getItem('pombo_sidebar_compacta') === '1');
+  const [commandAberta, setCommandAberta] = useState(false);
   const [chaveRelatorios, setChaveRelatorios] = useState(0);
   const { rascunhoFonada, rascunhoAoVivo } = useRascunhos();
   // A cor da bolinha vem do contexto compartilhado — assim ela e as
@@ -91,6 +94,28 @@ export default function Layout() {
   useEffect(() => {
     setMenuAberto(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    localStorage.setItem('pombo_sidebar_compacta', sidebarCompacta ? '1' : '0');
+  }, [sidebarCompacta]);
+
+  useEffect(() => {
+    function atalhosGlobais(e) {
+      const alvo = e.target;
+      const digitando = alvo instanceof HTMLInputElement || alvo instanceof HTMLTextAreaElement || alvo instanceof HTMLSelectElement || alvo?.isContentEditable;
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setCommandAberta((atual) => !atual);
+        return;
+      }
+      if (!digitando && !e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === 'n' && !document.querySelector('.modal-fundo,.command-overlay,.drawer-cliente-overlay')) {
+        e.preventDefault();
+        navigate('/clientes/novo');
+      }
+    }
+    document.addEventListener('keydown', atalhosGlobais);
+    return () => document.removeEventListener('keydown', atalhosGlobais);
+  }, [navigate]);
 
   function irParaClientes() {
     navigate('/clientes');
@@ -121,16 +146,17 @@ export default function Layout() {
         </div>
       </div>
 
-      <aside className={`layout-sidebar nao-imprimir ${menuAberto ? 'aberto' : ''}`}>
+      <aside className={`layout-sidebar nao-imprimir ${menuAberto ? 'aberto' : ''} ${sidebarCompacta ? 'compacta' : ''}`}>
         <div className="layout-marca-desktop" style={estilos.marca}>
           <div style={estilos.carimboMini}>PC</div>
-          <span style={estilos.marcaTexto}>Pombo-Correio</span>
+          <span className="nav-label" style={estilos.marcaTexto}>Pombo-Correio</span>
+          <button type="button" className="sidebar-recolher" onClick={() => setSidebarCompacta((v) => !v)} aria-label={sidebarCompacta ? 'Expandir menu' : 'Recolher menu'} title={sidebarCompacta ? 'Expandir menu' : 'Recolher menu'}>{sidebarCompacta ? '›' : '‹'}</button>
         </div>
 
         <nav className="layout-nav">
           <div className="nav-destaque-duo">
-            <NavLink to="/agenda" className="nav-item-destaque" style={estilos.linkAgenda}>
-              <span style={estilos.itemComIcone}><IconeAgenda /> Agenda</span>
+            <NavLink to="/agenda" className="nav-item-destaque" style={estilos.linkAgenda} aria-label="Agenda" title="Agenda">
+              <span style={estilos.itemComIcone}><IconeAgenda /> <span className="nav-label">Agenda</span></span>
               {alertaAgenda && (
                 <span
                   className={`bolinha-alerta-agenda ${alertaAgenda}`}
@@ -143,20 +169,24 @@ export default function Layout() {
               type="button"
               className={`nav-item-destaque ${location.pathname.startsWith('/clientes') ? 'ativo' : ''}`}
               onClick={irParaClientes}
+              aria-label="Clientes"
+              title="Clientes"
             >
-              <span style={estilos.itemComIcone}><IconeClientes /> Clientes</span>
+              <span style={estilos.itemComIcone}><IconeClientes /> <span className="nav-label">Clientes</span></span>
             </button>
           </div>
 
           <div className="nav-divisor" />
 
-          <NavLink to="/cobranca" className="nav-item-direto">
-            <IconeCobranca /> Cobrança
+          <NavLink to="/cobranca" className="nav-item-direto" aria-label="Cobrança" title="Cobrança">
+            <IconeCobranca /> <span className="nav-label">Cobrança</span>
           </NavLink>
 
           <NavLink
             to="/relatorios"
             className="nav-item-direto"
+            aria-label="Relatórios"
+            title="Relatórios"
             onClick={(e) => {
               // Se a pessoa já está em Relatórios e clica de novo no
               // menu, força o reset da página (limpa aba/filtro da URL
@@ -169,38 +199,38 @@ export default function Layout() {
               }
             }}
           >
-            <IconeRelatorios /> Relatórios
+            <IconeRelatorios /> <span className="nav-label">Relatórios</span>
           </NavLink>
 
           <div className="nav-divisor" />
 
-          <div className="nav-secao-titulo">Pedidos</div>
+          <div className="nav-secao-titulo"><span className="nav-label">Pedidos</span></div>
 
-          <NavLink to="/fonada" className="nav-item-direto" end>
-            <IconeFonada /> Fonada
+          <NavLink to="/fonada" className="nav-item-direto" end aria-label="Fonada" title="Fonada">
+            <IconeFonada /> <span className="nav-label">Fonada</span>
           </NavLink>
           {rascunhoFonada && (
             <NavLink to={rotaDoRascunho('/fonada', rascunhoFonada.chave)} className="nav-continuar">
-              ↻ Continuar pedido fonada
+              <span className="nav-label">↻ Continuar pedido fonada</span>
             </NavLink>
           )}
 
-          <NavLink to="/ao-vivo" className="nav-item-direto" end>
-            <IconeAoVivo /> Ao vivo
+          <NavLink to="/ao-vivo" className="nav-item-direto" end aria-label="Ao vivo" title="Ao vivo">
+            <IconeAoVivo /> <span className="nav-label">Ao vivo</span>
           </NavLink>
           {rascunhoAoVivo && (
             <NavLink to={rotaDoRascunho('/ao-vivo', rascunhoAoVivo.chave)} className="nav-continuar">
-              ↻ Continuar pedido ao vivo
+              <span className="nav-label">↻ Continuar pedido ao vivo</span>
             </NavLink>
           )}
         </nav>
 
         <div className="layout-sidebar-fixo">
-          <NavLink to="/clientes/lixeira" className="nav-lixeira" style={linkLixeiraEstilo}>
-            <span style={estilos.itemComIcone}><IconeLixeira /> Lixeira</span>
+          <NavLink to="/clientes/lixeira" className="nav-lixeira" style={linkLixeiraEstilo} aria-label="Lixeira" title="Lixeira">
+            <span style={estilos.itemComIcone}><IconeLixeira /> <span className="nav-label">Lixeira</span></span>
           </NavLink>
 
-          <div style={estilos.rodapeSidebar}>
+          <div className="nav-label" style={estilos.rodapeSidebar}>
             <div style={estilos.crachaSidebar} title="Usuário logado no momento">
               <span style={estilos.crachaSidebarRotulo}>Logado como</span>
               <span style={estilos.crachaSidebarNome}>{nomeExibicao}</span>
@@ -217,10 +247,17 @@ export default function Layout() {
       )}
 
       <main className="layout-conteudo">
+        <div className="workspace-topbar nao-imprimir">
+          <button type="button" className="workspace-command" onClick={() => setCommandAberta(true)} aria-label="Abrir busca global">
+            <span>⌕</span><span>Buscar clientes, páginas ou ações</span><kbd>Ctrl K</kbd>
+          </button>
+          <button type="button" className="workspace-novo" onClick={() => navigate('/clientes/novo')}><span>＋</span> Novo cliente <kbd>N</kbd></button>
+        </div>
         <div className="layout-pagina">
           <Outlet key={location.pathname === '/relatorios' ? chaveRelatorios : undefined} />
         </div>
       </main>
+      <CommandPalette aberta={commandAberta} onFechar={() => setCommandAberta(false)} onNavegar={navigate} />
     </div>
   );
 }

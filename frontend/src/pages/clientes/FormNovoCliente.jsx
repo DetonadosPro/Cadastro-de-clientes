@@ -33,6 +33,7 @@ export default function FormNovoCliente() {
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
   const [duplicados, setDuplicados] = useState(null);
+  const [enderecoAberto, setEnderecoAberto] = useState(false);
 
   function set(campo, valor) {
     setDados((d) => ({ ...d, [campo]: valor }));
@@ -87,9 +88,14 @@ export default function FormNovoCliente() {
   }
 
   return (
-    <div className="form-pagina">
-      <div style={estilos.barraTopo}>
-        <h1 style={{ marginBottom: 0 }}>Novo cliente</h1>
+    <div className="form-pagina cadastro-cliente-pagina">
+      <div className="pagina-cabecalho-v2">
+        <div>
+          <span className="pagina-kicker">Cadastro inteligente</span>
+          <h1>Novo cliente</h1>
+          <p>Comece pelas informações essenciais. Os demais dados são opcionais.</p>
+        </div>
+        <button type="button" className="btn secundario" onClick={cancelar}>Fechar</button>
       </div>
 
       {erro && <p className="fs-sm" style={{ color: 'var(--selo)', marginBottom: 12 }}>{erro}</p>}
@@ -137,8 +143,8 @@ export default function FormNovoCliente() {
       )}
 
       {!duplicados && (
-        <div className="painel form-novo-cliente" style={{ maxWidth: 720, padding: 28 }}>
-          <div className="section-title" style={{ marginBottom: 20 }}>Dados do cliente</div>
+        <div className="painel form-novo-cliente cadastro-inteligente">
+          <div className="form-etapa-cabecalho"><span>1</span><div><strong>Informações principais</strong><small>Dados usados para identificar e contatar o cliente.</small></div></div>
 
           <div className="linha-form-cliente" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 18 }}>
             <div className="campo" style={{ flex: '1 1 280px', minWidth: 200, marginBottom: 0, gap: 6 }}>
@@ -151,7 +157,7 @@ export default function FormNovoCliente() {
             </div>
           </div>
 
-          <div className="linha-form-cliente" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', paddingBottom: 20, marginBottom: 20, borderBottom: '1px solid var(--papel-alt)' }}>
+          <div className="linha-form-cliente contatos-principais-cliente" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', paddingBottom: 20, marginBottom: 6 }}>
             <div className="campo campo-largura-fixa" style={{ flex: '0 0 auto', width: 150, marginBottom: 0, gap: 6 }}>
               <label>Telefone fixo</label>
               <input value={dados.fixo} onChange={(e) => setComMascara('fixo', e.target.value, 'fixo')} />
@@ -166,29 +172,28 @@ export default function FormNovoCliente() {
             </div>
           </div>
 
-          <div className="campo" style={{ gap: 6, marginBottom: 18 }}>
-            <label>Endereço</label>
-            <input value={dados.endereco} onChange={(e) => set('endereco', e.target.value)} className="campo-endereco-cliente" style={{ maxWidth: 420 }} />
-          </div>
-          <div className="linha-form-cliente" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 22 }}>
-            <div className="campo campo-largura-fixa" style={{ flex: '0 0 auto', width: 180, marginBottom: 0, gap: 6 }}>
-              <label>Complemento</label>
-              <input value={dados.complemento} onChange={(e) => set('complemento', e.target.value)} />
+          <div className={`form-disclosure ${enderecoAberto ? 'aberto' : ''}`}>
+            <button type="button" className="form-disclosure-botao" onClick={() => setEnderecoAberto((v) => !v)} aria-expanded={enderecoAberto}>
+              <span className="form-etapa-numero">2</span><span><strong>Endereço e referência</strong><small>Opcional · pode ser preenchido agora ou depois</small></span><b>{enderecoAberto ? '−' : '+'}</b>
+            </button>
+            {enderecoAberto && <div className="form-disclosure-conteudo">
+              <div className="campo" style={{ gap: 6, marginBottom: 18 }}>
+                <label>Endereço</label>
+                <input value={dados.endereco} onChange={(e) => set('endereco', e.target.value)} className="campo-endereco-cliente" />
+              </div>
+              <div className="linha-form-cliente" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 4 }}>
+                <div className="campo campo-largura-fixa" style={{ flex: '0 0 auto', width: 180, marginBottom: 0, gap: 6 }}><label>Complemento</label><input value={dados.complemento} onChange={(e) => set('complemento', e.target.value)} /></div>
+                <div className="campo campo-largura-fixa" style={{ flex: '0 0 auto', width: 180, marginBottom: 0, gap: 6 }}><label>Bairro</label><input value={dados.bairro} onChange={(e) => set('bairro', e.target.value)} /></div>
+                <div className="campo" style={{ flex: '1 1 200px', minWidth: 160, marginBottom: 0, gap: 6 }}><label>Referência</label><input value={dados.referencia} onChange={(e) => set('referencia', e.target.value)} /></div>
+              </div>
             </div>
-            <div className="campo campo-largura-fixa" style={{ flex: '0 0 auto', width: 180, marginBottom: 0, gap: 6 }}>
-              <label>Bairro</label>
-              <input value={dados.bairro} onChange={(e) => set('bairro', e.target.value)} />
-            </div>
-            <div className="campo" style={{ flex: '1 1 200px', minWidth: 160, marginBottom: 0, gap: 6 }}>
-              <label>Referência</label>
-              <input value={dados.referencia} onChange={(e) => set('referencia', e.target.value)} />
-            </div>
+            }
           </div>
 
-          <div style={estilos.rodapeBotoes}>
+          <div className="cadastro-acoes-sticky" style={estilos.rodapeBotoes}>
             <button type="button" className="btn secundario" onClick={cancelar}>Cancelar</button>
             <button type="button" className="btn" onClick={salvar} disabled={salvando}>
-              {salvando ? 'Verificando...' : 'Salvar cliente'}
+              {salvando ? 'Verificando…' : 'Salvar cliente'}
             </button>
           </div>
         </div>
