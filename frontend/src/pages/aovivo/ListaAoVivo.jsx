@@ -64,6 +64,10 @@ function formatarReais(v) {
 }
 
 function statusEntrega(pedido) {
+  const resultado = String(pedido.resultado_entrega || '').trim().toUpperCase();
+  if (resultado.startsWith('NÃO ENTREGUE') || resultado.startsWith('NAO ENTREGUE')) return 'nao-entregue';
+  if (resultado.startsWith('ENTREGUE')) return 'entregue';
+
   const dataEntrega = paraData(pedido.dia_entrega);
   if (!dataEntrega) return 'futuro';
 
@@ -82,6 +86,8 @@ function statusEntrega(pedido) {
 // vermelho = pendente/atrasado). 'futuro' não mostra nada — a data
 // ainda não chegou, não há o que indicar.
 function IndicadorEntrega({ status }) {
+  if (status === 'entregue') return <span className="tag ok">Entregue</span>;
+  if (status === 'nao-entregue') return <span className="tag pendente">Não entregue</span>;
   if (status === 'hoje') return <span className="tag aviso">Hoje</span>;
   if (status === 'passado') return <span className="tag neutro">Evento passado</span>;
   return <span className="tag neutro">Agendado</span>;
