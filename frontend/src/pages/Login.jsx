@@ -25,11 +25,17 @@ export default function Login() {
   }
 
   return (
-    <div style={estilos.pagina}>
-      <div style={estilos.cartao}>
-        <div style={estilos.carimbo}>PC</div>
-        <h1 style={estilos.titulo}>Pombo-Correio</h1>
-        <p className="fs-sm" style={estilos.subtitulo}>Entre para acessar o sistema</p>
+    <div className="login-pagina">
+      <div className="login-decoracao" aria-hidden="true" />
+      <div className="login-cartao">
+        <div className="login-marca">
+          <div className="login-carimbo">PC</div>
+          <div>
+            <span className="login-kicker">Gestão operacional</span>
+            <h1>Pombo-Correio</h1>
+          </div>
+        </div>
+        <p className="login-subtitulo">Entre para acessar sua área de trabalho</p>
 
         <form onSubmit={entrar}>
           <div className="campo">
@@ -54,69 +60,17 @@ export default function Login() {
             />
           </div>
 
-          {erro && <p className="fs-sm" style={estilos.erro}>{erro}</p>}
+          {erro && <p className="login-erro">{erro}</p>}
 
           <button type="submit" className="btn" style={{ width: '100%', justifyContent: 'center' }} disabled={carregando}>
             {carregando ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
 
-        <Link to="/gerenciar-usuarios" className="fs-xs" style={estilos.linkDiscreto}>
+        <Link to="/gerenciar-usuarios" className="login-link-discreto">
           Gerenciar usuários
         </Link>
       </div>
     </div>
   );
 }
-
-const estilos = {
-  pagina: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'linear-gradient(165deg, #1D4E89 0%, #12314F 100%)',
-    padding: 16,
-  },
-  cartao: {
-    background: '#ffffff',
-    borderRadius: 16,
-    padding: '40px 36px',
-    width: 400,
-    maxWidth: '100%',
-    boxShadow: '0 24px 60px rgba(18, 49, 79, 0.35)',
-    textAlign: 'center',
-  },
-  carimbo: {
-    width: 58,
-    height: 58,
-    margin: '0 auto 18px',
-    borderRadius: '50%',
-    border: '1.5px dashed var(--carimbo)',
-    background: 'var(--carimbo-suave)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontWeight: 700,
-    fontSize: 15,
-    letterSpacing: '0.02em',
-    color: 'var(--carimbo)',
-  },
-  titulo: { marginBottom: 4, textAlign: 'center' },
-  subtitulo: { color: 'var(--tinta-suave)', marginBottom: 26, textAlign: 'center' },
-  erro: {
-    color: 'var(--selo)',
-    background: 'var(--selo-suave)',
-    padding: '9px 12px',
-    borderRadius: 8,
-    marginBottom: 14,
-    textAlign: 'left',
-  },
-  linkDiscreto: {
-    display: 'block',
-    marginTop: 22,
-    color: 'var(--tinta-suave)',
-    textDecoration: 'none',
-    opacity: 0.75,
-  },
-};

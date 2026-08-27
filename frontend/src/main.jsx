@@ -6,6 +6,7 @@ import { RascunhosProvider } from './RascunhosContext.jsx';
 import { ToastProvider } from './ToastContext.jsx';
 import { AgendaAlertaProvider } from './AgendaAlertaContext.jsx';
 import './estilos.css';
+import './modernizacao.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

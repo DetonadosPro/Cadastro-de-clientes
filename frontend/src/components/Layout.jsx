@@ -217,7 +217,9 @@ export default function Layout() {
       )}
 
       <main className="layout-conteudo">
-        <Outlet key={location.pathname === '/relatorios' ? chaveRelatorios : undefined} />
+        <div className="layout-pagina">
+          <Outlet key={location.pathname === '/relatorios' ? chaveRelatorios : undefined} />
+        </div>
       </main>
     </div>
   );

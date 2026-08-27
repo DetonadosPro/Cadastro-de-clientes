@@ -25,10 +25,12 @@ export default function GerenciarUsuarios() {
 
   if (!autenticado) {
     return (
-      <div style={estilos.pagina}>
-        <div style={estilos.cartao}>
-          <h1 style={{ marginBottom: 4, textAlign: 'center' }}>Área restrita</h1>
-          <p className="fs-sm" style={{ color: '#6c757d', marginBottom: 24, textAlign: 'center' }}>
+      <div className="login-pagina">
+        <div className="login-decoracao" aria-hidden="true" />
+        <div className="login-cartao usuario-acesso-cartao">
+          <div className="usuario-acesso-icone">⌁</div>
+          <h1>Área restrita</h1>
+          <p className="login-subtitulo">
             Digite a senha mestra para gerenciar usuários
           </p>
           <form onSubmit={verificarSenha}>
@@ -44,7 +46,7 @@ export default function GerenciarUsuarios() {
               />
             </div>
             {erroSenha && (
-              <p className="fs-sm" style={{ color: '#dc3545', background: '#f8d7da', padding: '8px 10px', borderRadius: 6, marginBottom: 12 }}>
+              <p className="login-erro">
                 {erroSenha}
               </p>
             )}
@@ -52,7 +54,7 @@ export default function GerenciarUsuarios() {
               {verificando ? 'Verificando...' : 'Entrar'}
             </button>
           </form>
-          <Link to="/login" className="fs-xs" style={{ display: 'block', marginTop: 20, textAlign: 'center', color: '#adb5bd', textDecoration: 'none' }}>
+          <Link to="/login" className="login-link-discreto">
             ← Voltar ao login
           </Link>
         </div>
@@ -130,12 +132,12 @@ function PainelUsuarios({ senhaMestra }) {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F2F2F2', padding: '32px 20px' }}>
-      <div style={{ maxWidth: 720, margin: '0 auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+    <div className="usuarios-pagina">
+      <div className="usuarios-conteudo">
+        <div className="usuarios-cabecalho">
           <div>
             <h1 style={{ marginBottom: 2 }}>Usuários do sistema</h1>
-            <p className="fs-sm" style={{ color: '#6c757d', margin: 0 }}>Criar e remover contas de login</p>
+            <p className="fs-sm texto-suave" style={{ margin: 0 }}>Criar e remover contas de login</p>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button type="button" className="btn" onClick={() => setMostrandoForm((v) => !v)}>
@@ -169,7 +171,7 @@ function PainelUsuarios({ senhaMestra }) {
                 <input type="password" value={novaSenha} onChange={(e) => setNovaSenha(e.target.value)} placeholder="mínimo 3 caracteres" />
               </div>
             </div>
-            {erroForm && <p className="fs-sm" style={{ color: '#dc3545', marginBottom: 10 }}>{erroForm}</p>}
+            {erroForm && <p className="login-erro">{erroForm}</p>}
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <button type="submit" className="btn" disabled={salvando}>
                 {salvando ? 'Criando...' : 'Criar usuário'}
@@ -178,12 +180,12 @@ function PainelUsuarios({ senhaMestra }) {
           </form>
         )}
 
-        {erro && <p style={{ color: '#dc3545' }}>{erro}</p>}
+        {erro && <p className="login-erro">{erro}</p>}
 
         {carregando ? (
-          <p style={{ color: '#6c757d' }}>Carregando...</p>
+          <p className="texto-suave">Carregando...</p>
         ) : usuarios.length === 0 ? (
-          <div className="painel" style={{ textAlign: 'center', color: '#6c757d' }}>
+          <div className="painel estado-cobranca">
             Nenhum usuário cadastrado ainda.
           </div>
         ) : (
@@ -208,8 +210,7 @@ function PainelUsuarios({ senhaMestra }) {
                     <td>
                       <button
                         type="button"
-                        className="btn-small"
-                        style={{ color: '#dc3545', borderColor: '#dc3545' }}
+                        className="btn-small perigo"
                         onClick={() => remover(u)}
                       >
                         Remover
@@ -225,20 +226,3 @@ function PainelUsuarios({ senhaMestra }) {
     </div>
   );
 }
-
-const estilos = {
-  pagina: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'linear-gradient(180deg, #004085 0%, #002752 100%)',
-  },
-  cartao: {
-    background: '#ffffff',
-    borderRadius: 12,
-    padding: '40px 36px',
-    width: 400,
-    boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
-  },
-};
