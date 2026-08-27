@@ -4036,6 +4036,40 @@ input[type="password"] {
   gap: 5px;
   white-space: nowrap;
 }
+.recall-relacao-titulo {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.recall-detalhes-topo .recall-relacao-titulo > span:first-child {
+  color: var(--tinta);
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+}
+.recall-relacao-titulo > b {
+  color: var(--tinta-suave);
+  font-size: 14px;
+  font-weight: 500;
+}
+.recall-relacao-titulo .recall-aniversariante-nome > strong {
+  color: var(--carimbo);
+  font-size: 13px;
+}
+.recall-relacao-titulo .recall-aniversariante-nome > em:not(.recall-bloqueado) {
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: var(--carimbo-suave);
+  color: var(--carimbo);
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: .05em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
 .recall-bloqueado,
 .recall-linha em.recall-bloqueado,
 .recall-detalhes em.recall-bloqueado {
