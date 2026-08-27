@@ -1,6 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { api } from '../../api.js';
+import { api, getNomeExibicao } from '../../api.js';
+import {
+  mensagemConfirmacao as mensagemConfirmacaoAgenda,
+  mensagemRegistrarERemarcar,
+} from '../../utils/mensagemAgenda.js';
 import { useToast } from '../../ToastContext.jsx';
 import { useAgendaAlerta, statusUrgenciaItem } from '../../AgendaAlertaContext.jsx';
 import { formatarData, formatarHorario } from '../../mascaras.js';
@@ -294,7 +298,7 @@ export default function Agenda() {
       await api.agenda.darBaixaFonada(item.pedidoId, item.mensagem);
       if (par) await api.agenda.darBaixaFonada(par.pedidoId, par.mensagem);
       mostrarToast('BAIXA DADA COM SUCESSO');
-      abrirWhatsappSeExistir(item.whatsapp, mensagemConfirmacao(item.nome_comprador, item.para));
+      abrirWhatsappSeExistir(item.whatsapp, mensagemConfirmacaoAgenda(item.nome_comprador, item.para, getNomeExibicao()));
       carregar();
     } catch (err) {
       mostrarToast(err.message || 'Não foi possível registrar a baixa.', 'erro');
@@ -354,7 +358,11 @@ export default function Agenda() {
       mostrarToast('Tentativa registrada e mensagem remarcada.');
       abrirWhatsappSeExistir(
         itemRemarcarAberto.whatsapp,
-        mensagemNaoAtendeu(itemRemarcarAberto.nome, itemRemarcarAberto.para)
+        mensagemRegistrarERemarcar(
+          itemRemarcarAberto.nome,
+          itemRemarcarAberto.para,
+          getNomeExibicao()
+        )
       );
       setItemRemarcarAberto(null);
       carregar();
@@ -1191,37 +1199,6 @@ function linkWhatsappDe(valor, mensagem) {
   if (numeroComDDI.length < 12) return null;
   const base = `https://api.whatsapp.com/send?phone=${numeroComDDI}`;
   return mensagem ? `${base}&text=${encodeURIComponent(mensagem)}` : base;
-}
-
-// Primeiro nome de um nome completo — usado nas mensagens automáticas
-// para soar mais pessoal do que o nome inteiro.
-function primeiroNome(nomeCompleto) {
-  const nome = String(nomeCompleto || '').trim();
-  if (!nome) return 'tudo bem';
-  return nome.split(/\s+/)[0];
-}
-
-// Texto de confirmação enviado ao marcar uma mensagem como passada —
-// "comprador" e "destinatario" já vêm prontos (nome_comprador/comprador
-// e para, dependendo do sistema).
-function mensagemConfirmacao(comprador, destinatario) {
-  const nomeComprador = primeiroNome(comprador);
-  const nomeDestinatario = destinatario || 'a pessoa';
-  // Emoji "rosto apaixonado" (🥰) escrito como escape Unicode, em vez
-  // do caractere literal — mais resistente a problemas de codificação
-  // ao salvar/abrir o arquivo em editores ou sistemas diferentes.
-  const emoji = '\u{1F970}';
-  return `Olá ${nomeComprador}! Acabei de passar a mensagem para ${nomeDestinatario}${emoji}`;
-}
-
-// Texto enviado ao registrar "não atendeu" e remarcar — avisa o
-// comprador que ainda não conseguiu passar a mensagem para o
-// destinatário, sem dar detalhes do motivo (só "ninguém atende por lá").
-function mensagemNaoAtendeu(comprador, destinatario) {
-  const nomeComprador = primeiroNome(comprador);
-  const nomeDestinatario = destinatario || 'a pessoa';
-  const emoji = '\u{1F609}';
-  return `Oi, ${nomeComprador}, tudo bem? É do Pombo-Correio. Ainda não conseguimos passar a mensagem para ${nomeDestinatario} porque ninguém atende por lá. Assim que der certo, te avisamos!${emoji}`;
 }
 
 // Abre o WhatsApp com a mensagem indicada, só se o cliente tiver um
