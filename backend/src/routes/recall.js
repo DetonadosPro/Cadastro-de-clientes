@@ -7,15 +7,17 @@ const STATUS = new Set(['PENDENTE', 'NAO_ATENDEU', 'RETORNAR', 'SEM_INTERESSE', 
 
 function sqlMensagens(filtro1, filtro2) {
   return `
-    SELECT f.id pedido_id, f.cliente_id, f.senha_os, f.nome_comprador cliente_nome,
+    SELECT f.id pedido_id, f.cliente_id, f.senha_os, f.nome_comprador cliente_nome, COALESCE(c.bloqueado,FALSE) cliente_bloqueado,
       COALESCE(NULLIF(c.whatsapp,''), NULLIF(c.celular,''), NULLIF(c.fixo,''), NULLIF(f.comprador_whatsapp,''), NULLIF(f.comprador_celular,''), f.comprador_fixo) telefone,
-      f.p1_para aniversariante, f.p1_tema tema, f.p1_mensagem mensagem_texto, f.p1_dia dia_mensagem, 1 numero_mensagem
+      f.p1_para aniversariante, EXISTS(SELECT 1 FROM clientes d WHERE d.excluido_em IS NULL AND d.bloqueado=TRUE AND LOWER(TRIM(d.nome))=LOWER(TRIM(f.p1_para))) aniversariante_bloqueado,
+      f.p1_tema tema, f.p1_mensagem mensagem_texto, f.p1_dia dia_mensagem, 1 numero_mensagem
     FROM fonadas f LEFT JOIN clientes c ON c.id=f.cliente_id
     WHERE f.excluido_em IS NULL AND COALESCE(f.p1_para,'')<>'' AND ${filtro1}
     UNION ALL
-    SELECT f.id, f.cliente_id, f.senha_os, f.nome_comprador,
+    SELECT f.id, f.cliente_id, f.senha_os, f.nome_comprador, COALESCE(c.bloqueado,FALSE),
       COALESCE(NULLIF(c.whatsapp,''), NULLIF(c.celular,''), NULLIF(c.fixo,''), NULLIF(f.comprador_whatsapp,''), NULLIF(f.comprador_celular,''), f.comprador_fixo),
-      f.p2_para, f.p2_tema, f.p2_mensagem, f.p2_dia, 2
+      f.p2_para, EXISTS(SELECT 1 FROM clientes d WHERE d.excluido_em IS NULL AND d.bloqueado=TRUE AND LOWER(TRIM(d.nome))=LOWER(TRIM(f.p2_para))),
+      f.p2_tema, f.p2_mensagem, f.p2_dia, 2
     FROM fonadas f LEFT JOIN clientes c ON c.id=f.cliente_id
     WHERE f.excluido_em IS NULL AND COALESCE(f.p2_para,'')<>'' AND ${filtro2}`;
 }
@@ -36,8 +38,11 @@ function agrupar(linhas, dataLimite = null, exigirTemaAniversario = true) {
         ? `NOME:${chavePessoa(linha.cliente_nome)}`
         : `NOME:${chavePessoa(linha.cliente_nome)}:${String(linha.telefone || '').replace(/\D/g, '')}`;
     const relacaoChave = `${identidadeCliente}|PARA:${chavePessoa(linha.aniversariante)}`;
-    if (!grupos.has(relacaoChave)) grupos.set(relacaoChave, { relacaoChave, clienteId: linha.cliente_id, clienteNome: linha.cliente_nome, telefone: linha.telefone, aniversariante: linha.aniversariante, aniversarianteNascimento: linha.aniversariante_nascimento || null, historico: [] });
-    grupos.get(relacaoChave).historico.push({ pedidoId: linha.pedido_id, os: linha.senha_os, mensagem: linha.numero_mensagem, data: linha.dia_mensagem, tema: linha.tema, texto: linha.mensagem_texto });
+    if (!grupos.has(relacaoChave)) grupos.set(relacaoChave, { relacaoChave, clienteId: linha.cliente_id, clienteNome: linha.cliente_nome, clienteBloqueado: Boolean(linha.cliente_bloqueado), telefone: linha.telefone, aniversariante: linha.aniversariante, aniversarianteBloqueado: Boolean(linha.aniversariante_bloqueado), aniversarianteNascimento: linha.aniversariante_nascimento || null, historico: [] });
+    const grupo = grupos.get(relacaoChave);
+    grupo.clienteBloqueado = grupo.clienteBloqueado || Boolean(linha.cliente_bloqueado);
+    grupo.aniversarianteBloqueado = grupo.aniversarianteBloqueado || Boolean(linha.aniversariante_bloqueado);
+    grupo.historico.push({ pedidoId: linha.pedido_id, os: linha.senha_os, mensagem: linha.numero_mensagem, data: linha.dia_mensagem, tema: linha.tema, texto: linha.mensagem_texto });
   }
   return [...grupos.values()].map((g) => {
     g.historico.sort((a, b) => String(dataBrParaIso(b.data) || '').localeCompare(String(dataBrParaIso(a.data) || '')) || b.pedidoId - a.pedidoId);
@@ -65,14 +70,16 @@ function sqlDestinatariosDoAniversariante(filtroCliente) {
   const telefoneDestino = (prefixo) => `COALESCE(NULLIF(f.${prefixo}_celular,''), NULLIF(f.${prefixo}_fixo,''))`;
   return `
     SELECT f.id pedido_id, NULL::INTEGER cliente_id, f.senha_os, f.p1_para cliente_nome,
+      EXISTS(SELECT 1 FROM clientes d WHERE d.excluido_em IS NULL AND d.bloqueado=TRUE AND LOWER(TRIM(d.nome))=LOWER(TRIM(f.p1_para))) cliente_bloqueado,
       ${telefoneDestino('p1')} telefone, COALESCE(NULLIF(c.nome,''),f.nome_comprador) aniversariante,
-      COALESCE(NULLIF(c.nascimento,''),f.nascimento) aniversariante_nascimento, f.p1_tema tema, f.p1_mensagem mensagem_texto,
+      COALESCE(c.bloqueado,FALSE) aniversariante_bloqueado, COALESCE(NULLIF(c.nascimento,''),f.nascimento) aniversariante_nascimento, f.p1_tema tema, f.p1_mensagem mensagem_texto,
       f.p1_dia dia_mensagem, 1 numero_mensagem, TRUE agrupar_por_nome
     FROM fonadas f LEFT JOIN clientes c ON c.id=f.cliente_id
     WHERE f.excluido_em IS NULL AND COALESCE(f.p1_para,'')<>'' AND ${filtroCliente}
     UNION ALL
-    SELECT f.id, NULL::INTEGER, f.senha_os, f.p2_para, ${telefoneDestino('p2')},
-      COALESCE(NULLIF(c.nome,''),f.nome_comprador), COALESCE(NULLIF(c.nascimento,''),f.nascimento), f.p2_tema, f.p2_mensagem,
+    SELECT f.id, NULL::INTEGER, f.senha_os, f.p2_para,
+      EXISTS(SELECT 1 FROM clientes d WHERE d.excluido_em IS NULL AND d.bloqueado=TRUE AND LOWER(TRIM(d.nome))=LOWER(TRIM(f.p2_para))), ${telefoneDestino('p2')},
+      COALESCE(NULLIF(c.nome,''),f.nome_comprador), COALESCE(c.bloqueado,FALSE), COALESCE(NULLIF(c.nascimento,''),f.nascimento), f.p2_tema, f.p2_mensagem,
       f.p2_dia, 2, TRUE
     FROM fonadas f LEFT JOIN clientes c ON c.id=f.cliente_id
     WHERE f.excluido_em IS NULL AND COALESCE(f.p2_para,'')<>'' AND ${filtroCliente}`;
@@ -86,7 +93,7 @@ async function vincularClientesPorTelefone(linhas) {
   const telefones = [...new Set(linhas.map((l) => normalizarTelefone(l.telefone)).filter(Boolean))];
   if (!telefones.length) return linhas;
   const resultado = await db.query(`
-    SELECT id, nome, whatsapp, celular, fixo
+    SELECT id, nome, whatsapp, celular, fixo, bloqueado
     FROM clientes
     WHERE excluido_em IS NULL
       AND (
@@ -104,7 +111,7 @@ async function vincularClientesPorTelefone(linhas) {
   }
   return linhas.map((linha) => {
     const cliente = porTelefone.get(normalizarTelefone(linha.telefone));
-    return cliente ? { ...linha, cliente_id: cliente.id } : linha;
+    return cliente ? { ...linha, cliente_id: cliente.id, cliente_bloqueado: Boolean(cliente.bloqueado) } : linha;
   });
 }
 

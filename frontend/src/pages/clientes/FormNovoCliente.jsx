@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
@@ -27,9 +27,10 @@ const VAZIO = {
 
 export default function FormNovoCliente() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { mostrarToast } = useToast();
 
-  const [dados, setDados] = useState(VAZIO);
+  const [dados, setDados] = useState(() => ({ ...VAZIO, ...(location.state?.dadosIniciais || {}) }));
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
   const [duplicados, setDuplicados] = useState(null);
@@ -84,7 +85,7 @@ export default function FormNovoCliente() {
   }
 
   function cancelar() {
-    navigate('/clientes');
+    navigate(location.state?.returnTo || '/clientes');
   }
 
   return (
