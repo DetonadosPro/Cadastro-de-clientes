@@ -42,6 +42,14 @@ function IconeCobranca() {
     </svg>
   );
 }
+function IconeRecall() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 11.5a8.5 8.5 0 1 1-2.5-6" /><path d="M21 4v7h-7" />
+      <path d="M9.5 8.5c.7 2.5 2.5 4.3 5 5" />
+    </svg>
+  );
+}
 function IconeRelatorios() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -180,6 +188,10 @@ export default function Layout() {
 
           <NavLink to="/cobranca" className="nav-item-direto" aria-label="Cobrança" title="Cobrança">
             <IconeCobranca /> <span className="nav-label">Cobrança</span>
+          </NavLink>
+
+          <NavLink to="/recall" className="nav-item-direto" aria-label="Recall" title="Recall">
+            <IconeRecall /> <span className="nav-label">Recall</span>
           </NavLink>
 
           <NavLink

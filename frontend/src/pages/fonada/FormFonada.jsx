@@ -128,6 +128,9 @@ export default function FormFonada() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const clienteIdUrl = searchParams.get('clienteId');
+  const recallParaUrl = searchParams.get('recallPara');
+  const recallDataUrl = searchParams.get('recallData');
+  const recallRelacaoUrl = searchParams.get('recallRelacao');
   const editando = Boolean(id);
   const navigate = useNavigate();
   const location = useLocation();
@@ -212,6 +215,7 @@ export default function FormFonada() {
   const chaveRascunho = editando ? `editar-${id}` : 'novo';
 
   const [dados, setDados] = useState(VAZIO);
+  const [mensagemEmHaver, setMensagemEmHaver] = useState(null);
   const [cliente, setCliente] = useState(null);
   const [tentativas, setTentativas] = useState([]);
   const [carregando, setCarregando] = useState(true);
@@ -238,6 +242,7 @@ export default function FormFonada() {
         Object.keys(VAZIO).forEach((campo) => { normalizado[campo] = pedido[campo] ?? ''; });
         normalizado.valor = numeroParaValorMonetario(pedido.valor);
         setDados(normalizado);
+        setMensagemEmHaver(pedido.mensagemEmHaver || null);
         if (pedido.cliente_id) {
           api.clientes.buscar(pedido.cliente_id).then((resp) => setCliente(resp.cliente));
         }
@@ -270,6 +275,11 @@ export default function FormFonada() {
             horario_pedido: horario,
             senha_os: respOs.proximaOs,
             nascimento: respCliente.cliente.nascimento || '',
+            recall: recallParaUrl ? 'SIM' : 'NÃO',
+            p1_para: recallParaUrl || '',
+            p1_tema: recallParaUrl ? 'ANIV GERAL' : '',
+            p1_dia: recallDataUrl && /^\d{4}-\d{2}-\d{2}$/.test(recallDataUrl)
+              ? `${recallDataUrl.slice(8, 10)}/${recallDataUrl.slice(5, 7)}/${recallDataUrl.slice(2, 4)}` : '',
           };
           setDados(inicial);
           setCliente(respCliente.cliente);
@@ -286,6 +296,7 @@ export default function FormFonada() {
         Object.keys(VAZIO).forEach((campo) => { normalizado[campo] = pedido[campo] ?? ''; });
         normalizado.valor = numeroParaValorMonetario(pedido.valor);
         setDados(normalizado);
+        setMensagemEmHaver(pedido.mensagemEmHaver || null);
         if (pedido.cliente_id) {
           api.clientes.buscar(pedido.cliente_id).then((resp) => setCliente(resp.cliente));
         }
@@ -303,7 +314,7 @@ export default function FormFonada() {
       mostrarToast('BAIXA DADA COM SUCESSO');
       await carregarPedido();
     } catch (err) {
-      mostrarToast('Não foi possível registrar a baixa. Tente novamente.', 'erro');
+      mostrarToast(err.message || 'Não foi possível registrar a baixa.', 'erro');
     } finally {
       setSalvandoBaixa(null);
     }
@@ -347,7 +358,7 @@ export default function FormFonada() {
       setRemarcarAberto(null);
       await carregarPedido();
     } catch (err) {
-      mostrarToast('Não foi possível registrar. Tente novamente.', 'erro');
+      mostrarToast(err.message || 'Não foi possível registrar.', 'erro');
     } finally {
       setSalvandoRemarcacao(false);
     }
@@ -454,9 +465,19 @@ export default function FormFonada() {
         mostrarToast('Pedido salvo com sucesso.');
       } else {
         const novo = await api.fonada.criar(payload);
+        let recallAtualizado = true;
+        if (recallRelacaoUrl && recallDataUrl) {
+          try {
+            await api.recall.pedidoCriado({ dataReferencia: recallDataUrl, relacaoChave: recallRelacaoUrl, pedidoId: novo.id });
+          } catch {
+            // O pedido já está salvo: uma falha secundária no Recall não pode
+            // induzir a pessoa a tentar salvar de novo e duplicar a O.S.
+            recallAtualizado = false;
+          }
+        }
         limparRascunhoFonada();
-        mostrarToast('Pedido salvo com sucesso.');
-        navigate(`/fonada/${novo.id}`, { replace: true });
+        mostrarToast(recallAtualizado ? 'Pedido salvo com sucesso.' : 'Pedido salvo. O status do Recall precisa ser conferido.', recallAtualizado ? 'sucesso' : 'aviso');
+        navigate(`/fonada/${novo.id}`, { replace: true, state: recallRelacaoUrl ? { returnTo: `/recall?data=${recallDataUrl}` } : undefined });
       }
     } catch (err) {
       setErro(err.message);
@@ -537,6 +558,7 @@ export default function FormFonada() {
 
   const estaBloqueado = !!cliente?.bloqueado;
   const segundaLiberada = segundaMensagemLiberada(dados);
+  const segundaExpirada = editando && mensagemEmHaver?.status === 'EXPIRADA';
 
   // Validação em tempo real (não só ao salvar): se a data ficar
   // completa e for anterior a hoje, o aviso aparece na hora, sem
@@ -575,7 +597,8 @@ export default function FormFonada() {
               />
               <ColunaMensagem
                 numero={2} dados={dados} set={set} setComMascara={setComMascara} onCopiar={copiarEntreMensagens}
-                bloqueada={!segundaLiberada} editando={editando} dataNoPassado={p2DiaNoPassado}
+                bloqueada={!segundaLiberada || segundaExpirada} editando={editando} dataNoPassado={p2DiaNoPassado}
+                situacaoMensagem={mensagemEmHaver}
                 salvandoBaixa={salvandoBaixa} onDarBaixa={darBaixaMensagem} onNaoAtendeu={abrirRemarcarMensagem}
               />
             </div>
@@ -881,7 +904,7 @@ export default function FormFonada() {
 // a 1ª e copiar dali para a 2ª, não o contrário. Reúne o que antes
 // eram duas seções separadas ("Ordem de serviço" e "Transmissão") —
 // na prática é a mesma ordem de serviço, só com campos diferentes.
-function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada, copiarBloqueado, editando, dataNoPassado, salvandoBaixa, onDarBaixa, onNaoAtendeu }) {
+function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada, copiarBloqueado, editando, dataNoPassado, salvandoBaixa, onDarBaixa, onNaoAtendeu, situacaoMensagem }) {
   const p = numero === 1 ? 'p1' : 'p2';
   const mostrarBotaoP = numero === 1;
   const diaPreenchido = Boolean(dados[`${p}_dia`]);
@@ -891,6 +914,11 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
     <div className="coluna-mensagem">
       <div className="coluna-mensagem-titulo">
         <span className={`bolinha-status ${dados[`${p}_dia`] ? 'usada' : 'livre'}`} /> {numero}ª mensagem
+        {numero === 2 && situacaoMensagem && (
+          <span className={`tag ${situacaoMensagem.status === 'DISPONIVEL' ? 'ok' : situacaoMensagem.status === 'EXPIRADA' ? 'pendente' : 'neutro'}`} style={{ marginLeft: 'auto' }}>
+            {situacaoMensagem.status === 'DISPONIVEL' ? `Disponível até ${situacaoMensagem.dataExpiracao}` : situacaoMensagem.status === 'UTILIZADA' ? 'Utilizada' : situacaoMensagem.status === 'EXPIRADA' ? `Expirada em ${situacaoMensagem.dataExpiracao}` : 'Sem direito'}
+          </span>
+        )}
       </div>
       <div className="form-row linha-tema-numero-fonada">
         <label>Tema:</label>
@@ -962,7 +990,7 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
       <CampoComP label="Quem oferece" nomeCampo="quem_oferece" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} copiarBloqueado={copiarBloqueado} negrito classeExtra="campo-quem-oferece" multilinha />
       <CampoComP label="Resultado" nomeCampo="resultado" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} copiarBloqueado={copiarBloqueado} negrito cor="var(--selo)" classeExtra="campo-resultado" />
 
-      {editando && diaPreenchido && (
+      {editando && diaPreenchido && situacaoMensagem?.status !== 'EXPIRADA' && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 8, borderTop: '1px dashed var(--papel-alt)' }}>
           <span className="fs-xs" style={{ color: 'var(--tinta-suave)' }}>
             {jaProcessada ? 'Situação da entrega' : 'Marcar entrega desta mensagem'}

@@ -214,6 +214,24 @@ async function iniciarBanco() {
   `);
   await pool.query('CREATE INDEX IF NOT EXISTS idx_tentativas_pedido ON tentativas_contato(pedido_id)');
 
+  // Compromissos operacionais independentes de clientes e pedidos.
+  // A data usa DATE para permitir filtros/indexação corretos; horário é
+  // opcional para lembretes que valem para o dia inteiro.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS lembretes (
+      id SERIAL PRIMARY KEY,
+      titulo TEXT NOT NULL,
+      data DATE NOT NULL,
+      horario TIME,
+      observacao TEXT,
+      concluido BOOLEAN NOT NULL DEFAULT FALSE,
+      criado_por INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+      criado_em TIMESTAMP DEFAULT NOW(),
+      atualizado_em TIMESTAMP DEFAULT NOW()
+    );
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_lembretes_data ON lembretes(data)');
+
   // Equivalente a tentativas_contato, mas para o prazo de pagamento do
   // Ao Vivo — não tem o conceito de "1ª/2ª mensagem" (é um pedido só),
   // então não existe coluna mensagem. Guarda o histórico de "não
@@ -229,6 +247,31 @@ async function iniciarBanco() {
     );
   `);
   await pool.query('CREATE INDEX IF NOT EXISTS idx_tentativas_prazo_pedido ON tentativas_prazo_ao_vivo(pedido_id)');
+
+  // Uma linha por oportunidade diária (cliente ↔ aniversariante). A fila é
+  // derivada do histórico de pedidos; aqui ficam apenas o andamento da
+  // ligação e o vínculo com um novo pedido, evitando duplicar dados antigos.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS recall_registros (
+      id SERIAL PRIMARY KEY,
+      data_referencia TEXT NOT NULL,
+      relacao_chave TEXT NOT NULL,
+      cliente_id INTEGER REFERENCES clientes(id) ON DELETE SET NULL,
+      cliente_nome TEXT NOT NULL,
+      aniversariante_nome TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'PENDENTE',
+      observacao TEXT,
+      retornar_em TIMESTAMP,
+      pedido_origem_id INTEGER REFERENCES fonadas(id) ON DELETE SET NULL,
+      pedido_novo_id INTEGER REFERENCES fonadas(id) ON DELETE SET NULL,
+      atualizado_por TEXT,
+      criado_em TIMESTAMP DEFAULT NOW(),
+      atualizado_em TIMESTAMP DEFAULT NOW(),
+      UNIQUE (data_referencia, relacao_chave)
+    );
+  `);
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_recall_data ON recall_registros(data_referencia)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_recall_relacao ON recall_registros(relacao_chave)');
 
   // Pares de clientes que a pessoa já confirmou não serem a mesma
   // pessoa, mesmo batendo no critério de nome parecido + mesmo

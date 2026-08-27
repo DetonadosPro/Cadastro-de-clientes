@@ -11,6 +11,7 @@
 const express = require('express');
 const { db, pool, reservarProximaOs } = require('../db/database');
 const { agoraBrasilia } = require('../utils/dataHora');
+const { situacaoSegundaMensagem, validarDataUsoSegundaMensagem, houveAlteracaoP2 } = require('../utils/mensagemEmHaver');
 
 const router = express.Router();
 
@@ -117,7 +118,13 @@ router.get('/', async (req, res) => {
       LIMIT $${idxLimit} OFFSET $${idxOffset}
     `, [...params, porPagina, offset]);
 
-    res.json({ total, pagina, porPagina, fonadas: linhasResultado.rows });
+    res.json({
+      total, pagina, porPagina,
+      fonadas: linhasResultado.rows.map((pedido) => ({
+        ...pedido,
+        mensagemEmHaver: situacaoSegundaMensagem(pedido),
+      })),
+    });
   } catch (erro) {
     console.error('Erro ao listar fonadas:', erro);
     res.status(500).json({ erro: 'Erro ao listar fonadas.' });
@@ -151,7 +158,7 @@ router.get('/:id', async (req, res) => {
     const resultado = await db.query('SELECT * FROM fonadas WHERE id = $1', [req.params.id]);
     const item = resultado.rows[0];
     if (!item) return res.status(404).json({ erro: 'Registro não encontrado.' });
-    res.json(item);
+    res.json({ ...item, mensagemEmHaver: situacaoSegundaMensagem(item) });
   } catch (erro) {
     console.error('Erro ao buscar fonada:', erro);
     res.status(500).json({ erro: 'Erro ao buscar registro.' });
@@ -185,6 +192,11 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ erro: 'O nome do comprador é obrigatório.' });
     }
 
+    if (String(dados.p2_dia || '').trim() || String(dados.p2_resultado || '').trim()) {
+      const validacaoP2 = validarDataUsoSegundaMensagem({ ...dados, p2_resultado: '' }, dados.p2_dia);
+      if (!validacaoP2.ok) return res.status(409).json({ erro: validacaoP2.erro });
+    }
+
     // Vendedor é sempre quem está logado no momento de criar o pedido —
     // não é um campo escolhido manualmente, para não depender de a
     // pessoa lembrar de preencher certo.
@@ -208,10 +220,11 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
   try {
-    const existenteResultado = await db.query('SELECT id, cliente_id FROM fonadas WHERE id = $1', [req.params.id]);
+    const existenteResultado = await db.query('SELECT * FROM fonadas WHERE id = $1', [req.params.id]);
     if (existenteResultado.rows.length === 0) return res.status(404).json({ erro: 'Registro não encontrado.' });
 
-    const clienteId = existenteResultado.rows[0].cliente_id;
+    const existente = existenteResultado.rows[0];
+    const clienteId = existente.cliente_id;
     if (clienteId) {
       const clienteResultado = await db.query('SELECT bloqueado FROM clientes WHERE id = $1', [clienteId]);
       if (clienteResultado.rows[0]?.bloqueado) {
@@ -220,6 +233,18 @@ router.put('/:id', async (req, res) => {
     }
 
     const dados = req.body;
+    if (houveAlteracaoP2(existente, dados)) {
+      const pedidoFinal = { ...existente, ...dados };
+      // Correções textuais de uma mensagem já utilizada continuam
+      // permitidas. A validação é obrigatória quando a alteração abre,
+      // agenda ou efetivamente utiliza uma segunda mensagem.
+      const jaEstavaUtilizada = Boolean(String(existente.p2_resultado || '').trim());
+      const continuaUtilizada = Boolean(String(pedidoFinal.p2_resultado || '').trim());
+      if (!jaEstavaUtilizada || !continuaUtilizada) {
+        const validacaoP2 = validarDataUsoSegundaMensagem({ ...pedidoFinal, p2_resultado: '' }, pedidoFinal.p2_dia);
+        if (!validacaoP2.ok) return res.status(409).json({ erro: validacaoP2.erro });
+      }
+    }
     const campos = CAMPOS.filter((c) => dados[c] !== undefined);
     if (campos.length === 0) return res.status(400).json({ erro: 'Nenhum campo para atualizar.' });
 
@@ -233,7 +258,7 @@ router.put('/:id', async (req, res) => {
     );
 
     const atualizado = await db.query('SELECT * FROM fonadas WHERE id = $1', [req.params.id]);
-    res.json(atualizado.rows[0]);
+    res.json({ ...atualizado.rows[0], mensagemEmHaver: situacaoSegundaMensagem(atualizado.rows[0]) });
   } catch (erro) {
     console.error('Erro ao atualizar fonada:', erro);
     res.status(500).json({ erro: 'Erro ao atualizar registro.' });

@@ -12,6 +12,7 @@
 const express = require('express');
 const { db, pool } = require('../db/database');
 const { agoraBrasilia } = require('../utils/dataHora');
+const { situacaoSegundaMensagem, validarDataUsoSegundaMensagem } = require('../utils/mensagemEmHaver');
 
 const router = express.Router();
 
@@ -44,6 +45,15 @@ function ambosFormatosDe(dataBr) {
   return { curto: `${dd}/${mm}/${aa}`, longo: `${dd}/${mm}/${aaaa}` };
 }
 
+function dataBrParaIso(dataBr) {
+  const formatos = ambosFormatosDe(dataBr);
+  if (!formatos) return null;
+  const [dd, mm, aa] = formatos.longo.split('/');
+  const data = new Date(Number(aa), Number(mm) - 1, Number(dd));
+  if (data.getFullYear() !== Number(aa) || data.getMonth() !== Number(mm) - 1 || data.getDate() !== Number(dd)) return null;
+  return `${aa}-${mm}-${dd}`;
+}
+
 function agoraFormatado() {
   const agora = agoraBrasilia();
   const dd = String(agora.getDate()).padStart(2, '0');
@@ -66,7 +76,7 @@ router.get('/hoje', async (req, res) => {
     const consultandoHoje = !dataConsultada || curto === curtoHoje || curto === longoHoje || longo === curtoHoje || longo === longoHoje;
 
     const fonadasResultado = await db.query(`
-      SELECT f.id, f.senha_os, f.nome_comprador, f.cliente_id, c.whatsapp AS cliente_whatsapp,
+      SELECT f.id, f.senha_os, f.nome_comprador, f.cliente_id, f.data_pedido, c.whatsapp AS cliente_whatsapp,
              f.p1_dia, f.p1_para, f.p1_tema, f.p1_mensagem, f.p1_horario, f.p1_celular, f.p1_fixo, f.p1_quem_oferece, f.p1_resultado,
              f.p2_dia, f.p2_para, f.p2_tema, f.p2_mensagem, f.p2_horario, f.p2_celular, f.p2_fixo, f.p2_quem_oferece, f.p2_resultado
       FROM fonadas f
@@ -76,6 +86,7 @@ router.get('/hoje', async (req, res) => {
 
     const itensFonada = [];
     for (const f of fonadasResultado.rows) {
+      const situacaoP2 = situacaoSegundaMensagem(f);
       if ((f.p1_dia === curto || f.p1_dia === longo) && dataCompleta(f.p1_dia)) {
         itensFonada.push({
           pedidoId: f.id, mensagem: 1, senha_os: f.senha_os, nome_comprador: f.nome_comprador,
@@ -90,6 +101,8 @@ router.get('/hoje', async (req, res) => {
           cliente_id: f.cliente_id, whatsapp: f.cliente_whatsapp, para: f.p2_para, tema: f.p2_tema, codigo: f.p2_mensagem, dia: f.p2_dia, horario: f.p2_horario,
           celular: f.p2_celular, fixo: f.p2_fixo, quemOferece: f.p2_quem_oferece, resultado: f.p2_resultado,
           passada: Boolean(f.p2_resultado),
+          statusMensagemEmHaver: situacaoP2.status,
+          dataExpiracaoMensagem: situacaoP2.dataExpiracao,
         });
       }
     }
@@ -107,9 +120,18 @@ router.get('/hoje', async (req, res) => {
       .map((a) => ({ ...a, passada: false, ehCobranca: false }))
       .sort((a, b) => (a.horario_entrega || '').localeCompare(b.horario_entrega || ''));
 
+    const dataIso = dataBrParaIso(curto);
+    const lembretesResultado = dataIso ? await db.query(`
+      SELECT id, titulo, TO_CHAR(data, 'YYYY-MM-DD') AS data, TO_CHAR(horario, 'HH24:MI') AS horario,
+             observacao, concluido, criado_em, atualizado_em
+      FROM lembretes
+      WHERE data = $1::date
+      ORDER BY concluido ASC, horario ASC NULLS FIRST, id ASC
+    `, [dataIso]) : { rows: [] };
+
     // A Agenda mostra somente compromissos. Cobranças previstas e ações
     // financeiras ficam concentradas na central de Cobrança.
-    res.json({ data: curto, consultandoHoje, fonada: itensFonada, aoVivo: itensAoVivo });
+    res.json({ data: curto, consultandoHoje, fonada: itensFonada, aoVivo: itensAoVivo, lembretes: lembretesResultado.rows });
   } catch (erro) {
     console.error('Erro ao buscar agenda:', erro);
     res.status(500).json({ erro: 'Erro ao buscar agenda.' });
@@ -124,7 +146,7 @@ router.post('/fonada/:id/baixa', async (req, res) => {
       return res.status(400).json({ erro: 'Informe qual mensagem (1 ou 2).' });
     }
 
-    const existenteResultado = await db.query('SELECT id, cliente_id FROM fonadas WHERE id = $1', [req.params.id]);
+    const existenteResultado = await db.query('SELECT * FROM fonadas WHERE id = $1', [req.params.id]);
     if (existenteResultado.rows.length === 0) return res.status(404).json({ erro: 'Pedido não encontrado.' });
 
     const clienteId = existenteResultado.rows[0].cliente_id;
@@ -133,6 +155,11 @@ router.post('/fonada/:id/baixa', async (req, res) => {
       if (clienteResultado.rows[0]?.bloqueado) {
         return res.status(403).json({ erro: 'Este cliente está bloqueado. Não é possível dar baixa nos pedidos dele.' });
       }
+    }
+
+    if (mensagem === 2) {
+      const validacao = validarDataUsoSegundaMensagem(existenteResultado.rows[0]);
+      if (!validacao.ok) return res.status(409).json({ erro: validacao.erro });
     }
 
     const { data, horario } = agoraFormatado();
@@ -208,7 +235,7 @@ router.post('/fonada/:id/nao-atendeu', async (req, res) => {
 
   const client = await pool.connect();
   try {
-    const pedidoResultado = await client.query('SELECT id, cliente_id FROM fonadas WHERE id = $1', [req.params.id]);
+    const pedidoResultado = await client.query('SELECT * FROM fonadas WHERE id = $1', [req.params.id]);
     if (pedidoResultado.rows.length === 0) {
       client.release();
       return res.status(404).json({ erro: 'Pedido não encontrado.' });
@@ -220,6 +247,14 @@ router.post('/fonada/:id/nao-atendeu', async (req, res) => {
       if (clienteResultado.rows[0]?.bloqueado) {
         client.release();
         return res.status(403).json({ erro: 'Este cliente está bloqueado. Não é possível registrar tentativas para ele.' });
+      }
+    }
+
+    if (mensagem === 2) {
+      const validacao = validarDataUsoSegundaMensagem(pedidoResultado.rows[0], remarcadoDia);
+      if (!validacao.ok) {
+        client.release();
+        return res.status(409).json({ erro: validacao.erro });
       }
     }
 
@@ -260,6 +295,74 @@ router.get('/fonada/:id/tentativas', async (req, res) => {
   } catch (erro) {
     console.error('Erro ao buscar tentativas:', erro);
     res.status(500).json({ erro: 'Erro ao buscar tentativas.' });
+  }
+});
+
+function validarLembrete(dados, parcial = false) {
+  if (!parcial || dados.titulo !== undefined) {
+    if (!String(dados.titulo || '').trim()) return 'Informe o título do lembrete.';
+  }
+  if (!parcial || dados.data !== undefined) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dados.data || ''))) return 'Informe uma data válida.';
+    const [ano, mes, dia] = dados.data.split('-').map(Number);
+    const data = new Date(ano, mes - 1, dia);
+    if (data.getFullYear() !== ano || data.getMonth() !== mes - 1 || data.getDate() !== dia) return 'Informe uma data válida.';
+  }
+  if (dados.horario && !/^([01]\d|2[0-3]):[0-5]\d$/.test(String(dados.horario))) return 'Informe um horário válido.';
+  return null;
+}
+
+// CRUD de lembretes: entidade própria, sem cliente ou pedido artificial.
+router.post('/lembretes', async (req, res) => {
+  try {
+    const erro = validarLembrete(req.body);
+    if (erro) return res.status(400).json({ erro });
+    const resultado = await db.query(`
+      INSERT INTO lembretes (titulo, data, horario, observacao, criado_por)
+      VALUES ($1, $2::date, NULLIF($3, '')::time, $4, $5)
+      RETURNING id, titulo, TO_CHAR(data, 'YYYY-MM-DD') AS data,
+                TO_CHAR(horario, 'HH24:MI') AS horario, observacao, concluido, criado_em, atualizado_em
+    `, [req.body.titulo.trim(), req.body.data, req.body.horario || null, req.body.observacao?.trim() || null, req.usuario.id]);
+    res.status(201).json(resultado.rows[0]);
+  } catch (erro) {
+    console.error('Erro ao criar lembrete:', erro);
+    res.status(500).json({ erro: 'Não foi possível criar o lembrete.' });
+  }
+});
+
+router.put('/lembretes/:id', async (req, res) => {
+  try {
+    const atual = await db.query(`
+      SELECT id, titulo, TO_CHAR(data, 'YYYY-MM-DD') AS data,
+             TO_CHAR(horario, 'HH24:MI') AS horario, observacao, concluido
+      FROM lembretes WHERE id = $1
+    `, [req.params.id]);
+    if (!atual.rows[0]) return res.status(404).json({ erro: 'Lembrete não encontrado.' });
+    const dados = { ...atual.rows[0], ...req.body };
+    const erro = validarLembrete(dados);
+    if (erro) return res.status(400).json({ erro });
+    const resultado = await db.query(`
+      UPDATE lembretes SET titulo = $1, data = $2::date, horario = NULLIF($3, '')::time,
+        observacao = $4, concluido = $5, atualizado_em = NOW()
+      WHERE id = $6
+      RETURNING id, titulo, TO_CHAR(data, 'YYYY-MM-DD') AS data,
+                TO_CHAR(horario, 'HH24:MI') AS horario, observacao, concluido, criado_em, atualizado_em
+    `, [String(dados.titulo).trim(), dados.data, dados.horario || null, dados.observacao?.trim() || null, Boolean(dados.concluido), req.params.id]);
+    res.json(resultado.rows[0]);
+  } catch (erro) {
+    console.error('Erro ao editar lembrete:', erro);
+    res.status(500).json({ erro: 'Não foi possível editar o lembrete.' });
+  }
+});
+
+router.delete('/lembretes/:id', async (req, res) => {
+  try {
+    const resultado = await db.query('DELETE FROM lembretes WHERE id = $1 RETURNING id', [req.params.id]);
+    if (!resultado.rows[0]) return res.status(404).json({ erro: 'Lembrete não encontrado.' });
+    res.json({ ok: true });
+  } catch (erro) {
+    console.error('Erro ao excluir lembrete:', erro);
+    res.status(500).json({ erro: 'Não foi possível excluir o lembrete.' });
   }
 });
 

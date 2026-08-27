@@ -61,11 +61,12 @@ export default function Agenda() {
   // aba em que a pessoa estava, em vez de resetar para hoje.
   const [searchParams, setSearchParams] = useSearchParams();
   const dataSelecionada = searchParams.get('data') || hojeFormatado();
-  const aba = searchParams.get('aba') || 'fonada';
+  const aba = searchParams.get('aba') || 'geral';
 
   const [dataRef, setDataRef] = useState('');
   const [fonada, setFonada] = useState([]);
   const [aoVivo, setAoVivo] = useState([]);
+  const [lembretes, setLembretes] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
   const [salvandoBaixa, setSalvandoBaixa] = useState(null);
@@ -85,6 +86,9 @@ export default function Agenda() {
   const [remarcadoDia, setRemarcadoDia] = useState('');
   const [remarcadoHorario, setRemarcadoHorario] = useState('');
   const [salvandoRemarcacao, setSalvandoRemarcacao] = useState(false);
+  const [lembreteAberto, setLembreteAberto] = useState(null);
+  const [formLembrete, setFormLembrete] = useState({ titulo: '', data: '', horario: '', observacao: '', concluido: false });
+  const [salvandoLembrete, setSalvandoLembrete] = useState(false);
 
   // Item selecionado na lista compacta — chave única por tipo+id, já
   // que fonada usa pedidoId+mensagem e ao vivo usa só id.
@@ -111,6 +115,7 @@ export default function Agenda() {
         setDataRef(resp.data);
         setFonada(resp.fonada);
         setAoVivo(resp.aoVivo);
+        setLembretes(resp.lembretes || []);
       })
       .catch((err) => setErro(err.message))
       .finally(() => setCarregando(false));
@@ -132,7 +137,7 @@ export default function Agenda() {
         const novasContagens = {};
         respostas.forEach((resp, indice) => {
           const quantidadeFonada = agruparMensagensDuplas(resp.fonada).length;
-          novasContagens[dias[indice]] = quantidadeFonada + resp.aoVivo.length;
+          novasContagens[dias[indice]] = quantidadeFonada + resp.aoVivo.length + (resp.lembretes || []).length;
         });
         setContagensPorData((atual) => ({ ...atual, ...novasContagens }));
       })
@@ -226,6 +231,57 @@ export default function Agenda() {
     }, { replace: true });
   }
 
+  function dataBrParaIso(dataBr) {
+    const m = String(dataBr || '').match(/^(\d{2})\/(\d{2})\/(\d{2})$/);
+    return m ? `20${m[3]}-${m[2]}-${m[1]}` : '';
+  }
+
+  function abrirNovoLembrete() {
+    setFormLembrete({ titulo: '', data: dataBrParaIso(dataSelecionada), horario: '', observacao: '', concluido: false });
+    setLembreteAberto({ novo: true });
+  }
+
+  function abrirEdicaoLembrete(lembrete) {
+    setFormLembrete({ titulo: lembrete.titulo, data: lembrete.data, horario: lembrete.horario || '', observacao: lembrete.observacao || '', concluido: Boolean(lembrete.concluido) });
+    setLembreteAberto(lembrete);
+  }
+
+  async function salvarLembrete() {
+    if (!formLembrete.titulo.trim() || !formLembrete.data) {
+      mostrarToast('Informe o título e a data do lembrete.', 'erro');
+      return;
+    }
+    setSalvandoLembrete(true);
+    try {
+      if (lembreteAberto?.novo) await api.agenda.criarLembrete(formLembrete);
+      else await api.agenda.atualizarLembrete(lembreteAberto.id, formLembrete);
+      setLembreteAberto(null);
+      mostrarToast(lembreteAberto?.novo ? 'Lembrete criado.' : 'Lembrete atualizado.');
+      carregar();
+    } catch (err) {
+      mostrarToast(err.message, 'erro');
+    } finally {
+      setSalvandoLembrete(false);
+    }
+  }
+
+  async function alternarLembrete(lembrete) {
+    try {
+      await api.agenda.atualizarLembrete(lembrete.id, { ...lembrete, concluido: !lembrete.concluido });
+      carregar();
+    } catch (err) { mostrarToast(err.message, 'erro'); }
+  }
+
+  async function excluirLembrete(lembrete) {
+    if (!confirm(`Excluir o lembrete "${lembrete.titulo}"?`)) return;
+    try {
+      await api.agenda.excluirLembrete(lembrete.id);
+      setChaveSelecionada(null);
+      mostrarToast('Lembrete excluído.');
+      carregar();
+    } catch (err) { mostrarToast(err.message, 'erro'); }
+  }
+
   async function darBaixa(item, par) {
     const chave = `${item.pedidoId}-${item.mensagem}`;
     setSalvandoBaixa(chave);
@@ -236,7 +292,7 @@ export default function Agenda() {
       abrirWhatsappSeExistir(item.whatsapp, mensagemConfirmacao(item.nome_comprador, item.para));
       carregar();
     } catch (err) {
-      mostrarToast('Não foi possível registrar a baixa. Tente novamente.', 'erro');
+      mostrarToast(err.message || 'Não foi possível registrar a baixa.', 'erro');
     } finally {
       setSalvandoBaixa(null);
     }
@@ -298,7 +354,7 @@ export default function Agenda() {
       setItemRemarcarAberto(null);
       carregar();
     } catch (err) {
-      mostrarToast('Não foi possível registrar. Tente novamente.', 'erro');
+      mostrarToast(err.message || 'Não foi possível registrar.', 'erro');
     } finally {
       setSalvandoRemarcacao(false);
     }
@@ -368,9 +424,23 @@ export default function Agenda() {
 
   const fonadaExibida = agruparMensagensDuplas(ehHoje ? ordenarPendentesPrimeiro(fonada, 'horario') : fonada);
   const aoVivoExibido = ehHoje ? ordenarPendentesPrimeiro(aoVivo, 'horario_entrega') : aoVivo;
-
-  const listaAtual = aba === 'fonada' ? fonadaExibida : aoVivoExibido;
-  const chaveDoItem = (item) => (aba === 'fonada' ? `${item.pedidoId}-${item.mensagem}` : `aovivo-${item.id}`);
+  const lembretesExibidos = [...lembretes].sort((a, b) => {
+    if (a.concluido !== b.concluido) return a.concluido ? 1 : -1;
+    return (a.horario || '').localeCompare(b.horario || '');
+  });
+  const todosItens = [
+    ...fonadaExibida.map((item) => ({ ...item, _tipo: 'fonada', _chave: `${item.pedidoId}-${item.mensagem}`, _horario: item.horario || '' })),
+    ...aoVivoExibido.map((item) => ({ ...item, _tipo: 'aovivo', _chave: `aovivo-${item.id}`, _horario: item.horario_entrega || '' })),
+    ...lembretesExibidos.map((item) => ({ ...item, _tipo: 'lembrete', _chave: `lembrete-${item.id}`, _horario: item.horario || '' })),
+  ].sort((a, b) => a._horario.localeCompare(b._horario));
+  const listasPorAba = {
+    geral: todosItens,
+    fonada: todosItens.filter((item) => item._tipo === 'fonada'),
+    aovivo: todosItens.filter((item) => item._tipo === 'aovivo'),
+    lembretes: todosItens.filter((item) => item._tipo === 'lembrete'),
+  };
+  const listaAtual = listasPorAba[aba] || todosItens;
+  const chaveDoItem = (item) => item._chave;
 
   // Ao trocar de dia ou de aba: no desktop, seleciona automaticamente o
   // primeiro item (painel de detalhes nunca fica vazio à toa). No
@@ -388,7 +458,7 @@ export default function Agenda() {
       setChaveSelecionada(ehMobile ? null : chaveDoItem(listaAtual[0]));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aba, dataSelecionada, fonada, aoVivo]);
+  }, [aba, dataSelecionada, fonada, aoVivo, lembretes]);
 
   const itemSelecionado = listaAtual.find((item) => chaveDoItem(item) === chaveSelecionada) || null;
   const inicioRenderizacao = direcaoCarrossel === 'tras' ? -1 : 0;
@@ -410,6 +480,7 @@ export default function Agenda() {
           <p>{ehHoje ? 'Acompanhe o ritmo de hoje e as próximas mensagens.' : `Consultando ${rotuloDiaSemana(dataSelecionada)}, ${dataSelecionada}.`}</p>
         </div>
         <div className="agenda-controles-v2">
+          <button type="button" className="btn-small agenda-novo-lembrete" onClick={abrirNovoLembrete}>+ Lembrete</button>
           <button type="button" className="agenda-seta-dia" onClick={() => selecionarDiaAdjacente(-1)} aria-label="Dia anterior">←</button>
           <CampoData
             className="campo-data-agenda"
@@ -463,6 +534,13 @@ export default function Agenda() {
           <div className="abas-cliente">
             <button
               type="button"
+              className={`aba-cliente-botao ${aba === 'geral' ? 'ativa' : ''}`}
+              onClick={() => irParaAba('geral')}
+            >
+              Geral <span className="aba-contagem">{todosItens.length}</span>
+            </button>
+            <button
+              type="button"
               className={`aba-cliente-botao ${aba === 'fonada' ? 'ativa' : ''}`}
               onClick={() => irParaAba('fonada')}
             >
@@ -475,16 +553,22 @@ export default function Agenda() {
             >
               Ao vivo <span className="aba-contagem">{aoVivoExibido.length}</span>
             </button>
+            <button
+              type="button"
+              className={`aba-cliente-botao ${aba === 'lembretes' ? 'ativa' : ''}`}
+              onClick={() => irParaAba('lembretes')}
+            >
+              Lembretes <span className="aba-contagem">{lembretesExibidos.length}</span>
+            </button>
           </div>
 
           <div className="grid-agenda-lista-painel" style={{ padding: 16 }}>
             <div className="lista-agenda-compacta">
-              {aba === 'fonada' && (
-                fonadaExibida.length === 0 ? (
-                  <AgendaVazia tipo="fonada" ehHoje={ehHoje} onNovo={() => navigate('/fonada/novo')} />
-                ) : (
-                  fonadaExibida.map((item) => {
-                    const chave = `${item.pedidoId}-${item.mensagem}`;
+              {listaAtual.length === 0 ? (
+                <AgendaVazia ehHoje={ehHoje} onNovo={abrirNovoLembrete} />
+              ) : listaAtual.map((item) => {
+                    const chave = item._chave;
+                    if (item._tipo === 'fonada') {
                     const jaPassada = ehHoje && item.passada;
                     const urgencia = (ehHoje && !jaPassada) ? statusUrgenciaItem(item.horario) : null;
                     return (
@@ -497,22 +581,14 @@ export default function Agenda() {
                         senhaOs={item.senha_os}
                         horario={item.horario}
                         titulo={item.nome_comprador}
-                        tagExtra={item.agrupada ? '1ª + 2ª juntas' : `${item.mensagem}ª msg`}
+                        tagExtra={item.statusMensagemEmHaver === 'EXPIRADA' ? 'Expirada' : aba === 'geral' ? 'Fonada' : item.agrupada ? '1ª + 2ª juntas' : `${item.mensagem}ª msg`}
                         tagExtraDestaque={Boolean(item.agrupada)}
                         status={(!ehHoje || jaPassada) ? (item.resultado ? 'Passada' : 'Pendente') : null}
                         statusOk={Boolean(item.resultado)}
                       />
                     );
-                  })
-                )
-              )}
-
-              {aba === 'aovivo' && (
-                aoVivoExibido.length === 0 ? (
-                  <AgendaVazia tipo="ao vivo" ehHoje={ehHoje} onNovo={() => navigate('/ao-vivo/novo')} />
-                ) : (
-                  aoVivoExibido.map((item) => {
-                    const chave = `aovivo-${item.id}`;
+                    }
+                    if (item._tipo === 'aovivo') {
                     const urgencia = ehHoje ? statusUrgenciaItem(item.horario_entrega) : null;
                     return (
                       <LinhaAgenda
@@ -524,14 +600,28 @@ export default function Agenda() {
                         senhaOs={item.numero_os}
                         horario={item.horario_entrega}
                         titulo={item.comprador}
-                        tagExtra="Agendado"
+                        tagExtra={aba === 'geral' ? 'Ao vivo' : 'Agendado'}
                         status={item.pagou === 'SIM' ? 'Pago' : null}
                         statusOk={item.pagou === 'SIM'}
                       />
                     );
-                  })
-                )
-              )}
+                    }
+                    return (
+                      <LinhaAgenda
+                        key={chave}
+                        selecionada={chaveSelecionada === chave}
+                        onClick={() => setChaveSelecionada(chave)}
+                        urgencia={ehHoje && !item.concluido ? statusUrgenciaItem(item.horario) : null}
+                        jaPassada={item.concluido}
+                        senhaOs="•"
+                        horario={item.horario || 'Dia'}
+                        titulo={item.titulo}
+                        tagExtra="Lembrete"
+                        status={item.concluido ? 'Concluído' : null}
+                        statusOk={item.concluido}
+                      />
+                    );
+                  })}
             </div>
 
             <div className={`painel-detalhes-agenda ${itemSelecionado ? 'drawer-aberto' : ''}`}>
@@ -549,7 +639,7 @@ export default function Agenda() {
                 <p className="fs-sm" style={{ color: 'var(--tinta-suave)', textAlign: 'center', padding: '24px 12px' }}>
                   Selecione um item da lista para ver os detalhes.
                 </p>
-              ) : aba === 'fonada' ? (
+              ) : itemSelecionado._tipo === 'fonada' ? (
                 <DetalhesFonada
                   item={itemSelecionado}
                   ehHoje={ehHoje}
@@ -559,11 +649,18 @@ export default function Agenda() {
                   onDesfazerBaixa={desfazerBaixa}
                   onAbrirRemarcar={abrirRemarcar}
                 />
-              ) : (
+              ) : itemSelecionado._tipo === 'aovivo' ? (
                 <DetalhesAoVivo
                   item={itemSelecionado}
                   ehHoje={ehHoje}
                   navigate={navigate}
+                />
+              ) : (
+                <DetalhesLembrete
+                  item={itemSelecionado}
+                  onEditar={abrirEdicaoLembrete}
+                  onAlternar={alternarLembrete}
+                  onExcluir={excluirLembrete}
                 />
               )}
             </div>
@@ -622,6 +719,36 @@ export default function Agenda() {
         </div>
       )}
 
+      {lembreteAberto && (
+        <div className="modal-fundo" onClick={() => setLembreteAberto(null)}>
+          <div className="modal-caixa modal-lembrete" onClick={(e) => e.stopPropagation()}>
+            <div className="section-title">{lembreteAberto.novo ? 'Novo lembrete' : 'Editar lembrete'}</div>
+            <div className="campo">
+              <label>Título *</label>
+              <input autoFocus maxLength={160} value={formLembrete.titulo} onChange={(e) => setFormLembrete((atual) => ({ ...atual, titulo: e.target.value }))} placeholder="Ex: Ligar para fornecedor" />
+            </div>
+            <div className="grade grade-2">
+              <div className="campo">
+                <label>Data *</label>
+                <input type="date" value={formLembrete.data} onChange={(e) => setFormLembrete((atual) => ({ ...atual, data: e.target.value }))} />
+              </div>
+              <div className="campo">
+                <label>Horário (opcional)</label>
+                <input type="time" value={formLembrete.horario} onChange={(e) => setFormLembrete((atual) => ({ ...atual, horario: e.target.value }))} />
+              </div>
+            </div>
+            <div className="campo">
+              <label>Observação (opcional)</label>
+              <textarea rows={4} value={formLembrete.observacao} onChange={(e) => setFormLembrete((atual) => ({ ...atual, observacao: e.target.value }))} placeholder="Informações úteis para lembrar" />
+            </div>
+            <div className="modal-lembrete-acoes">
+              <button type="button" className="btn secundario" onClick={() => setLembreteAberto(null)}>Cancelar</button>
+              <button type="button" className="btn" onClick={salvarLembrete} disabled={salvandoLembrete}>{salvandoLembrete ? 'Salvando...' : 'Salvar lembrete'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
@@ -630,8 +757,25 @@ function SkeletonAgenda() {
   return <div className="agenda-skeleton section-box" aria-label="Carregando agenda"><div className="agenda-skeleton-tabs"><i/><i/></div><div className="agenda-skeleton-grid"><div>{Array.from({ length: 6 }, (_, i) => <span key={i}/>)}</div><aside><b/><i/><i/><i/></aside></div></div>;
 }
 
-function AgendaVazia({ tipo, ehHoje, onNovo }) {
-  return <div className="agenda-vazia"><div className="agenda-vazia-icone">✓</div><strong>Agenda livre {ehHoje ? 'por enquanto' : 'neste dia'}</strong><p>Nenhuma mensagem {tipo} está marcada para {ehHoje ? 'hoje' : 'a data selecionada'}.</p><button type="button" className="btn-small" onClick={onNovo}>+ Criar pedido {tipo}</button></div>;
+function AgendaVazia({ ehHoje, onNovo }) {
+  return <div className="agenda-vazia"><div className="agenda-vazia-icone">✓</div><strong>Agenda livre {ehHoje ? 'por enquanto' : 'neste dia'}</strong><p>Nenhum compromisso está marcado para {ehHoje ? 'hoje' : 'a data selecionada'}.</p><button type="button" className="btn-small" onClick={onNovo}>+ Criar lembrete</button></div>;
+}
+
+function DetalhesLembrete({ item, onEditar, onAlternar, onExcluir }) {
+  const dataFormatada = item.data ? item.data.split('-').reverse().join('/') : '—';
+  return (
+    <div className={item.concluido ? 'lembrete-concluido' : ''}>
+      <div className="detalhe-lembrete-topo"><span className="tag neutro">Lembrete</span>{item.concluido && <span className="tag ok">Concluído</span>}</div>
+      <h2 className="detalhe-lembrete-titulo">{item.titulo}</h2>
+      <div className="grade grade-2 detalhe-lembrete-dados"><Info label="Data" valor={dataFormatada} /><Info label="Horário" valor={item.horario || 'Dia inteiro'} /></div>
+      {item.observacao && <div className="detalhe-lembrete-observacao"><Info label="Observação" valor={item.observacao} /></div>}
+      <div className="detalhe-lembrete-acoes">
+        <button type="button" className="btn-action destaque" onClick={() => onAlternar(item)}>{item.concluido ? 'Reabrir' : 'Marcar concluído'}</button>
+        <button type="button" className="btn-action" onClick={() => onEditar(item)}>Editar</button>
+        <button type="button" className="btn-action perigo-acao" onClick={() => onExcluir(item)}>Excluir</button>
+      </div>
+    </div>
+  );
 }
 
 function IconeUsuario() {
@@ -721,6 +865,8 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onD
   // já que na prática são passadas juntas na mesma ligação.
   const par = item.agrupada;
   const chavePar = par ? `${par.pedidoId}-${par.mensagem}` : null;
+  const mensagemExpirada = (item.mensagem === 2 && item.statusMensagemEmHaver === 'EXPIRADA')
+    || (par && par.statusMensagemEmHaver === 'EXPIRADA');
 
   return (
     <div>
@@ -733,6 +879,7 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onD
         )}
         {urgencia === 'atrasada' && <span className="tag pendente">Atrasado</span>}
         {urgencia === 'proxima' && <span className="tag aviso">Chegando</span>}
+        {mensagemExpirada && <span className="tag pendente">Expirada</span>}
         {(!ehHoje || jaPassada) && (
           <span className={`tag ${item.resultado ? 'ok' : 'pendente'}`}>
             {item.resultado ? 'Passada' : 'Pendente'}
@@ -800,7 +947,8 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onD
           <IconePedido /> Abrir pedido
         </button>
       </div>
-      {ehHoje && !jaPassada && (
+      {mensagemExpirada && <div className="aviso-bloqueio" style={{ marginBottom: 10 }}>A segunda mensagem venceu em {item.dataExpiracaoMensagem || par?.dataExpiracaoMensagem} e não pode mais ser utilizada.</div>}
+      {ehHoje && !jaPassada && !mensagemExpirada && (
         <div style={{ display: 'flex', gap: 8 }}>
           <button type="button" className="btn-action perigo-acao" style={{ flex: 1 }} onClick={() => onAbrirRemarcar(item)}>
             <IconeNaoAtendeu /> Não atendeu

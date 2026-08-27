@@ -157,6 +157,7 @@ export const api = {
     listarLixeira: (busca = '', pagina = 1) =>
       chamar(`/clientes/lixeira?busca=${encodeURIComponent(busca)}&pagina=${pagina}`),
     buscar: (id) => chamar(`/clientes/${id}`),
+    buscarResumo: (id) => chamar(`/clientes/${id}/resumo`),
     criar: (dados) => chamar('/clientes', { method: 'POST', body: JSON.stringify(dados) }),
     atualizar: (id, dados) => chamar(`/clientes/${id}`, { method: 'PUT', body: JSON.stringify(dados) }),
     excluir: (id) => chamar(`/clientes/${id}`, { method: 'DELETE' }),
@@ -189,6 +190,9 @@ export const api = {
         body: JSON.stringify({ mensagem, observacao, remarcadoDia, remarcadoHorario }),
       }),
     buscarTentativas: (pedidoId) => chamar(`/agenda/fonada/${pedidoId}/tentativas`),
+    criarLembrete: (dados) => chamar('/agenda/lembretes', { method: 'POST', body: JSON.stringify(dados) }),
+    atualizarLembrete: (id, dados) => chamar(`/agenda/lembretes/${id}`, { method: 'PUT', body: JSON.stringify(dados) }),
+    excluirLembrete: (id) => chamar(`/agenda/lembretes/${id}`, { method: 'DELETE' }),
   },
 
   // ---------- Cobrança (baixa de pagamento fonada) ----------
@@ -231,5 +235,14 @@ export const api = {
       chamar(`/relatorios/recebimentos?inicio=${encodeURIComponent(inicio)}&fim=${encodeURIComponent(fim)}&sistema=${encodeURIComponent(sistema)}`),
     desempenho: (inicio, fim, sistema = 'TODOS') =>
       chamar(`/relatorios/desempenho?inicio=${encodeURIComponent(inicio)}&fim=${encodeURIComponent(fim)}&sistema=${encodeURIComponent(sistema)}`),
+  },
+
+  // ---------- Recall (fila de relacionamento cliente ↔ aniversariante) ----------
+  recall: {
+    fila: (data) => chamar(`/recall/fila?data=${encodeURIComponent(data)}`),
+    buscar: (termo) => chamar(`/recall/buscar?termo=${encodeURIComponent(termo)}`),
+    historico: () => chamar('/recall/historico'),
+    status: (dados) => chamar('/recall/status', { method: 'PUT', body: JSON.stringify(dados) }),
+    pedidoCriado: (dados) => chamar('/recall/pedido-criado', { method: 'PUT', body: JSON.stringify(dados) }),
   },
 };

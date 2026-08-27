@@ -14,7 +14,7 @@ export default function ClienteDrawer({ clienteId, onFechar, onNavegar }) {
     if (!clienteId) return undefined;
     let ativo = true;
     setDados(null); setErro('');
-    api.clientes.buscar(clienteId).then((resposta) => { if (ativo) setDados(resposta); }).catch((err) => { if (ativo) setErro(err.message); });
+    api.clientes.buscarResumo(clienteId).then((resposta) => { if (ativo) setDados(resposta); }).catch((err) => { if (ativo) setErro(err.message); });
     const aoTeclar = (e) => {
       if (e.key === 'Escape') { e.preventDefault(); onFechar(); return; }
       if (e.key !== 'Tab') return;
@@ -33,10 +33,10 @@ export default function ClienteDrawer({ clienteId, onFechar, onNavegar }) {
 
   if (!clienteId) return null;
   const cliente = dados?.cliente;
-  const fonadas = dados?.pedidosFonada || [];
-  const aoVivo = dados?.pedidosAoVivo || [];
-  const pendenteFonada = fonadas.filter((p) => p.pagou !== 'SIM').reduce((s, p) => s + Number(p.valor || 0), 0);
-  const pendenteAoVivo = aoVivo.filter((p) => p.pagou !== 'SIM').reduce((s, p) => s + Number(p.valor || 0), 0);
+  const resumo = dados?.resumo || {};
+  const ultimasCompras = dados?.ultimasCompras || [];
+  const mensagensEmHaver = dados?.mensagensEmHaver || [];
+  const valorPendente = Number(resumo.valor_pendente || 0);
 
   return (
     <div className="drawer-cliente-overlay" onMouseDown={onFechar} role="presentation">
@@ -56,8 +56,8 @@ export default function ClienteDrawer({ clienteId, onFechar, onNavegar }) {
               <button className="btn secundario" onClick={() => onNavegar(`/clientes/${cliente.id}`)}>Ficha completa</button>
             </div>
             <section className="drawer-resumo-grid">
-              <div><span>Pedidos</span><strong>{fonadas.length + aoVivo.length}</strong><small>{fonadas.length} fonada · {aoVivo.length} ao vivo</small></div>
-              <div className={pendenteFonada + pendenteAoVivo > 0 ? 'alerta' : ''}><span>Pendente</span><strong>{formatarReais(pendenteFonada + pendenteAoVivo)}</strong><small>{pendenteFonada + pendenteAoVivo > 0 ? 'Requer atenção' : 'Tudo em dia'}</small></div>
+              <div><span>Pedidos</span><strong>{resumo.total_pedidos || 0}</strong><small>{resumo.total_fonada || 0} fonada · {resumo.total_aovivo || 0} ao vivo</small></div>
+              <div className={valorPendente > 0 ? 'alerta' : ''}><span>Pendente</span><strong>{formatarReais(valorPendente)}</strong><small>{valorPendente > 0 ? 'Requer atenção' : 'Tudo em dia'}</small></div>
             </section>
             <section className="drawer-bloco">
               <div className="drawer-bloco-titulo">Contato</div>
@@ -71,11 +71,23 @@ export default function ClienteDrawer({ clienteId, onFechar, onNavegar }) {
               {valorUtil(cliente.referencia) && <small>Referência: {cliente.referencia}</small>}
             </section>
             <section className="drawer-bloco drawer-atividade">
-              <div className="drawer-bloco-titulo">Atividade recente</div>
-              {[...fonadas.slice(0, 2).map((p) => ({ ...p, tipo: 'Fonada', os: p.senha_os, data: p.data_pedido, rota: `/fonada/${p.id}` })), ...aoVivo.slice(0, 2).map((p) => ({ ...p, tipo: 'Ao vivo', os: p.numero_os, data: p.data_pedido, rota: `/ao-vivo/${p.id}` }))].slice(0, 4).map((pedido) => (
-                <button type="button" key={`${pedido.tipo}-${pedido.id}`} onClick={() => onNavegar(pedido.rota)}><span className="atividade-ponto"/><span><strong>{pedido.tipo} · O.S. {pedido.os || pedido.id}</strong><small>{pedido.data || 'Data não informada'} · {formatarReais(pedido.valor)}</small></span><b>›</b></button>
+              <div className="drawer-bloco-titulo drawer-titulo-com-contagem">Mensagens em haver <span>{mensagensEmHaver.length}</span></div>
+              {mensagensEmHaver.slice(0, 4).map((mensagem) => (
+                <button type="button" key={mensagem.id} onClick={() => onNavegar(mensagem.rota)}>
+                  <span className="atividade-ponto haver"/>
+                  <span><strong>Fonada · O.S. {mensagem.os || mensagem.id}</strong><small>Compra: {mensagem.dataCompra || 'não informada'} · válida até {mensagem.dataExpiracao}</small>{(mensagem.tema || mensagem.destinatario) && <small>{[mensagem.tema, mensagem.destinatario].filter(Boolean).join(' · ')}</small>}</span>
+                  <b>›</b>
+                </button>
               ))}
-              {fonadas.length + aoVivo.length === 0 && <div className="drawer-sem-atividade">Nenhum pedido registrado ainda.</div>}
+              {mensagensEmHaver.length === 0 && <div className="drawer-sem-atividade">Nenhuma mensagem em haver.</div>}
+              {mensagensEmHaver.length > 4 && <small className="drawer-mais-itens">Mais {mensagensEmHaver.length - 4} disponível(is) na ficha completa.</small>}
+            </section>
+            <section className="drawer-bloco drawer-atividade">
+              <div className="drawer-bloco-titulo">Últimas compras</div>
+              {ultimasCompras.map((pedido) => (
+                <button type="button" key={`${pedido.tipo}-${pedido.id}`} onClick={() => onNavegar(pedido.rota)}><span className="atividade-ponto"/><span><strong>{pedido.tipo} · O.S. {pedido.os || pedido.id}</strong><small>{pedido.data_pedido || 'Data não informada'} · {formatarReais(pedido.valor)}</small></span><b>›</b></button>
+              ))}
+              {ultimasCompras.length === 0 && <div className="drawer-sem-atividade">Nenhum pedido registrado ainda.</div>}
             </section>
           </>
         )}

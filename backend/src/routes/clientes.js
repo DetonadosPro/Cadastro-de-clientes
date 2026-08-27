@@ -13,6 +13,7 @@
 const express = require('express');
 const { db, pool, unaccentEstaDisponivel } = require('../db/database');
 const { formatarDataBrasilia } = require('../utils/dataHora');
+const { situacaoSegundaMensagem } = require('../utils/mensagemEmHaver');
 
 const router = express.Router();
 
@@ -526,6 +527,83 @@ router.post('/mesclar-automatico', async (req, res) => {
   }
 });
 
+// GET /api/clientes/:id/resumo
+// Consulta enxuta para o painel lateral: agrega os totais no banco e traz
+// somente as cinco compras mais recentes, sem carregar o histórico inteiro.
+router.get('/:id/resumo', async (req, res) => {
+  try {
+    const clienteResultado = await db.query('SELECT * FROM clientes WHERE id = $1', [req.params.id]);
+    const cliente = clienteResultado.rows[0];
+    if (!cliente) return res.status(404).json({ erro: 'Cliente não encontrado.' });
+
+    const resumoResultado = await db.query(`
+      SELECT
+        COUNT(*)::integer AS total_pedidos,
+        COUNT(*) FILTER (WHERE tipo = 'Fonada')::integer AS total_fonada,
+        COUNT(*) FILTER (WHERE tipo = 'Ao vivo')::integer AS total_aovivo,
+        COALESCE(SUM(valor) FILTER (WHERE COALESCE(pagou, '') != 'SIM'), 0) AS valor_pendente
+      FROM (
+        SELECT 'Fonada' AS tipo, valor, pagou FROM fonadas WHERE cliente_id = $1 AND excluido_em IS NULL
+        UNION ALL
+        SELECT 'Ao vivo' AS tipo, valor, pagou FROM ao_vivo WHERE cliente_id = $1 AND excluido_em IS NULL
+      ) pedidos
+    `, [req.params.id]);
+
+    const recentesResultado = await db.query(`
+      SELECT * FROM (
+        SELECT id, 'Fonada' AS tipo, senha_os AS os, data_pedido, valor,
+               '/fonada/' || id AS rota, criado_em,
+               CASE WHEN data_pedido ~ '^\\d{2}/\\d{2}/(\\d{2}|\\d{4})$'
+                    THEN TO_DATE(data_pedido, CASE WHEN length(data_pedido) = 8 THEN 'DD/MM/YY' ELSE 'DD/MM/YYYY' END)
+                    ELSE criado_em::date END AS data_compra_ordem
+        FROM fonadas WHERE cliente_id = $1 AND excluido_em IS NULL
+        UNION ALL
+        SELECT id, 'Ao vivo' AS tipo, numero_os AS os, data_pedido, valor,
+               '/ao-vivo/' || id AS rota, criado_em,
+               CASE WHEN data_pedido ~ '^\\d{2}/\\d{2}/(\\d{2}|\\d{4})$'
+                    THEN TO_DATE(data_pedido, CASE WHEN length(data_pedido) = 8 THEN 'DD/MM/YY' ELSE 'DD/MM/YYYY' END)
+                    ELSE criado_em::date END AS data_compra_ordem
+        FROM ao_vivo WHERE cliente_id = $1 AND excluido_em IS NULL
+      ) compras
+      ORDER BY data_compra_ordem DESC, criado_em DESC, id DESC
+      LIMIT 5
+    `, [req.params.id]);
+
+    const haverResultado = await db.query(`
+      SELECT id, senha_os, data_pedido, p1_fixo, p1_celular,
+             p2_dia, p2_para, p2_tema, p2_mensagem, p2_fixo, p2_celular,
+             p2_horario, p2_quem_oferece, p2_resultado
+      FROM fonadas
+      WHERE cliente_id = $1 AND excluido_em IS NULL AND COALESCE(p2_resultado, '') = ''
+      ORDER BY criado_em DESC
+    `, [req.params.id]);
+
+    const mensagensEmHaver = haverResultado.rows.flatMap((pedido) => {
+      const situacao = situacaoSegundaMensagem(pedido);
+      return situacao.disponivel ? [{
+        id: pedido.id,
+        os: pedido.senha_os,
+        dataCompra: pedido.data_pedido,
+        tema: pedido.p2_tema || null,
+        destinatario: pedido.p2_para || null,
+        dataExpiracao: situacao.dataExpiracao,
+        status: situacao.status,
+        rota: `/fonada/${pedido.id}`,
+      }] : [];
+    });
+
+    res.json({
+      cliente,
+      resumo: resumoResultado.rows[0],
+      ultimasCompras: recentesResultado.rows,
+      mensagensEmHaver,
+    });
+  } catch (erro) {
+    console.error('Erro ao buscar resumo do cliente:', erro);
+    res.status(500).json({ erro: 'Erro ao buscar resumo do cliente.' });
+  }
+});
+
 // GET /api/clientes/:id
 router.get('/:id', async (req, res) => {
   try {
@@ -534,8 +612,9 @@ router.get('/:id', async (req, res) => {
     if (!cliente) return res.status(404).json({ erro: 'Cliente não encontrado.' });
 
     const pedidosFonadaResultado = await db.query(`
-      SELECT id, senha_os, data_pedido, p1_dia, p1_para, p1_resultado, p1_passada_por,
-             p2_dia, p2_para, p2_resultado, p2_passada_por,
+      SELECT id, senha_os, data_pedido, p1_dia, p1_para, p1_fixo, p1_celular, p1_resultado, p1_passada_por,
+             p2_dia, p2_para, p2_tema, p2_mensagem, p2_fixo, p2_celular, p2_horario,
+             p2_quem_oferece, p2_resultado, p2_passada_por,
              valor, pagou, cobranca, cobranca_reagendada, periodo, data_pagamento, status, criado_em
       FROM fonadas WHERE cliente_id = $1 AND excluido_em IS NULL ORDER BY id DESC
     `, [req.params.id]);
@@ -548,7 +627,10 @@ router.get('/:id', async (req, res) => {
 
     res.json({
       cliente,
-      pedidosFonada: pedidosFonadaResultado.rows,
+      pedidosFonada: pedidosFonadaResultado.rows.map((pedido) => ({
+        ...pedido,
+        mensagemEmHaver: situacaoSegundaMensagem(pedido),
+      })),
       pedidosAoVivo: pedidosAoVivoResultado.rows,
     });
   } catch (erro) {

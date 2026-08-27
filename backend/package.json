@@ -10,6 +10,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node src/server.js",
+    "test": "node --test",
     "importar": "node scripts/importar-planilha.js",
     "vincular-antigos": "node scripts/vincular-clientes-antigos.js",
     "vincular-antigos:simular": "node scripts/vincular-clientes-antigos.js --simular"

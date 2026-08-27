@@ -127,6 +127,10 @@ kbd { display:inline-flex; align-items:center; justify-content:center; min-width
 .drawer-atividade button { width:100%; display:grid; grid-template-columns:10px 1fr 10px; align-items:center; gap:9px; padding:9px 3px; border:0; border-bottom:1px solid #edf1f5; background:transparent; cursor:pointer; text-align:left; }
 .drawer-atividade button:hover { color:var(--carimbo); }
 .atividade-ponto { width:7px; height:7px; border-radius:50%; background:#78a1cc; }
+.atividade-ponto.haver { background:var(--ok); box-shadow:0 0 0 3px var(--ok-suave); }
+.drawer-titulo-com-contagem { display:flex; align-items:center; justify-content:space-between; }
+.drawer-titulo-com-contagem span { min-width:21px; padding:2px 7px; border-radius:999px; background:var(--ok-suave); color:var(--ok); text-align:center; }
+.drawer-mais-itens { display:block; padding-top:9px; text-align:center; }
 .drawer-atividade strong,.drawer-atividade small { display:block; }
 .drawer-atividade strong { margin-bottom:2px; font-size:11px; }
 .drawer-atividade small { color:#8490a0; font-size:9.5px; }

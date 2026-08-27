@@ -57,13 +57,24 @@ function pedidoInterurbano(pedido) {
   return ddds.length > 0 && !ddds.includes('34');
 }
 
-function LinhaMensagem({ numero, para, dia, horario, bloqueada }) {
+function LinhaMensagem({ numero, para, dia, horario, bloqueada, situacao }) {
   const marcada = Boolean(dia);
+  const expirada = situacao?.status === 'EXPIRADA';
+  const naoConcedida = situacao?.status === 'NAO_CONCEDIDA';
+  const indeterminada = situacao?.status === 'INDETERMINADA';
+  const indisponivel = bloqueada || expirada || naoConcedida || indeterminada;
+  const descricao = expirada
+    ? `Expirada em ${situacao.dataExpiracao}`
+    : indeterminada
+      ? 'Verificar data da compra'
+      : indisponivel
+      ? 'Não disponível'
+      : para || (situacao?.status === 'DISPONIVEL' ? `Disponível até ${situacao.dataExpiracao}` : situacao?.status === 'UTILIZADA' ? 'Utilizada' : '');
   return (
-    <div className={`resumo-mensagem ${bloqueada ? 'bloqueada' : ''}`}>
-      <span className={`ponto-msg ${bloqueada ? 'bloqueada' : (marcada ? 'usada' : 'livre')}`}>{numero}ª</span>
-      <span className="resumo-mensagem-destino">{bloqueada ? 'Não disponível' : (para || '')}</span>
-      {!bloqueada && (
+    <div className={`resumo-mensagem ${indisponivel ? 'bloqueada' : ''}`}>
+      <span className={`ponto-msg ${indisponivel ? 'bloqueada' : (marcada ? 'usada' : 'livre')}`}>{numero}ª</span>
+      <span className="resumo-mensagem-destino">{descricao}</span>
+      {!indisponivel && (
         <span className="resumo-mensagem-data">
           {dia ? `${dia}${horario ? ` • ${horario}` : ''}` : ''}
         </span>
@@ -271,7 +282,7 @@ export default function ListaFonada() {
                     <td data-label="Transmissões">
                       <div className="resumo-mensagens">
                         <LinhaMensagem numero={1} para={p.p1_para} dia={p.p1_dia} horario={p.p1_horario} />
-                        <LinhaMensagem numero={2} para={p.p2_para} dia={p.p2_dia} horario={p.p2_horario} bloqueada={pedidoInterurbano(p)} />
+                        <LinhaMensagem numero={2} para={p.p2_para} dia={p.p2_dia} horario={p.p2_horario} bloqueada={!p.mensagemEmHaver && pedidoInterurbano(p)} situacao={p.mensagemEmHaver} />
                       </div>
                     </td>
                     <td data-label="Venda">{p.data_pedido || '—'}</td>
