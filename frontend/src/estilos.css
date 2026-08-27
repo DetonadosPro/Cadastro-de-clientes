@@ -397,6 +397,42 @@ input, select, textarea {
   grid-template-columns: minmax(0, 1fr) 340px;
   gap: 14px;
 }
+.carrossel-dias-agenda { display:grid; grid-template-columns:32px minmax(0,1fr) 32px; align-items:center; gap:7px; margin-bottom:14px; }
+.aviso-consulta-agenda { display:inline-flex; align-items:center; min-height:30px; padding:4px 9px; border:1px solid #e4c4be; border-radius:999px; background:#fff8f6; color:var(--selo); font-size:.68rem; font-weight:700; white-space:nowrap; }
+.seta-carrossel-agenda { width:32px; height:42px; border:1px solid var(--borda); border-radius:8px; background:var(--branco); color:var(--carimbo); font-size:24px; line-height:1; cursor:pointer; }
+.seta-carrossel-agenda:hover:not(:disabled) { border-color:var(--carimbo); background:var(--carimbo-suave); }
+.seta-carrossel-agenda:disabled { opacity:.45; cursor:default; }
+.faixa-semana-viewport { overflow:hidden; min-width:0; }
+.faixa-semana-agenda { display:flex; gap:7px; min-width:686px; will-change:transform; }
+.faixa-semana-agenda > button {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 0;
+  padding: 8px 10px;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: var(--branco);
+  color: var(--tinta);
+  cursor: pointer;
+  text-align: left;
+}
+.faixa-semana-agenda > button:hover { border-color: #9cb5d0; }
+.faixa-semana-agenda > button.ativo { border-color: var(--carimbo); background: var(--carimbo-suave); }
+.faixa-semana-agenda span { color: var(--tinta-suave); font-size: .67rem; text-transform: uppercase; }
+.faixa-semana-agenda strong { font-family: var(--fonte-mono); }
+.faixa-semana-agenda small { color: var(--tinta-suave); font-size: .65rem; white-space: nowrap; }
+.agenda-carregando-dados { position:relative; }
+.agenda-carregando-dados > :not(.agenda-atualizando) { opacity:.52; pointer-events:none; }
+.agenda-atualizando { position:absolute; z-index:3; top:50%; left:50%; transform:translate(-50%,-50%); padding:8px 12px; border:1px solid var(--borda); border-radius:8px; background:var(--branco); color:var(--carimbo); font-size:.76rem; font-weight:700; box-shadow:0 3px 12px rgba(28,27,25,.08); }
+.faixa-semana-agenda.animando { width:calc(114.2857% + 1px); min-width:785px; }
+.faixa-semana-agenda.animando.frente { animation:agenda-deslizar-frente 240ms ease-in-out forwards; }
+.faixa-semana-agenda.animando.tras { transform:translateX(calc(-12.5% - 1px)); animation:agenda-deslizar-tras 240ms ease-in-out forwards; }
+@keyframes agenda-deslizar-frente { from { transform:translateX(0); } to { transform:translateX(calc(-12.5% - 1px)); } }
+@keyframes agenda-deslizar-tras { from { transform:translateX(calc(-12.5% - 1px)); } to { transform:translateX(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .faixa-semana-agenda.animando.frente, .faixa-semana-agenda.animando.tras { animation-duration:1ms; }
+}
 @media (max-width: 900px) {
   .grid-agenda-lista-painel {
     grid-template-columns: 1fr;
@@ -2554,7 +2590,7 @@ tr:hover .alca-arrastar {
 .grupo-cobranca.hoje { border-left-color:var(--aviso); }
 .grupo-cobranca.futura { border-left-color:var(--carimbo); }
 .grupo-cobranca.recebida { border-left-color:var(--ok); }
-.grupo-cobranca-principal { display:grid; grid-template-columns:62px 125px minmax(220px,1fr) 82px 125px minmax(250px,auto); align-items:center; gap:10px; padding:12px 14px; }
+.grupo-cobranca-principal { display:grid; grid-template-columns:62px 125px minmax(220px,1fr) 90px 125px 315px; align-items:center; gap:10px; padding:12px 14px; }
 .grupo-cobranca-controles { display:flex; align-items:center; gap:7px; }
 .grupo-cobranca-controles input, .pedido-cobranca-individual input { width:17px; height:17px; margin:0; accent-color:var(--carimbo); cursor:pointer; }
 .grupo-cobranca-expandir { width:28px; height:28px; border:1px solid var(--borda); border-radius:7px; background:var(--papel-alt); color:var(--carimbo); font-size:18px; line-height:1; cursor:pointer; }

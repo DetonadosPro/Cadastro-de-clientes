@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
@@ -48,6 +48,12 @@ function somarDias(dataBr, quantidade) {
   return `${novoDd}/${novoMm}/${novoAa}`;
 }
 
+function rotuloDiaSemana(dataBr) {
+  const data = paraDataSemHora(dataBr);
+  if (!data) return '';
+  return ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][data.getDay()];
+}
+
 export default function Agenda() {
   // A data e a aba selecionadas ficam na URL (não em useState solto) —
   // assim, ao abrir um pedido e depois "Fechar" (que usa o histórico do
@@ -63,6 +69,11 @@ export default function Agenda() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
   const [salvandoBaixa, setSalvandoBaixa] = useState(null);
+  const [inicioJanela, setInicioJanela] = useState(dataSelecionada);
+  const [contagensPorData, setContagensPorData] = useState({});
+  const [carregandoSemana, setCarregandoSemana] = useState(true);
+  const [direcaoCarrossel, setDirecaoCarrossel] = useState(null);
+  const temporizadorCarrosselRef = useRef(null);
 
   const [itemRemarcarAberto, setItemRemarcarAberto] = useState(null);
   const [observacao, setObservacao] = useState('');
@@ -105,12 +116,70 @@ export default function Agenda() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataSelecionada]);
 
+  useEffect(() => {
+    let ativo = true;
+    // Um dia de cada lado fica pré-carregado para o novo card entrar
+    // durante a animação sem aparecer vazio.
+    const dias = Array.from({ length: 9 }, (_, indice) => somarDias(inicioJanela, indice - 1));
+    Promise.all(dias.map((data) => api.agenda.hoje(data)))
+      .then((respostas) => {
+        if (!ativo) return;
+        const novasContagens = {};
+        respostas.forEach((resp, indice) => {
+          const quantidadeFonada = agruparMensagensDuplas(resp.fonada).length;
+          novasContagens[dias[indice]] = quantidadeFonada + resp.aoVivo.length;
+        });
+        setContagensPorData((atual) => ({ ...atual, ...novasContagens }));
+      })
+      .catch(() => {
+        // A faixa mantém as contagens já carregadas; uma falha pontual
+        // não deve impedir a navegação nem apagar os cards.
+      })
+      .finally(() => { if (ativo) setCarregandoSemana(false); });
+    return () => { ativo = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inicioJanela]);
+
+  useEffect(() => () => clearTimeout(temporizadorCarrosselRef.current), []);
+
   function irParaDia(novaData) {
     setSearchParams((atual) => {
       const novo = new URLSearchParams(atual);
       novo.set('data', novaData);
       return novo;
     }, { replace: true });
+  }
+
+  function moverJanela(direcao) {
+    if (direcaoCarrossel) return;
+    setDirecaoCarrossel(direcao);
+    clearTimeout(temporizadorCarrosselRef.current);
+    temporizadorCarrosselRef.current = setTimeout(() => {
+      setInicioJanela((atual) => somarDias(atual, direcao === 'frente' ? 1 : -1));
+      setDirecaoCarrossel(null);
+    }, 240);
+  }
+
+  function selecionarDiaAdjacente(quantidade) {
+    if (direcaoCarrossel) return;
+    const novaData = somarDias(dataSelecionada, quantidade);
+    const datasVisiveis = Array.from({ length: 7 }, (_, indice) => somarDias(inicioJanela, indice));
+    if (!datasVisiveis.includes(novaData)) moverJanela(quantidade > 0 ? 'frente' : 'tras');
+    irParaDia(novaData);
+  }
+
+  function selecionarDataGarantindoVisibilidade(novaData) {
+    const datasVisiveis = Array.from({ length: 7 }, (_, indice) => somarDias(inicioJanela, indice));
+    if (!paraDataSemHora(novaData) || datasVisiveis.includes(novaData)) {
+      irParaDia(novaData);
+      return;
+    }
+    const data = paraDataSemHora(novaData);
+    const inicio = paraDataSemHora(inicioJanela);
+    clearTimeout(temporizadorCarrosselRef.current);
+    setDirecaoCarrossel(null);
+    setInicioJanela(data < inicio ? novaData : somarDias(novaData, -6));
+    irParaDia(novaData);
   }
 
   function irParaAba(novaAba) {
@@ -286,6 +355,12 @@ export default function Agenda() {
   }, [aba, dataSelecionada, fonada, aoVivo]);
 
   const itemSelecionado = listaAtual.find((item) => chaveDoItem(item) === chaveSelecionada) || null;
+  const inicioRenderizacao = direcaoCarrossel === 'tras' ? -1 : 0;
+  const quantidadeCards = direcaoCarrossel ? 8 : 7;
+  const datasDosCards = Array.from(
+    { length: quantidadeCards },
+    (_, indice) => somarDias(inicioJanela, inicioRenderizacao + indice)
+  );
 
   return (
     <div>
@@ -293,37 +368,59 @@ export default function Agenda() {
       <div style={{ marginBottom: 20 }}>
         <h1 style={{ marginBottom: 4 }}>Agenda</h1>
         <div style={estilos.navegacaoData}>
-          <button type="button" className="btn-small" onClick={() => irParaDia(somarDias(dataSelecionada, -1))}>
+          <button type="button" className="btn-small" onClick={() => selecionarDiaAdjacente(-1)}>
             ← Dia anterior
           </button>
           <CampoData
             className="campo-data-agenda"
             placeholder="dd/mm/aa"
             value={dataSelecionada}
-            onChange={(v) => irParaDia(formatarData(v))}
+            onChange={(v) => selecionarDataGarantindoVisibilidade(formatarData(v))}
           />
           {!ehHoje && (
-            <button type="button" className="btn-small" onClick={() => irParaDia(hojeFormatado())}>
+            <button type="button" className="btn-small" onClick={() => selecionarDataGarantindoVisibilidade(hojeFormatado())}>
               Hoje
             </button>
           )}
-          <button type="button" className="btn-small" onClick={() => irParaDia(somarDias(dataSelecionada, 1))}>
+          <button type="button" className="btn-small" onClick={() => selecionarDiaAdjacente(1)}>
             Próximo dia →
           </button>
+          {!ehHoje && (
+            <span className="aviso-consulta-agenda">Somente visualização</span>
+          )}
         </div>
-        {!ehHoje && (
-          <p className="fs-xs" style={{ color: 'var(--selo)', marginTop: 6 }}>
-            Consultando outro dia — só visualização, sem ações de baixa.
-          </p>
-        )}
+      </div>
+
+      <div className="carrossel-dias-agenda" aria-label="Navegação pelos dias da agenda">
+        <button type="button" className="seta-carrossel-agenda" onClick={() => moverJanela('tras')} disabled={Boolean(direcaoCarrossel)} aria-label="Mostrar dia anterior">‹</button>
+        <div className="faixa-semana-viewport">
+          {carregandoSemana ? (
+            <span className="fs-sm texto-suave">Carregando próximos dias...</span>
+          ) : (
+            <div className={`faixa-semana-agenda ${direcaoCarrossel ? `animando ${direcaoCarrossel}` : ''}`}>
+              {datasDosCards.map((data) => {
+                const total = contagensPorData[data];
+                return (
+                  <button key={data} type="button" className={data === dataSelecionada ? 'ativo' : ''} onClick={() => irParaDia(data)}>
+                    <span>{rotuloDiaSemana(data)}</span>
+                    <strong>{data.slice(0, 5)}</strong>
+                    <small>{total ?? '…'} {total === 1 ? 'compromisso' : 'compromissos'}</small>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+        <button type="button" className="seta-carrossel-agenda" onClick={() => moverJanela('frente')} disabled={Boolean(direcaoCarrossel)} aria-label="Mostrar próximo dia">›</button>
       </div>
 
       {erro && <p style={{ color: 'var(--selo)' }}>{erro}</p>}
 
-      {carregando ? (
+      {carregando && !dataRef ? (
         <p style={{ color: 'var(--tinta-suave)' }}>Carregando...</p>
       ) : (
-        <div className="section-box secao-relatorios">
+        <div className={`section-box secao-relatorios ${carregando ? 'agenda-carregando-dados' : ''}`} aria-busy={carregando}>
+          {carregando && <div className="agenda-atualizando">Atualizando agenda...</div>}
           <div className="abas-cliente">
             <button
               type="button"
@@ -1009,6 +1106,7 @@ const estilos = {
     alignItems: 'center',
     gap: 8,
     marginTop: 6,
+    flexWrap: 'wrap',
   },
   itemAgenda: {
     display: 'flex',
