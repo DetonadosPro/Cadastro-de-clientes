@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useSmartBack } from '../../hooks/useSmartBack.js';
 import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
@@ -63,6 +64,7 @@ function linkWhatsApp(numero) {
 export default function FichaCliente() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const voltarHistorico = useSmartBack('/clientes');
   const { mostrarToast } = useToast();
 
   const [cliente, setCliente] = useState(null);
@@ -167,14 +169,7 @@ export default function FichaCliente() {
   }
 
   function voltar() {
-    // Volta para a lista de clientes exatamente como estava (busca e
-    // página preservadas na URL), ou para outra tela de onde a pessoa
-    // realmente veio. Só cai em /clientes "zerada" se não houver histórico.
-    if (window.history.state && window.history.state.idx > 0) {
-      navigate(-1);
-    } else {
-      navigate('/clientes');
-    }
+    voltarHistorico();
   }
 
   async function excluirCliente() {

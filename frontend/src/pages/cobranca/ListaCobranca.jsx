@@ -154,11 +154,24 @@ function reciboJaImpresso(pedido) {
 }
 
 export default function ListaCobranca() {
-  const [parametrosUrl] = useSearchParams();
+  const [parametrosUrl, setParametrosUrl] = useSearchParams();
   const [cobrarDia, setCobrarDia] = useState('');
-  const [filtroRapido, setFiltroRapido] = useState('todas');
+  const [filtroRapido, setFiltroRapido] = useState(() => parametrosUrl.get('filtro') || 'todas');
   const [nome, setNome] = useState(() => parametrosUrl.get('nome') || '');
-  const [os, setOs] = useState('');
+  const [os, setOs] = useState(() => parametrosUrl.get('os') || '');
+
+  useEffect(() => {
+    const temporizador = setTimeout(() => {
+      setParametrosUrl((atuais) => {
+        const novos = new URLSearchParams(atuais);
+        if (filtroRapido && filtroRapido !== 'todas') novos.set('filtro', filtroRapido); else novos.delete('filtro');
+        if (nome) novos.set('nome', nome); else novos.delete('nome');
+        if (os) novos.set('os', os); else novos.delete('os');
+        return novos;
+      }, { replace: true });
+    }, 200);
+    return () => clearTimeout(temporizador);
+  }, [filtroRapido, nome, os, setParametrosUrl]);
   const [pendentes, setPendentes] = useState([]);
   const [recebidas, setRecebidas] = useState([]);
   const [carregando, setCarregando] = useState(false);

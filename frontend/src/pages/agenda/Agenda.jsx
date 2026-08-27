@@ -66,6 +66,8 @@ export default function Agenda() {
   const [searchParams, setSearchParams] = useSearchParams();
   const dataSelecionada = searchParams.get('data') || hojeFormatado();
   const aba = searchParams.get('aba') || 'geral';
+  const inicioUrl = searchParams.get('inicio');
+  const itemUrl = searchParams.get('item');
 
   const [dataRef, setDataRef] = useState('');
   const [fonada, setFonada] = useState([]);
@@ -74,7 +76,7 @@ export default function Agenda() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
   const [salvandoBaixa, setSalvandoBaixa] = useState(null);
-  const [inicioJanela, setInicioJanela] = useState(() => somarDias(dataSelecionada, -3));
+  const [inicioJanela, setInicioJanela] = useState(() => paraDataSemHora(inicioUrl) ? inicioUrl : somarDias(dataSelecionada, -3));
   const [contagensPorData, setContagensPorData] = useState({});
   const [carregandoSemana, setCarregandoSemana] = useState(true);
   const [direcaoCarrossel, setDirecaoCarrossel] = useState(null);
@@ -96,7 +98,7 @@ export default function Agenda() {
 
   // Item selecionado na lista compacta — chave única por tipo+id, já
   // que fonada usa pedidoId+mensagem e ao vivo usa só id.
-  const [chaveSelecionada, setChaveSelecionada] = useState(null);
+  const [chaveSelecionada, setChaveSelecionada] = useState(itemUrl || null);
 
   const navigate = useNavigate();
   const { mostrarToast } = useToast();
@@ -129,6 +131,16 @@ export default function Agenda() {
     carregar(dataSelecionada);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataSelecionada]);
+
+  useEffect(() => {
+    setSearchParams((atual) => {
+      const novo = new URLSearchParams(atual);
+      novo.set('inicio', inicioJanela);
+      if (chaveSelecionada) novo.set('item', chaveSelecionada);
+      else novo.delete('item');
+      return novo;
+    }, { replace: true });
+  }, [inicioJanela, chaveSelecionada, setSearchParams]);
 
   useEffect(() => {
     let ativo = true;

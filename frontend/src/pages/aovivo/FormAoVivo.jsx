@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useSmartBack } from '../../hooks/useSmartBack.js';
 import { api } from '../../api.js';
 import { useRascunhos } from '../../RascunhosContext.jsx';
 import { useToast } from '../../ToastContext.jsx';
@@ -148,7 +149,7 @@ export default function FormAoVivo() {
   const clienteIdUrl = searchParams.get('clienteId');
   const editando = Boolean(id);
   const navigate = useNavigate();
-  const location = useLocation();
+  const voltarHistorico = useSmartBack('/ao-vivo');
   const { rascunhoAoVivo, setRascunhoAoVivo, limparRascunhoAoVivo } = useRascunhos();
   const { mostrarToast } = useToast();
 
@@ -338,16 +339,7 @@ export default function FormAoVivo() {
     // Só "Fechar" um pedido novo descarta o rascunho. Em pedidos já salvos,
     // esta ação é apenas "Voltar" e preserva o pedido pendente da lateral.
     if (!editando) limparRascunhoAoVivo();
-    if (location.state?.returnTo) {
-      if (window.history.state && window.history.state.idx > 0) navigate(-1);
-      else navigate(location.state.returnTo, { replace: true });
-    } else if (window.history.state && window.history.state.idx > 0) {
-      navigate(-1);
-    } else if (cliente) {
-      navigate(`/clientes/${cliente.id}`);
-    } else {
-      navigate('/ao-vivo');
-    }
+    voltarHistorico();
   }
 
   async function imprimirPedido() {

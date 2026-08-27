@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarData } from '../../mascaras.js';
@@ -86,11 +86,12 @@ function rotuloData(pedido) {
 }
 
 export default function CobrancaAoVivo() {
+  const [parametrosUrl, setParametrosUrl] = useSearchParams();
   const [pendentes, setPendentes] = useState([]);
   const [recebidas, setRecebidas] = useState([]);
-  const [filtro, setFiltro] = useState('pendentes');
-  const [nome, setNome] = useState('');
-  const [os, setOs] = useState('');
+  const [filtro, setFiltro] = useState(() => parametrosUrl.get('avFiltro') || 'pendentes');
+  const [nome, setNome] = useState(() => parametrosUrl.get('avNome') || '');
+  const [os, setOs] = useState(() => parametrosUrl.get('avOs') || '');
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
   const [baixa, setBaixa] = useState(null);
@@ -98,6 +99,19 @@ export default function CobrancaAoVivo() {
   const [valorRecebido, setValorRecebido] = useState('');
   const [formaRecebimento, setFormaRecebimento] = useState('PIX');
   const [reagendar, setReagendar] = useState(null);
+
+  useEffect(() => {
+    const temporizador = setTimeout(() => {
+      setParametrosUrl((atuais) => {
+        const novos = new URLSearchParams(atuais);
+        if (filtro && filtro !== 'pendentes') novos.set('avFiltro', filtro); else novos.delete('avFiltro');
+        if (nome) novos.set('avNome', nome); else novos.delete('avNome');
+        if (os) novos.set('avOs', os); else novos.delete('avOs');
+        return novos;
+      }, { replace: true });
+    }, 200);
+    return () => clearTimeout(temporizador);
+  }, [filtro, nome, os, setParametrosUrl]);
   const [novaData, setNovaData] = useState('');
   const [salvando, setSalvando] = useState(false);
   const navigate = useNavigate();

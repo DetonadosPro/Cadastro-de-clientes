@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useSmartBack } from '../../hooks/useSmartBack.js';
 import { api } from '../../api.js';
 import { useRascunhos } from '../../RascunhosContext.jsx';
 import { useToast } from '../../ToastContext.jsx';
@@ -133,7 +134,7 @@ export default function FormFonada() {
   const recallRelacaoUrl = searchParams.get('recallRelacao');
   const editando = Boolean(id);
   const navigate = useNavigate();
-  const location = useLocation();
+  const voltarHistorico = useSmartBack('/fonada');
   const { rascunhoFonada, setRascunhoFonada, limparRascunhoFonada } = useRascunhos();
   const { mostrarToast } = useToast();
 
@@ -502,35 +503,7 @@ export default function FormFonada() {
     // Só "Fechar" um pedido novo descarta o rascunho. Em pedidos já salvos,
     // esta ação é apenas "Voltar" e preserva o pedido pendente da lateral.
     if (!editando) limparRascunhoFonada();
-    if (location.state?.returnTo) {
-      // Retorna à entrada real anterior para manter a cascata do histórico
-      // (Recall → Cliente → Pedido → Cliente → Recall), sem criar uma nova
-      // ficha do cliente que faria o botão Voltar reabrir o pedido.
-      if (window.history.state && window.history.state.idx > 0) navigate(-1);
-      else navigate(location.state.returnTo, { replace: true });
-      return;
-    }
-    // Volta para a página de onde realmente veio (lista, "Hoje", busca, etc).
-    // Quando existe contexto de navegação por busca (contextoNavegacao),
-    // ele é a fonte de verdade mais confiável — reflete a página atual
-    // mesmo depois de usar Anterior/Próximo para pular de página, o que
-    // o histórico do navegador (window.history) não acompanha, já que
-    // a troca de página usa replace: true em vez de empilhar entradas.
-    // Sem isso, "Fechar" reabriria sempre na página de onde a navegação
-    // começou, não na página em que o pedido atual realmente está.
-    if (contextoNavegacao) {
-      const params = new URLSearchParams();
-      if (contextoNavegacao.busca) params.set('busca', contextoNavegacao.busca);
-      if (contextoNavegacao.campo) params.set('campo', contextoNavegacao.campo);
-      params.set('pagina', String(contextoNavegacao.pagina));
-      navigate(`/fonada?${params.toString()}`);
-    } else if (window.history.state && window.history.state.idx > 0) {
-      navigate(-1);
-    } else if (cliente) {
-      navigate(`/clientes/${cliente.id}`);
-    } else {
-      navigate('/fonada');
-    }
+    voltarHistorico();
   }
 
   if (carregando) return <p style={{ color: 'var(--tinta-suave)' }}>Carregando...</p>;

@@ -97,6 +97,7 @@ export default function ListaClientes() {
   const paginaUrl = parseInt(searchParams.get('pagina') || '1', 10);
   const ordenarPorUrl = searchParams.get('ordenarPor') || 'nome';
   const direcaoUrl = searchParams.get('direcao') || 'asc';
+  const drawerUrl = searchParams.get('cliente');
 
   const [busca, setBusca] = useState(buscaUrl);
   const [telefone, setTelefone] = useState(telefoneUrl);
@@ -117,7 +118,7 @@ export default function ListaClientes() {
   const [comparacaoMescla, setComparacaoMescla] = useState(null);
   const [destinoMescla, setDestinoMescla] = useState(null);
   const [fontesMescla, setFontesMescla] = useState({});
-  const [clienteDrawerId, setClienteDrawerId] = useState(null);
+  const [clienteDrawerId, setClienteDrawerId] = useState(() => drawerUrl ? Number(drawerUrl) : null);
   const [confirmacaoExclusao, setConfirmacaoExclusao] = useState(false);
   const navigate = useNavigate();
   const { mostrarToast } = useToast();
@@ -316,10 +317,11 @@ export default function ListaClientes() {
       return;
     }
     setClienteDrawerId(cliente.id);
+    setSearchParams((atuais) => { const novos = new URLSearchParams(atuais); novos.set('cliente', String(cliente.id)); return novos; }, { replace: true });
   }
 
-  const fecharDrawer = useCallback(() => setClienteDrawerId(null), []);
-  const navegarDoDrawer = useCallback((rota) => { setClienteDrawerId(null); navigate(rota); }, [navigate]);
+  const fecharDrawer = useCallback(() => { setClienteDrawerId(null); setSearchParams((atuais) => { const novos = new URLSearchParams(atuais); novos.delete('cliente'); return novos; }, { replace: true }); }, [setSearchParams]);
+  const navegarDoDrawer = useCallback((rota) => { navigate(rota); }, [navigate]);
 
   function aoIniciarArrasto(e, cliente) {
     setArrastandoId(cliente.id);

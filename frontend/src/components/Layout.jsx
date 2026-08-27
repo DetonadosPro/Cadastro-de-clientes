@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { getUsuarioLogado, getNomeExibicao, limparSessao } from '../api.js';
 import { useRascunhos } from '../RascunhosContext.jsx';
@@ -92,7 +92,8 @@ export default function Layout() {
   const [menuAberto, setMenuAberto] = useState(false);
   const [sidebarCompacta, setSidebarCompacta] = useState(() => localStorage.getItem('pombo_sidebar_compacta') === '1');
   const [commandAberta, setCommandAberta] = useState(false);
-  const [chaveRelatorios, setChaveRelatorios] = useState(0);
+  const [chaveConteudo, setChaveConteudo] = useState(0);
+  const conteudoRef = useRef(null);
   const { rascunhoFonada, rascunhoAoVivo } = useRascunhos();
   // A cor da bolinha vem do contexto compartilhado — assim ela e as
   // bordas de urgência na tela Agenda ficam sempre sincronizadas, já
@@ -102,6 +103,23 @@ export default function Layout() {
   useEffect(() => {
     setMenuAberto(false);
   }, [location.pathname]);
+
+  // Cada entrada do histórico do React Router possui uma chave estável.
+  // Guardamos a rolagem por chave para que voltar restaure a posição da
+  // tela anterior, inclusive quando o conteúdo termina de carregar depois.
+  useEffect(() => {
+    const elemento = conteudoRef.current;
+    if (!elemento) return undefined;
+    const chave = `pombo-scroll:${location.key}`;
+    const salvo = Number(sessionStorage.getItem(chave) || 0);
+    const restaurar = () => { elemento.scrollTop = salvo; };
+    restaurar();
+    const tentativas = [80, 220, 500].map((tempo) => setTimeout(restaurar, tempo));
+    return () => {
+      tentativas.forEach(clearTimeout);
+      sessionStorage.setItem(chave, String(elemento.scrollTop));
+    };
+  }, [location.key]);
 
   useEffect(() => {
     localStorage.setItem('pombo_sidebar_compacta', sidebarCompacta ? '1' : '0');
@@ -125,8 +143,29 @@ export default function Layout() {
     return () => document.removeEventListener('keydown', atalhosGlobais);
   }, [navigate]);
 
+  function resetarSecaoAtual(rota) {
+    if (rota === '/recall') {
+      Object.keys(sessionStorage).filter((chave) => chave.startsWith('recall-lista-scroll:')).forEach((chave) => sessionStorage.removeItem(chave));
+    }
+    if (rota === '/fonada') {
+      sessionStorage.removeItem('ultimoFonadaSelecionado');
+      sessionStorage.removeItem('fonadaListaNavegacao');
+      sessionStorage.removeItem('fonadaNavegacaoContexto');
+    }
+    if (rota === '/ao-vivo') sessionStorage.removeItem('ultimoAoVivoSelecionado');
+    setChaveConteudo((atual) => atual + 1);
+    navigate(rota, { replace: true });
+  }
+
+  function aoClicarLinkSecao(evento, rota) {
+    if (location.pathname !== rota && !location.pathname.startsWith(`${rota}/`)) return;
+    evento.preventDefault();
+    resetarSecaoAtual(rota);
+  }
+
   function irParaClientes() {
-    navigate('/clientes');
+    if (location.pathname === '/clientes' || location.pathname.startsWith('/clientes/')) resetarSecaoAtual('/clientes');
+    else navigate('/clientes');
   }
 
   function sair() {
@@ -163,7 +202,7 @@ export default function Layout() {
 
         <nav className="layout-nav">
           <div className="nav-destaque-duo">
-            <NavLink to="/agenda" className="nav-item-destaque" style={estilos.linkAgenda} aria-label="Agenda" title="Agenda">
+            <NavLink to="/agenda" className="nav-item-destaque" style={estilos.linkAgenda} aria-label="Agenda" title="Agenda" onClick={(e) => aoClicarLinkSecao(e, '/agenda')}>
               <span style={estilos.itemComIcone}><IconeAgenda /> <span className="nav-label">Agenda</span></span>
               {alertaAgenda && (
                 <span
@@ -186,11 +225,11 @@ export default function Layout() {
 
           <div className="nav-divisor" />
 
-          <NavLink to="/cobranca" className="nav-item-direto" aria-label="Cobrança" title="Cobrança">
+          <NavLink to="/cobranca" className="nav-item-direto" aria-label="Cobrança" title="Cobrança" onClick={(e) => aoClicarLinkSecao(e, '/cobranca')}>
             <IconeCobranca /> <span className="nav-label">Cobrança</span>
           </NavLink>
 
-          <NavLink to="/recall" className="nav-item-direto" aria-label="Recall" title="Recall">
+          <NavLink to="/recall" className="nav-item-direto" aria-label="Recall" title="Recall" onClick={(e) => aoClicarLinkSecao(e, '/recall')}>
             <IconeRecall /> <span className="nav-label">Recall</span>
           </NavLink>
 
@@ -199,17 +238,7 @@ export default function Layout() {
             className="nav-item-direto"
             aria-label="Relatórios"
             title="Relatórios"
-            onClick={(e) => {
-              // Se a pessoa já está em Relatórios e clica de novo no
-              // menu, força o reset da página (limpa aba/filtro da URL
-              // e remonta o componente do zero, sem afetar a navegação
-              // interna entre abas/filtro dentro da própria tela).
-              if (location.pathname === '/relatorios') {
-                e.preventDefault();
-                setChaveRelatorios((v) => v + 1);
-                navigate('/relatorios', { replace: true });
-              }
-            }}
+            onClick={(e) => aoClicarLinkSecao(e, '/relatorios')}
           >
             <IconeRelatorios /> <span className="nav-label">Relatórios</span>
           </NavLink>
@@ -218,7 +247,7 @@ export default function Layout() {
 
           <div className="nav-secao-titulo"><span className="nav-label">Pedidos</span></div>
 
-          <NavLink to="/fonada" className="nav-item-direto" end aria-label="Fonada" title="Fonada">
+          <NavLink to="/fonada" className="nav-item-direto" end aria-label="Fonada" title="Fonada" onClick={(e) => aoClicarLinkSecao(e, '/fonada')}>
             <IconeFonada /> <span className="nav-label">Fonada</span>
           </NavLink>
           {rascunhoFonada && (
@@ -227,7 +256,7 @@ export default function Layout() {
             </NavLink>
           )}
 
-          <NavLink to="/ao-vivo" className="nav-item-direto" end aria-label="Ao vivo" title="Ao vivo">
+          <NavLink to="/ao-vivo" className="nav-item-direto" end aria-label="Ao vivo" title="Ao vivo" onClick={(e) => aoClicarLinkSecao(e, '/ao-vivo')}>
             <IconeAoVivo /> <span className="nav-label">Ao vivo</span>
           </NavLink>
           {rascunhoAoVivo && (
@@ -258,7 +287,7 @@ export default function Layout() {
         <div className="layout-overlay nao-imprimir" onClick={() => setMenuAberto(false)} />
       )}
 
-      <main className="layout-conteudo">
+      <main className="layout-conteudo" ref={conteudoRef}>
         <div className="workspace-topbar nao-imprimir">
           <button type="button" className="workspace-command" onClick={() => setCommandAberta(true)} aria-label="Abrir busca global">
             <span>⌕</span><span>Buscar clientes, páginas ou ações</span><kbd>Ctrl K</kbd>
@@ -266,7 +295,7 @@ export default function Layout() {
           <button type="button" className="workspace-novo" onClick={() => navigate('/clientes/novo')}><span>＋</span> Novo cliente <kbd>N</kbd></button>
         </div>
         <div className="layout-pagina">
-          <Outlet key={location.pathname === '/relatorios' ? chaveRelatorios : undefined} />
+          <Outlet key={chaveConteudo} />
         </div>
       </main>
       <CommandPalette aberta={commandAberta} onFechar={() => setCommandAberta(false)} onNavegar={navigate} />

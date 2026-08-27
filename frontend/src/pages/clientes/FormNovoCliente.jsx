@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
+import { useSmartBack } from '../../hooks/useSmartBack.js';
 
 function IconeAviso() {
   return (
@@ -28,6 +29,7 @@ const VAZIO = {
 export default function FormNovoCliente() {
   const navigate = useNavigate();
   const location = useLocation();
+  const voltarHistorico = useSmartBack('/clientes');
   const { mostrarToast } = useToast();
 
   const [dados, setDados] = useState(() => ({ ...VAZIO, ...(location.state?.dadosIniciais || {}) }));
@@ -85,7 +87,7 @@ export default function FormNovoCliente() {
   }
 
   function cancelar() {
-    navigate(location.state?.returnTo || '/clientes');
+    voltarHistorico();
   }
 
   return (

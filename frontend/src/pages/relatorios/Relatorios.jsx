@@ -11,7 +11,7 @@ export default function Relatorios() {
   const [searchParams, setSearchParams] = useSearchParams();
   const aba = searchParams.get('aba') || 'vendas';
   const sistema = searchParams.get('sistema') || 'TODOS';
-  const intervalo = useIntervaloData();
+  const intervalo = useIntervaloData(searchParams, setSearchParams);
 
   function irParaAba(novaAba) {
     setSearchParams((atual) => {
@@ -89,13 +89,22 @@ export default function Relatorios() {
   );
 }
 
-function useIntervaloData() {
-  const [inicio, setInicio] = useState('');
-  const [fim, setFim] = useState('');
+function useIntervaloData(searchParams, setSearchParams) {
+  const inicio = searchParams.get('inicio') || '';
+  const fim = searchParams.get('fim') || '';
+  function definir(campo, valor) {
+    const formatado = formatarData(valor);
+    setSearchParams((atuais) => {
+      const novos = new URLSearchParams(atuais);
+      if (formatado) novos.set(campo, formatado);
+      else novos.delete(campo);
+      return novos;
+    }, { replace: true });
+  }
   return {
     inicio, fim,
-    setInicio: (v) => setInicio(formatarData(v)),
-    setFim: (v) => setFim(formatarData(v)),
+    setInicio: (v) => definir('inicio', v),
+    setFim: (v) => definir('fim', v),
   };
 }
 
