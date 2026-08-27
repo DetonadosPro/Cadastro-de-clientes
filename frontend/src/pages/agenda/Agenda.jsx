@@ -747,40 +747,37 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onD
         {item.horario || '—'}
       </div>
 
-      <div className="grade grade-2" style={{ marginBottom: 12 }}>
+      <div className="grade grade-2" style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid var(--papel-alt)' }}>
         <Info label="Destinatário" valor={item.para} />
         {item.celular && <InfoTelefone label="Celular" valor={item.celular} />}
+        {item.fixo && <Info label="Fixo" valor={item.fixo} />}
       </div>
 
-      <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid var(--papel-alt)' }}>
+      <div className="grade grade-2" style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid var(--papel-alt)' }}>
         {par ? (
-          <div className="grade grade-2">
-            <Info label="Tema (1ª)" valor={item.tema ? `${item.tema}${item.codigo ? ' · ' + item.codigo : ''}` : (item.codigo || null)} />
-            <Info label="Tema (2ª)" valor={par.tema ? `${par.tema}${par.codigo ? ' · ' + par.codigo : ''}` : (par.codigo || null)} />
+          <div style={{ gridColumn: '1 / -1' }}>
+            <div className="grade grade-2">
+              <Info label="Tema (1ª)" valor={item.tema ? `${item.tema}${item.codigo ? ' · ' + item.codigo : ''}` : (item.codigo || null)} />
+              <Info label="Tema (2ª)" valor={par.tema ? `${par.tema}${par.codigo ? ' · ' + par.codigo : ''}` : (par.codigo || null)} />
+            </div>
+            {(item.quemOferece || par.quemOferece) && (
+              <div className="grade grade-2" style={{ marginTop: 12 }}>
+                {item.quemOferece && <Info label="Quem oferece (1ª)" valor={item.quemOferece} />}
+                {par.quemOferece && <Info label="Quem oferece (2ª)" valor={par.quemOferece} />}
+              </div>
+            )}
           </div>
         ) : (
-          <Info label="Tema" valor={item.tema ? `${item.tema}${item.codigo ? ' · ' + item.codigo : ''}` : (item.codigo || null)} />
+          <div style={{ gridColumn: '1 / -1' }}>
+            <Info label="Tema" valor={item.tema ? `${item.tema}${item.codigo ? ' · ' + item.codigo : ''}` : (item.codigo || null)} />
+            {item.quemOferece && (
+              <div style={{ marginTop: 12 }}>
+                <Info label="Quem oferece" valor={item.quemOferece} />
+              </div>
+            )}
+          </div>
         )}
       </div>
-
-      {item.fixo && (
-        <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid var(--papel-alt)' }}>
-          <Info label="Fixo" valor={item.fixo} />
-        </div>
-      )}
-
-      {(item.quemOferece || (par && par.quemOferece)) && (
-        <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid var(--papel-alt)' }}>
-          {par ? (
-            <div className="grade grade-2">
-              <Info label="Quem oferece (1ª)" valor={item.quemOferece} />
-              <Info label="Quem oferece (2ª)" valor={par.quemOferece} />
-            </div>
-          ) : (
-            <Info label="Quem oferece" valor={item.quemOferece} />
-          )}
-        </div>
-      )}
 
       {(!ehHoje || jaPassada) && item.resultado && (
         <div style={{ marginBottom: 14 }}>

@@ -65,6 +65,10 @@ function formaPagamentoAoVivo(pagamento) {
   return texto ? texto.split(/[\s-]+/)[0].toUpperCase() : 'NÃO INFORMADO';
 }
 
+function statusPagamento(valor) {
+  return String(valor || '').trim().toUpperCase() === 'SIM' ? 'SIM' : 'NAO';
+}
+
 function prepararItens(itens) {
   const LIMITE = 200;
   const ordenados = [...itens].sort((a, b) => {
@@ -151,7 +155,7 @@ router.get('/vendas', async (req, res) => {
 
     if (sistema === 'FONADA' || sistema === 'TODOS') {
       const fonadasResultado = await db.query(`
-        SELECT id, valor, periodo, data_pedido, recall, nome_comprador, senha_os FROM fonadas WHERE excluido_em IS NULL
+        SELECT id, valor, periodo, data_pedido, recall, pagou, nome_comprador, senha_os FROM fonadas WHERE excluido_em IS NULL
       `);
       const noPeriodo = filtrarPorIntervalo(fonadasResultado.rows, 'data_pedido', inicio, fim);
       if (periodoAnterior) {
@@ -183,13 +187,14 @@ router.get('/vendas', async (req, res) => {
           id: l.id, sistema: 'FONADA', os: l.senha_os || l.id,
           nome: l.nome_comprador || '—', valor: valorNumero(l.valor),
           forma: formaPagamento(l.periodo), data: l.data_pedido,
+          statusPagamento: statusPagamento(l.pagou),
         });
       }
     }
 
     if (sistema === 'AOVIVO' || sistema === 'TODOS') {
       const aoVivoResultado = await db.query(`
-        SELECT id, valor, data_pedido, comprador, numero_os, pagamento FROM ao_vivo WHERE excluido_em IS NULL
+        SELECT id, valor, data_pedido, comprador, numero_os, pagamento, pagou FROM ao_vivo WHERE excluido_em IS NULL
       `);
       const noPeriodo = filtrarPorIntervalo(aoVivoResultado.rows, 'data_pedido', inicio, fim);
       if (periodoAnterior) {
@@ -208,6 +213,7 @@ router.get('/vendas', async (req, res) => {
           id: l.id, sistema: 'AOVIVO', os: l.numero_os || l.id,
           nome: l.comprador || '—', valor: valorNumero(l.valor),
           forma: formaPagamentoAoVivo(l.pagamento), data: l.data_pedido,
+          statusPagamento: statusPagamento(l.pagou),
         });
       }
     }
@@ -272,6 +278,7 @@ router.get('/recebimentos', async (req, res) => {
           id: l.id, sistema: 'FONADA', os: l.senha_os || l.id,
           nome: l.nome_comprador || '—', valor: valorNumero(l.valor),
           forma: formaPagamento(l.periodo), data: l.data_pagamento,
+          statusPagamento: statusPagamento(l.pagou),
         });
       }
     }
@@ -312,6 +319,7 @@ router.get('/recebimentos', async (req, res) => {
           id: l.id, sistema: 'AOVIVO', os: l.numero_os || l.id,
           nome: l.comprador || '—', valor: valorNumero(l.valor_recebido ?? l.valor),
           forma: l.forma_recebimento || formaPagamentoAoVivo(l.pagamento), data: l.data_pagou,
+          statusPagamento: statusPagamento(l.pagou),
         });
       }
       for (const l of noPeriodoPrazo) {
@@ -319,6 +327,7 @@ router.get('/recebimentos', async (req, res) => {
           id: l.id, sistema: 'AOVIVO', os: l.numero_os || l.id,
           nome: l.comprador || '—', valor: valorNumero(l.valor_recebido ?? l.valor),
           forma: l.forma_recebimento || 'PRAZO', data: l.data_pagou,
+          statusPagamento: statusPagamento(l.pagou),
         });
       }
     }

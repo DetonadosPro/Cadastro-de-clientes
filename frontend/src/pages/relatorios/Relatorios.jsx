@@ -507,6 +507,7 @@ function TabelaDetalhada({ itens, tituloColunaValor, limitado }) {
               <th>Sistema</th>
               <th>Forma</th>
               <th>{tituloColunaValor}</th>
+              <th>Pagamento</th>
             </tr>
           </thead>
           <tbody>
@@ -524,6 +525,11 @@ function TabelaDetalhada({ itens, tituloColunaValor, limitado }) {
                 <td data-label="Forma">{item.forma}</td>
                 <td data-label={tituloColunaValor} style={{ fontFamily: 'var(--fonte-mono)', fontWeight: 700 }}>
                   {formatarReais(item.valor)}
+                </td>
+                <td data-label="Pagamento">
+                  <span className={`tag ${String(item.statusPagamento || '').trim().toUpperCase() === 'SIM' ? 'ok' : 'pendente'}`}>
+                    {String(item.statusPagamento || '').trim().toUpperCase() === 'SIM' ? 'Pago' : 'Pendente'}
+                  </span>
                 </td>
               </tr>
             ))}
