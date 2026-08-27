@@ -503,7 +503,11 @@ export default function FormFonada() {
     // esta ação é apenas "Voltar" e preserva o pedido pendente da lateral.
     if (!editando) limparRascunhoFonada();
     if (location.state?.returnTo) {
-      navigate(location.state.returnTo);
+      // Retorna à entrada real anterior para manter a cascata do histórico
+      // (Recall → Cliente → Pedido → Cliente → Recall), sem criar uma nova
+      // ficha do cliente que faria o botão Voltar reabrir o pedido.
+      if (window.history.state && window.history.state.idx > 0) navigate(-1);
+      else navigate(location.state.returnTo, { replace: true });
       return;
     }
     // Volta para a página de onde realmente veio (lista, "Hoje", busca, etc).

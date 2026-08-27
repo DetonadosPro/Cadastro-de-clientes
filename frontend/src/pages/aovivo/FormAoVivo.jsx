@@ -339,7 +339,8 @@ export default function FormAoVivo() {
     // esta ação é apenas "Voltar" e preserva o pedido pendente da lateral.
     if (!editando) limparRascunhoAoVivo();
     if (location.state?.returnTo) {
-      navigate(location.state.returnTo);
+      if (window.history.state && window.history.state.idx > 0) navigate(-1);
+      else navigate(location.state.returnTo, { replace: true });
     } else if (window.history.state && window.history.state.idx > 0) {
       navigate(-1);
     } else if (cliente) {

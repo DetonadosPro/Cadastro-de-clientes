@@ -3964,14 +3964,32 @@ input[type="password"] {
 .recall-detalhes-topo {
   position: relative;
 }
-.recall-detalhes-topo > div {
+.recall-detalhes-topo > div:first-child {
   min-width: 0;
-  padding-right: 50px;
+  padding-right: 150px;
 }
-.recall-abrir-cliente {
+.recall-cadastro-canto {
   position: absolute;
   top: 0;
   right: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.recall-bloqueio-destaque {
+  padding: 5px 9px;
+  border: 1px solid #dc8585;
+  border-radius: 8px;
+  background: #fff0f0;
+  color: #a91616;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.recall-abrir-cliente {
+  position: static;
   display: grid;
   place-items: center;
   width: 42px;
@@ -4005,6 +4023,32 @@ input[type="password"] {
 .recall-linha small b {
   color: var(--tinta);
   font-weight: 650;
+}
+.recall-linha .recall-lista-relacao {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.recall-lista-relacao > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recall-lista-relacao > span:first-child {
+  color: var(--tinta);
+  font-size: 12px;
+}
+.recall-lista-relacao > span:last-child {
+  color: var(--carimbo);
+  font-size: 11px;
+}
+.recall-lista-relacao > b {
+  flex: 0 0 auto;
+  color: var(--tinta-suave);
+  font-size: 13px;
+  font-weight: 500;
 }
 .recall-detalhes-topo .recall-relacao-linha {
   display: flex;
