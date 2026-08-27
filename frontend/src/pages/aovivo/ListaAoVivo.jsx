@@ -14,14 +14,6 @@ function IconeBusca() {
   );
 }
 
-function IconeMais() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-      <path d="M12 5v14M5 12h14" />
-    </svg>
-  );
-}
-
 function IconeImprimir() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -238,9 +230,6 @@ export default function ListaAoVivo() {
           <p className="fs-sm" style={{ color: 'var(--tinta-suave)', margin: 0 }}>Acompanhe eventos, entregas e pagamentos.</p>
         </div>
         <div className="lista-aovivo-acoes-topo">
-          <button type="button" className="btn" onClick={() => navigate('/clientes')}>
-            <IconeMais /> Novo pedido
-          </button>
           <button
             type="button"
             className="btn secundario"

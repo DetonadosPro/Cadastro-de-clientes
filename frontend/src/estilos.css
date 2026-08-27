@@ -46,6 +46,10 @@ html, body {
   font-size: 15px;
   line-height: 1.5;
   max-width: 100%;
+  /* O layout desktop usa uma área de conteúdo com zoom próprio nas telas
+     de pedido; esta borda evita que esse zoom crie uma barra lateral fora
+     do aplicativo. No mobile, a camada responsiva libera o eixo para que
+     cada componente trate seu próprio overflow. */
   overflow-x: hidden;
 }
 
@@ -2468,10 +2472,6 @@ tr:hover .alca-arrastar {
   border-top-left-radius: 12px;
   border-top-right-radius: 12px;
 }
-.abas-cliente-acao {
-  flex: 0 0 auto;
-  padding: 0 14px;
-}
 .abas-relatorio {
   justify-content: flex-start;
 }
@@ -2608,8 +2608,10 @@ tr:hover .alca-arrastar {
 .grupo-cobranca-valor strong { font-family:var(--fonte-mono); font-size:15px; }
 .grupo-cobranca-acoes { display:flex; justify-content:flex-end; align-items:center; flex-wrap:wrap; gap:5px; }
 .grupo-cobranca-acoes .btn-small { display:inline-flex; align-items:center; gap:5px; text-decoration:none; white-space:nowrap; }
-.grupo-cobranca-acoes .cobranca-whatsapp { width:31px; height:29px; padding:0; justify-content:center; border-color:#25a765; color:#16834c; border-radius:50%; }
-.grupo-cobranca-acoes .cobranca-whatsapp:hover { background:#e7f7ef; color:#10733f; }
+.grupo-cobranca-acoes .cobranca-whatsapp,
+.cobranca-aovivo-acoes .cobranca-whatsapp { display:inline-flex; align-items:center; width:31px; height:29px; min-height:29px; padding:0; justify-content:center; border-color:#25a765; color:#16834c; border-radius:50%; }
+.grupo-cobranca-acoes .cobranca-whatsapp:hover,
+.cobranca-aovivo-acoes .cobranca-whatsapp:hover { background:#e7f7ef; color:#10733f; }
 .grupo-cobranca-acoes .cobranca-recibo-icone { width:31px; height:29px; padding:0; justify-content:center; border-radius:50%; }
 .grupo-cobranca-acoes .cobranca-recibo-icone svg { width:16px; height:16px; }
 .btn-small.primario { border-color:var(--carimbo); background:var(--carimbo); color:#fff; }
@@ -2648,6 +2650,8 @@ tr:hover .alca-arrastar {
 .cobranca-aovivo-valor strong { font-family:var(--fonte-mono); font-size:15px; }
 .cobranca-aovivo-acoes { display:flex; justify-content:flex-end; align-items:center; flex-wrap:wrap; gap:5px; }
 .cobranca-aovivo-acoes .btn-small { text-decoration:none; white-space:nowrap; }
+.grupo-cobranca-acoes .cobranca-whatsapp svg,
+.cobranca-aovivo-acoes .cobranca-whatsapp svg { width:18px; height:18px; }
 .pagamento-aovivo-card { border-left:4px solid var(--aviso); }
 .pagamento-aovivo-card.pago { border-left-color:var(--ok); background:var(--ok-suave); }
 .pagamento-aovivo-card .info-linha { gap:8px; }
@@ -2686,6 +2690,10 @@ tr:hover .alca-arrastar {
 .aviso-mesclagem-clientes { padding:10px 12px; border-radius:8px; background:var(--aviso-suave); color:var(--aviso); font-size:11px; font-weight:700; }
 .acoes-ficha-cliente, .acoes-dados-cliente { display:flex; flex-wrap:wrap; align-items:center; gap:7px; }
 .acoes-ficha-cliente .btn { white-space:nowrap; }
+.acoes-ficha-cliente .cobranca-whatsapp { display:inline-flex; align-items:center; width:31px; height:29px; min-width:31px; min-height:29px; padding:0; justify-content:center; border-color:#25a765; background:#fff; color:#16834c; border-radius:50%; text-decoration:none; }
+.acoes-ficha-cliente .whatsapp-mobile-ficha { display:none; }
+.acoes-ficha-cliente .cobranca-whatsapp:hover { background:#e7f7ef; color:#10733f; }
+.acoes-ficha-cliente .cobranca-whatsapp svg { width:18px; height:18px; }
 .btn-small.perigo { border-color:rgba(173,54,47,.3); color:var(--selo); }
 .resumo-operacional-cliente { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; }
 .historico-cliente-secundario { display:block; margin-top:3px; color:var(--tinta-suave); font-size:9.5px; font-weight:500; }

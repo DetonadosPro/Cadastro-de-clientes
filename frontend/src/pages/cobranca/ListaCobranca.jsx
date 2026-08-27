@@ -285,7 +285,9 @@ export default function ListaCobranca() {
     setNovaData(diferencaParaHoje(atual) != null && diferencaParaHoje(atual) >= 0 ? atual : dataLocalFormatada(1));
   }
   async function confirmarReagendamento() {
-    if (!novaData) return mostrarToast('Informe a nova data.', 'erro');
+    const diferenca = diferencaParaHoje(novaData);
+    if (diferenca == null) return mostrarToast('Informe uma data válida para reagendar.', 'erro');
+    if (diferenca < 0) return mostrarToast('A cobrança não pode ser reagendada para o passado.', 'erro');
     setSalvandoReagendamento(true);
     try {
       await api.cobranca.reagendarEmLote(pedidosReagendar.map((p) => p.id), novaData);

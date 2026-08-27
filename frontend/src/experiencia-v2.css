@@ -106,6 +106,7 @@ kbd { display:inline-flex; align-items:center; justify-content:center; min-width
 .drawer-cliente-header h2 { margin:2px 0; font-size:20px; }
 .drawer-cliente-header p { margin:0; color:#7b8797; font-size:10px; }
 .drawer-cliente-acoes { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-bottom:15px; }
+.drawer-cliente-acoes button { justify-content:center; text-align:center; }
 .drawer-cliente-acoes button:last-child { grid-column:1/-1; }
 .drawer-resumo-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-bottom:13px; }
 .drawer-resumo-grid > div { padding:14px; border:1px solid #dce5ef; border-radius:12px; background:#fff; }
@@ -229,3 +230,893 @@ kbd { display:inline-flex; align-items:center; justify-content:center; min-width
 }
 
 @media print { .workspace-topbar,.command-overlay,.drawer-cliente-overlay { display:none !important; } }
+
+/* ================================================================
+   AUDITORIA MOBILE — camada responsiva exclusiva
+
+   Esta camada fica no fim do arquivo para reunir os ajustes que só
+   entram abaixo de 900px. Nenhuma regra acima de 900px é alterada:
+   o layout desktop continua com as mesmas dimensões e posições.
+   ================================================================ */
+
+@media (max-width:900px) {
+  :root { --mobile-gutter: clamp(12px, 4vw, 20px); }
+
+  /* O conteúdo da Agenda é animado, mas não deve virar o contêiner de
+     referência dos elementos fixed do drawer. Caso contrário, o overlay
+     começa no topo da lista em vez de cobrir a viewport inteira. */
+  .agenda-conteudo-transicao { will-change:auto; }
+
+  html, body, #root { min-width:0; }
+  html, body { overflow-x:visible; }
+  #root { min-height:100dvh; }
+  .layout-app {
+    min-height:100dvh;
+    height:auto;
+    overflow-x:clip;
+    overflow-y:visible;
+  }
+  .layout-topbar {
+    min-height:58px;
+    gap:8px;
+    padding-top:max(10px, env(safe-area-inset-top));
+    padding-right:max(13px, env(safe-area-inset-right));
+    padding-bottom:10px;
+    padding-left:max(13px, env(safe-area-inset-left));
+  }
+  .layout-topbar > div:nth-child(2) { min-width:0; flex:1 1 auto; }
+  .layout-topbar > div:nth-child(2) > span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .layout-topbar > div:nth-child(3) { flex:0 1 38%; min-width:0; max-width:45vw; }
+  .layout-sidebar {
+    max-height:100dvh;
+    padding-bottom:max(16px, env(safe-area-inset-bottom));
+  }
+  .layout-conteudo {
+    width:100%;
+    min-width:0;
+    min-height:calc(100dvh - 58px);
+    height:auto;
+    overflow:visible;
+    scrollbar-gutter:auto;
+    padding-right:max(var(--mobile-gutter), env(safe-area-inset-right));
+    padding-bottom:calc(28px + env(safe-area-inset-bottom));
+    padding-left:max(var(--mobile-gutter), env(safe-area-inset-left));
+  }
+  .layout-pagina,
+  .form-pagina,
+  .pagina-aovivo-ampliada,
+  .pagina-fonada-ampliada,
+  .lista-fonada-pagina,
+  .lista-aovivo-pagina {
+    width:100%;
+    max-width:100%;
+    min-width:0;
+  }
+  .login-pagina,
+  .usuarios-pagina {
+    min-height:100dvh;
+    padding-top:max(18px, env(safe-area-inset-top));
+    padding-right:max(var(--mobile-gutter), env(safe-area-inset-right));
+    padding-bottom:calc(18px + env(safe-area-inset-bottom));
+    padding-left:max(var(--mobile-gutter), env(safe-area-inset-left));
+  }
+  .login-cartao { width:100%; max-width:430px; min-width:0; }
+
+  /* A busca e o botão precisam dividir a barra sem empurrar o relógio
+     ou criar uma segunda rolagem horizontal. */
+  .workspace-topbar {
+    width:auto;
+    min-width:0;
+    top:calc(58px + env(safe-area-inset-top));
+    height:50px;
+    margin-right:calc(-1 * var(--mobile-gutter));
+    margin-left:calc(-1 * var(--mobile-gutter));
+    padding-right:max(var(--mobile-gutter), env(safe-area-inset-right));
+    padding-left:max(var(--mobile-gutter), env(safe-area-inset-left));
+    gap:7px;
+  }
+  .workspace-command,
+  .workspace-novo { min-width:0; }
+  .workspace-command { flex:1 1 auto; width:auto; }
+  .workspace-command > span:nth-child(2) { min-width:0; }
+  .workspace-novo { flex:0 1 auto; white-space:nowrap; }
+  .selecao-toolbar { top:calc(114px + env(safe-area-inset-top)); }
+  .workspace-command kbd,
+  .workspace-novo kbd { display:none; }
+
+  /* No celular o relógio vira um elemento de fluxo dentro da Agenda.
+     Assim ele nunca fica por cima da busca ou do botão Novo cliente. */
+  .agenda-v2 .relogio-topo {
+    position:static;
+    width:max-content;
+    max-width:100%;
+    margin:0 0 8px auto;
+    padding:5px 11px;
+    font-size:17px;
+  }
+
+  .pagina-cabecalho-v2,
+  .agenda-cabecalho-v2,
+  .lista-fonada-cabecalho,
+  .lista-aovivo-cabecalho,
+  .cobranca-cabecalho {
+    min-width:0;
+    gap:12px;
+  }
+  .pagina-cabecalho-v2 h1,
+  .agenda-cabecalho-v2 h1,
+  .lista-fonada-cabecalho h1,
+  .lista-aovivo-cabecalho h1,
+  .cobranca-cabecalho h1 {
+    overflow-wrap:anywhere;
+  }
+  .pagina-acoes-v2,
+  .lista-fonada-acoes-topo,
+  .lista-aovivo-acoes-topo,
+  .cobranca-acoes-impressao {
+    max-width:100%;
+    flex-wrap:wrap;
+  }
+  .pagina-acoes-v2 > .btn,
+  .lista-fonada-acoes-topo > .btn,
+  .lista-aovivo-acoes-topo > .btn,
+  .cobranca-acoes-impressao > .btn {
+    min-height:42px;
+  }
+
+  /* Superfícies com conteúdo longo não podem criar uma largura mínima
+     própria; o texto quebra apenas quando realmente necessário. */
+  .painel, .section-box, .bloco-sistema,
+  .grupo-cobranca, .cobranca-aovivo-card,
+  .lista-fonada-tabela-painel, .lista-aovivo-tabela-painel {
+    min-width:0;
+    max-width:100%;
+  }
+  .section-title,
+  .grupo-cobranca-cliente strong,
+  .grupo-cobranca-cliente span,
+  .cobranca-aovivo-cliente button,
+  .drawer-cliente-header h2 {
+    overflow-wrap:anywhere;
+  }
+  .section-title { flex-wrap:wrap; gap:8px; }
+  .section-title > * { min-width:0; }
+  .aviso-bloqueio,
+  .login-erro,
+  .aviso-mesclagem-clientes,
+  .estado-vazio-v2 p { overflow-wrap:anywhere; }
+
+  /* Modais: margem segura, rolagem no próprio diálogo e altura baseada
+     na viewport dinâmica para não esconder o rodapé sob o teclado. */
+  .modal-fundo,
+  .command-overlay {
+    align-items:flex-start;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    padding-top:max(12px, env(safe-area-inset-top));
+    padding-right:max(var(--mobile-gutter), env(safe-area-inset-right));
+    padding-bottom:max(12px, env(safe-area-inset-bottom));
+    padding-left:max(var(--mobile-gutter), env(safe-area-inset-left));
+  }
+  .modal-caixa,
+  .command-palette {
+    width:100%;
+    max-width:100%;
+    max-height:calc(100dvh - 24px);
+    margin-top:auto;
+    margin-bottom:auto;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+  }
+  .modal-mesclar-clientes { max-height:calc(100dvh - 24px); }
+  .acoes-modal-cobranca,
+  .confirmacao-acoes { flex-wrap:wrap; }
+  .acoes-modal-cobranca > .btn,
+  .confirmacao-acoes > .btn { min-height:42px; }
+
+  .command-palette { border-radius:15px; }
+  .command-input-wrap { min-height:58px; padding-inline:13px; }
+  .command-input-wrap input { min-width:0; height:46px; font-size:15px; }
+  .command-resultados { max-height:calc(100dvh - 160px); padding:6px; }
+  .command-item { min-height:56px; padding-block:9px; }
+  .command-rodape { flex-wrap:wrap; gap:7px 12px; }
+  .command-rodape span:last-child { width:100%; margin-left:0; }
+
+  .drawer-cliente-overlay { padding-left:env(safe-area-inset-left); }
+  .drawer-cliente {
+    width:min(100%, 520px);
+    max-width:100%;
+    height:100dvh;
+    padding-top:max(18px, env(safe-area-inset-top));
+    padding-right:max(16px, env(safe-area-inset-right));
+    padding-bottom:calc(18px + env(safe-area-inset-bottom));
+    padding-left:max(16px, env(safe-area-inset-left));
+  }
+  .drawer-cliente-acoes button,
+  .drawer-cliente-fechar { min-height:42px; }
+  .drawer-cliente-fechar { min-width:42px; }
+
+  /* Popovers preservam a largura do conteúdo, mas nunca ultrapassam a
+     viewport. A posição à esquerda funciona também para campos cheios. */
+  .sugestoes-popover,
+  .calendario-popover {
+    max-width:calc(100vw - 24px);
+  }
+  .calendario-popover { width:min(232px, calc(100vw - 24px)); }
+  .sugestoes-item,
+  .calendario-dia { min-height:36px; }
+
+  /* Carrossel de dias: rolagem é intencional, com snap e área de toque
+     estável; as setas continuam disponíveis para quem prefere clicar. */
+  .faixa-semana-viewport {
+    overflow-x:auto;
+    overflow-y:hidden;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:thin;
+    overscroll-behavior-x:contain;
+  }
+  .agenda-v2 .faixa-semana-agenda {
+    min-width:590px;
+    scroll-snap-type:x proximity;
+  }
+  .agenda-v2 .faixa-semana-agenda > button { scroll-snap-align:center; }
+  .agenda-v2 .grid-agenda-lista-painel {
+    min-width:0;
+    padding:10px !important;
+  }
+  .agenda-v2 .painel-detalhes-agenda:not(.drawer-aberto) { display:none; }
+  .agenda-v2 .drawer-overlay-mobile {
+    background:rgba(18, 42, 70, .2);
+    backdrop-filter:blur(1px);
+    -webkit-backdrop-filter:blur(1px);
+  }
+  .agenda-v2 .linha-agenda { min-width:0; }
+  .painel-detalhes-agenda.drawer-aberto {
+    position:fixed;
+    inset:auto 0 0;
+    width:100vw;
+    max-width:none;
+    margin:0;
+    box-sizing:border-box;
+    max-height:min(85dvh, 640px);
+    padding-bottom:calc(16px + env(safe-area-inset-bottom));
+  }
+
+  /* Formulários: tudo que era largura inline passa a respeitar o card.
+     A hierarquia continua sendo campo principal, dados secundários e
+     ações; somente a disposição muda no celular. */
+  .form-layout,
+  .form-layout > div,
+  .duas-colunas-mensagem,
+  .grade-secoes-aovivo,
+  .wrapper-financeiro-aovivo {
+    min-width:0;
+    max-width:100%;
+  }
+  .cadastro-inteligente { overflow:visible; }
+  .form-layout > div:last-child { order:-1; }
+  .secao-transmissao .coluna-mensagem + .coluna-mensagem {
+    margin-top:12px;
+    padding-top:12px;
+  }
+  .secao-transmissao .coluna-mensagem .form-row,
+  .secao-aovivo-espacosa .form-row {
+    min-width:0;
+  }
+  .secao-transmissao .coluna-mensagem .form-row input,
+  .secao-transmissao .coluna-mensagem .form-row select,
+  .secao-transmissao .coluna-mensagem .form-row textarea,
+  .secao-aovivo-espacosa .form-row input,
+  .secao-aovivo-espacosa .form-row select,
+  .secao-aovivo-espacosa .form-row textarea,
+  .campo-data-raiz {
+    max-width:100% !important;
+    min-width:0 !important;
+  }
+  .secao-aovivo-espacosa .form-row textarea,
+  .secao-transmissao .coluna-mensagem .campo-quem-oferece textarea {
+    width:100%;
+    min-height:84px;
+    max-height:220px;
+  }
+  .campo-para-aovivo,
+  .campo-tema-aovivo,
+  .campo-musica-aovivo,
+  .campo-brinde-aovivo,
+  .campo-forma-pagamento-aovivo,
+  .campo-tipo-cartao-aovivo {
+    width:100% !important;
+    flex:1 1 auto !important;
+  }
+  .campo-codigo-aovivo { flex:0 1 92px !important; width:auto !important; }
+  .campo-dia-aovivo { flex:1 1 130px !important; width:auto !important; }
+  .campo-horario-aovivo { flex:1 1 96px !important; width:auto !important; }
+  .secao-comprador { overflow:hidden; }
+  .secao-comprador .grade-3 { min-width:0; }
+  .secao-comprador .grade-3 > * { min-width:0; overflow-wrap:anywhere; }
+  .secao-comprador .fs-lg { overflow-wrap:anywhere; }
+  .acoes-secundarias-mobile .btn-action { min-height:44px; }
+
+  /* Filtros passam a uma coluna previsível, sem botão sobrando na lateral. */
+  .lista-fonada-busca,
+  .lista-aovivo-busca,
+  .cobranca-campos-filtro,
+  .clientes-campos-busca,
+  .cobranca-aovivo-filtros .cobranca-campos-filtro {
+    width:100%;
+    min-width:0;
+    grid-template-columns:minmax(0,1fr) !important;
+  }
+  .lista-fonada-busca > *,
+  .lista-aovivo-busca > *,
+  .cobranca-campos-filtro > *,
+  .clientes-campos-busca > * { grid-column:1 !important; width:100%; min-width:0; }
+  .lista-fonada-campo-busca,
+  .lista-aovivo-campo-busca { grid-column:1 !important; }
+  .lista-fonada-busca .btn,
+  .lista-aovivo-busca .btn,
+  .cobranca-campos-filtro .btn { width:100%; min-height:42px; }
+  .lista-fonada-meta,
+  .lista-aovivo-meta,
+  .lista-fonada-total { min-width:0; }
+  .lista-fonada-total { white-space:normal; }
+  .lista-fonada-paginacao > span,
+  .lista-aovivo-paginacao > span { flex:1 1 100%; order:-1; text-align:center; }
+
+  /* Cards de cobrança e Ao Vivo: a ação permanece por último e todos os
+     textos longos podem quebrar sem alterar os dados exibidos. */
+  .grade-resumo-cobranca-operacional {
+    grid-template-columns:repeat(2, minmax(0,1fr));
+  }
+  .resumo-cobranca-operacional { min-width:0; padding:11px 10px; }
+  .resumo-cobranca-operacional strong { overflow-wrap:anywhere; font-size:clamp(15px, 4.7vw, 18px); }
+  .grupo-cobranca-principal { min-width:0; }
+  .grupo-cobranca-acoes,
+  .pedido-cobranca-acoes,
+  .cobranca-aovivo-acoes { min-width:0; }
+  .grupo-cobranca-acoes .btn-small,
+  .pedido-cobranca-acoes .btn-small,
+  .cobranca-aovivo-acoes .btn-small { min-height:38px; }
+  .grupo-cobranca-valor strong,
+  .cobranca-aovivo-valor strong { overflow-wrap:anywhere; }
+  .pedido-cobranca-individual { min-width:0; }
+  .pedido-cobranca-individual > * { min-width:0; overflow-wrap:anywhere; }
+
+  /* Abas e chips não esmagam o texto: viram uma faixa tocável rolável. */
+  .abas-cliente:not(.abas-relatorio) {
+    overflow-x:auto;
+    flex-wrap:nowrap;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .abas-cliente { scroll-snap-type:x proximity; }
+  .abas-cliente .aba-cliente-botao,
+  .abas-cliente .filtro-sistema-relatorio { scroll-snap-align:start; }
+  .abas-cliente:not(.abas-relatorio)::-webkit-scrollbar { display:none; }
+  .abas-cliente:not(.abas-relatorio) .aba-cliente-botao { min-height:42px; flex-shrink:0; }
+  .cobranca-atalhos,
+  .clientes-filtros-rapidos,
+  .atalhos-periodo { overflow-x:auto; flex-wrap:nowrap; padding-bottom:2px; scrollbar-width:none; }
+  .cobranca-atalhos::-webkit-scrollbar,
+  .clientes-filtros-rapidos::-webkit-scrollbar,
+  .atalhos-periodo::-webkit-scrollbar { display:none; }
+  .cobranca-atalhos button,
+  .clientes-filtros-rapidos button,
+  .atalhos-periodo button { min-height:38px; flex-shrink:0; }
+
+  /* Tables that intentionally become cards still keep comfortable touch
+     targets and never force a hidden horizontal scrollbar. */
+  .tabela-lista,
+  .tabela-lista tbody,
+  .tabela-lista tbody tr { min-width:0; max-width:100%; }
+  .tabela-lista.tabela-clientes td,
+  .tabela-lista.tabela-fonada td,
+  .tabela-lista.tabela-cobranca td,
+  .tabela-lista.tabela-aovivo td { overflow-wrap:break-word; word-break:normal; }
+  .tabela-lista input[type="checkbox"] { width:20px; height:20px; }
+
+  /* As duas tabelas auxiliares não usam a transformação das listas de
+     pedidos. No celular elas também viram cartões, sem esconder ações
+     de restauração, remoção ou exclusão definitiva. */
+  .tabela-lixeira,
+  .tabela-lixeira tbody,
+  .tabela-usuarios,
+  .tabela-usuarios tbody { display:block; width:100%; }
+  .tabela-lixeira thead,
+  .tabela-usuarios thead { display:none; }
+  .tabela-lixeira tbody tr:not(.lixeira-linha-detalhes),
+  .tabela-usuarios tbody tr {
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:5px 10px;
+    padding:12px;
+    border-bottom:1px solid #e8edf3;
+  }
+  .tabela-lixeira tbody tr:not(.lixeira-linha-detalhes) td,
+  .tabela-usuarios tbody tr td {
+    min-width:0;
+    padding:2px 0;
+    border-bottom:0;
+    overflow-wrap:break-word;
+    word-break:normal;
+  }
+  .tabela-lixeira tbody tr:not(.lixeira-linha-detalhes) td:nth-child(1) { grid-column:2; grid-row:1; text-align:right; }
+  .tabela-lixeira tbody tr:not(.lixeira-linha-detalhes) td:nth-child(2) { grid-column:1; grid-row:1; font-size:1rem; }
+  .tabela-lixeira tbody tr:not(.lixeira-linha-detalhes) td:nth-child(3),
+  .tabela-lixeira tbody tr:not(.lixeira-linha-detalhes) td:nth-child(4),
+  .tabela-lixeira tbody tr:not(.lixeira-linha-detalhes) td:nth-child(5),
+  .tabela-lixeira tbody tr:not(.lixeira-linha-detalhes) td:nth-child(6) { grid-column:1/-1; color:#6c7788; font-size:.78rem; }
+  .tabela-lixeira tbody tr:not(.lixeira-linha-detalhes) td:nth-child(7) { grid-column:1/-1; }
+  .tabela-lixeira tbody tr:not(.lixeira-linha-detalhes) td:nth-child(7) > div { justify-content:flex-start !important; flex-wrap:wrap; }
+  .tabela-lixeira tbody tr:not(.lixeira-linha-detalhes) td:nth-child(7) .btn-small { min-height:38px; flex:1 1 130px; }
+  .tabela-lixeira tbody tr.lixeira-linha-detalhes { display:block; }
+  .tabela-lixeira tbody tr.lixeira-linha-detalhes td { display:block; width:100%; }
+  .tabela-usuarios tbody tr td:nth-child(1) { grid-column:1/-1; font-size:1rem; }
+  .tabela-usuarios tbody tr td:nth-child(2),
+  .tabela-usuarios tbody tr td:nth-child(3),
+  .tabela-usuarios tbody tr td:nth-child(4) { grid-column:1/-1; color:#6c7788; font-size:.78rem; }
+  .tabela-usuarios tbody tr td:nth-child(5) { grid-column:1/-1; }
+  .tabela-usuarios tbody tr td:nth-child(5) .btn-small { min-height:38px; width:100%; }
+
+  .toast {
+    top:max(12px, env(safe-area-inset-top));
+    min-width:0;
+    width:min(440px, calc(100vw - 24px));
+    max-width:calc(100vw - 24px);
+  }
+  .lixeira-busca-form { width:100%; }
+  .lixeira-busca-form input,
+  .lixeira-busca-form .btn { min-width:0; flex:1 1 100%; min-height:42px; }
+  .lixeira-paginacao { flex-wrap:wrap; gap:8px; }
+  .lixeira-paginacao > * { min-width:0; }
+
+  button, a, input[type="checkbox"], input[type="radio"] { touch-action:manipulation; }
+}
+
+@media (max-width:700px) {
+  .cabecalho-ficha-cliente {
+    flex-direction:column;
+    align-items:stretch !important;
+    gap:12px;
+  }
+  .cabecalho-ficha-cliente > div:first-child { min-width:0; }
+  .cabecalho-ficha-cliente .acoes-ficha-cliente {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    width:100%;
+    gap:7px;
+  }
+  .cabecalho-ficha-cliente .acoes-ficha-cliente .btn {
+    width:100%;
+    min-width:0;
+    justify-content:center;
+    white-space:nowrap;
+  }
+  .cabecalho-ficha-cliente .acoes-ficha-cliente .whatsapp-mobile-ficha {
+    display:inline-flex;
+    width:100%;
+    min-width:0;
+    height:40px;
+    min-height:40px;
+    padding-inline:0;
+    border-radius:9px;
+  }
+  .cabecalho-ficha-cliente .acoes-ficha-cliente > :last-child {
+    grid-column:1/-1;
+    justify-self:start;
+    width:auto;
+    min-width:92px;
+  }
+
+  .layout-conteudo { padding-top:14px; }
+  .workspace-topbar { margin-bottom:14px; }
+  .workspace-novo { min-height:42px; padding-inline:10px; }
+  .workspace-command { flex:0 0 42px; justify-content:center; padding-inline:0; }
+  .workspace-command > span:nth-child(2) { display:none; }
+
+  .pagina-cabecalho-v2,
+  .agenda-cabecalho-v2,
+  .lista-fonada-cabecalho,
+  .lista-aovivo-cabecalho,
+  .cobranca-cabecalho { align-items:stretch; }
+  .pagina-acoes-v2,
+  .lista-fonada-acoes-topo,
+  .lista-aovivo-acoes-topo,
+  .cobranca-acoes-impressao { width:100%; }
+  .pagina-acoes-v2 > *,
+  .lista-fonada-acoes-topo > *,
+  .lista-aovivo-acoes-topo > *,
+  .cobranca-acoes-impressao > * { flex:1 1 140px; }
+
+  .agenda-controles-v2 { align-items:stretch; }
+  .agenda-controles-v2 .campo-data-agenda { flex:1 1 120px; width:auto; }
+  .agenda-seta-dia { min-width:42px; min-height:42px; }
+  .agenda-hoje { min-height:42px; }
+  .aviso-consulta-agenda { min-height:36px; }
+  .carrossel-dias-agenda { grid-template-columns:30px minmax(0,1fr) 30px; }
+  .seta-carrossel-agenda { min-width:30px; min-height:44px; }
+
+  .form-row { gap:7px; }
+  .form-row label { max-width:100%; }
+  .secao-transmissao .coluna-mensagem .form-row,
+  .secao-transmissao .coluna-mensagem .linha-fixo-celular { align-items:center; }
+  .secao-transmissao .coluna-mensagem .form-row label { min-width:64px; }
+  .secao-transmissao .coluna-mensagem .linha-fixo-celular { grid-template-columns:auto minmax(0,1fr) auto minmax(0,1fr); }
+  .secao-transmissao .coluna-mensagem .form-row input,
+  .secao-transmissao .coluna-mensagem .form-row select { width:100% !important; }
+  .secao-aovivo-espacosa .form-row { flex-wrap:wrap; }
+  .secao-aovivo-espacosa .form-row > label { flex:0 0 auto; }
+  .secao-aovivo-espacosa .form-row > input,
+  .secao-aovivo-espacosa .form-row > select,
+  .secao-aovivo-espacosa .form-row > textarea,
+  .secao-aovivo-espacosa .form-row > .campo-data-raiz,
+  .secao-aovivo-espacosa .form-row > .campo-sugestoes-raiz { flex:1 1 calc(100% - 76px) !important; }
+  .linha-para-dia-aovivo .campo-para-aovivo { flex-basis:100% !important; }
+  .linha-para-dia-aovivo .campo-dia-aovivo,
+  .linha-para-dia-aovivo .campo-horario-aovivo { flex:1 1 120px !important; }
+
+  .grade-resumo-cobranca-operacional { gap:7px; }
+  .grupo-cobranca-principal { grid-template-columns:52px minmax(0,1fr) auto; padding:10px 9px; }
+  .grupo-cobranca-status-impressao { grid-column:1/-1; text-align:left; }
+  .grupo-cobranca-detalhes { padding-inline:9px; }
+  .pedido-cobranca-individual { grid-template-columns:20px 72px minmax(0,1fr) auto; gap:7px; padding-inline:8px; }
+  .cobranca-aovivo-card { grid-template-columns:minmax(0,1fr); gap:9px; padding:11px 12px; }
+  .cobranca-aovivo-data,
+  .cobranca-aovivo-valor,
+  .cobranca-aovivo-acoes { grid-column:1; text-align:left; }
+  .cobranca-aovivo-acoes { justify-content:flex-start; }
+
+  .drawer-resumo-grid { gap:7px; }
+  .drawer-resumo-grid > div,
+  .drawer-bloco { padding:12px; }
+}
+
+@media (max-width:480px) {
+  :root { --mobile-gutter:12px; }
+  .layout-conteudo { padding-inline:12px; }
+  .workspace-topbar { margin-inline:-12px; padding-inline:12px; }
+  .workspace-novo { padding-inline:8px; font-size:11px; }
+  h1 { font-size:clamp(1.3rem, 6.2vw, 1.45rem); }
+  .pagina-cabecalho-v2 p,
+  .agenda-cabecalho-v2 p { font-size:12px; }
+  .section-box, .painel { padding:12px; }
+  .section-title { min-height:30px; margin-bottom:11px; padding-bottom:8px; }
+  .modal-caixa { border-radius:14px; padding:16px; }
+  .modal-caixa .grade-2,
+  .modal-caixa .grade-3 { grid-template-columns:1fr; }
+  .acoes-modal-cobranca > .btn,
+  .confirmacao-acoes > .btn { width:100%; }
+  .command-overlay { padding-inline:12px; }
+  .command-item { grid-template-columns:32px minmax(0,1fr); gap:9px; }
+  .command-enter { display:none; }
+  .command-rodape { display:none; }
+  .agenda-v2 .faixa-semana-agenda { min-width:560px; }
+  .agenda-v2 .grid-agenda-lista-painel { padding:8px !important; }
+  .linha-agenda { gap:7px; padding:11px 9px; flex-wrap:wrap; }
+  .linha-agenda-titulo { flex:1 1 calc(100% - 112px); white-space:normal; overflow-wrap:anywhere; }
+  .linha-agenda-tag { margin-left:auto; }
+  .secao-transmissao .coluna-mensagem .form-row label { min-width:58px; font-size:9.5px; }
+  .secao-transmissao .coluna-mensagem .linha-fixo-celular { grid-template-columns:auto minmax(0,1fr); }
+  .secao-transmissao .coluna-mensagem .linha-fixo-celular .label-cel-fonada { grid-column:1; grid-row:2; margin-left:0 !important; }
+  .secao-transmissao .coluna-mensagem .linha-fixo-celular .campo-celular-fonada { grid-column:2; grid-row:2; }
+  .secao-transmissao .coluna-mensagem .linha-fixo-celular .botao-p-copiar { display:none; }
+  .grupo-cobranca-principal { grid-template-columns:44px minmax(0,1fr); }
+  .grupo-cobranca-valor { grid-column:1/-1; }
+  .grupo-cobranca-acoes { grid-column:1/-1; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .grupo-cobranca-acoes .btn-small { width:100%; justify-content:center; }
+  .grupo-cobranca-acoes .cobranca-whatsapp,
+  .grupo-cobranca-acoes .cobranca-recibo-icone,
+  .cobranca-aovivo-acoes .cobranca-whatsapp { width:100%; border-radius:9px; }
+  .cobranca-aovivo-acoes { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:5px; }
+  .cobranca-aovivo-acoes .btn-small { width:100%; justify-content:center; }
+  .pedido-cobranca-individual { grid-template-columns:20px minmax(0,1fr) auto; }
+  .pedido-cobranca-individual .pedido-cobranca-datas { grid-column:2/4; }
+  .pedido-cobranca-individual > .tag { grid-column:2; }
+  .pedido-cobranca-individual > strong { grid-column:2; }
+  .recibo-status { grid-column:3; }
+  .pedido-cobranca-acoes { grid-column:1/-1; }
+  .grade-resumo-cobranca-operacional { grid-template-columns:1fr 1fr; }
+  .resumo-cobranca-operacional span { font-size:9px; }
+  .resumo-cobranca-operacional small { font-size:10px; }
+  .tabela-lista.tabela-clientes tbody tr,
+  .tabela-lista.tabela-fonada tbody tr,
+  .tabela-lista.tabela-cobranca tbody tr,
+  .tabela-lista.tabela-aovivo tbody tr { padding-inline:9px; }
+}
+
+@media (max-width:374px) {
+  .workspace-novo { max-width:112px; overflow:hidden; text-overflow:ellipsis; }
+  .agenda-controles-v2 { gap:4px; padding:4px; }
+  .agenda-controles-v2 .campo-data-agenda { min-width:106px; }
+  .agenda-v2 .faixa-semana-agenda { min-width:540px; }
+  .grade-resumo-cobranca-operacional { grid-template-columns:1fr; }
+  .cobranca-atalhos button,
+  .clientes-filtros-rapidos button,
+  .atalhos-periodo button { padding-inline:9px; }
+  .secao-aovivo-espacosa .form-row > label { flex-basis:100%; }
+  .secao-aovivo-espacosa .form-row > input,
+  .secao-aovivo-espacosa .form-row > select,
+  .secao-aovivo-espacosa .form-row > textarea,
+  .secao-aovivo-espacosa .form-row > .campo-data-raiz,
+  .secao-aovivo-espacosa .form-row > .campo-sugestoes-raiz { flex-basis:100% !important; }
+  .acoes-secundarias-mobile { flex-wrap:wrap; }
+  .acoes-secundarias-mobile .btn-action { flex-basis:100% !important; }
+}
+
+/* ================================================================
+   SMARTPHONE REAL (320–430px)
+
+   Abaixo de 430px a largura interna é a referência principal. Os
+   componentes deixam de herdar a matemática de tablet: a Agenda usa
+   uma quantidade previsível de cartões, e Fonada/Ao Vivo distribuem
+   campos curtos e longos por proporção, sem larguras fixas de aparelho.
+   ================================================================ */
+
+@media (max-width:430px) {
+  /* Agenda: a viewport recorta a faixa, não o documento inteiro. O trilho
+     tem sete cartões no estado parado e oito durante a transição; cada
+     cartão conserva a mesma largura, então o translate de 12,5% continua
+     sendo exatamente um cartão e nenhum compromisso vaza para o vizinho. */
+  .agenda-v2 .carrossel-dias-agenda {
+    grid-template-columns:30px minmax(0,1fr) 30px;
+    gap:4px;
+    width:100%;
+    min-width:0;
+  }
+  .agenda-v2 .faixa-semana-viewport {
+    width:100%;
+    min-width:0;
+    overflow-x:hidden;
+    overflow-y:visible;
+    contain:layout;
+    overscroll-behavior-x:contain;
+  }
+  .agenda-v2 .faixa-semana-agenda {
+    width:calc(233.333% + 12px);
+    min-width:0;
+    gap:6px;
+    will-change:transform;
+  }
+  .agenda-v2 .faixa-semana-agenda.animando {
+    width:calc(266.667% + 12px);
+    min-width:0;
+  }
+  .agenda-v2 .faixa-semana-agenda > button {
+    flex:0 0 calc((100% - 36px) / 7);
+    min-width:0;
+    max-width:none;
+    min-height:66px;
+    gap:1px;
+    padding:8px 7px;
+    overflow:hidden;
+  }
+  .agenda-v2 .faixa-semana-agenda > button span,
+  .agenda-v2 .faixa-semana-agenda > button strong,
+  .agenda-v2 .faixa-semana-agenda > button small {
+    min-width:0;
+    max-width:100%;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .agenda-v2 .faixa-semana-agenda > button strong { font-size:clamp(12px, 3.4vw, 15px); }
+  .agenda-v2 .faixa-semana-agenda > button small { font-size:clamp(8px, 2.2vw, 10px); }
+  .agenda-v2 .seta-carrossel-agenda { width:30px; min-width:30px; padding:0; font-size:21px; }
+
+  /* Fonada: todos os rows internos usam uma grade local. Tema + número,
+     dia + horário e os telefones preservam a linha enquanto houver espaço;
+     o texto longo recebe o restante, sem o campo curto ser empurrado. */
+  .pagina-fonada-ampliada .section-box { padding:11px 10px; }
+  .pagina-fonada-ampliada .secao-transmissao { padding:10px; }
+  .pagina-fonada-ampliada .duas-colunas-mensagem { gap:0; }
+  .pagina-fonada-ampliada .coluna-mensagem + .coluna-mensagem {
+    margin-top:10px;
+    padding-top:10px;
+  }
+  .pagina-fonada-ampliada .secao-transmissao .coluna-mensagem .form-row {
+    display:grid;
+    grid-template-columns:max-content minmax(0,1fr) auto;
+    align-items:center;
+    gap:5px;
+    min-width:0;
+    margin-bottom:6px;
+  }
+  .pagina-fonada-ampliada .secao-transmissao .coluna-mensagem .form-row > label {
+    min-width:0;
+    max-width:none;
+    font-size:10px;
+    white-space:nowrap;
+  }
+  .pagina-fonada-ampliada .secao-transmissao .coluna-mensagem .form-row > input,
+  .pagina-fonada-ampliada .secao-transmissao .coluna-mensagem .form-row > select,
+  .pagina-fonada-ampliada .secao-transmissao .coluna-mensagem .form-row > textarea,
+  .pagina-fonada-ampliada .secao-transmissao .coluna-mensagem .form-row > .campo-data-raiz {
+    width:100% !important;
+    min-width:0 !important;
+    max-width:none !important;
+    box-sizing:border-box;
+  }
+  .pagina-fonada-ampliada .secao-transmissao .linha-tema-numero-fonada {
+    grid-template-columns:max-content minmax(0,1fr) max-content minmax(48px,.45fr) auto;
+  }
+  .pagina-fonada-ampliada .secao-transmissao .linha-tema-numero-fonada > label:nth-of-type(1) { grid-column:1; }
+  .pagina-fonada-ampliada .secao-transmissao .linha-tema-numero-fonada > input:nth-of-type(1) { grid-column:2; }
+  .pagina-fonada-ampliada .secao-transmissao .linha-tema-numero-fonada > label:nth-of-type(2) { grid-column:3; }
+  .pagina-fonada-ampliada .secao-transmissao .linha-tema-numero-fonada > input:nth-of-type(2) { grid-column:4; }
+  .pagina-fonada-ampliada .secao-transmissao .linha-tema-numero-fonada > .botao-p-copiar { grid-column:5; }
+  .pagina-fonada-ampliada .secao-transmissao .linha-fixo-celular {
+    grid-template-columns:max-content minmax(80px,1fr) max-content minmax(88px,1.1fr) auto;
+  }
+  .pagina-fonada-ampliada .secao-transmissao .linha-fixo-celular > label:first-child { grid-column:1; }
+  .pagina-fonada-ampliada .secao-transmissao .linha-fixo-celular .campo-fixo-fonada { grid-column:2; }
+  .pagina-fonada-ampliada .secao-transmissao .linha-fixo-celular .label-cel-fonada { grid-column:3; margin-left:0 !important; }
+  .pagina-fonada-ampliada .secao-transmissao .linha-fixo-celular .campo-celular-fonada { grid-column:4; }
+  .pagina-fonada-ampliada .secao-transmissao .linha-fixo-celular .botao-p-copiar { grid-column:5; }
+  .pagina-fonada-ampliada .secao-transmissao .linha-dia-horario-fonada {
+    grid-template-columns:max-content minmax(82px,1fr) max-content minmax(52px,.65fr) auto;
+  }
+  .pagina-fonada-ampliada .secao-transmissao .linha-dia-horario-fonada > label:nth-of-type(1) { grid-column:1; }
+  .pagina-fonada-ampliada .secao-transmissao .linha-dia-horario-fonada > .campo-data-raiz { grid-column:2; }
+  .pagina-fonada-ampliada .secao-transmissao .linha-dia-horario-fonada > label:nth-of-type(2) { grid-column:3; margin-left:0 !important; }
+  .pagina-fonada-ampliada .secao-transmissao .linha-dia-horario-fonada > input { grid-column:4; }
+  .pagina-fonada-ampliada .secao-transmissao .linha-dia-horario-fonada > .botao-p-copiar { grid-column:5; }
+  .pagina-fonada-ampliada .secao-transmissao .campo-para-fonada textarea,
+  .pagina-fonada-ampliada .secao-transmissao .campo-quem-oferece textarea {
+    min-height:54px;
+    height:54px;
+    resize:vertical;
+  }
+  .pagina-fonada-ampliada .secao-transmissao .campo-resultado input { color:var(--selo); }
+
+  /* Ao Vivo: Para ocupa uma linha confortável; data e horário dividem a
+     seguinte. No Catálogo, Tema sempre fica maior que Código, inclusive
+     em 320px, sem deixar o código cair por causa de uma largura fixa. */
+  .pagina-aovivo-ampliada .section-box { padding:11px 10px; }
+  .pagina-aovivo-ampliada .secao-aovivo-espacosa .form-row {
+    gap:5px;
+    margin-bottom:6px;
+  }
+  .pagina-aovivo-ampliada .secao-aovivo-espacosa .form-row > input,
+  .pagina-aovivo-ampliada .secao-aovivo-espacosa .form-row > select,
+  .pagina-aovivo-ampliada .secao-aovivo-espacosa .form-row > textarea,
+  .pagina-aovivo-ampliada .secao-aovivo-espacosa .form-row > .campo-sugestoes-raiz {
+    padding:6px 8px;
+    font-size:13px;
+  }
+  .pagina-aovivo-ampliada .secao-aovivo-espacosa .form-row > .campo-data-raiz {
+    padding:0 26px 0 8px;
+  }
+  .pagina-aovivo-ampliada .secao-aovivo-espacosa .form-row > textarea {
+    min-height:72px;
+    max-height:180px;
+  }
+  .pagina-aovivo-ampliada .secao-aovivo-espacosa .form-row > label {
+    min-width:0;
+    max-width:none;
+    font-size:11px;
+    white-space:nowrap;
+  }
+  .pagina-aovivo-ampliada .secao-homenageado-aovivo .linha-para-dia-aovivo {
+    display:grid;
+    grid-template-columns:max-content minmax(0,1fr) max-content minmax(52px,.65fr);
+    align-items:center;
+    row-gap:6px;
+  }
+  .pagina-aovivo-ampliada .linha-para-dia-aovivo > label:first-child { grid-column:1; grid-row:1; }
+  .pagina-aovivo-ampliada .linha-para-dia-aovivo .campo-para-aovivo {
+    grid-column:2/-1;
+    grid-row:1;
+    width:100% !important;
+    min-width:0 !important;
+    margin-bottom:0;
+  }
+  .pagina-aovivo-ampliada .linha-para-dia-aovivo .label-dia-aovivo { grid-column:1; grid-row:2; margin-left:0 !important; }
+  .pagina-aovivo-ampliada .linha-para-dia-aovivo .campo-dia-aovivo { grid-column:2; grid-row:2; width:100% !important; min-width:0 !important; }
+  .pagina-aovivo-ampliada .linha-para-dia-aovivo .label-horario-aovivo { grid-column:3; grid-row:2; margin-left:0 !important; }
+  .pagina-aovivo-ampliada .linha-para-dia-aovivo .campo-horario-aovivo { grid-column:4; grid-row:2; width:100% !important; min-width:0 !important; }
+  .pagina-aovivo-ampliada .secao-catalogo-aovivo .linha-tema-codigo-aovivo {
+    display:grid;
+    grid-template-columns:max-content minmax(0,1fr) max-content minmax(48px,.45fr);
+    align-items:center;
+    gap:5px;
+  }
+  .pagina-aovivo-ampliada .linha-tema-codigo-aovivo > label:first-child { grid-column:1; }
+  .pagina-aovivo-ampliada .linha-tema-codigo-aovivo .campo-tema-aovivo { grid-column:2; width:100% !important; min-width:0 !important; }
+  .pagina-aovivo-ampliada .linha-tema-codigo-aovivo .label-codigo-aovivo { grid-column:3; margin-left:0 !important; }
+  .pagina-aovivo-ampliada .linha-tema-codigo-aovivo .campo-codigo-aovivo { grid-column:4; width:100% !important; min-width:0 !important; }
+  .pagina-aovivo-ampliada .secao-catalogo-aovivo .form-row:not(.linha-tema-codigo-aovivo),
+  .pagina-aovivo-ampliada .secao-financeiro-aovivo .form-row {
+    display:grid;
+    grid-template-columns:max-content minmax(0,1fr);
+    align-items:center;
+  }
+  .pagina-aovivo-ampliada .secao-catalogo-aovivo .form-row > input,
+  .pagina-aovivo-ampliada .secao-financeiro-aovivo .form-row > input,
+  .pagina-aovivo-ampliada .secao-financeiro-aovivo .form-row > .campo-sugestoes-raiz,
+  .pagina-aovivo-ampliada .secao-financeiro-aovivo .form-row > .campo-data-raiz,
+  .pagina-aovivo-ampliada .secao-financeiro-aovivo .form-row > .campo-sugestoes-raiz input {
+    width:100% !important;
+    min-width:0 !important;
+    max-width:none !important;
+    box-sizing:border-box;
+  }
+  .pagina-aovivo-ampliada .secao-financeiro-aovivo .linha-pagamento-aovivo {
+    grid-template-columns:max-content minmax(0,1fr) minmax(0,1fr);
+  }
+  .pagina-aovivo-ampliada .secao-financeiro-aovivo .linha-pagamento-aovivo .campo-forma-pagamento-aovivo,
+  .pagina-aovivo-ampliada .secao-financeiro-aovivo .linha-pagamento-aovivo .campo-tipo-cartao-aovivo {
+    width:100% !important;
+    min-width:0 !important;
+    max-width:none !important;
+    margin-left:0 !important;
+  }
+  .pagina-aovivo-ampliada .secao-comprador .grade-3 { gap:8px; }
+  .pagina-aovivo-ampliada .secao-comprador .info-valor,
+  .pagina-aovivo-ampliada .secao-comprador .fs-lg { overflow-wrap:anywhere; }
+
+  /* Ações continuam tocáveis, mas não viram quatro botões enormes. */
+  .pagina-fonada-ampliada .actions-grid,
+  .pagina-aovivo-ampliada .actions-grid { padding:8px; gap:6px; }
+  .pagina-fonada-ampliada .actions-grid .btn-action.destaque,
+  .pagina-aovivo-ampliada .actions-grid .btn-action.destaque { min-height:42px; padding:10px; }
+
+  /* Cadastro de cliente: nome + nascimento compartilham a primeira
+     linha; contatos usam duas colunas e endereço mantém referência em
+     largura inteira. Assim o cadastro não vira uma sequência de campos
+     gigantes, sem reduzir o tamanho do texto. */
+  .form-novo-cliente { padding:13px !important; }
+  .form-novo-cliente > .linha-form-cliente {
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) minmax(82px,96px);
+    gap:9px !important;
+    align-items:end;
+  }
+  .form-novo-cliente > .linha-form-cliente .campo,
+  .form-novo-cliente .contatos-principais-cliente .campo,
+  .form-novo-cliente .form-disclosure-conteudo .linha-form-cliente .campo {
+    width:auto !important;
+    min-width:0 !important;
+    flex:1 1 auto !important;
+  }
+  .form-novo-cliente .contatos-principais-cliente {
+    display:grid !important;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:9px !important;
+  }
+  .form-novo-cliente .contatos-principais-cliente .campo:last-child { grid-column:1/-1; }
+  .form-novo-cliente .form-disclosure-conteudo .linha-form-cliente {
+    display:grid !important;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:9px !important;
+  }
+  .form-novo-cliente .form-disclosure-conteudo .linha-form-cliente .campo:last-child { grid-column:1/-1; }
+  .form-novo-cliente .campo input { min-width:0; width:100%; box-sizing:border-box; }
+  .form-novo-cliente .cadastro-acoes-sticky { flex-wrap:wrap; gap:7px; }
+  .form-novo-cliente .cadastro-acoes-sticky > .btn { flex:1 1 130px; min-height:42px; }
+}
+
+@media (max-width:374px) {
+  /* No limite de 320–360px, dois cartões legíveis são melhores que um
+     terceiro cartão parcialmente exposto. A matemática da animação segue
+     a mesma proporção 7→8, portanto a troca continua sem vazamento. */
+  .agenda-v2 .carrossel-dias-agenda { grid-template-columns:28px minmax(0,1fr) 28px; gap:3px; }
+  .agenda-v2 .seta-carrossel-agenda { width:28px; min-width:28px; font-size:20px; }
+  .agenda-v2 .faixa-semana-agenda { width:350%; gap:6px; }
+  .agenda-v2 .faixa-semana-agenda.animando { width:400%; }
+  .agenda-v2 .faixa-semana-agenda > button { flex-basis:calc((100% - 36px) / 7); padding-inline:6px; }
+  .agenda-v2 .faixa-semana-agenda > button small { font-size:9px; }
+
+  .pagina-fonada-ampliada .secao-transmissao .linha-tema-numero-fonada {
+    grid-template-columns:max-content minmax(0,1fr) max-content minmax(46px,.42fr) auto;
+    gap:4px;
+  }
+  .pagina-fonada-ampliada .secao-transmissao .linha-dia-horario-fonada {
+    grid-template-columns:max-content minmax(78px,1fr) max-content minmax(50px,.6fr) auto;
+    gap:4px;
+  }
+  .pagina-aovivo-ampliada .secao-aovivo-espacosa .form-row > label { font-size:10.5px; }
+  .pagina-aovivo-ampliada .secao-catalogo-aovivo .linha-tema-codigo-aovivo {
+    grid-template-columns:max-content minmax(0,1fr) max-content minmax(46px,.42fr);
+    gap:4px;
+  }
+}

@@ -76,6 +76,9 @@ export default function Agenda() {
   const temporizadorCarrosselRef = useRef(null);
   const [direcaoConteudo, setDirecaoConteudo] = useState('');
   const temporizadorConteudoRef = useRef(null);
+  const [ehSmartphone, setEhSmartphone] = useState(() => (
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 430px)').matches
+  ));
 
   const [itemRemarcarAberto, setItemRemarcarAberto] = useState(null);
   const [observacao, setObservacao] = useState('');
@@ -141,6 +144,18 @@ export default function Agenda() {
     return () => { ativo = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inicioJanela]);
+
+  // A faixa estreita do celular sempre nasce centrada no dia selecionado.
+  // Em desktop o carrossel continua usando a janela de sete dias original;
+  // a media query aqui só evita renderizar o dia selecionado fora da área
+  // visível quando a viewport tem 430px ou menos.
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 430px)');
+    const atualizar = () => setEhSmartphone(media.matches);
+    atualizar();
+    media.addEventListener?.('change', atualizar);
+    return () => media.removeEventListener?.('change', atualizar);
+  }, []);
 
   useEffect(() => () => { clearTimeout(temporizadorCarrosselRef.current); clearTimeout(temporizadorConteudoRef.current); }, []);
 
@@ -380,7 +395,9 @@ export default function Agenda() {
   const quantidadeCards = direcaoCarrossel ? 8 : 7;
   const datasDosCards = Array.from(
     { length: quantidadeCards },
-    (_, indice) => somarDias(inicioJanela, inicioRenderizacao + indice)
+    (_, indice) => ehSmartphone
+      ? somarDias(dataSelecionada, -1 + indice)
+      : somarDias(inicioJanela, inicioRenderizacao + indice)
   );
 
   return (
@@ -550,13 +567,14 @@ export default function Agenda() {
                 />
               )}
             </div>
-            {itemSelecionado && (
-              <div className="drawer-overlay-mobile" onClick={() => setChaveSelecionada(null)} />
-            )}
           </div>
         </div>
       )}
       </div>
+
+      {itemSelecionado && (
+        <div className="drawer-overlay-mobile" onClick={() => setChaveSelecionada(null)} />
+      )}
 
       {itemRemarcarAberto && (
         <div className="modal-fundo" onClick={cancelarRemarcar}>

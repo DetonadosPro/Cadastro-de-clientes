@@ -107,8 +107,11 @@ h3 { font-size: 1.08rem; line-height: 1.25; }
     var(--papel);
   scrollbar-gutter: stable;
 }
-.layout-pagina { width: 100%; max-width: 1780px; margin: 0 auto; animation: pagina-entrada 220ms ease-out both; }
-@keyframes pagina-entrada { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+.layout-pagina { width: 100%; max-width: 1780px; margin: 0 auto; animation: pagina-entrada 180ms ease-out; }
+/* Não aplicar transform aqui: este elemento contém drawers e modais com
+   position: fixed. Um transform persistente faria essas camadas usarem a
+   tabela como referência, recortando o fundo e deslocando a janela. */
+@keyframes pagina-entrada { from { opacity: 0; } to { opacity: 1; } }
 
 /* Superfícies e cartões */
 .painel, .section-box {
@@ -273,7 +276,9 @@ button:disabled { opacity: .5; cursor: not-allowed; transform: none !important; 
 
 /* Agenda e carrossel */
 .relogio-topo {
-  top: 18px;
+  /* A barra superior agora ocupa essa faixa; manter o relógio logo abaixo
+     dela evita sobrepor a busca e o botão de novo cliente. */
+  top: 68px;
   right: 28px;
   padding: 7px 14px;
   border-color: #d7e1ec;

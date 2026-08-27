@@ -190,7 +190,7 @@ function PainelUsuarios({ senhaMestra }) {
           </div>
         ) : (
           <div className="painel" style={{ padding: 0, overflow: 'hidden' }}>
-            <table className="tabela-lista">
+            <table className="tabela-lista tabela-usuarios">
               <thead>
                 <tr>
                   <th>Nome</th>

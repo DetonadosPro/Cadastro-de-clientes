@@ -325,6 +325,15 @@ export default function FormFonada() {
       mostrarToast('Informe o novo dia e horário para remarcar.', 'erro');
       return;
     }
+    const dataEscolhida = textoParaData(remarcadoDia);
+    if (!dataEscolhida) {
+      mostrarToast('Informe uma data válida para remarcar.', 'erro');
+      return;
+    }
+    if (dataEscolhida.getTime() < hojeSemHora().getTime()) {
+      mostrarToast('Não é possível remarcar para um dia anterior a hoje.', 'erro');
+      return;
+    }
     setSalvandoRemarcacao(true);
     try {
       await api.agenda.naoAtendeuFonada(
@@ -831,6 +840,7 @@ export default function FormFonada() {
                   placeholder="dd/mm/aa"
                   value={remarcadoDia}
                   onChange={(v) => setRemarcadoDia(formatarData(v))}
+                  minimo={hojeSemHora()}
                   autoFocus
                 />
               </div>
@@ -882,7 +892,7 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
       <div className="coluna-mensagem-titulo">
         <span className={`bolinha-status ${dados[`${p}_dia`] ? 'usada' : 'livre'}`} /> {numero}ª mensagem
       </div>
-      <div className="form-row">
+      <div className="form-row linha-tema-numero-fonada">
         <label>Tema:</label>
         <input
           value={dados[`${p}_tema`]}
@@ -904,7 +914,7 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
           />
         )}
       </div>
-      <CampoComP label="Para" nomeCampo="para" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} copiarBloqueado={copiarBloqueado} />
+      <CampoComP label="Para" nomeCampo="para" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} copiarBloqueado={copiarBloqueado} classeExtra="campo-para-fonada" />
       <div className="form-row linha-fixo-celular">
         <label>Fixo:</label>
         <input value={dados[`${p}_fixo`]} onChange={(e) => setComMascara(`${p}_fixo`, e.target.value, 'fixo')} disabled={bloqueada} className="campo-fixo-fonada" style={{ flex: '1 1 100px', minWidth: 90 }} />
@@ -918,7 +928,7 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
           />
         )}
       </div>
-      <div className="form-row">
+      <div className="form-row linha-dia-horario-fonada">
         <label>Dia:</label>
         <CampoData
           placeholder="dd/mm/aa"

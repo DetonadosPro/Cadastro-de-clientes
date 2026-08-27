@@ -11,13 +11,6 @@ function IconeVoltar() {
     </svg>
   );
 }
-function IconeMais() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-      <path d="M12 5v14M5 12h14" />
-    </svg>
-  );
-}
 function IconeEditar() {
   return (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -25,6 +18,18 @@ function IconeEditar() {
       <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
     </svg>
   );
+}
+function IconeWhatsAppAntigo() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20.5 11.5a8.5 8.5 0 1 1-12.6 7.4L3 20.5l1.6-4.7A8.5 8.5 0 0 1 20.5 11.5Z" />
+      <path d="M8.1 7.8c.3-.7.7-.7 1-.7h.4c.2 0 .4.1.5.4l.8 1.8c.1.3.1.5-.1.7l-.6.8c-.2.2-.1.4 0 .6.7 1.2 1.7 2.1 2.9 2.7.2.1.4.1.6-.1l.8-1c.2-.2.4-.3.7-.2l1.8.9c.3.1.4.3.4.5 0 .3-.2 1.5-1 2.1-.6.5-1.4.8-2.3.6-1.1-.2-2.6-.8-4.4-2.4-1.5-1.4-2.5-3.1-2.8-4.2-.3-1 0-1.9.3-2.5Z" />
+    </svg>
+  );
+}
+
+function IconeWhatsApp() {
+  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20.5 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.6-4.7A8.5 8.5 0 1 1 20.5 11.5Z" /><path d="M8.1 7.8c.3-.7.7-.7 1-.7h.4c.2 0 .4.1.5.4l.8 1.8c.1.3.1.5-.1.7l-.6.8c-.2.2-.1.4 0 .6.7 1.2 1.7 2.1 2.9 2.7.2.1.4.1.6-.1l.8-1c.2-.2.4-.3.7-.2l1.8.9c.3.1.4.3.4.5 0 .3-.2 1.5-1 2.1-.6.5-1.4.8-2.3.6-1.1-.2-2.6-.8-4.4-2.4-1.5-1.4-2.5-3.1-2.8-4.2-.3-1 0-1.9.3-2.5Z" /></svg>;
 }
 
 function valorUtil(valor) {
@@ -220,7 +225,7 @@ export default function FichaCliente() {
 
   return (
     <div className="form-pagina">
-      <div style={estilos.cabecalho}>
+      <div className="cabecalho-ficha-cliente" style={estilos.cabecalho}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <h1 style={{ marginBottom: 4 }}>{cliente.nome}</h1>
@@ -234,7 +239,7 @@ export default function FichaCliente() {
         <div className="acoes-ficha-cliente">
           <button className="btn" onClick={novoPedidoFonada}>Nova fonada</button>
           <button className="btn" onClick={novoPedidoAoVivo}>Novo ao vivo</button>
-          {whatsappLink && <a className="btn secundario" href={whatsappLink} target="_blank" rel="noreferrer">WhatsApp</a>}
+          {whatsappLink && <a className="btn-small cobranca-whatsapp whatsapp-mobile-ficha" href={whatsappLink} target="_blank" rel="noreferrer" aria-label="Abrir WhatsApp" title="Abrir WhatsApp"><IconeWhatsApp /></a>}
           <button className="btn secundario" onClick={() => navigate(`/cobranca?nome=${encodeURIComponent(cliente.nome)}`)}>Ver cobrança</button>
           <button className="btn secundario" onClick={voltar} style={{ gap: 6 }}>
             <IconeVoltar /> Voltar
@@ -381,13 +386,6 @@ export default function FichaCliente() {
           >
             Ao vivo <span className="aba-contagem">{pedidosAoVivo.length}</span>
           </button>
-          <div className="abas-cliente-acao">
-            {aba === 'fonada' ? (
-              <button type="button" className="btn" onClick={novoPedidoFonada} style={{ gap: 6 }}><IconeMais /> Novo pedido</button>
-            ) : (
-              <button type="button" className="btn" onClick={novoPedidoAoVivo} style={{ gap: 6 }}><IconeMais /> Novo pedido</button>
-            )}
-          </div>
         </div>
 
         <div style={{ padding: 16 }}>

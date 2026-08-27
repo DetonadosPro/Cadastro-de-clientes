@@ -10,6 +10,12 @@ function hojeBr() {
   return `${String(data.getDate()).padStart(2, '0')}/${String(data.getMonth() + 1).padStart(2, '0')}/${String(data.getFullYear()).slice(-2)}`;
 }
 
+function hojeSemHora() {
+  const data = new Date();
+  data.setHours(0, 0, 0, 0);
+  return data;
+}
+
 function dataUtc(valor) {
   const partes = String(valor || '').match(/^(\d{2})\/(\d{2})\/(\d{2}|\d{4})$/);
   if (!partes) return null;
@@ -42,6 +48,23 @@ function telefoneWhatsApp(numero) {
   if (digitos.length < 10) return null;
   if (digitos.length <= 11) digitos = `55${digitos}`;
   return `https://api.whatsapp.com/send?phone=${digitos}`;
+}
+
+function IconeWhatsAppAntigo() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20.5 11.5a8.5 8.5 0 1 1-12.6 7.4L3 20.5l1.6-4.7A8.5 8.5 0 0 1 20.5 11.5Z" />
+      <path d="M8.1 7.8c.3-.7.7-.7 1-.7h.4c.2 0 .4.1.5.4l.8 1.8c.1.3.1.5-.1.7l-.6.8c-.2.2-.1.4 0 .6.7 1.2 1.7 2.1 2.9 2.7.2.1.4.1.6-.1l.8-1c.2-.2.4-.3.7-.2l1.8.9c.3.1.4.3.4.5 0 .3-.2 1.5-1 2.1-.6.5-1.4.8-2.3.6-1.1-.2-2.6-.8-4.4-2.4-1.5-1.4-2.5-3.1-2.8-4.2-.3-1 0-1.9.3-2.5Z" />
+    </svg>
+  );
+}
+
+function IconeWhatsApp() {
+  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20.5 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.6-4.7A8.5 8.5 0 1 1 20.5 11.5Z" /><path d="M8.1 7.8c.3-.7.7-.7 1-.7h.4c.2 0 .4.1.5.4l.8 1.8c.1.3.1.5-.1.7l-.6.8c-.2.2-.1.4 0 .6.7 1.2 1.7 2.1 2.9 2.7.2.1.4.1.6-.1l.8-1c.2-.2.4-.3.7-.2l1.8.9c.3.1.4.3.4.5 0 .3-.2 1.5-1 2.1-.6.5-1.4.8-2.3.6-1.1-.2-2.6-.8-2.8-4.2-.3-1 0-1.9.3-2.5Z" /></svg>;
+}
+
+function IconeWhatsAppReferencia() {
+  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20.5 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.6-4.7A8.5 8.5 0 1 1 20.5 11.5Z" /><path d="M8.1 7.8c.3-.7.7-.7 1-.7h.4c.2 0 .4.1.5.4l.8 1.8c.1.3.1.5-.1.7l-.6.8c-.2.2-.1.4 0 .6.7 1.2 1.7 2.1 2.9 2.7.2.1.4.1.6-.1l.8-1c.2-.2.4-.3.7-.2l1.8.9c.3.1.4.3.4.5 0 .3-.2 1.5-1 2.1-.6.5-1.4.8-2.3.6-1.1-.2-2.6-.8-4.4-2.4-1.5-1.4-2.5-3.1-2.8-4.2-.3-1 0-1.9.3-2.5Z" /></svg>;
 }
 
 function rotuloData(pedido) {
@@ -159,6 +182,14 @@ export default function CobrancaAoVivo() {
   }
 
   async function confirmarReagendamento() {
+    if (diasAte(novaData) == null) {
+      mostrarToast('Informe uma data válida para reagendar.', 'erro');
+      return;
+    }
+    if (diasAte(novaData) < 0) {
+      mostrarToast('A cobrança não pode ser reagendada para o passado.', 'erro');
+      return;
+    }
     setSalvando(true);
     try {
       await api.cobranca.reagendarAoVivo(reagendar.id, novaData);
@@ -210,9 +241,9 @@ export default function CobrancaAoVivo() {
               <div className="cobranca-aovivo-data"><strong>{rotuloData(pedido)}</strong><span>{pedido.pagou === 'SIM' ? `Pago em ${pedido.dataPagamento || '—'}${pedido.recebidoPor ? ` · ${pedido.recebidoPor}` : ''}` : `Cobrança: ${pedido.dataCobranca || '—'}`}</span></div>
               <div className="cobranca-aovivo-valor"><strong>{reais(pedido.pagou === 'SIM' ? (pedido.valorRecebido ?? pedido.valor) : pedido.valor)}</strong><span>{pedido.pagou === 'SIM' ? (pedido.formaRecebimento || 'Recebido') : (pedido.pagamentoPrevisto || 'Forma não informada')}</span></div>
               <div className="cobranca-aovivo-acoes">
-                {whatsapp && <a className="btn-small" href={whatsapp} target="_blank" rel="noreferrer" title="Abrir WhatsApp">WhatsApp</a>}
+                {whatsapp && <a className="btn-small cobranca-whatsapp" href={whatsapp} target="_blank" rel="noreferrer" aria-label="Abrir WhatsApp" title="Abrir WhatsApp"><IconeWhatsAppReferencia /></a>}
                 <button type="button" className="btn-small" onClick={() => navigate(`/ao-vivo/${pedido.id}`)}>Abrir pedido</button>
-                {pedido.pagou === 'SIM' ? <button type="button" className="btn-small" onClick={() => desfazer(pedido)}>Desfazer baixa</button> : <><button type="button" className="btn-small" onClick={() => { setReagendar(pedido); setNovaData(pedido.dataCobranca || hojeBr()); }}>Reagendar</button><button type="button" className="btn-small primario" onClick={() => abrirBaixa(pedido)}>Dar baixa</button></>}
+                {pedido.pagou === 'SIM' ? <button type="button" className="btn-small" onClick={() => desfazer(pedido)}>Desfazer baixa</button> : <><button type="button" className="btn-small" onClick={() => { setReagendar(pedido); setNovaData((diasAte(pedido.dataCobranca) ?? -1) >= 0 ? pedido.dataCobranca : hojeBr()); }}>Reagendar</button><button type="button" className="btn-small primario" onClick={() => abrirBaixa(pedido)}>Dar baixa</button></>}
               </div>
             </div>;
           })}
@@ -230,7 +261,7 @@ export default function CobrancaAoVivo() {
       </Modal>}
 
       {reagendar && <Modal titulo={`Reagendar cobrança — O.S. ${reagendar.numero_os || reagendar.id}`} fechar={() => setReagendar(null)}>
-        <div className="campo" style={{ maxWidth: 180 }}><label>Nova data</label><CampoData value={novaData} onChange={(v) => setNovaData(formatarData(v))} /></div>
+        <div className="campo" style={{ maxWidth: 180 }}><label>Nova data</label><CampoData value={novaData} minimo={hojeSemHora()} onChange={(v) => setNovaData(formatarData(v))} /></div>
         <Acoes cancelar={() => setReagendar(null)} confirmar={confirmarReagendamento} salvando={salvando} rotulo="Reagendar" />
       </Modal>}
     </div>

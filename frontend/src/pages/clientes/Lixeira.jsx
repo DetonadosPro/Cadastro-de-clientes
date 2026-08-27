@@ -96,7 +96,7 @@ export default function Lixeira() {
         </div>
       </div>
 
-      <form onSubmit={aoSubmeterBusca} style={estilos.buscaForm}>
+      <form onSubmit={aoSubmeterBusca} className="lixeira-busca-form" style={estilos.buscaForm}>
         <input
           type="text"
           placeholder="Buscar por nome..."
@@ -119,7 +119,7 @@ export default function Lixeira() {
         <>
           <div className="painel" style={{ padding: 0, overflow: 'hidden' }}>
             <div style={{ overflowX: 'auto' }}>
-              <table className="tabela-lista">
+              <table className="tabela-lista tabela-lixeira">
                 <thead>
                   <tr>
                     <th></th>
@@ -168,7 +168,7 @@ export default function Lixeira() {
                           </td>
                         </tr>
                         {aberto && (
-                          <tr>
+                          <tr className="lixeira-linha-detalhes">
                             <td colSpan={7} style={{ background: '#f8f9fa', padding: '12px 20px' }}>
                               {!pedidos ? (
                                 <span className="fs-sm" style={{ color: '#6c757d' }}>Carregando pedidos...</span>
@@ -215,7 +215,7 @@ export default function Lixeira() {
             </div>
           </div>
 
-          <div style={estilos.paginacao}>
+          <div className="lixeira-paginacao" style={estilos.paginacao}>
             <button className="btn secundario" disabled={pagina <= 1} onClick={() => setPagina((p) => p - 1)}>
               ← Anterior
             </button>

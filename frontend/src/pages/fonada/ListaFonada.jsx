@@ -20,14 +20,6 @@ function IconeBusca() {
   );
 }
 
-function IconeMais() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-      <path d="M12 5v14M5 12h14" />
-    </svg>
-  );
-}
-
 const OPCOES_FILTRO = [
   { valor: '', label: 'Todos os campos' },
   { valor: 'aniversario', label: 'Aniversário cliente' },
@@ -183,9 +175,6 @@ export default function ListaFonada() {
             Encontre e acompanhe pedidos de mensagem por telefone.
           </p>
         </div>
-        <button type="button" className="btn lista-fonada-novo" onClick={() => navigate('/clientes')}>
-          <IconeMais /> Novo pedido
-        </button>
       </div>
 
       <div className="lista-fonada-busca">

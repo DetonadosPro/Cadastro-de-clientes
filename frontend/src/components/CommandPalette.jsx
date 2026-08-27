@@ -5,8 +5,6 @@ const ACOES = [
   { id: 'agenda', titulo: 'Abrir Agenda', detalhe: 'Compromissos e entregas do dia', rota: '/agenda', grupo: 'Navegação', termos: 'hoje compromissos agenda' },
   { id: 'clientes', titulo: 'Ver clientes', detalhe: 'Pesquisar e consultar cadastros', rota: '/clientes', grupo: 'Navegação', termos: 'clientes contatos cadastros' },
   { id: 'novo-cliente', titulo: 'Novo cliente', detalhe: 'Iniciar um novo cadastro', rota: '/clientes/novo', grupo: 'Ações rápidas', termos: 'cadastrar adicionar novo cliente' },
-  { id: 'nova-fonada', titulo: 'Novo pedido Fonada', detalhe: 'Criar uma mensagem fonada', rota: '/fonada/novo', grupo: 'Ações rápidas', termos: 'pedido telefone fonada' },
-  { id: 'novo-aovivo', titulo: 'Novo pedido Ao Vivo', detalhe: 'Criar uma mensagem ao vivo', rota: '/ao-vivo/novo', grupo: 'Ações rápidas', termos: 'pedido carro som ao vivo' },
   { id: 'cobranca', titulo: 'Abrir Cobrança', detalhe: 'Pendências e recebimentos', rota: '/cobranca', grupo: 'Navegação', termos: 'financeiro cobrar recebimentos' },
   { id: 'relatorios', titulo: 'Abrir Relatórios', detalhe: 'Vendas, recebimentos e desempenho', rota: '/relatorios', grupo: 'Navegação', termos: 'relatorios vendas desempenho' },
 ];
