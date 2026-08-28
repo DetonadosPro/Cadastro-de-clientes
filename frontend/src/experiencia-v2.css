@@ -162,6 +162,15 @@ kbd { display:inline-flex; align-items:center; justify-content:center; min-width
 .cadastro-acoes-sticky { margin:0 !important; padding:17px 24px; background:#fff; }
 
 /* Agenda como timeline */
+.agenda-v2 { position:relative; }
+.agenda-v2 .relogio-topo {
+  position:absolute;
+  top:0;
+  right:0;
+  /* A barra de busca sticky usa z-index 18. O relógio pertence ao
+     cabeçalho da Agenda e deve passar por baixo dela durante o scroll. */
+  z-index:1;
+}
 .agenda-cabecalho-v2 { padding-right:138px; }
 .agenda-controles-v2 { display:flex; align-items:center; gap:7px; padding:5px; border:1px solid #d8e2ec; border-radius:12px; background:#fff; box-shadow:0 2px 8px rgba(16,42,70,.045); }
 .agenda-seta-dia { width:34px; height:34px; border:0; border-radius:8px; background:#f1f5fa; color:#315f94; cursor:pointer; font-size:17px; }
@@ -197,7 +206,19 @@ kbd { display:inline-flex; align-items:center; justify-content:center; min-width
 .agenda-concluidos-seta { font-size:22px; line-height:1; transform:rotate(0deg); transition:transform .16s ease; }
 .agenda-concluidos.aberto .agenda-concluidos-seta { transform:rotate(90deg); }
 .agenda-concluidos-contagem { min-width:24px; padding:2px 7px; border-radius:999px; background:#e4eaf0; color:#536476; font-size:10px; font-weight:800; text-align:center; }
-.agenda-concluidos-lista { display:flex; flex-direction:column; gap:5px; padding:0 7px 7px; animation:revelar-conteudo 170ms ease-out both; }
+.agenda-concluidos-lista {
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  max-height:min(400px, calc(100dvh - 470px));
+  padding:0 7px 7px;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  scrollbar-gutter:stable;
+  scrollbar-width:thin;
+  scrollbar-color:#b8c8d9 transparent;
+  animation:revelar-conteudo 170ms ease-out both;
+}
 .agenda-concluidos-lista .linha-agenda { box-shadow:none; }
 .agenda-v2 .painel-detalhes-agenda { top:76px; border-radius:12px; box-shadow:0 4px 18px rgba(16,42,70,.07); }
 .agenda-vazia { min-height:330px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; text-align:center; }
@@ -229,6 +250,7 @@ kbd { display:inline-flex; align-items:center; justify-content:center; min-width
 @media (max-width:540px) {
   .agenda-concluidos-toggle { grid-template-columns:20px auto auto; }
   .agenda-concluidos-toggle small { display:none; }
+  .agenda-concluidos-lista { max-height:50dvh; }
 }
 @media (max-width:700px) {
   .workspace-command > span:nth-child(2) { display:none; }.workspace-command { flex:0 0 42px; justify-content:center; padding:0; }

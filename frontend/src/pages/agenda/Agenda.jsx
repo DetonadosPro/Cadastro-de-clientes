@@ -480,6 +480,11 @@ export default function Agenda() {
   // cada troca — então lá só limpa a seleção que não existe mais,
   // deixando o usuário escolher o que ver tocando na lista.
   useEffect(() => {
+    // Ao voltar da tela de um pedido, a seleção já vem na URL. Enquanto
+    // a agenda recarrega, as listas ficam momentaneamente vazias; não
+    // podemos interpretar esse estado transitório como item removido,
+    // senão a chave restaurada é apagada antes dos dados chegarem.
+    if (carregando) return;
     if (listaAtual.length === 0) {
       setChaveSelecionada(null);
       return;
@@ -491,7 +496,7 @@ export default function Agenda() {
       setChaveSelecionada(ehMobile || itensPendentes.length === 0 ? null : chaveDoItem(itensPendentes[0]));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aba, dataSelecionada, fonada, aoVivo, lembretes, concluidosAbertos]);
+  }, [aba, dataSelecionada, fonada, aoVivo, lembretes, concluidosAbertos, carregando]);
 
   const itemSelecionado = listaAtual.find((item) => chaveDoItem(item) === chaveSelecionada) || null;
   const inicioRenderizacao = direcaoCarrossel === 'tras' ? -1 : 0;
