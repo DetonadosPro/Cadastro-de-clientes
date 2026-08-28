@@ -537,6 +537,10 @@ export default function Agenda() {
           senhaOs={item.numero_os}
           horario={item.horario_entrega}
           titulo={item.comprador}
+          detalhes={[
+            item.bairro,
+            item.brinde,
+          ].filter(Boolean)}
           tagExtra={aba === 'geral' ? 'Ao vivo' : 'Agendado'}
           status={item.pagou === 'SIM' ? 'Pago' : null}
           statusOk={item.pagou === 'SIM'}
@@ -891,7 +895,7 @@ function IconeChevron({ aberto }) {
 // Uma linha fina e clicável na lista compacta — horário, nome, tag de
 // urgência/status. Reduz cada item a uma tira baixa, para caber muitos
 // na tela sem rolar, em vez do card grande com todos os campos aberto.
-function LinhaAgenda({ selecionada, onClick, urgencia, jaPassada, senhaOs, horario, titulo, tagExtra, tagExtraDestaque, status, statusOk }) {
+function LinhaAgenda({ selecionada, onClick, urgencia, jaPassada, senhaOs, horario, titulo, detalhes = [], tagExtra, tagExtraDestaque, status, statusOk }) {
   return (
     <div
       className={`linha-agenda ${selecionada ? 'selecionada' : ''} ${urgencia ? `urgencia-${urgencia}` : ''} ${jaPassada ? 'passada' : ''}`}
@@ -904,7 +908,19 @@ function LinhaAgenda({ selecionada, onClick, urgencia, jaPassada, senhaOs, horar
       <span className="linha-agenda-horario" style={{ textDecoration: jaPassada ? 'line-through' : 'none' }}>
         {horario || '—'}
       </span>
-      <span className="linha-agenda-titulo">{titulo || '—'}</span>
+      <span className="linha-agenda-conteudo">
+        <span className="linha-agenda-titulo">{titulo || '—'}</span>
+        {detalhes.length > 0 && (
+          <span className="linha-agenda-detalhes">
+            {detalhes.map((detalhe, indice) => (
+              <React.Fragment key={detalhe}>
+                {indice > 0 && <span className="linha-agenda-separador" aria-hidden="true">•</span>}
+                <span>{detalhe}</span>
+              </React.Fragment>
+            ))}
+          </span>
+        )}
+      </span>
       {tagExtra && <span className="tag neutro linha-agenda-tag" style={tagExtraDestaque ? { fontWeight: 700 } : undefined}>{tagExtra}</span>}
       {urgencia === 'atrasada' && <span className="tag pendente linha-agenda-tag">Atrasado</span>}
       {urgencia === 'proxima' && <span className="tag aviso linha-agenda-tag">Chegando</span>}

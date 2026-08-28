@@ -812,7 +812,9 @@ kbd { display:inline-flex; align-items:center; justify-content:center; min-width
   .agenda-v2 .faixa-semana-agenda { min-width:560px; }
   .agenda-v2 .grid-agenda-lista-painel { padding:8px !important; }
   .linha-agenda { gap:7px; padding:11px 9px; flex-wrap:wrap; }
-  .linha-agenda-titulo { flex:1 1 calc(100% - 112px); white-space:normal; overflow-wrap:anywhere; }
+  .linha-agenda-conteudo { flex:1 1 calc(100% - 112px); }
+  .linha-agenda-titulo { white-space:normal; overflow-wrap:anywhere; }
+  .linha-agenda-detalhes { flex-wrap:wrap; gap:2px 5px; white-space:normal; }
   .linha-agenda-tag { margin-left:auto; }
   .secao-transmissao .coluna-mensagem .form-row label { min-width:58px; font-size:9.5px; }
   .secao-transmissao .coluna-mensagem .linha-fixo-celular { grid-template-columns:auto minmax(0,1fr); }
