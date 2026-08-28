@@ -346,7 +346,15 @@ export default function FormAoVivo() {
     if (!editando || !id) return;
     try {
       const resposta = await api.aoVivo.buscarParaImpressao([id]);
-      setPedidosImpressao(resposta.pedidos);
+      const pedidoImpressao = (resposta.pedidos || []).map((pedido) => ({
+        ...pedido,
+        pagou: pedido.pagou == null || String(pedido.pagou).trim() === '' ? dados.pagou : pedido.pagou,
+        data_pagou: pedido.data_pagou == null || String(pedido.data_pagou).trim() === '' ? dados.data_pagou : pedido.data_pagou,
+        valor_recebido: pedido.valor_recebido == null || String(pedido.valor_recebido).trim() === '' ? dados.valor_recebido : pedido.valor_recebido,
+        forma_recebimento: pedido.forma_recebimento == null || String(pedido.forma_recebimento).trim() === '' ? dados.forma_recebimento : pedido.forma_recebimento,
+        pagamento_recebido_por: pedido.pagamento_recebido_por == null || String(pedido.pagamento_recebido_por).trim() === '' ? dados.pagamento_recebido_por : pedido.pagamento_recebido_por,
+      }));
+      setPedidosImpressao(pedidoImpressao);
       setTimeout(() => window.print(), 100);
     } catch (err) {
       mostrarToast(err.message || 'Não foi possível preparar a impressão.', 'erro');

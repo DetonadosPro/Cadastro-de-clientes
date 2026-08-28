@@ -209,7 +209,26 @@ export default function ListaAoVivo() {
     setImprimindo(true);
     try {
       const resp = await api.aoVivo.buscarParaImpressao(ids);
-      setPedidosImpressao(resp.pedidos);
+      // A lista já traz o status financeiro atualizado. Mesclá-lo ao
+      // retorno de impressão mantém o recibo correto mesmo enquanto uma
+      // instância antiga do backend ainda não expõe os novos campos.
+      const porId = new Map(itens.filter((item) => ids.includes(item.id)).map((item) => [item.id, item]));
+      const pedidosComPagamento = (resp.pedidos || []).map((pedido) => {
+        const origem = porId.get(pedido.id) || {};
+        const usarOrigemSeVazio = (valorApi, valorOrigem) => (
+          valorApi == null || String(valorApi).trim() === '' ? valorOrigem : valorApi
+        );
+        return {
+          ...origem,
+          ...pedido,
+          pagou: usarOrigemSeVazio(pedido.pagou, origem.pagou),
+          data_pagou: usarOrigemSeVazio(pedido.data_pagou, origem.data_pagou ?? origem.dataPagamento),
+          valor_recebido: usarOrigemSeVazio(pedido.valor_recebido, origem.valor_recebido ?? origem.valorRecebido),
+          forma_recebimento: usarOrigemSeVazio(pedido.forma_recebimento, origem.forma_recebimento ?? origem.formaRecebimento),
+          pagamento_recebido_por: usarOrigemSeVazio(pedido.pagamento_recebido_por, origem.pagamento_recebido_por ?? origem.recebidoPor),
+        };
+      });
+      setPedidosImpressao(pedidosComPagamento);
       setTimeout(() => window.print(), 100);
     } catch (err) {
       mostrarToast('Não foi possível preparar a impressão. Tente novamente.', 'erro');

@@ -198,6 +198,14 @@ router.get('/imprimir', async (req, res) => {
         bairroCobranca: cliente ? cliente.bairro : null,
         valor: p.valor,
         pagamento: p.pagamento,
+        data_cobranca: p.data_cobranca,
+        pagou: p.pagou,
+        pago: String(p.pagou || '').trim().toUpperCase() === 'SIM',
+        status_pagamento: p.pagou,
+        data_pagou: p.data_pagou,
+        valor_recebido: p.valor_recebido,
+        forma_recebimento: p.forma_recebimento,
+        pagamento_recebido_por: p.pagamento_recebido_por,
         cliente_id: p.cliente_id,
       };
     }).filter(Boolean);

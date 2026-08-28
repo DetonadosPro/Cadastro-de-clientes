@@ -3435,6 +3435,64 @@ tr:hover .alca-arrastar {
   margin-top: -0.8mm;
 }
 
+/* Refinamento do recibo original: mantém exatamente a composição em
+   linhas, apenas suavizando cores, bordas, pesos e espaçamentos. */
+.recibo {
+  border-color: #c8d3df;
+  border-radius: 8px;
+  padding: 3mm 4mm;
+  background: #ffffff;
+}
+.recibo-cabecalho {
+  padding-bottom: 1.5mm;
+  border-bottom: 1px solid #dbe3ec;
+}
+.recibo-titulo {
+  color: #205d9f;
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+}
+.recibo-nome-empresa {
+  color: #244f87;
+  font-size: 31px;
+}
+.recibo-telefone-empresa {
+  color: #244f87;
+  font-size: 17px;
+}
+.recibo-whatsapp-icone { fill: #23815e; }
+.recibo-linha {
+  gap: 8px;
+  margin-bottom: 1.35mm;
+}
+.recibo-rotulo {
+  color: #315b89;
+  font-size: 13px;
+  font-weight: 700;
+}
+.recibo-rotulo-valor {
+  color: #244f87;
+  font-size: 15px;
+}
+.recibo-campo {
+  min-height: 20px;
+  padding: 1px 6px;
+  border-color: #c9d3de;
+  border-radius: 4px;
+  background: #f9fbfd;
+  color: #202c3c;
+  font-size: 13px;
+}
+.recibo-os {
+  margin-top: 0;
+  border-color: #b9cbe0;
+  border-radius: 5px;
+  background: #eef4fa;
+  color: #244f87;
+  font-size: 12px;
+}
+
 @media print {
   .folhas-recibo {
     background: none;
@@ -3613,37 +3671,149 @@ tr:hover .alca-arrastar {
   white-space: nowrap;
 }
 
-.impresso-valor-destaque {
-  background: #b8493e;
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
-  color-adjust: exact;
+/* O Ao Vivo conserva o formulário impresso anterior e recebe apenas
+   a mesma limpeza visual aplicada ao recibo de Fonada. */
+.impresso-aovivo {
+  border-color: #c7d2de;
+  border-radius: 8px;
+  background: #ffffff;
+}
+.impresso-aovivo .impresso-secao-titulo {
+  border-color: #9db2c9;
   border-radius: 6px;
-  padding: 10px 16px;
+  color: #244f87;
+  background: #f5f8fc;
+}
+.impresso-aovivo .impresso-divisor-secao { color: #315b89; }
+.impresso-aovivo .impresso-divisor-secao::before,
+.impresso-aovivo .impresso-divisor-secao::after { background: #d8e1ea; }
+.impresso-aovivo .impresso-divisor-secao span {
+  border-color: #becbd8;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+.impresso-aovivo .impresso-rotulo {
+  color: #315b89;
+  font-weight: 700;
+}
+.impresso-aovivo .impresso-campo {
+  border-color: #c8d3de;
+  border-radius: 4px;
+  background: #f9fbfd;
+  color: #202c3c;
+}
+.impresso-aovivo .impresso-campo-mensagem .impresso-campo {
+  /* Mantém a altura original e amplia somente o comprimento em 20%
+     (de 40% para 48% da linha). */
+  height: 23px;
+  min-height: 23px;
+}
+.impresso-aovivo .impresso-campo-mensagem {
+  flex: 0 0 48% !important;
+  max-width: 48% !important;
+}
+.impresso-aovivo .impresso-caixa-dedicatoria {
+  border-color: #b8c9db;
+  border-radius: 6px;
+  background: #f3f7fb;
+}
+.impresso-aovivo .impresso-caixa-dedicatoria-texto { color: #244f87; }
+.impresso-aovivo .impresso-os-header {
+  border-color: #b8cbe0;
+  border-radius: 6px;
+  background: #eef4fa;
+}
+
+.impresso-resumo-financeiro {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 0;
   margin-top: 1mm;
+  border: 1px solid #c6d3df;
+  border-radius: 7px;
+  background: #f7f9fc;
+  overflow: hidden;
 }
-.impresso-valor-destaque-label {
-  color: rgba(255, 255, 255, 0.85);
+.impresso-resumo-financeiro.pago {
+  border-color: #b8dcca;
+  background: #f2faf6;
+}
+.impresso-resumo-financeiro.pendente {
+  border-color: #e2cf9b;
+  background: #fffaf0;
+}
+.impresso-resumo-status,
+.impresso-resumo-dado,
+.impresso-resumo-valor {
+  min-width: 0;
+  padding: 8px 11px;
+  box-sizing: border-box;
+}
+.impresso-resumo-status {
+  flex: 1.2;
+}
+.impresso-resumo-dado {
+  flex: 1;
+  border-left: 1px solid #d6dfe8;
+}
+.impresso-resumo-valor {
+  flex: 1.15;
+  border-left: 1px solid #d6dfe8;
+  text-align: right;
+}
+.impresso-resumo-label,
+.impresso-resumo-dado > span,
+.impresso-resumo-valor > span {
+  display: block;
+  margin-bottom: 3px;
+  color: #65758a;
+  font-size: 9px;
   font-weight: 700;
-  font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  white-space: nowrap;
 }
-.impresso-valor-destaque-emissao {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 11px;
-  margin-top: 2px;
+.impresso-pagamento-badge {
+  display: inline-block;
+  padding: 3px 7px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
 }
-.impresso-valor-destaque-numero {
-  color: #ffffff;
+.impresso-resumo-financeiro.pago .impresso-pagamento-badge { color: #1f7d5c; }
+.impresso-resumo-financeiro.pendente .impresso-pagamento-badge { color: #986500; }
+.impresso-resumo-status small {
+  display: block;
+  margin-top: 4px;
+  color: #718096;
+  font-size: 9px;
+}
+.impresso-resumo-dado > strong,
+.impresso-resumo-valor > strong {
+  display: block;
+  color: #24364d;
+  font-size: 13px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.impresso-resumo-valor > strong {
+  color: #244f87;
   font-weight: 700;
-  font-size: 20px;
-  text-align: right;
+  font-size: 18px;
+}
+
+@media print {
+  .recibo,
+  .impresso-aovivo,
+  .impresso-resumo-financeiro {
+    box-shadow: none !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .impresso-pagamento-badge {
+    border-color: currentColor !important;
+  }
 }
 
 /* ============================================================
