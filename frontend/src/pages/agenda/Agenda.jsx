@@ -95,6 +95,7 @@ export default function Agenda() {
   const [lembreteAberto, setLembreteAberto] = useState(null);
   const [formLembrete, setFormLembrete] = useState({ titulo: '', data: '', horario: '', observacao: '', concluido: false });
   const [salvandoLembrete, setSalvandoLembrete] = useState(false);
+  const [concluidosAbertos, setConcluidosAbertos] = useState(false);
 
   // Item selecionado na lista compacta — chave única por tipo+id, já
   // que fonada usa pedidoId+mensagem e ao vivo usa só id.
@@ -466,6 +467,12 @@ export default function Agenda() {
   };
   const listaAtual = listasPorAba[aba] || todosItens;
   const chaveDoItem = (item) => item._chave;
+  const itemEstaConcluido = (item) => (
+    (item._tipo === 'fonada' && Boolean(item.passada))
+    || (item._tipo === 'lembrete' && Boolean(item.concluido))
+  );
+  const itensPendentes = listaAtual.filter((item) => !itemEstaConcluido(item));
+  const itensConcluidos = listaAtual.filter(itemEstaConcluido);
 
   // Ao trocar de dia ou de aba: no desktop, seleciona automaticamente o
   // primeiro item (painel de detalhes nunca fica vazio à toa). No
@@ -477,13 +484,14 @@ export default function Agenda() {
       setChaveSelecionada(null);
       return;
     }
-    const aindaExiste = listaAtual.some((item) => chaveDoItem(item) === chaveSelecionada);
-    if (!aindaExiste) {
+    const itemAindaExiste = listaAtual.find((item) => chaveDoItem(item) === chaveSelecionada);
+    const itemFicouOculto = itemAindaExiste && itemEstaConcluido(itemAindaExiste) && !concluidosAbertos;
+    if (!itemAindaExiste || itemFicouOculto) {
       const ehMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches;
-      setChaveSelecionada(ehMobile ? null : chaveDoItem(listaAtual[0]));
+      setChaveSelecionada(ehMobile || itensPendentes.length === 0 ? null : chaveDoItem(itensPendentes[0]));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aba, dataSelecionada, fonada, aoVivo, lembretes]);
+  }, [aba, dataSelecionada, fonada, aoVivo, lembretes, concluidosAbertos]);
 
   const itemSelecionado = listaAtual.find((item) => chaveDoItem(item) === chaveSelecionada) || null;
   const inicioRenderizacao = direcaoCarrossel === 'tras' ? -1 : 0;
@@ -494,6 +502,63 @@ export default function Agenda() {
       ? somarDias(dataSelecionada, -1 + indice)
       : somarDias(inicioJanela, inicioRenderizacao + indice)
   );
+
+  function renderizarLinhaAgenda(item) {
+    const chave = item._chave;
+    if (item._tipo === 'fonada') {
+      const jaPassada = Boolean(item.passada);
+      const urgencia = (ehHoje && !jaPassada) ? statusUrgenciaItem(item.horario) : null;
+      return (
+        <LinhaAgenda
+          key={chave}
+          selecionada={chaveSelecionada === chave}
+          onClick={() => setChaveSelecionada(chave)}
+          urgencia={urgencia}
+          jaPassada={jaPassada}
+          senhaOs={item.senha_os}
+          horario={item.horario}
+          titulo={item.nome_comprador}
+          tagExtra={item.statusMensagemEmHaver === 'EXPIRADA' ? 'Expirada' : aba === 'geral' ? 'Fonada' : item.agrupada ? '1ª + 2ª juntas' : `${item.mensagem}ª msg`}
+          tagExtraDestaque={Boolean(item.agrupada)}
+          status={(!ehHoje || jaPassada) ? (item.resultado ? 'Passada' : 'Pendente') : null}
+          statusOk={Boolean(item.resultado)}
+        />
+      );
+    }
+    if (item._tipo === 'aovivo') {
+      const urgencia = ehHoje ? statusUrgenciaItem(item.horario_entrega) : null;
+      return (
+        <LinhaAgenda
+          key={chave}
+          selecionada={chaveSelecionada === chave}
+          onClick={() => setChaveSelecionada(chave)}
+          urgencia={urgencia}
+          jaPassada={false}
+          senhaOs={item.numero_os}
+          horario={item.horario_entrega}
+          titulo={item.comprador}
+          tagExtra={aba === 'geral' ? 'Ao vivo' : 'Agendado'}
+          status={item.pagou === 'SIM' ? 'Pago' : null}
+          statusOk={item.pagou === 'SIM'}
+        />
+      );
+    }
+    return (
+      <LinhaAgenda
+        key={chave}
+        selecionada={chaveSelecionada === chave}
+        onClick={() => setChaveSelecionada(chave)}
+        urgencia={ehHoje && !item.concluido ? statusUrgenciaItem(item.horario) : null}
+        jaPassada={item.concluido}
+        senhaOs="•"
+        horario={item.horario || 'Dia'}
+        titulo={item.titulo}
+        tagExtra="Lembrete"
+        status={item.concluido ? 'Concluído' : null}
+        statusOk={item.concluido}
+      />
+    );
+  }
 
   return (
     <div className="agenda-v2">
@@ -591,62 +656,34 @@ export default function Agenda() {
             <div className="lista-agenda-compacta">
               {listaAtual.length === 0 ? (
                 <AgendaVazia ehHoje={ehHoje} onNovo={abrirNovoLembrete} />
-              ) : listaAtual.map((item) => {
-                    const chave = item._chave;
-                    if (item._tipo === 'fonada') {
-                    const jaPassada = ehHoje && item.passada;
-                    const urgencia = (ehHoje && !jaPassada) ? statusUrgenciaItem(item.horario) : null;
-                    return (
-                      <LinhaAgenda
-                        key={chave}
-                        selecionada={chaveSelecionada === chave}
-                        onClick={() => setChaveSelecionada(chave)}
-                        urgencia={urgencia}
-                        jaPassada={jaPassada}
-                        senhaOs={item.senha_os}
-                        horario={item.horario}
-                        titulo={item.nome_comprador}
-                        tagExtra={item.statusMensagemEmHaver === 'EXPIRADA' ? 'Expirada' : aba === 'geral' ? 'Fonada' : item.agrupada ? '1ª + 2ª juntas' : `${item.mensagem}ª msg`}
-                        tagExtraDestaque={Boolean(item.agrupada)}
-                        status={(!ehHoje || jaPassada) ? (item.resultado ? 'Passada' : 'Pendente') : null}
-                        statusOk={Boolean(item.resultado)}
-                      />
-                    );
-                    }
-                    if (item._tipo === 'aovivo') {
-                    const urgencia = ehHoje ? statusUrgenciaItem(item.horario_entrega) : null;
-                    return (
-                      <LinhaAgenda
-                        key={chave}
-                        selecionada={chaveSelecionada === chave}
-                        onClick={() => setChaveSelecionada(chave)}
-                        urgencia={urgencia}
-                        jaPassada={false}
-                        senhaOs={item.numero_os}
-                        horario={item.horario_entrega}
-                        titulo={item.comprador}
-                        tagExtra={aba === 'geral' ? 'Ao vivo' : 'Agendado'}
-                        status={item.pagou === 'SIM' ? 'Pago' : null}
-                        statusOk={item.pagou === 'SIM'}
-                      />
-                    );
-                    }
-                    return (
-                      <LinhaAgenda
-                        key={chave}
-                        selecionada={chaveSelecionada === chave}
-                        onClick={() => setChaveSelecionada(chave)}
-                        urgencia={ehHoje && !item.concluido ? statusUrgenciaItem(item.horario) : null}
-                        jaPassada={item.concluido}
-                        senhaOs="•"
-                        horario={item.horario || 'Dia'}
-                        titulo={item.titulo}
-                        tagExtra="Lembrete"
-                        status={item.concluido ? 'Concluído' : null}
-                        statusOk={item.concluido}
-                      />
-                    );
-                  })}
+              ) : (
+                <>
+                  {itensPendentes.length > 0
+                    ? itensPendentes.map(renderizarLinhaAgenda)
+                    : <div className="agenda-pendentes-vazia">Nenhum item pendente.</div>}
+                  {itensConcluidos.length > 0 && (
+                    <div className={`agenda-concluidos ${concluidosAbertos ? 'aberto' : ''}`}>
+                      <button
+                        type="button"
+                        className="agenda-concluidos-toggle"
+                        onClick={() => setConcluidosAbertos((aberto) => !aberto)}
+                        aria-expanded={concluidosAbertos}
+                        aria-controls="agenda-itens-concluidos"
+                      >
+                        <span className="agenda-concluidos-seta" aria-hidden="true">›</span>
+                        <span>Concluídos</span>
+                        <span className="agenda-concluidos-contagem">{itensConcluidos.length}</span>
+                        <small>{concluidosAbertos ? 'Clique para recolher' : 'Clique para visualizar'}</small>
+                      </button>
+                      {concluidosAbertos && (
+                        <div id="agenda-itens-concluidos" className="agenda-concluidos-lista">
+                          {itensConcluidos.map(renderizarLinhaAgenda)}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
             <div className={`painel-detalhes-agenda ${itemSelecionado ? 'drawer-aberto' : ''}`}>

@@ -188,6 +188,17 @@ kbd { display:inline-flex; align-items:center; justify-content:center; min-width
 .agenda-v2 .lista-agenda-compacta { border:0; gap:5px; background:transparent; overflow:visible; }
 .agenda-v2 .linha-agenda { min-height:57px; border:1px solid #dfe6ee; border-left:3px solid transparent; border-radius:10px; background:#fff; box-shadow:0 1px 2px rgba(16,42,70,.03); }
 .agenda-v2 .linha-agenda.selecionada { border-color:#aac1da; border-left-color:var(--carimbo); background:#edf4fd; box-shadow:0 5px 16px rgba(36,92,166,.08); }
+.agenda-pendentes-vazia { padding:28px 16px; border:1px dashed #d6e0ea; border-radius:10px; background:#fff; color:#748294; font-size:12px; text-align:center; }
+.agenda-concluidos { margin-top:8px; border:1px solid #dfe6ee; border-radius:10px; background:#f8fafc; overflow:hidden; }
+.agenda-concluidos-toggle { width:100%; min-height:48px; display:grid; grid-template-columns:22px auto auto 1fr; align-items:center; gap:7px; padding:10px 13px; border:0; background:transparent; color:#526274; cursor:pointer; text-align:left; }
+.agenda-concluidos-toggle:hover { background:#edf3f8; color:#244f80; }
+.agenda-concluidos-toggle:focus-visible { outline:2px solid var(--carimbo); outline-offset:-2px; }
+.agenda-concluidos-toggle small { justify-self:end; color:#7c8999; font-size:10px; }
+.agenda-concluidos-seta { font-size:22px; line-height:1; transform:rotate(0deg); transition:transform .16s ease; }
+.agenda-concluidos.aberto .agenda-concluidos-seta { transform:rotate(90deg); }
+.agenda-concluidos-contagem { min-width:24px; padding:2px 7px; border-radius:999px; background:#e4eaf0; color:#536476; font-size:10px; font-weight:800; text-align:center; }
+.agenda-concluidos-lista { display:flex; flex-direction:column; gap:5px; padding:0 7px 7px; animation:revelar-conteudo 170ms ease-out both; }
+.agenda-concluidos-lista .linha-agenda { box-shadow:none; }
 .agenda-v2 .painel-detalhes-agenda { top:76px; border-radius:12px; box-shadow:0 4px 18px rgba(16,42,70,.07); }
 .agenda-vazia { min-height:330px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; text-align:center; }
 .agenda-vazia-icone { width:48px; height:48px; display:grid; place-items:center; margin-bottom:12px; border-radius:50%; background:#eaf7f0; color:#21815a; font-size:20px; }
@@ -214,6 +225,10 @@ kbd { display:inline-flex; align-items:center; justify-content:center; min-width
   .agenda-cabecalho-v2 { padding-right:0; align-items:flex-start; flex-direction:column; }
   .agenda-controles-v2 { width:100%; }
   .agenda-skeleton-grid { grid-template-columns:1fr; }
+}
+@media (max-width:540px) {
+  .agenda-concluidos-toggle { grid-template-columns:20px auto auto; }
+  .agenda-concluidos-toggle small { display:none; }
 }
 @media (max-width:700px) {
   .workspace-command > span:nth-child(2) { display:none; }.workspace-command { flex:0 0 42px; justify-content:center; padding:0; }
