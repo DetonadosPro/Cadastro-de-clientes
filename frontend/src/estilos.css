@@ -3991,6 +3991,52 @@ input[type="password"] {
 .recall-detalhes-topo {
   position: relative;
 }
+.recall-navegacao-lista {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: -5px 0 14px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--papel-alt);
+  color: var(--tinta-suave);
+  font-size: 10px;
+}
+.recall-navegacao-lista > span strong {
+  color: var(--carimbo);
+  font: 800 12px var(--fonte-mono);
+}
+.recall-navegacao-lista > div {
+  display: flex;
+  gap: 5px;
+}
+.recall-navegacao-lista button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--carimbo);
+  font-size: 15px;
+  line-height: 1;
+  transition: background-color .14s ease, border-color .14s ease, transform .14s ease;
+}
+.recall-navegacao-lista button:hover:not(:disabled) {
+  border-color: #a9bfd7;
+  background: var(--carimbo-suave);
+  transform: translateY(-1px);
+}
+.recall-navegacao-lista button:focus-visible {
+  outline: 2px solid var(--carimbo);
+  outline-offset: 2px;
+}
+.recall-navegacao-lista button:disabled {
+  opacity: .35;
+  cursor: default;
+}
 .recall-detalhes-topo > div:first-child {
   min-width: 0;
   padding-right: 150px;
