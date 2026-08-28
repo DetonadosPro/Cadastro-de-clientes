@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api.js';
+import { formatarCelular } from '../mascaras.js';
 
 const ACOES = [
   { id: 'agenda', titulo: 'Abrir Agenda', detalhe: 'Compromissos e entregas do dia', rota: '/agenda', grupo: 'Navegação', termos: 'hoje compromissos agenda' },
@@ -13,6 +14,30 @@ function IconeBusca() {
   return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>;
 }
 
+function somenteDigitos(valor) {
+  return String(valor || '').replace(/\D/g, '');
+}
+
+function ehTermoDeTelefone(valor) {
+  const texto = String(valor || '').trim();
+  return /\d/.test(texto) && /^[\d\s()+.\-]+$/.test(texto);
+}
+
+function formatarTermo(valor) {
+  if (!ehTermoDeTelefone(valor)) return valor;
+  let digitos = somenteDigitos(valor);
+  const informouDdi = /^\s*\+55/.test(valor) || (digitos.length > 11 && digitos.startsWith('55'));
+  if (informouDdi) digitos = digitos.slice(2);
+  return formatarCelular(digitos);
+}
+
+function contatoCorrespondente(cliente, termo) {
+  const procurado = somenteDigitos(termo);
+  if (!procurado) return null;
+  return [cliente.whatsapp, cliente.celular]
+    .find((contato) => somenteDigitos(contato).includes(procurado)) || null;
+}
+
 export default function CommandPalette({ aberta, onFechar, onNavegar }) {
   const [termo, setTermo] = useState('');
   const [clientes, setClientes] = useState([]);
@@ -20,6 +45,8 @@ export default function CommandPalette({ aberta, onFechar, onNavegar }) {
   const [indice, setIndice] = useState(0);
   const inputRef = useRef(null);
   const paletteRef = useRef(null);
+  const buscaPorTelefone = ehTermoDeTelefone(termo);
+  const telefoneBuscado = buscaPorTelefone ? somenteDigitos(termo) : '';
 
   const acoesFiltradas = useMemo(() => {
     const normalizado = termo.trim().toLocaleLowerCase('pt-BR');
@@ -32,12 +59,12 @@ export default function CommandPalette({ aberta, onFechar, onNavegar }) {
     ...clientes.map((cliente) => ({
       id: `cliente-${cliente.id}`,
       titulo: cliente.nome,
-      detalhe: cliente.whatsapp || cliente.celular || cliente.fixo || 'Cliente cadastrado',
+      detalhe: contatoCorrespondente(cliente, termo) || cliente.whatsapp || cliente.celular || cliente.fixo || 'Cliente cadastrado',
       rota: `/clientes/${cliente.id}`,
       grupo: 'Clientes',
       tipo: 'cliente',
     })),
-  ], [acoesFiltradas, clientes]);
+  ], [acoesFiltradas, clientes, termo]);
 
   useEffect(() => {
     if (!aberta) return;
@@ -46,12 +73,20 @@ export default function CommandPalette({ aberta, onFechar, onNavegar }) {
   }, [aberta]);
 
   useEffect(() => {
-    if (!aberta || termo.trim().length < 2) { setClientes([]); return undefined; }
+    const termoValido = buscaPorTelefone ? telefoneBuscado.length >= 3 : termo.trim().length >= 2;
+    if (!aberta || !termoValido) { setClientes([]); return undefined; }
     let ativo = true;
     const timer = setTimeout(async () => {
       setBuscando(true);
       try {
-        const resposta = await api.clientes.listar(termo.trim(), 1, 'nome', 'nome', 'asc');
+        const resposta = await api.clientes.listar(
+          buscaPorTelefone ? '' : termo.trim(),
+          1,
+          buscaPorTelefone ? '' : 'nome',
+          'nome',
+          'asc',
+          buscaPorTelefone ? { telefone: telefoneBuscado } : {}
+        );
         if (ativo) setClientes((resposta.clientes || []).slice(0, 6));
       } catch {
         if (ativo) setClientes([]);
@@ -60,7 +95,7 @@ export default function CommandPalette({ aberta, onFechar, onNavegar }) {
       }
     }, 220);
     return () => { ativo = false; clearTimeout(timer); };
-  }, [aberta, termo]);
+  }, [aberta, buscaPorTelefone, telefoneBuscado, termo]);
 
   useEffect(() => { setIndice(0); }, [termo]);
 
@@ -96,11 +131,11 @@ export default function CommandPalette({ aberta, onFechar, onNavegar }) {
       <div ref={paletteRef} className="command-palette" role="dialog" aria-modal="true" aria-label="Busca global" onMouseDown={(e) => e.stopPropagation()} onKeyDown={aoTeclar}>
         <div className="command-input-wrap">
           <IconeBusca />
-          <input ref={inputRef} value={termo} onChange={(e) => setTermo(e.target.value)} placeholder="Busque clientes, páginas ou ações…" aria-label="Buscar no sistema" />
+          <input ref={inputRef} value={termo} onChange={(e) => setTermo(formatarTermo(e.target.value))} placeholder="Nome, celular, WhatsApp, página ou ação…" aria-label="Buscar no sistema por nome, celular, WhatsApp, página ou ação" />
           <kbd>ESC</kbd>
         </div>
         <div className="command-resultados">
-          {resultados.length === 0 && !buscando && <div className="command-vazio">Nenhum resultado. Tente buscar pelo nome do cliente ou por uma ação.</div>}
+          {resultados.length === 0 && !buscando && <div className="command-vazio">Nenhum resultado. Busque pelo nome, celular, WhatsApp ou por uma ação.</div>}
           {resultados.map((item, posicao) => {
             const mostrarGrupo = item.grupo !== ultimoGrupo;
             ultimoGrupo = item.grupo;
