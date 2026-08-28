@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { api } from '../../api.js';
+import { api, getNomeExibicao } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
+import { buildRecallWhatsAppUrl } from '../../utils/mensagemRecall.js';
 
 function isoLocal(data = new Date()) { return `${data.getFullYear()}-${String(data.getMonth()+1).padStart(2,'0')}-${String(data.getDate()).padStart(2,'0')}`; }
 function somarDias(iso, dias) { const d=new Date(`${iso}T12:00:00`); d.setDate(d.getDate()+dias); return isoLocal(d); }
@@ -12,7 +13,7 @@ function linkWhatsapp(telefone) {
   const digitos=String(telefone||'').replace(/\D/g,'');
   const nacional=digitos.startsWith('55')&&[12,13].includes(digitos.length)?digitos.slice(2):digitos;
   if(!/^\d{10,11}$/.test(nacional)||/^0+$/.test(nacional)||!/^\d{2}[2-9]\d{7,8}$/.test(nacional))return null;
-  return `https://wa.me/55${nacional}`;
+  return `https://api.whatsapp.com/send?phone=55${nacional}`;
 }
 function IconeWhatsapp() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.8a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.3-4.7a8.5 8.5 0 1 1 16.2-4Z"/><path d="M8.2 7.8c.2-.5.4-.5.8-.5h.5c.2 0 .4.1.5.4l.8 2c.1.3 0 .5-.2.7l-.6.7c-.2.2-.1.4 0 .6.7 1.2 1.7 2.2 3 2.8.3.1.5.1.7-.1l.8-1c.2-.2.4-.3.7-.2l2 .9c.3.1.4.3.4.5 0 .4-.2 1.5-.9 2.1-.6.6-1.5.8-2.5.5-1.2-.3-2.8-.9-4.7-2.5-1.5-1.3-2.5-2.9-2.8-4-.3-1.2 0-2.3.5-2.9Z"/></svg>; }
 function IconePessoa() { return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 20c.7-4.1 3.1-6.2 7.5-6.2s6.8 2.1 7.5 6.2"/></svg>; }
@@ -63,15 +64,22 @@ export default function Recall() {
       {dados&&<div className="recall-fontes recall-seletor-pesquisas" role="tablist" aria-label="Tipo de pesquisa"><button type="button" role="tab" aria-selected={modoFila==='DIA_MENSAGEM'} className={modoFila==='DIA_MENSAGEM'?'ativo':''} onClick={()=>setModoFila('DIA_MENSAGEM')}><span className="recall-pesquisa-texto"><small>Pesquisa 1</small><strong>Por dia da mensagem</strong></span><em aria-label={`${listaDoModo(dados,'DIA_MENSAGEM').length} pessoas`}>{listaDoModo(dados,'DIA_MENSAGEM').length}</em></button><button type="button" role="tab" aria-selected={modoFila==='ANIVERSARIO'} className={modoFila==='ANIVERSARIO'?'ativo':''} onClick={()=>setModoFila('ANIVERSARIO')}><span className="recall-pesquisa-texto"><small>Pesquisa 2</small><strong>Aniversário do cliente</strong></span><em aria-label={`${listaDoModo(dados,'ANIVERSARIO').length} pessoas`}>{listaDoModo(dados,'ANIVERSARIO').length}</em></button></div>}
       {carregando?<div className="painel recall-vazio">Montando a fila…</div>:!itensAtivos.length?<div className="painel recall-vazio"><strong>Fila livre para este dia</strong><span>Nenhuma relação foi encontrada nesta pesquisa.</span></div>:<div className="recall-workspace">
         <div className="recall-lista-coluna"><label className="recall-pesquisa-nome"><IconeBusca/><input type="search" value={buscaNome} onChange={(e)=>setBuscaNome(e.target.value)} placeholder="Buscar por nome ou senha..." aria-label="Buscar nas duas pesquisas por nome ou senha"/></label><section className="recall-lista" ref={listaRef} onScroll={guardarScrollLista}>{itensFiltrados.length?itensFiltrados.map(i=><button key={i.relacaoChave} className={`recall-linha ${selecionado?.relacaoChave===i.relacaoChave?'selecionada':''}`} onClick={()=>setSelecionado(i)}><span className="recall-avatar">{i.clienteNome?.charAt(0)}</span><span><strong className="recall-lista-relacao"><span title={i.clienteNome}>{nomeCurto(i.clienteNome)}{i.clienteBloqueado&&<em className="recall-bloqueado">Bloqueado</em>}</span>{!i.clienteBloqueado&&<><b>→</b><span title={i.aniversariante}>{nomeCurto(i.aniversariante)}{i.aniversarianteBloqueado&&<em className="recall-bloqueado">Bloqueado</em>}</span></>}</strong></span></button>):<div className="recall-lista-sem-resultado">Nenhum nome ou senha encontrado.</div>}</section></div>
-        {selecionado&&<Detalhes item={selecionado} modoFila={selecionado._modoFila||modoFila} criarPedido={criarPedido} navigate={navigate} returnTo={urlRetornoFila()}/>}
+        {selecionado&&<Detalhes item={selecionado} modoFila={selecionado._modoFila||modoFila} modoWhatsapp={modoFila} criarPedido={criarPedido} navigate={navigate} returnTo={urlRetornoFila()}/>}
       </div>}
     </>
   </div>;
 }
 
-function Detalhes({item,modoFila,criarPedido,navigate,returnTo}) {
+function Detalhes({item,modoFila,modoWhatsapp,criarPedido,navigate,returnTo}) {
   const pesquisaPorAniversariante=modoFila==='ANIVERSARIO';
-  return <aside className="painel recall-detalhes"><div className="recall-detalhes-topo"><div><span>Contato atual</span><h2 className="recall-relacao-titulo"><span>{item.clienteNome}</span><b>→</b><span className="recall-aniversariante-nome"><strong>{item.aniversariante}</strong><em>Aniversariante</em>{item.aniversarianteBloqueado&&<em className="recall-bloqueado">Bloqueado</em>}</span></h2><div className="recall-contato"><div><small>Telefone principal</small><strong>{item.telefone||'Não informado'}</strong></div>{linkWhatsapp(item.telefone)&&<a className="btn recall-whatsapp" href={linkWhatsapp(item.telefone)} target="_blank" rel="noopener noreferrer" aria-label={`Abrir WhatsApp de ${item.clienteNome}`} title="Abrir WhatsApp"><IconeWhatsapp/></a>}</div></div><div className="recall-cadastro-canto">{item.clienteBloqueado&&<em className="recall-bloqueio-destaque">Bloqueado</em>}{item.clienteId&&<button className="recall-abrir-cliente" onClick={()=>navigate(`/clientes/${item.clienteId}`,{state:{returnTo}})} aria-label={`Abrir cadastro de ${item.clienteNome}`} title={`Abrir cadastro de ${item.clienteNome}`}><IconePessoa/></button>}</div></div>
+  const whatsappUrl=buildRecallWhatsAppUrl(item.telefone,{
+    modoFila:modoWhatsapp,
+    contato:item.clienteNome,
+    aniversariante:item.aniversariante,
+    usuario:getNomeExibicao(),
+    generoAniversariante:item.aniversarianteGenero,
+  },linkWhatsapp);
+  return <aside className="painel recall-detalhes"><div className="recall-detalhes-topo"><div><span>Contato atual</span><h2 className="recall-relacao-titulo"><span>{item.clienteNome}</span><b>→</b><span className="recall-aniversariante-nome"><strong>{item.aniversariante}</strong><em>Aniversariante</em>{item.aniversarianteBloqueado&&<em className="recall-bloqueado">Bloqueado</em>}</span></h2><div className="recall-contato"><div><small>Telefone principal</small><strong>{item.telefone||'Não informado'}</strong></div>{whatsappUrl&&<a className="btn recall-whatsapp" href={whatsappUrl} target="_blank" rel="noopener noreferrer" aria-label={`Abrir WhatsApp de ${item.clienteNome}`} title="Abrir WhatsApp"><IconeWhatsapp/></a>}</div></div><div className="recall-cadastro-canto">{item.clienteBloqueado&&<em className="recall-bloqueio-destaque">Bloqueado</em>}{item.clienteId&&<button className="recall-abrir-cliente" onClick={()=>navigate(`/clientes/${item.clienteId}`,{state:{returnTo}})} aria-label={`Abrir cadastro de ${item.clienteNome}`} title={`Abrir cadastro de ${item.clienteNome}`}><IconePessoa/></button>}</div></div>
     <div className="recall-contexto">
       <div className="recall-contexto-cabecalho"><h3>{pesquisaPorAniversariante?'Última mensagem recebida':'Última mensagem comprada'}</h3><div><time>{item.ultimoPedido.data||'Data não informada'}</time><span>O.S. {item.ultimoPedido.os||item.ultimoPedido.pedidoId}</span></div></div>
       <div className="recall-contexto-principal"><small>Tema da mensagem</small><strong>{item.ultimoPedido.tema||'Tema não informado'}{item.ultimoPedido.texto?` · Nº ${item.ultimoPedido.texto}`:''}</strong></div>

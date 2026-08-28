@@ -1,10 +1,10 @@
-function normalizarNome(nome) {
+export function normalizarNome(nome) {
   const primeiro = String(nome || '').trim().split(/\s+/)[0];
   if (!primeiro) return '';
   return primeiro.charAt(0).toUpperCase() + primeiro.slice(1).toLowerCase();
 }
 
-function generoPorNome(nome) {
+export function generoPorNome(nome) {
   const primeiro = normalizarNome(nome);
   const final = primeiro.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   if (final.endsWith('a')) return { artigo: 'a', pronome: 'ela' };
@@ -12,7 +12,7 @@ function generoPorNome(nome) {
   return { artigo: 'o', pronome: 'ele' };
 }
 
-function artigoUsuario(nome) {
+export function artigoUsuario(nome) {
   const primeiro = normalizarNome(nome);
   const chave = primeiro.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   if (chave === 'enimar') return 'a';
