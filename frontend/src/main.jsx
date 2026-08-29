@@ -5,6 +5,7 @@ import App from './App.jsx';
 import { RascunhosProvider } from './RascunhosContext.jsx';
 import { ToastProvider } from './ToastContext.jsx';
 import { AgendaAlertaProvider } from './AgendaAlertaContext.jsx';
+import { TempoRealProvider } from './TempoRealContext.jsx';
 import './estilos.css';
 import './modernizacao.css';
 import './experiencia-v2.css';
@@ -14,9 +15,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <RascunhosProvider>
         <ToastProvider>
-          <AgendaAlertaProvider>
-            <App />
-          </AgendaAlertaProvider>
+          <TempoRealProvider>
+            <AgendaAlertaProvider>
+              <App />
+            </AgendaAlertaProvider>
+          </TempoRealProvider>
         </ToastProvider>
       </RascunhosProvider>
     </BrowserRouter>

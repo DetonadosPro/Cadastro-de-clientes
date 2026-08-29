@@ -7,22 +7,30 @@
 // via variável de ambiente (VITE_API_URL). Localmente, sem essa
 // variável definida, cai no caminho relativo "/api" (funciona porque o
 // backend serve tudo junto na mesma porta em desenvolvimento).
-const BASE = import.meta.env.VITE_API_URL || '/api';
+export const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
-function getToken() {
+export function getToken() {
   return localStorage.getItem('pombo_token');
+}
+
+const ID_TELA = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`;
+
+export function getIdTela() {
+  return ID_TELA;
 }
 
 export function setToken(token, usuario, nome) {
   localStorage.setItem('pombo_token', token);
   localStorage.setItem('pombo_usuario', usuario);
   localStorage.setItem('pombo_nome', nome || usuario);
+  window.dispatchEvent(new Event('pombo:sessao-alterada'));
 }
 
 export function limparSessao() {
   localStorage.removeItem('pombo_token');
   localStorage.removeItem('pombo_usuario');
   localStorage.removeItem('pombo_nome');
+  window.dispatchEvent(new Event('pombo:sessao-alterada'));
 }
 
 export function getUsuarioLogado() {
@@ -40,13 +48,14 @@ async function chamar(caminho, opcoes = {}) {
   const token = getToken();
   const cabecalhos = {
     'Content-Type': 'application/json',
+    'x-pombo-tela': getIdTela(),
     ...(opcoes.headers || {}),
   };
   if (token) {
     cabecalhos.Authorization = `Bearer ${token}`;
   }
 
-  const resposta = await fetch(`${BASE}${caminho}`, {
+  const resposta = await fetch(`${API_BASE}${caminho}`, {
     ...opcoes,
     headers: cabecalhos,
   });
@@ -84,7 +93,7 @@ async function chamarComSenhaMestra(caminho, senhaMestra, opcoes = {}) {
     ...(opcoes.headers || {}),
   };
 
-  const resposta = await fetch(`${BASE}${caminho}`, {
+  const resposta = await fetch(`${API_BASE}${caminho}`, {
     ...opcoes,
     headers: cabecalhos,
   });

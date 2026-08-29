@@ -4754,3 +4754,38 @@ input[type="password"] {
   .recall-contato .recall-whatsapp { width: 38px; }
   .recall-contexto-meta { grid-template-columns: 1fr; gap: 8px; }
 }
+/* Aviso discreto de que um novo deploy está disponível. */
+.aviso-nova-versao {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  max-width: min(470px, calc(100vw - 32px));
+  padding: 13px 14px 13px 17px;
+  border: 1px solid #b7cbe3;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(21, 52, 88, 0.2);
+  color: #17385f;
+}
+.aviso-nova-versao div { display: grid; gap: 2px; }
+.aviso-nova-versao strong { font-size: 14px; }
+.aviso-nova-versao span { color: #65758a; font-size: 12px; }
+.aviso-nova-versao button {
+  flex: 0 0 auto;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: #245fa4;
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+@media (max-width: 600px) {
+  .aviso-nova-versao { right: 16px; bottom: 16px; left: 16px; }
+}

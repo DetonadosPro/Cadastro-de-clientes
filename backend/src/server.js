@@ -55,6 +55,8 @@ const relatoriosRouter = require('./routes/relatorios');
 const recallRouter = require('./routes/recall');
 const autenticar = require('./middleware/autenticar');
 const { iniciarAgendador } = require('./tarefas/agendador');
+const { conectar: conectarTempoReal, observarAlteracoes } = require('./tempoReal');
+
 
 async function iniciar() {
   try {
@@ -73,6 +75,8 @@ async function iniciar() {
   app.get('/api/status', (req, res) => {
     res.json({ ok: true, sistema: 'Pombo-Correio', hora: new Date().toISOString() });
   });
+  app.get('/api/eventos', autenticar, conectarTempoReal);
+  app.use('/api', observarAlteracoes);
 
   // Rotas para disparar as tarefas agendadas manualmente (útil para
   // testar sem esperar o cron rodar no horário certo) — exigem login,

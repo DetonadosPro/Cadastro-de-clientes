@@ -157,14 +157,21 @@ export default function Agenda() {
     let ativo = true;
     // Um dia de cada lado fica pré-carregado para o novo card entrar
     // durante a animação sem aparecer vazio.
-    const dias = Array.from({ length: 9 }, (_, indice) => somarDias(inicioJanela, indice - 1));
-    Promise.all(dias.map((data) => api.agenda.hoje(data)))
+    const dias = ehSmartphone
+      ? Array.from({ length: 16 }, (_, indice) => somarDias(dataSelecionada, indice - 1))
+      : Array.from({ length: 9 }, (_, indice) => somarDias(inicioJanela, indice - 1));
+    const diasAindaNaoCarregados = dias.filter((data) => contagensPorData[data] === undefined);
+    if (diasAindaNaoCarregados.length === 0) {
+      setCarregandoSemana(false);
+      return () => { ativo = false; };
+    }
+    Promise.all(diasAindaNaoCarregados.map((data) => api.agenda.hoje(data)))
       .then((respostas) => {
         if (!ativo) return;
         const novasContagens = {};
         respostas.forEach((resp, indice) => {
           const quantidadeFonada = agruparMensagensDuplas(resp.fonada).length;
-          novasContagens[dias[indice]] = quantidadeFonada + resp.aoVivo.length + (resp.lembretes || []).length;
+          novasContagens[diasAindaNaoCarregados[indice]] = quantidadeFonada + resp.aoVivo.length + (resp.lembretes || []).length;
         });
         setContagensPorData((atual) => ({ ...atual, ...novasContagens }));
       })
@@ -175,7 +182,7 @@ export default function Agenda() {
       .finally(() => { if (ativo) setCarregandoSemana(false); });
     return () => { ativo = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inicioJanela]);
+  }, [inicioJanela, ehSmartphone, dataSelecionada, contagensPorData]);
 
   // A faixa estreita do celular sempre nasce centrada no dia selecionado.
   // Em desktop o carrossel continua usando a janela de sete dias original;
@@ -232,7 +239,7 @@ export default function Agenda() {
     if (direcaoCarrossel) return;
     const novaData = somarDias(dataSelecionada, quantidade);
     const datasVisiveis = Array.from({ length: 7 }, (_, indice) => somarDias(inicioJanela, indice));
-    if (!datasVisiveis.includes(novaData)) moverJanela(quantidade > 0 ? 'frente' : 'tras');
+    if (!ehSmartphone && !datasVisiveis.includes(novaData)) moverJanela(quantidade > 0 ? 'frente' : 'tras');
     irParaDia(novaData);
   }
 
@@ -511,7 +518,7 @@ export default function Agenda() {
 
   const itemSelecionado = listaAtual.find((item) => chaveDoItem(item) === chaveSelecionada) || null;
   const inicioRenderizacao = direcaoCarrossel === 'tras' ? -1 : 0;
-  const quantidadeCards = direcaoCarrossel ? 8 : 7;
+  const quantidadeCards = ehSmartphone ? 14 : (direcaoCarrossel ? 8 : 7);
   const datasDosCards = Array.from(
     { length: quantidadeCards },
     (_, indice) => ehSmartphone

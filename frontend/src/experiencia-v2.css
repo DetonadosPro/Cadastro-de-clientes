@@ -1163,3 +1163,57 @@ kbd { display:inline-flex; align-items:center; justify-content:center; min-width
     gap:4px;
   }
 }
+
+/* No mobile, a faixa de dias é controlada por swipe. As setas duplicavam
+   a navegação que já existe junto ao calendário e reduziam a área dos cards. */
+@media (max-width:900px) {
+  .agenda-v2 .carrossel-dias-agenda {
+    grid-template-columns:minmax(0,1fr);
+    gap:0;
+  }
+  .agenda-v2 .seta-carrossel-agenda { display:none; }
+  .agenda-v2 .faixa-semana-viewport {
+    overflow-x:auto;
+    overflow-y:hidden;
+    touch-action:pan-x pan-y;
+    cursor:grab;
+    scroll-behavior:smooth;
+    scroll-snap-type:x mandatory;
+    overscroll-behavior-x:contain;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .agenda-v2 .faixa-semana-viewport:active { cursor:grabbing; }
+  .agenda-v2 .faixa-semana-agenda > button {
+    scroll-snap-align:center;
+    scroll-snap-stop:normal;
+    transition:transform .2s ease, border-color .2s ease, background-color .2s ease, box-shadow .2s ease;
+  }
+  .agenda-v2 .faixa-semana-viewport::-webkit-scrollbar { display:none; }
+}
+
+@media (max-width:430px) {
+  /* Quatorze cards, mantendo cerca de três visíveis por vez. */
+  .agenda-v2 .faixa-semana-agenda,
+  .agenda-v2 .faixa-semana-agenda.animando {
+    width:calc(466.667% + 24px);
+  }
+  .agenda-v2 .faixa-semana-agenda > button {
+    flex-basis:calc((100% - 78px) / 14);
+  }
+  .agenda-v2 .faixa-semana-agenda > button.ativo {
+    z-index:1;
+    transform:translateY(-4px) scale(1.02);
+  }
+}
+
+@media (max-width:374px) {
+  /* Em telas muito estreitas, preserva aproximadamente dois cards visíveis. */
+  .agenda-v2 .faixa-semana-agenda,
+  .agenda-v2 .faixa-semana-agenda.animando {
+    width:700%;
+  }
+  .agenda-v2 .faixa-semana-agenda > button {
+    flex-basis:calc((100% - 78px) / 14);
+  }
+}

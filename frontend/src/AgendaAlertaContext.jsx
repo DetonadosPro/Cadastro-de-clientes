@@ -15,8 +15,9 @@
 //   memória. Como não depende de nenhuma resposta de rede, a mudança
 //   de cor é instantânea — sem a pequena espera de uma requisição.
 
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { api } from './api.js';
+import { useAtualizacaoTempoReal } from './TempoRealContext.jsx';
 import { useToast } from './ToastContext.jsx';
 
 const AgendaAlertaContext = createContext(null);
@@ -138,6 +139,20 @@ export function AgendaAlertaProvider({ children }) {
   // em si não é usado, é apenas o "pulso" que faz o React reavaliar
   // corAgregada()/statusUrgenciaItem() com o relógio atualizado.
   const [, forcarRecalculo] = useState(0);
+
+  const buscarAgenda = useCallback(() => {
+    api.agenda.hoje()
+      .then((resp) => {
+        setFonadaHoje(resp.fonada || []);
+        setAoVivoHoje(resp.aoVivo || []);
+        setAgendaHojeCarregada(true);
+      })
+      .catch(() => {
+        // O polling permanece como contingência caso a conexão em tempo real caia.
+      });
+  }, []);
+
+  useAtualizacaoTempoReal(['agenda'], buscarAgenda);
 
   // Busca os dados no servidor periodicamente (rede).
   useEffect(() => {

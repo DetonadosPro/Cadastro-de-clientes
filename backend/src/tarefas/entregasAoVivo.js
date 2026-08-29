@@ -4,6 +4,7 @@
 
 const { db } = require('../db/database');
 const { agoraBrasilia } = require('../utils/dataHora');
+const { publicar } = require('../tempoReal');
 
 const ATRASO_AUTOMATICO_MINUTOS = 10;
 
@@ -72,6 +73,7 @@ async function marcarEntregasAoVivoAutomaticas() {
 
   if (atualizados.rows.length > 0) {
     console.log(`✅ ${atualizados.rows.length} evento(s) Ao Vivo marcado(s) como entregue(s) automaticamente.`);
+    publicar({ topico: 'ao-vivo', recurso: '/tarefas/entregas-automaticas', metodo: 'SISTEMA' });
   }
   return atualizados.rows.length;
 }

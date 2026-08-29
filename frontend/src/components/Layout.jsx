@@ -4,6 +4,8 @@ import { getUsuarioLogado, getNomeExibicao, limparSessao } from '../api.js';
 import { useRascunhos } from '../RascunhosContext.jsx';
 import { useAgendaAlerta } from '../AgendaAlertaContext.jsx';
 import CommandPalette from './CommandPalette.jsx';
+import { useAtualizacaoTempoReal } from '../TempoRealContext.jsx';
+import { useToast } from '../ToastContext.jsx';
 
 // Converte a chave do rascunho ("novo" ou "editar-123") na rota do formulário correspondente.
 function rotaDoRascunho(prefixoRota, chave) {
@@ -94,14 +96,61 @@ export default function Layout() {
   const [commandAberta, setCommandAberta] = useState(false);
   const [chaveConteudo, setChaveConteudo] = useState(0);
   const conteudoRef = useRef(null);
+  const temporizadorAtualizacaoRef = useRef(null);
+  const atualizacaoPendenteRef = useRef(false);
   const { rascunhoFonada, rascunhoAoVivo } = useRascunhos();
+  const { mostrarToast } = useToast();
   // A cor da bolinha vem do contexto compartilhado — assim ela e as
   // bordas de urgência na tela Agenda ficam sempre sincronizadas, já
   // que ambas partem do mesmo dado buscado no mesmo instante.
   const { alertaMenu: alertaAgenda } = useAgendaAlerta();
 
+  useAtualizacaoTempoReal(
+    ['agenda', 'clientes', 'fonadas', 'ao-vivo', 'cobranca', 'recall', 'relatorios'],
+    (evento) => {
+      const caminho = location.pathname;
+      const ehLista = [
+        '/agenda', '/cobranca', '/relatorios', '/recall', '/clientes', '/clientes/lixeira',
+        '/fonada', '/fonada/hoje', '/ao-vivo', '/ao-vivo/hoje',
+      ].includes(caminho);
+      if (ehLista) {
+        clearTimeout(temporizadorAtualizacaoRef.current);
+        const atualizarQuandoLivre = () => {
+          const alvo = document.activeElement;
+          const digitando = alvo instanceof HTMLInputElement
+            || alvo instanceof HTMLTextAreaElement
+            || alvo instanceof HTMLSelectElement
+            || alvo?.isContentEditable;
+          const sobreposicaoAberta = Boolean(document.querySelector('.modal-fundo,.command-overlay,.drawer-cliente-overlay'));
+          if (digitando || sobreposicaoAberta) {
+            if (!atualizacaoPendenteRef.current) {
+              mostrarToast('Há dados novos. A tela será atualizada quando você terminar esta ação.', 'aviso');
+            }
+            atualizacaoPendenteRef.current = true;
+            temporizadorAtualizacaoRef.current = setTimeout(atualizarQuandoLivre, 700);
+            return;
+          }
+          atualizacaoPendenteRef.current = false;
+          setChaveConteudo((atual) => atual + 1);
+        };
+        atualizarQuandoLivre();
+      } else {
+        const detalhe = caminho.match(/^\/(clientes|fonada|ao-vivo)\/(\d+)$/);
+        const topicoDaTela = detalhe?.[1] === 'fonada' ? 'fonadas' : detalhe?.[1];
+        const idAlterado = evento.recurso?.match(/^\/api\/(?:clientes|fonadas|ao-vivo)\/(\d+)(?:\/|$)/)?.[1];
+        if (detalhe && evento.topico === topicoDaTela && idAlterado === detalhe[2]) {
+          mostrarToast('Este registro foi alterado em outra tela. Seu formulário foi preservado.', 'aviso');
+        }
+      }
+    }
+  );
+
+  useEffect(() => () => clearTimeout(temporizadorAtualizacaoRef.current), []);
+
   useEffect(() => {
     setMenuAberto(false);
+    clearTimeout(temporizadorAtualizacaoRef.current);
+    atualizacaoPendenteRef.current = false;
   }, [location.pathname]);
 
   // Cada entrada do histórico do React Router possui uma chave estável.
