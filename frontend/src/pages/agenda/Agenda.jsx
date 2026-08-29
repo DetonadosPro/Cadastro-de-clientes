@@ -58,6 +58,10 @@ function rotuloDiaSemana(dataBr) {
   return ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][data.getDay()];
 }
 
+function pagamentoEhPrazo(pagamento) {
+  return /^PRAZO(?:\s|-|$)/i.test(String(pagamento || '').trim());
+}
+
 export default function Agenda() {
   // A data e a aba selecionadas ficam na URL (não em useState solto) —
   // assim, ao abrir um pedido e depois "Fechar" (que usa o histórico do
@@ -565,7 +569,8 @@ export default function Agenda() {
             item.bairro,
             item.brinde,
           ].filter(Boolean)}
-          tagExtra={aba === 'geral' ? 'Ao vivo' : (jaPassada ? 'Entregue' : 'Agendado')}
+          tagExtra={aba === 'geral' ? 'Ao vivo' : (jaPassada ? null : 'Agendado')}
+          prazo={pagamentoEhPrazo(item.pagamento)}
           status={jaPassada ? 'Entregue' : (item.pagou === 'SIM' ? 'Pago' : null)}
           statusOk={jaPassada || item.pagou === 'SIM'}
         />
@@ -919,7 +924,7 @@ function IconeChevron({ aberto }) {
 // Uma linha fina e clicável na lista compacta — horário, nome, tag de
 // urgência/status. Reduz cada item a uma tira baixa, para caber muitos
 // na tela sem rolar, em vez do card grande com todos os campos aberto.
-function LinhaAgenda({ selecionada, onClick, urgencia, jaPassada, senhaOs, horario, titulo, detalhes = [], tagExtra, tagExtraDestaque, status, statusOk }) {
+function LinhaAgenda({ selecionada, onClick, urgencia, jaPassada, senhaOs, horario, titulo, detalhes = [], tagExtra, tagExtraDestaque, prazo, status, statusOk }) {
   return (
     <div
       className={`linha-agenda ${selecionada ? 'selecionada' : ''} ${urgencia ? `urgencia-${urgencia}` : ''} ${jaPassada ? 'passada' : ''}`}
@@ -945,10 +950,15 @@ function LinhaAgenda({ selecionada, onClick, urgencia, jaPassada, senhaOs, horar
           </span>
         )}
       </span>
-      {tagExtra && <span className="tag neutro linha-agenda-tag" style={tagExtraDestaque ? { fontWeight: 700 } : undefined}>{tagExtra}</span>}
-      {urgencia === 'atrasada' && <span className="tag pendente linha-agenda-tag">Atrasado</span>}
-      {urgencia === 'proxima' && <span className="tag aviso linha-agenda-tag">Chegando</span>}
-      {status && <span className={`tag ${statusOk ? 'ok' : 'pendente'} linha-agenda-tag`}>{status}</span>}
+      {(tagExtra || prazo || urgencia || status) && (
+        <span className="linha-agenda-tags">
+          {tagExtra && <span className="tag neutro linha-agenda-tag" style={tagExtraDestaque ? { fontWeight: 700 } : undefined}>{tagExtra}</span>}
+          {prazo && <span className="tag aviso linha-agenda-tag">Prazo</span>}
+          {urgencia === 'atrasada' && <span className="tag pendente linha-agenda-tag">Atrasado</span>}
+          {urgencia === 'proxima' && <span className="tag aviso linha-agenda-tag">Chegando</span>}
+          {status && <span className={`tag ${statusOk ? 'ok' : 'pendente'} linha-agenda-tag`}>{status}</span>}
+        </span>
+      )}
     </div>
   );
 }

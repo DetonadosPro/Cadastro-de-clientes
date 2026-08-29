@@ -417,6 +417,13 @@ input, select, textarea {
 .linha-agenda-tag {
   flex-shrink: 0;
 }
+.linha-agenda-tags {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  gap: 6px;
+}
 .agenda-novo-lembrete { min-height:36px; white-space:nowrap; }
 .modal-lembrete { width:min(520px, calc(100vw - 24px)); }
 .modal-lembrete textarea { width:100%; resize:vertical; }

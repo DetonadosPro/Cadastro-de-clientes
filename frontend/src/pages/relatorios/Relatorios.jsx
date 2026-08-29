@@ -105,6 +105,18 @@ function useIntervaloData(searchParams, setSearchParams) {
     inicio, fim,
     setInicio: (v) => definir('inicio', v),
     setFim: (v) => definir('fim', v),
+    setIntervalo: (novoInicio, novoFim) => {
+      const inicioFormatado = formatarData(novoInicio);
+      const fimFormatado = formatarData(novoFim);
+      setSearchParams((atuais) => {
+        const novos = new URLSearchParams(atuais);
+        if (inicioFormatado) novos.set('inicio', inicioFormatado);
+        else novos.delete('inicio');
+        if (fimFormatado) novos.set('fim', fimFormatado);
+        else novos.delete('fim');
+        return novos;
+      }, { replace: true });
+    },
   };
 }
 
@@ -113,11 +125,24 @@ function formatarReais(v) {
 }
 
 function dataCompleta(valor) {
-  return /^\d{2}\/\d{2}\/\d{2}$/.test(valor || '');
+  const partes = String(valor || '').match(/^(\d{2})\/(\d{2})\/(\d{2})$/);
+  if (!partes) return false;
+  const [, dia, mes, ano] = partes.map(Number);
+  const data = new Date(2000 + ano, mes - 1, dia);
+  return data.getFullYear() === 2000 + ano && data.getMonth() === mes - 1 && data.getDate() === dia;
+}
+
+function inicioDepoisDoFim(inicio, fim) {
+  if (!dataCompleta(inicio) || !dataCompleta(fim)) return false;
+  const chave = (valor) => {
+    const [dia, mes, ano] = valor.split('/');
+    return `${ano}${mes}${dia}`;
+  };
+  return chave(inicio) > chave(fim);
 }
 
 function AbaVendas({ sistema, intervalo, ativa }) {
-  const { inicio, fim, setInicio, setFim } = intervalo;
+  const { inicio, fim, setInicio, setFim, setIntervalo } = intervalo;
   const [dados, setDados] = useState(null);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
@@ -144,6 +169,12 @@ function AbaVendas({ sistema, intervalo, ativa }) {
 
   React.useEffect(() => {
     if (!ativa || !dataCompleta(inicio) || (fim && !dataCompleta(fim))) return undefined;
+    if (fim && inicioDepoisDoFim(inicio, fim)) {
+      setErro('A data inicial não pode ser posterior à data final.');
+      setDados(null);
+      setJaBuscou(true);
+      return undefined;
+    }
     const temporizador = setTimeout(() => buscar(null, sistema), 300);
     return () => clearTimeout(temporizador);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -152,7 +183,7 @@ function AbaVendas({ sistema, intervalo, ativa }) {
   return (
     <div>
       <FormularioPeriodo
-        inicio={inicio} fim={fim} setInicio={setInicio} setFim={setFim}
+        inicio={inicio} fim={fim} setInicio={setInicio} setFim={setFim} setIntervalo={setIntervalo}
       />
 
       {erro && <p className="fs-sm" style={{ color: 'var(--selo)' }}>{erro}</p>}
@@ -206,7 +237,7 @@ function AbaVendas({ sistema, intervalo, ativa }) {
 }
 
 function AbaRecebimentos({ sistema, intervalo, ativa }) {
-  const { inicio, fim, setInicio, setFim } = intervalo;
+  const { inicio, fim, setInicio, setFim, setIntervalo } = intervalo;
   const [dados, setDados] = useState(null);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
@@ -233,6 +264,12 @@ function AbaRecebimentos({ sistema, intervalo, ativa }) {
 
   React.useEffect(() => {
     if (!ativa || !dataCompleta(inicio) || (fim && !dataCompleta(fim))) return undefined;
+    if (fim && inicioDepoisDoFim(inicio, fim)) {
+      setErro('A data inicial não pode ser posterior à data final.');
+      setDados(null);
+      setJaBuscou(true);
+      return undefined;
+    }
     const temporizador = setTimeout(() => buscar(null, sistema), 300);
     return () => clearTimeout(temporizador);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -241,7 +278,7 @@ function AbaRecebimentos({ sistema, intervalo, ativa }) {
   return (
     <div>
       <FormularioPeriodo
-        inicio={inicio} fim={fim} setInicio={setInicio} setFim={setFim}
+        inicio={inicio} fim={fim} setInicio={setInicio} setFim={setFim} setIntervalo={setIntervalo}
       />
 
       {erro && <p className="fs-sm" style={{ color: 'var(--selo)' }}>{erro}</p>}
@@ -291,7 +328,7 @@ function AbaRecebimentos({ sistema, intervalo, ativa }) {
 }
 
 function AbaDesempenho({ sistema, intervalo, ativa }) {
-  const { inicio, fim, setInicio, setFim } = intervalo;
+  const { inicio, fim, setInicio, setFim, setIntervalo } = intervalo;
   const [dados, setDados] = useState(null);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
@@ -318,6 +355,12 @@ function AbaDesempenho({ sistema, intervalo, ativa }) {
 
   React.useEffect(() => {
     if (!ativa || !dataCompleta(inicio) || (fim && !dataCompleta(fim))) return undefined;
+    if (fim && inicioDepoisDoFim(inicio, fim)) {
+      setErro('A data inicial não pode ser posterior à data final.');
+      setDados(null);
+      setJaBuscou(true);
+      return undefined;
+    }
     const temporizador = setTimeout(() => buscar(null, sistema), 300);
     return () => clearTimeout(temporizador);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -326,7 +369,7 @@ function AbaDesempenho({ sistema, intervalo, ativa }) {
   return (
     <div>
       <FormularioPeriodo
-        inicio={inicio} fim={fim} setInicio={setInicio} setFim={setFim}
+        inicio={inicio} fim={fim} setInicio={setInicio} setFim={setFim} setIntervalo={setIntervalo}
       />
 
       {erro && <p className="fs-sm" style={{ color: 'var(--selo)' }}>{erro}</p>}
@@ -387,7 +430,7 @@ function TabelaDesempenho({ funcionarios, valorEquipe }) {
   );
 }
 
-function FormularioPeriodo({ inicio, fim, setInicio, setFim }) {
+function FormularioPeriodo({ inicio, fim, setInicio, setFim, setIntervalo }) {
   function aplicarAtalho(tipo) {
     const hoje = new Date();
     let primeiro = new Date(hoje);
@@ -409,8 +452,7 @@ function FormularioPeriodo({ inicio, fim, setInicio, setFim }) {
       const mm = String(data.getMonth() + 1).padStart(2, '0');
       return `${dd}/${mm}/${String(data.getFullYear()).slice(-2)}`;
     };
-    setInicio(paraCampo(primeiro));
-    setFim(paraCampo(ultimo));
+    setIntervalo(paraCampo(primeiro), paraCampo(ultimo));
   }
 
   return (

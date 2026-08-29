@@ -219,7 +219,7 @@ kbd { display:inline-flex; align-items:center; justify-content:center; min-width
   scrollbar-color:#b8c8d9 transparent;
   animation:revelar-conteudo 170ms ease-out both;
 }
-.agenda-concluidos-lista .linha-agenda { box-shadow:none; }
+.agenda-concluidos-lista .linha-agenda { flex-shrink:0; box-shadow:none; }
 .agenda-v2 .painel-detalhes-agenda { top:76px; border-radius:12px; box-shadow:0 4px 18px rgba(16,42,70,.07); }
 .agenda-vazia { min-height:330px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; text-align:center; }
 .agenda-vazia-icone { width:48px; height:48px; display:grid; place-items:center; margin-bottom:12px; border-radius:50%; background:#eaf7f0; color:#21815a; font-size:20px; }
@@ -837,7 +837,7 @@ kbd { display:inline-flex; align-items:center; justify-content:center; min-width
   .linha-agenda-conteudo { flex:1 1 calc(100% - 112px); }
   .linha-agenda-titulo { white-space:normal; overflow-wrap:anywhere; }
   .linha-agenda-detalhes { flex-wrap:wrap; gap:2px 5px; white-space:normal; }
-  .linha-agenda-tag { margin-left:auto; }
+  .linha-agenda-tags { flex:1 0 100%; justify-content:flex-end; }
   .secao-transmissao .coluna-mensagem .form-row label { min-width:58px; font-size:9.5px; }
   .secao-transmissao .coluna-mensagem .linha-fixo-celular { grid-template-columns:auto minmax(0,1fr); }
   .secao-transmissao .coluna-mensagem .linha-fixo-celular .label-cel-fonada { grid-column:1; grid-row:2; margin-left:0 !important; }

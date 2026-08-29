@@ -89,6 +89,10 @@ function IndicadorPagamento({ pedido }) {
   return <span className={`tag ${pedido.pagou === 'SIM' ? 'ok' : 'pendente'}`}>{pedido.pagou === 'SIM' ? 'Recebido' : 'A receber'}</span>;
 }
 
+function pagamentoEhPrazo(pagamento) {
+  return /^PRAZO(?:\s|-|$)/i.test(String(pagamento || '').trim());
+}
+
 export default function ListaAoVivo() {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -362,6 +366,7 @@ export default function ListaAoVivo() {
                       <div className="lista-aovivo-pagamento">
                         <span className="lista-aovivo-valor">{p.valor != null ? formatarReais(p.valor) : '—'}</span>
                         <IndicadorPagamento pedido={p} />
+                        {pagamentoEhPrazo(p.pagamento) && <span className="tag aviso">Prazo</span>}
                       </div>
                       {p.pagamento && <span className="lista-aovivo-detalhe">{p.pagamento}</span>}
                     </td>
