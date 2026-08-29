@@ -1856,6 +1856,82 @@ button.nav-grupo-titulo {
   .modal-lembrete-acoes .btn { width:100%; justify-content:center; }
 }
 
+/* Autocomplete de endereço do cadastro de clientes. A lista consulta
+   diretamente o ViaCEP e não altera a gravação existente no backend. */
+.endereco-autocomplete {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+.endereco-autocomplete > input {
+  width: 100%;
+}
+.endereco-autocomplete-buscando {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  color: var(--tinta-suave);
+  font-size: 10px;
+  pointer-events: none;
+}
+.endereco-autocomplete-lista {
+  position: absolute;
+  z-index: 80;
+  top: calc(100% + 5px);
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  border: 1px solid #cfd9e5;
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(25, 52, 82, 0.16);
+}
+.endereco-autocomplete-lista > button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 11px;
+  border: 0;
+  border-bottom: 1px solid #edf1f5;
+  background: #fff;
+  color: var(--tinta);
+  text-align: left;
+}
+.endereco-autocomplete-lista > button:hover,
+.endereco-autocomplete-lista > button.ativo {
+  background: var(--carimbo-suave);
+}
+.endereco-autocomplete-lista > button strong {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.endereco-autocomplete-lista > button small {
+  flex-shrink: 0;
+  color: var(--tinta-suave);
+  font-size: 10px;
+}
+.endereco-autocomplete-fonte {
+  display: block;
+  padding: 6px 10px;
+  background: #f8fafc;
+  color: var(--tinta-suave);
+  font-size: 9px;
+  text-align: right;
+}
+@media (max-width: 600px) {
+  .endereco-autocomplete-lista > button {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .endereco-autocomplete-lista > button small { flex-shrink: 1; }
+}
+
 /* Relógio fixo no canto superior direito — sempre visível, não rola
    com o conteúdo (por isso position: fixed, não sticky dentro de
    .layout-conteudo, que tem overflow-y próprio). */

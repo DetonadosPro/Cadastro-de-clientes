@@ -4,6 +4,7 @@ import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
 import { useSmartBack } from '../../hooks/useSmartBack.js';
+import CampoEnderecoAutocomplete from '../../components/CampoEnderecoAutocomplete.jsx';
 
 function IconeAviso() {
   return (
@@ -46,6 +47,15 @@ export default function FormNovoCliente() {
   function setComMascara(campo, valorBruto, tipoMascara) {
     const formatadores = { celular: formatarCelular, fixo: formatarFixo, data: formatarData };
     set(campo, formatadores[tipoMascara](valorBruto));
+  }
+
+  function selecionarEndereco({ logradouro, bairro }) {
+    setDados((atual) => ({
+      ...atual,
+      endereco: logradouro,
+      bairro: bairro || atual.bairro,
+    }));
+    setDuplicados(null);
   }
 
   async function salvarDeVerdade() {
@@ -182,7 +192,12 @@ export default function FormNovoCliente() {
             {enderecoAberto && <div className="form-disclosure-conteudo">
               <div className="campo" style={{ gap: 6, marginBottom: 18 }}>
                 <label>Endereço</label>
-                <input value={dados.endereco} onChange={(e) => set('endereco', e.target.value)} className="campo-endereco-cliente" />
+                <CampoEnderecoAutocomplete
+                  value={dados.endereco}
+                  onChange={(valor) => set('endereco', valor)}
+                  onSelecionar={selecionarEndereco}
+                  className="campo-endereco-cliente"
+                />
               </div>
               <div className="linha-form-cliente" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 4 }}>
                 <div className="campo campo-largura-fixa" style={{ flex: '0 0 auto', width: 180, marginBottom: 0, gap: 6 }}><label>Complemento</label><input value={dados.complemento} onChange={(e) => set('complemento', e.target.value)} /></div>

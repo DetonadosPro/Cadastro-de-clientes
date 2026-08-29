@@ -4,6 +4,7 @@ import { useSmartBack } from '../../hooks/useSmartBack.js';
 import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
+import CampoEnderecoAutocomplete from '../../components/CampoEnderecoAutocomplete.jsx';
 
 function IconeVoltar() {
   return (
@@ -328,7 +329,15 @@ export default function FichaCliente() {
             </div>
             <div className="campo">
               <label>Endereço</label>
-              <input value={dadosEdicao.endereco || ''} onChange={(e) => setEdicao('endereco', e.target.value)} />
+              <CampoEnderecoAutocomplete
+                value={dadosEdicao.endereco || ''}
+                onChange={(valor) => setEdicao('endereco', valor)}
+                onSelecionar={({ logradouro, bairro }) => setDadosEdicao((atual) => ({
+                  ...atual,
+                  endereco: logradouro,
+                  bairro: bairro || atual.bairro,
+                }))}
+              />
             </div>
             <div className="grade grade-3">
               <div className="campo">
