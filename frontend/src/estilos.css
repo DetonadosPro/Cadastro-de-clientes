@@ -3830,12 +3830,12 @@ tr:hover .alca-arrastar {
 }
 .impresso-resumo-dado {
   flex: 1;
-  border-left: 1px solid #d6dfe8;
 }
 .impresso-resumo-valor {
   flex: 1.15;
+}
+.impresso-resumo-financeiro > div + div {
   border-left: 1px solid #d6dfe8;
-  text-align: right;
 }
 .impresso-resumo-label,
 .impresso-resumo-dado > span,

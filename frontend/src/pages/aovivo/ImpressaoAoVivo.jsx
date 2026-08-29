@@ -124,22 +124,24 @@ export default function ImpressaoAoVivo({ pedido }) {
       </div>
 
       <div className={`impresso-resumo-financeiro ${pago ? 'pago' : 'pendente'}`}>
-        <div className="impresso-resumo-status">
-          <span className="impresso-resumo-label">Pagamento</span>
-          <span className="impresso-pagamento-badge">{pago ? 'PAGO' : 'PENDENTE'}</span>
-          <small>Emissão: {pedido.data_pedido || '—'}</small>
+        <div className="impresso-resumo-valor">
+          <span>Pagamento</span>
+          <strong>{formatarReais(pago ? valorRecebido : pedido.valor)}</strong>
         </div>
         <div className="impresso-resumo-dado">
-          <span>{pago ? 'Pago em' : 'Data do pagamento'}</span>
-          <strong>{pago ? dataPagamento : '—'}</strong>
-        </div>
-        <div className="impresso-resumo-dado">
-          <span>{pago ? 'Forma recebida' : 'Forma prevista'}</span>
+          <span>{pago ? 'Forma de pagamento' : 'Forma prevista'}</span>
           <strong>{formaPagamento}</strong>
         </div>
-        <div className="impresso-resumo-valor">
-          <span>{pago ? 'Valor recebido' : 'Valor a receber'}</span>
-          <strong>{formatarReais(pago ? valorRecebido : pedido.valor)}</strong>
+        {pago && (
+          <div className="impresso-resumo-dado">
+            <span>Data do pagamento</span>
+            <strong>{dataPagamento}</strong>
+          </div>
+        )}
+        <div className="impresso-resumo-status">
+          <span className="impresso-resumo-label">Situação</span>
+          <span className="impresso-pagamento-badge">{pago ? 'PAGO' : 'PENDENTE'}</span>
+          <small>Emissão: {pedido.data_pedido || '—'}</small>
         </div>
       </div>
     </div>
