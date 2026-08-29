@@ -29,6 +29,27 @@ function obterPagamento(pedido) {
   return pagamentoConfirmado(informado);
 }
 
+function detalharPagamento(pedido) {
+  const pagamentoPrevisto = String(pedido.pagamento || '').trim();
+  const prazo = pagamentoPrevisto.match(/^PRAZO(?:\s*-\s*DIA\s+([\d/]+))?(?:\s*-\s*MP\s*-\s*(.+))?$/i);
+
+  if (prazo) {
+    const formaRecebida = String(pedido.forma_recebimento || pedido.formaRecebimento || '').trim();
+    const metodoRecebido = /^PRAZO(?:\s|-|$)/i.test(formaRecebida) ? '' : formaRecebida;
+    return {
+      metodo: metodoRecebido || String(prazo[2] || '').trim() || '—',
+      condicao: prazo[1] ? `A prazo — dia ${prazo[1]}` : 'A prazo',
+      aPrazo: true,
+    };
+  }
+
+  return {
+    metodo: String(pedido.forma_recebimento || pedido.formaRecebimento || pagamentoPrevisto).trim() || '—',
+    condicao: 'No atendimento',
+    aPrazo: false,
+  };
+}
+
 function TextoMultilinha({ texto, tamanhoMaximo, tamanhoMinimo, maxLinhas, className }) {
   const referenciaTexto = useRef(null);
   const [tamanhoFonte, setTamanhoFonte] = useState(tamanhoMaximo);
@@ -65,7 +86,7 @@ function TextoMultilinha({ texto, tamanhoMaximo, tamanhoMinimo, maxLinhas, class
 
 export default function ImpressaoAoVivo({ pedido }) {
   const pago = obterPagamento(pedido);
-  const formaPagamento = pedido.forma_recebimento || pedido.formaRecebimento || pedido.pagamento || '—';
+  const pagamento = detalharPagamento(pedido);
   const dataPagamento = pedido.data_pagou || pedido.dataPagamento || '—';
   const valorRecebido = pedido.valor_recebido ?? pedido.valorRecebido ?? pedido.valor;
   const mensagem2 = juntarTemaEMensagem(pedido.tema2, pedido.msg2);
@@ -129,9 +150,15 @@ export default function ImpressaoAoVivo({ pedido }) {
           <strong>{formatarReais(pago ? valorRecebido : pedido.valor)}</strong>
         </div>
         <div className="impresso-resumo-dado">
-          <span>{pago ? 'Forma de pagamento' : 'Forma prevista'}</span>
-          <strong>{formaPagamento}</strong>
+          <span>Método de pagamento</span>
+          <strong>{pagamento.metodo}</strong>
         </div>
+        {(pagamento.aPrazo || !pago) && (
+          <div className="impresso-resumo-dado">
+            <span>Condição</span>
+            <strong>{pagamento.condicao}</strong>
+          </div>
+        )}
         {pago && (
           <div className="impresso-resumo-dado">
             <span>Data do pagamento</span>
@@ -139,8 +166,8 @@ export default function ImpressaoAoVivo({ pedido }) {
           </div>
         )}
         <div className="impresso-resumo-status">
-          <span className="impresso-resumo-label">Situação</span>
-          <span className="impresso-pagamento-badge">{pago ? 'PAGO' : 'PENDENTE'}</span>
+          <span className="impresso-resumo-label">Status</span>
+          <span className="impresso-pagamento-badge">{pago ? 'PAGO' : 'A PAGAR'}</span>
           <small>Emissão: {pedido.data_pedido || '—'}</small>
         </div>
       </div>
