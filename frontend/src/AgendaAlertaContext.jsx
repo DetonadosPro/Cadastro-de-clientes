@@ -84,6 +84,7 @@ function corAgregada(itensFonada, itensAoVivo) {
     else if (diff <= LIMIAR_PROXIMA_MINUTOS) temProxima = true;
   }
   for (const item of itensAoVivo) {
+    if (item.passada) continue;
     const diff = minutosAteHorario(item.horario_entrega, agora);
     if (diff === null) continue;
     if (diff >= 0 && diff <= LIMIAR_PROXIMA_MINUTOS) temProxima = true;
@@ -132,6 +133,7 @@ function tocarBeep() {
 export function AgendaAlertaProvider({ children }) {
   const [fonadaHoje, setFonadaHoje] = useState([]);
   const [aoVivoHoje, setAoVivoHoje] = useState([]);
+  const [agendaHojeCarregada, setAgendaHojeCarregada] = useState(false);
   // Só serve para forçar uma nova renderização a cada segundo — o valor
   // em si não é usado, é apenas o "pulso" que faz o React reavaliar
   // corAgregada()/statusUrgenciaItem() com o relógio atualizado.
@@ -147,6 +149,7 @@ export function AgendaAlertaProvider({ children }) {
           if (cancelado) return;
           setFonadaHoje(resp.fonada || []);
           setAoVivoHoje(resp.aoVivo || []);
+          setAgendaHojeCarregada(true);
         })
         .catch(() => {
           // Falha silenciosa — o alerta é só um indicativo visual, não
@@ -220,7 +223,7 @@ export function AgendaAlertaProvider({ children }) {
   });
 
   return (
-    <AgendaAlertaContext.Provider value={{ alertaMenu, fonadaHoje, aoVivoHoje }}>
+    <AgendaAlertaContext.Provider value={{ alertaMenu, fonadaHoje, aoVivoHoje, agendaHojeCarregada }}>
       {children}
     </AgendaAlertaContext.Provider>
   );

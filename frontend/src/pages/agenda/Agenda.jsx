@@ -108,11 +108,21 @@ export default function Agenda() {
   // instante em que ele atualiza — assim a cor da borda dos cards muda
   // exatamente junto com a bolinha, em vez de cada um ter seu próprio
   // temporizador desalinhado.
-  useAgendaAlerta();
+  const { fonadaHoje, aoVivoHoje, agendaHojeCarregada } = useAgendaAlerta();
 
   // As ações de "Dar baixa" e "Não atendeu" só fazem sentido para o dia
   // de hoje — em qualquer outro dia, a Agenda serve só para consulta.
   const ehHoje = dataSelecionada === hojeFormatado();
+
+  // A rotina automática do backend marca o Ao Vivo como entregue depois
+  // do horário. O contexto consulta a Agenda a cada 30 segundos; espelhar
+  // os dados dele aqui faz o item ir para "Concluídos" sem exigir que a
+  // pessoa recarregue a página.
+  useEffect(() => {
+    if (!ehHoje || !agendaHojeCarregada) return;
+    setFonada(fonadaHoje);
+    setAoVivo(aoVivoHoje);
+  }, [ehHoje, agendaHojeCarregada, fonadaHoje, aoVivoHoje]);
 
   function carregar(data = dataSelecionada) {
     setCarregando(true);
@@ -469,6 +479,7 @@ export default function Agenda() {
   const chaveDoItem = (item) => item._chave;
   const itemEstaConcluido = (item) => (
     (item._tipo === 'fonada' && Boolean(item.passada))
+    || (item._tipo === 'aovivo' && Boolean(item.passada))
     || (item._tipo === 'lembrete' && Boolean(item.concluido))
   );
   const itensPendentes = listaAtual.filter((item) => !itemEstaConcluido(item));
@@ -531,14 +542,15 @@ export default function Agenda() {
       );
     }
     if (item._tipo === 'aovivo') {
-      const urgencia = ehHoje ? statusUrgenciaItem(item.horario_entrega) : null;
+      const jaPassada = Boolean(item.passada);
+      const urgencia = (ehHoje && !jaPassada) ? statusUrgenciaItem(item.horario_entrega) : null;
       return (
         <LinhaAgenda
           key={chave}
           selecionada={chaveSelecionada === chave}
           onClick={() => setChaveSelecionada(chave)}
           urgencia={urgencia}
-          jaPassada={false}
+          jaPassada={jaPassada}
           senhaOs={item.numero_os}
           horario={item.horario_entrega}
           titulo={item.comprador}
@@ -546,9 +558,9 @@ export default function Agenda() {
             item.bairro,
             item.brinde,
           ].filter(Boolean)}
-          tagExtra={aba === 'geral' ? 'Ao vivo' : 'Agendado'}
-          status={item.pagou === 'SIM' ? 'Pago' : null}
-          statusOk={item.pagou === 'SIM'}
+          tagExtra={aba === 'geral' ? 'Ao vivo' : (jaPassada ? 'Entregue' : 'Agendado')}
+          status={jaPassada ? 'Entregue' : (item.pagou === 'SIM' ? 'Pago' : null)}
+          statusOk={jaPassada || item.pagou === 'SIM'}
         />
       );
     }
@@ -1205,18 +1217,20 @@ function CardRemarcacoesPrazo({ pedidoId }) {
 }
 
 function DetalhesAoVivo({ item, ehHoje, navigate }) {
-  const urgencia = ehHoje ? statusUrgenciaItem(item.horario_entrega) : null;
+  const urgencia = (ehHoje && !item.passada) ? statusUrgenciaItem(item.horario_entrega) : null;
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
         <span className="carimbo-os carimbo-os-lista">{item.numero_os || item.id}</span>
         {urgencia === 'atrasada' && <span className="tag neutro">Horário passado</span>}
         {urgencia === 'proxima' && <span className="tag aviso">Chegando</span>}
+        {item.passada && <span className="tag ok">Entregue</span>}
         <span className="tag neutro">Agenda</span>
         {item.pagou === 'SIM' && <span className="tag ok">Pago</span>}
       </div>
       <div className="fs-lg" style={{ fontWeight: 700, marginBottom: 2 }}>{item.comprador || '—'}</div>
       <div className="fs-sm" style={{ color: 'var(--tinta-suave)', marginBottom: 14, paddingBottom: 14, borderBottom: '2px solid var(--papel-alt)' }}>{item.horario_entrega || '—'}</div>
+      {item.resultado_entrega && <div className="fs-xs texto-suave" style={{ marginBottom: 14 }}>{item.resultado_entrega}</div>}
       <div className="grade grade-2" style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid var(--papel-alt)' }}>
         <Info label="Destinatário" valor={item.para} />
         <Info label="Endereço" valor={item.endereco} />

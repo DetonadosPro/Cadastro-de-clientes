@@ -110,14 +110,19 @@ router.get('/hoje', async (req, res) => {
 
     const aoVivoResultado = await db.query(`
       SELECT id, numero_os, comprador, cliente_id, para, dia_entrega, horario_entrega,
-             endereco, bairro, referencia, brinde, pagou, data_pagou
+             endereco, bairro, referencia, brinde, pagou, data_pagou,
+             resultado_entrega, entregue_por
       FROM ao_vivo
       WHERE excluido_em IS NULL AND dia_entrega IN ($1, $2)
     `, [curto, longo]);
 
     const itensAoVivo = aoVivoResultado.rows
       .filter((a) => dataCompleta(a.dia_entrega))
-      .map((a) => ({ ...a, passada: false, ehCobranca: false }))
+      .map((a) => ({
+        ...a,
+        passada: Boolean(String(a.resultado_entrega || '').trim()),
+        ehCobranca: false,
+      }))
       .sort((a, b) => (a.horario_entrega || '').localeCompare(b.horario_entrega || ''));
 
     const dataIso = dataBrParaIso(curto);
