@@ -83,19 +83,45 @@ export function TempoRealProvider({ children }) {
 
   useEffect(() => {
     let cancelado = false;
+    let verificando = false;
+
     async function verificar() {
+      if (cancelado || verificando) return;
+      verificando = true;
       try {
-        const resposta = await fetch(`/version.json?t=${Date.now()}`, { cache: 'no-store' });
+        const url = new URL('/version.json', window.location.origin);
+        url.searchParams.set('t', Date.now());
+        const resposta = await fetch(url, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        });
+        if (!resposta.ok) return;
         const dados = await resposta.json();
         if (cancelado || !dados.versao) return;
-        if (dados.versao !== VERSAO_ATUAL) setNovaVersao(true);
+        if (String(dados.versao).trim() !== String(VERSAO_ATUAL).trim()) setNovaVersao(true);
       } catch {
         // Uma falha temporária não interfere no uso do sistema.
+      } finally {
+        verificando = false;
       }
     }
+
+    function verificarAoRetomar() {
+      if (document.visibilityState === 'visible') verificar();
+    }
+
     verificar();
-    const intervalo = setInterval(verificar, 60000);
-    return () => { cancelado = true; clearInterval(intervalo); };
+    const intervalo = setInterval(verificar, 15000);
+    window.addEventListener('focus', verificar);
+    window.addEventListener('online', verificar);
+    document.addEventListener('visibilitychange', verificarAoRetomar);
+    return () => {
+      cancelado = true;
+      clearInterval(intervalo);
+      window.removeEventListener('focus', verificar);
+      window.removeEventListener('online', verificar);
+      document.removeEventListener('visibilitychange', verificarAoRetomar);
+    };
   }, []);
 
   return (
