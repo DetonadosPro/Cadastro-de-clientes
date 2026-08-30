@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api.js';
+import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
 
 export default function HojeAoVivo() {
   const [dataRef, setDataRef] = useState('');
@@ -8,6 +9,7 @@ export default function HojeAoVivo() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
   const navigate = useNavigate();
+  const lista = useListaIncremental(itens, dataRef);
 
   useEffect(() => {
     api.aoVivo.hoje()
@@ -36,7 +38,7 @@ export default function HojeAoVivo() {
         </div>
       ) : (
         <div style={{ display: 'grid', gap: 12 }}>
-          {itens.map((p) => {
+          {lista.itensVisiveis.map((p) => {
             const musicas = [1, 2, 3, 4, 5, 6].map((n) => p[`musica_${n}`]).filter(Boolean);
             return (
               <div key={p.id} className="painel" style={{ cursor: 'pointer' }} onClick={() => navigate(`/ao-vivo/${p.id}`)}>
@@ -67,6 +69,7 @@ export default function HojeAoVivo() {
               </div>
             );
           })}
+          <BotaoMostrarMais temMais={lista.temMais} restantes={lista.restantes} onClick={lista.mostrarMais} />
         </div>
       )}
     </div>

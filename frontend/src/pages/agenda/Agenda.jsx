@@ -9,6 +9,7 @@ import { useToast } from '../../ToastContext.jsx';
 import { useAgendaAlerta, statusUrgenciaItem } from '../../AgendaAlertaContext.jsx';
 import { formatarData, formatarHorario } from '../../mascaras.js';
 import CampoData from '../../components/CampoData.jsx';
+import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
 
 // Data de hoje no mesmo formato usado nos campos do sistema (dd/mm/aa).
 function hojeFormatado() {
@@ -495,6 +496,8 @@ export default function Agenda() {
   );
   const itensPendentes = listaAtual.filter((item) => !itemEstaConcluido(item));
   const itensConcluidos = listaAtual.filter(itemEstaConcluido);
+  const listaPendentes = useListaIncremental(itensPendentes, `${dataSelecionada}:${aba}:pendentes`);
+  const listaConcluidos = useListaIncremental(itensConcluidos, `${dataSelecionada}:${aba}:concluidos`);
 
   // Ao trocar de dia ou de aba: no desktop, seleciona automaticamente o
   // primeiro item (painel de detalhes nunca fica vazio à toa). No
@@ -692,8 +695,9 @@ export default function Agenda() {
               ) : (
                 <>
                   {itensPendentes.length > 0
-                    ? itensPendentes.map(renderizarLinhaAgenda)
+                    ? listaPendentes.itensVisiveis.map(renderizarLinhaAgenda)
                     : <div className="agenda-pendentes-vazia">Nenhum item pendente.</div>}
+                  <BotaoMostrarMais temMais={listaPendentes.temMais} restantes={listaPendentes.restantes} onClick={listaPendentes.mostrarMais} />
                   {itensConcluidos.length > 0 && (
                     <div className={`agenda-concluidos ${concluidosAbertos ? 'aberto' : ''}`}>
                       <button
@@ -710,7 +714,8 @@ export default function Agenda() {
                       </button>
                       {concluidosAbertos && (
                         <div id="agenda-itens-concluidos" className="agenda-concluidos-lista">
-                          {itensConcluidos.map(renderizarLinhaAgenda)}
+                          {listaConcluidos.itensVisiveis.map(renderizarLinhaAgenda)}
+                          <BotaoMostrarMais temMais={listaConcluidos.temMais} restantes={listaConcluidos.restantes} onClick={listaConcluidos.mostrarMais} />
                         </div>
                       )}
                     </div>

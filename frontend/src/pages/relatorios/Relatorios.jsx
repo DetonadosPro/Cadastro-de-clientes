@@ -3,6 +3,15 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../../api.js';
 import { formatarData } from '../../mascaras.js';
 import CampoData from '../../components/CampoData.jsx';
+import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
+import {
+  GraficoBarrasCategorias,
+  GraficoEvolucaoVendas,
+  GraficoQuantidadeTicket,
+  GraficoRankingEquipe,
+  GraficoVendasPorSistema,
+  GraficoVendidoRecebido,
+} from './GraficosRelatorio.jsx';
 
 export default function Relatorios() {
   // Aba e filtro de sistema ficam na URL — assim, ao abrir um pedido a
@@ -141,12 +150,64 @@ function inicioDepoisDoFim(inicio, fim) {
   return chave(inicio) > chave(fim);
 }
 
+// Compatibilidade com um backend que ainda esteja terminando de reiniciar
+// após o deploy. As séries oficiais vêm em `graficos` e consideram todos os
+// registros; enquanto esse campo não existe, usamos os itens do relatório
+// para que o card não apareça vazio sem necessidade.
+function serieDosItens(itens = []) {
+  const mapa = new Map();
+  for (const item of itens) {
+    if (!item.data) continue;
+    const atual = mapa.get(item.data) || { data: item.data, valor: 0, quantidade: 0, fonada: 0, aoVivo: 0 };
+    const valor = Number(item.valor || 0);
+    atual.valor += valor;
+    atual.quantidade += 1;
+    if (item.sistema === 'FONADA') atual.fonada += valor;
+    if (item.sistema === 'AOVIVO') atual.aoVivo += valor;
+    mapa.set(item.data, atual);
+  }
+  const chaveData = (data) => String(data).split('/').reverse().join('');
+  return [...mapa.values()].sort((a, b) => chaveData(a.data).localeCompare(chaveData(b.data)));
+}
+
+function formasDosItens(itens = []) {
+  const mapa = new Map();
+  for (const item of itens) {
+    const categoria = String(item.forma || 'NÃO INFORMADO').trim().toUpperCase();
+    const atual = mapa.get(categoria) || { categoria, valor: 0, quantidade: 0 };
+    atual.valor += Number(item.valor || 0);
+    atual.quantidade += 1;
+    mapa.set(categoria, atual);
+  }
+  return [...mapa.values()].sort((a, b) => b.valor - a.valor);
+}
+
+function graficosVendas(dados) {
+  const fallback = serieDosItens(dados?.itens);
+  return {
+    vendasPorDia: dados?.graficos?.vendasPorDia?.length ? dados.graficos.vendasPorDia : fallback,
+    periodoAnterior: dados?.graficos?.periodoAnterior || [],
+  };
+}
+
+function graficosRecebimentos(dados) {
+  const fallback = serieDosItens(dados?.itens);
+  return {
+    vendidoPorDia: dados?.graficos?.vendidoPorDia || [],
+    recebidoPorDia: dados?.graficos?.recebidoPorDia?.length ? dados.graficos.recebidoPorDia : fallback,
+    recebimentosPorForma: dados?.graficos?.recebimentosPorForma?.length
+      ? dados.graficos.recebimentosPorForma
+      : formasDosItens(dados?.itens),
+  };
+}
+
 function AbaVendas({ sistema, intervalo, ativa }) {
   const { inicio, fim, setInicio, setFim, setIntervalo } = intervalo;
   const [dados, setDados] = useState(null);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
   const [jaBuscou, setJaBuscou] = useState(false);
+  const series = graficosVendas(dados);
 
   async function buscar(e, sistemaAtual = sistema) {
     if (e) e.preventDefault();
@@ -200,6 +261,10 @@ function AbaVendas({ sistema, intervalo, ativa }) {
             <CartaoValor label="Ticket médio" valor={formatarReais(dados.geral.ticketMedio)} />
           </div>
           <ComparacaoPeriodo dados={dados.comparacao} metrica="Vendas" />
+          <div className="grade-graficos-relatorio">
+            <GraficoEvolucaoVendas atual={series.vendasPorDia} anterior={series.periodoAnterior} />
+            <GraficoVendasPorSistema dados={series.vendasPorDia} />
+          </div>
 
           {dados.fonada && (
             <BlocoSistema titulo="Fonada" cor="azul">
@@ -242,6 +307,7 @@ function AbaRecebimentos({ sistema, intervalo, ativa }) {
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
   const [jaBuscou, setJaBuscou] = useState(false);
+  const series = graficosRecebimentos(dados);
 
   async function buscar(e, sistemaAtual = sistema) {
     if (e) e.preventDefault();
@@ -295,6 +361,14 @@ function AbaRecebimentos({ sistema, intervalo, ativa }) {
             <CartaoValor label="Ainda a receber" valor={formatarReais(dados.valorAReceberVendasPeriodo)} sub="Dos pedidos vendidos nessas datas" />
           </div>
           <ComparacaoPeriodo dados={dados.comparacao} metrica="Recebimentos" />
+          <div className="grade-graficos-relatorio grade-graficos-recebimentos">
+            <GraficoVendidoRecebido vendido={series.vendidoPorDia} recebido={series.recebidoPorDia} />
+            <GraficoBarrasCategorias
+              titulo="Formas de recebimento"
+              subtitulo="Valor efetivamente recebido em cada forma"
+              dados={series.recebimentosPorForma}
+            />
+          </div>
 
           {dados.fonada && (
             <BlocoSistema titulo="Fonada" cor="azul">
@@ -381,6 +455,10 @@ function AbaDesempenho({ sistema, intervalo, ativa }) {
       ) : dados && (
         <>
           <ComparacaoPeriodo dados={dados.comparacao} metrica="Vendas da equipe" />
+          <div className="grade-graficos-relatorio">
+            <GraficoRankingEquipe funcionarios={dados.funcionarios} />
+            <GraficoQuantidadeTicket funcionarios={dados.funcionarios} />
+          </div>
           {dados.funcionarios.length === 0 ? (
           <div className="painel" style={{ marginTop: 16, textAlign: 'center', color: 'var(--tinta-suave)' }}>
             Nenhuma venda com vendedor registrado nesse período. Pedidos antigos, de antes desse
@@ -396,6 +474,7 @@ function AbaDesempenho({ sistema, intervalo, ativa }) {
 }
 
 function TabelaDesempenho({ funcionarios, valorEquipe }) {
+  const lista = useListaIncremental(funcionarios, funcionarios.map((f) => f.usuario).join('|'));
   return (
     <div className="painel tabela-desempenho-wrap">
       <div className="cabecalho-desempenho">
@@ -412,7 +491,7 @@ function TabelaDesempenho({ funcionarios, valorEquipe }) {
             <th>Participação</th><th>Fonadas vendidas</th><th>Ao vivo vendidos</th>
           </tr></thead>
           <tbody>
-            {funcionarios.map((f) => (
+            {lista.itensVisiveis.map((f) => (
               <tr key={f.usuario}>
                 <td data-label="Funcionário"><strong>{f.usuario}</strong></td>
                 <td data-label="Vendas"><strong>{f.vendasTotal}</strong></td>
@@ -426,6 +505,7 @@ function TabelaDesempenho({ funcionarios, valorEquipe }) {
           </tbody>
         </table>
       </div>
+      <BotaoMostrarMais temMais={lista.temMais} restantes={lista.restantes} onClick={lista.mostrarMais} />
     </div>
   );
 }
@@ -533,6 +613,7 @@ function ComparacaoPeriodo({ dados, metrica }) {
 // Clicar na linha abre o pedido, igual às listas de Fonada/Ao Vivo.
 function TabelaDetalhada({ itens, tituloColunaValor, limitado }) {
   const navigate = useNavigate();
+  const lista = useListaIncremental(itens, `${tituloColunaValor}:${itens[0]?.data || ''}:${itens.length}`);
 
   if (itens.length === 0) {
     return (
@@ -562,7 +643,7 @@ function TabelaDetalhada({ itens, tituloColunaValor, limitado }) {
             </tr>
           </thead>
           <tbody>
-            {itens.map((item) => (
+            {lista.itensVisiveis.map((item) => (
               <tr
                 key={`${item.sistema}-${item.id}`}
                 onClick={() => navigate(item.sistema === 'FONADA' ? `/fonada/${item.id}` : `/ao-vivo/${item.id}`)}
@@ -587,6 +668,7 @@ function TabelaDetalhada({ itens, tituloColunaValor, limitado }) {
           </tbody>
         </table>
       </div>
+      <BotaoMostrarMais temMais={lista.temMais} restantes={lista.restantes} onClick={lista.mostrarMais} />
     </div>
   );
 }

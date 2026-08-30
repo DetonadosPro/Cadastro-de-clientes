@@ -4,6 +4,7 @@ import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarData } from '../../mascaras.js';
 import CampoData from '../../components/CampoData.jsx';
+import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
 
 function hojeBr() {
   const data = new Date();
@@ -158,6 +159,7 @@ export default function CobrancaAoVivo() {
     if (filtro === 'proximas') return pendentes.filter((p) => (diasAte(p.dataCobranca) ?? -1) > 0);
     return pendentes;
   }, [filtro, pendentes, recebidasNoMes]);
+  const lista = useListaIncremental(visiveis, `${filtro}:${nome}:${os}`);
 
   function abrirBaixa(pedido) {
     setBaixa(pedido);
@@ -247,7 +249,7 @@ export default function CobrancaAoVivo() {
       {erro && <p style={{ color: 'var(--selo)' }}>{erro}</p>}
       {carregando ? <p className="texto-suave">Carregando...</p> : visiveis.length === 0 ? <div className="painel estado-cobranca">Nenhum pagamento Ao Vivo encontrado.</div> : (
         <div className="lista-cobranca-aovivo nao-imprimir">
-          {visiveis.map((pedido) => {
+          {lista.itensVisiveis.map((pedido) => {
             const whatsapp = telefoneWhatsApp(pedido.whatsapp || pedido.celular);
             return <div className={`cobranca-aovivo-card ${pedido.pagou === 'SIM' ? 'recebida' : (diasAte(pedido.dataCobranca) ?? 0) < 0 ? 'atrasada' : ''}`} key={pedido.id}>
               <div className="cobranca-aovivo-os"><span className="carimbo-os carimbo-os-lista">{pedido.numero_os || pedido.id}</span><small>{pedido.dataPedido || '—'}</small></div>
@@ -261,6 +263,7 @@ export default function CobrancaAoVivo() {
               </div>
             </div>;
           })}
+          <BotaoMostrarMais temMais={lista.temMais} restantes={lista.restantes} onClick={lista.mostrarMais} />
         </div>
       )}
 

@@ -5,6 +5,7 @@ import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
 import CampoEnderecoAutocomplete from '../../components/CampoEnderecoAutocomplete.jsx';
+import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
 
 function IconeVoltar() {
   return (
@@ -80,6 +81,8 @@ export default function FichaCliente() {
   const [mostrandoBloqueio, setMostrandoBloqueio] = useState(false);
   const [motivoBloqueio, setMotivoBloqueio] = useState('');
   const [salvandoBloqueio, setSalvandoBloqueio] = useState(false);
+  const listaFonada = useListaIncremental(pedidosFonada, `${id}:fonada`);
+  const listaAoVivo = useListaIncremental(pedidosAoVivo, `${id}:aovivo`);
 
   function carregar() {
     setCarregando(true);
@@ -418,7 +421,7 @@ export default function FichaCliente() {
                       </tr>
                     </thead>
                     <tbody>
-                      {pedidosFonada.map((p) => (
+                      {listaFonada.itensVisiveis.map((p) => (
                         <tr key={p.id} onClick={() => navigate(`/fonada/${p.id}`, { state: { returnTo: `/clientes/${id}` } })}>
                           <td><span className="carimbo-os carimbo-os-lista">{p.senha_os || p.id}</span></td>
                           <td>{p.data_pedido || '—'}</td>
@@ -434,6 +437,7 @@ export default function FichaCliente() {
                       ))}
                     </tbody>
                   </table>
+                  <BotaoMostrarMais temMais={listaFonada.temMais} restantes={listaFonada.restantes} onClick={listaFonada.mostrarMais} />
                 </div>
               )}
             </>
@@ -460,7 +464,7 @@ export default function FichaCliente() {
                       </tr>
                     </thead>
                     <tbody>
-                      {pedidosAoVivo.map((p) => (
+                      {listaAoVivo.itensVisiveis.map((p) => (
                         <tr key={p.id} onClick={() => navigate(`/ao-vivo/${p.id}`, { state: { returnTo: `/clientes/${id}` } })}>
                           <td><span className="carimbo-os carimbo-os-lista">{p.numero_os || p.id}</span></td>
                           <td>{p.data_pedido || '—'}</td>
@@ -473,6 +477,7 @@ export default function FichaCliente() {
                       ))}
                     </tbody>
                   </table>
+                  <BotaoMostrarMais temMais={listaAoVivo.temMais} restantes={listaAoVivo.restantes} onClick={listaAoVivo.mostrarMais} />
                 </div>
               )}
             </>

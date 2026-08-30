@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api.js';
+import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
 
 export default function HojeFonada() {
   const [dataRef, setDataRef] = useState('');
@@ -8,6 +9,7 @@ export default function HojeFonada() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState('');
   const navigate = useNavigate();
+  const lista = useListaIncremental(itens, dataRef);
 
   useEffect(() => {
     api.fonada.hoje()
@@ -36,7 +38,7 @@ export default function HojeFonada() {
         </div>
       ) : (
         <div style={{ display: 'grid', gap: 12 }}>
-          {itens.map((p) => {
+          {lista.itensVisiveis.map((p) => {
             const ehHoje1 = p.p1_dia === dataRef;
             return (
               <div key={p.id} className="painel" style={{ cursor: 'pointer' }} onClick={() => navigate(`/fonada/${p.id}`)}>
@@ -57,6 +59,7 @@ export default function HojeFonada() {
               </div>
             );
           })}
+          <BotaoMostrarMais temMais={lista.temMais} restantes={lista.restantes} onClick={lista.mostrarMais} />
         </div>
       )}
     </div>

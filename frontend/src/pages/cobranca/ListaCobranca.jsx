@@ -5,6 +5,7 @@ import { useToast } from '../../ToastContext.jsx';
 import { formatarData } from '../../mascaras.js';
 import PaginaImpressaoRecibos from './PaginaImpressaoRecibos.jsx';
 import CampoData from '../../components/CampoData.jsx';
+import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
 
 function dataLocalFormatada(deslocamento = 0) {
   const data = new Date();
@@ -187,7 +188,6 @@ export default function ListaCobranca() {
   const [pedidosReagendar, setPedidosReagendar] = useState([]);
   const [novaData, setNovaData] = useState('');
   const [salvandoReagendamento, setSalvandoReagendamento] = useState(false);
-  const [limitePagas, setLimitePagas] = useState(50);
   const ultimaBusca = useRef(0);
   const navigate = useNavigate();
   const { mostrarToast } = useToast();
@@ -198,12 +198,14 @@ export default function ListaCobranca() {
     return dataB - dataA || Number(b.id || 0) - Number(a.id || 0);
   }), [recebidas]);
 
-  const pedidosVisiveis = useMemo(() => {
-    if (filtroRapido === 'pagas') return pagasOrdenadas.slice(0, limitePagas);
+  const pedidosFiltrados = useMemo(() => {
+    if (filtroRapido === 'pagas') return pagasOrdenadas;
     if (filtroRapido === 'recebidas') return recebidasNoMes;
     if (filtroRapido === 'data') return pendentes;
     return filtrarPorSituacao(pendentes, filtroRapido);
-  }, [filtroRapido, pendentes, pagasOrdenadas, recebidasNoMes, limitePagas]);
+  }, [filtroRapido, pendentes, pagasOrdenadas, recebidasNoMes]);
+  const lista = useListaIncremental(pedidosFiltrados, `${filtroRapido}:${cobrarDia}:${nome}:${os}`);
+  const pedidosVisiveis = lista.itensVisiveis;
   const grupos = useMemo(() => agruparPedidos(pedidosVisiveis), [pedidosVisiveis]);
   const pedidosSelecionados = useMemo(() => pedidosVisiveis.filter((pedido) => selecionados.has(pedido.id)), [pedidosVisiveis, selecionados]);
   const atrasadas = pendentes.filter((p) => (diferencaParaHoje(p.cobranca) ?? 1) < 0);
@@ -252,7 +254,6 @@ export default function ListaCobranca() {
   function aplicarFiltro(filtro) {
     setFiltroRapido((atual) => atual === filtro ? 'todas' : filtro);
     setCobrarDia('');
-    setLimitePagas(50);
   }
   function alternarGrupo(chave) {
     setExpandidos((atual) => { const novo = new Set(atual); if (novo.has(chave)) novo.delete(chave); else novo.add(chave); return novo; });
@@ -350,13 +351,7 @@ export default function ListaCobranca() {
           : grupos.length === 0 ? <div className="painel estado-cobranca nao-imprimir">Nenhuma cobrança encontrada nesse grupo.</div>
             : <>
               <ListaGrupos grupos={grupos} pedidosVisiveis={pedidosVisiveis} expandidos={expandidos} selecionados={selecionados} alternarGrupo={alternarGrupo} alternarSelecao={alternarSelecao} imprimir={imprimir} abrirBaixa={abrirBaixa} abrirReagendamento={abrirReagendamento} navigate={navigate} />
-              {filtroRapido === 'pagas' && limitePagas < pagasOrdenadas.length && (
-                <div className="nao-imprimir" style={{ textAlign: 'center', marginTop: 16 }}>
-                  <button type="button" className="btn secundario" onClick={() => setLimitePagas((atual) => atual + 50)}>
-                    Mostrar mais recebidas ({pagasOrdenadas.length - limitePagas} restantes)
-                  </button>
-                </div>
-              )}
+              <BotaoMostrarMais temMais={lista.temMais} restantes={lista.restantes} onClick={lista.mostrarMais} />
             </>}
 
       {pedidosBaixa.length > 0 && (

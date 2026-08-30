@@ -139,6 +139,34 @@ function montarComparacao(valorAtual, valorAnterior, periodoAnterior) {
   };
 }
 
+function seriePorData(itens, campos) {
+  const porData = new Map();
+  for (const item of itens) {
+    const chave = paraChaveComparavel(item.data);
+    if (!chave) continue;
+    if (!porData.has(chave)) porData.set(chave, { data: item.data });
+    const ponto = porData.get(chave);
+    for (const [campo, obterValor] of Object.entries(campos)) {
+      ponto[campo] = valorNumero(ponto[campo]) + valorNumero(obterValor(item));
+    }
+  }
+  return [...porData.entries()]
+    .sort(([dataA], [dataB]) => dataA.localeCompare(dataB))
+    .map(([, ponto]) => ponto);
+}
+
+function totaisPorCategoria(itens, obterCategoria) {
+  const totais = new Map();
+  for (const item of itens) {
+    const categoria = String(obterCategoria(item) || 'NÃO INFORMADO').trim().toUpperCase();
+    const atual = totais.get(categoria) || { categoria, valor: 0, quantidade: 0 };
+    atual.valor += valorNumero(item.valor);
+    atual.quantidade += 1;
+    totais.set(categoria, atual);
+  }
+  return [...totais.values()].sort((a, b) => b.valor - a.valor);
+}
+
 // GET /api/relatorios/vendas?inicio=dd/mm/aa&fim=dd/mm/aa&sistema=FONADA|AOVIVO|TODOS
 router.get('/vendas', async (req, res) => {
   try {
@@ -152,6 +180,7 @@ router.get('/vendas', async (req, res) => {
     let resumoFonada = null;
     let resumoAoVivo = null;
     const itensDetalhados = [];
+    const itensPeriodoAnterior = [];
 
     if (sistema === 'FONADA' || sistema === 'TODOS') {
       const fonadasResultado = await db.query(`
@@ -159,9 +188,11 @@ router.get('/vendas', async (req, res) => {
       `);
       const noPeriodo = filtrarPorIntervalo(fonadasResultado.rows, 'data_pedido', inicio, fim);
       if (periodoAnterior) {
-        valorAnterior += filtrarPorIntervalo(
+        const anteriores = filtrarPorIntervalo(
           fonadasResultado.rows, 'data_pedido', periodoAnterior.inicio, periodoAnterior.fim
-        ).reduce((soma, l) => soma + valorNumero(l.valor), 0);
+        );
+        valorAnterior += anteriores.reduce((soma, l) => soma + valorNumero(l.valor), 0);
+        anteriores.forEach((l) => itensPeriodoAnterior.push({ data: l.data_pedido, valor: l.valor }));
       }
       const totalPix = noPeriodo.filter((l) => formaPagamento(l.periodo) === 'PIX').length;
       const totalRecibo = noPeriodo.length - totalPix;
@@ -198,9 +229,11 @@ router.get('/vendas', async (req, res) => {
       `);
       const noPeriodo = filtrarPorIntervalo(aoVivoResultado.rows, 'data_pedido', inicio, fim);
       if (periodoAnterior) {
-        valorAnterior += filtrarPorIntervalo(
+        const anteriores = filtrarPorIntervalo(
           aoVivoResultado.rows, 'data_pedido', periodoAnterior.inicio, periodoAnterior.fim
-        ).reduce((soma, l) => soma + valorNumero(l.valor), 0);
+        );
+        valorAnterior += anteriores.reduce((soma, l) => soma + valorNumero(l.valor), 0);
+        anteriores.forEach((l) => itensPeriodoAnterior.push({ data: l.data_pedido, valor: l.valor }));
       }
       resumoAoVivo = {
         quantidade: noPeriodo.length,
@@ -228,6 +261,15 @@ router.get('/vendas', async (req, res) => {
       aoVivo: resumoAoVivo,
       geral: { quantidade, valorTotal, ticketMedio: calcularTicketMedio(valorTotal, quantidade) },
       comparacao: periodoAnterior ? montarComparacao(valorTotal, valorAnterior, periodoAnterior) : null,
+      graficos: {
+        vendasPorDia: seriePorData(itensDetalhados, {
+          valor: (item) => item.valor,
+          quantidade: () => 1,
+          fonada: (item) => item.sistema === 'FONADA' ? item.valor : 0,
+          aoVivo: (item) => item.sistema === 'AOVIVO' ? item.valor : 0,
+        }),
+        periodoAnterior: seriePorData(itensPeriodoAnterior, { valor: (item) => item.valor }),
+      },
       ...detalhes,
     });
   } catch (erro) {
@@ -249,6 +291,7 @@ router.get('/recebimentos', async (req, res) => {
     let fonadaResumo = null;
     let aoVivoResumo = null;
     const itensDetalhados = [];
+    const vendasDetalhadas = [];
 
     if (sistema === 'FONADA' || sistema === 'TODOS') {
       const fonadasResultado = await db.query(`
@@ -345,6 +388,7 @@ router.get('/recebimentos', async (req, res) => {
         SELECT valor, data_pedido, pagou FROM fonadas WHERE excluido_em IS NULL
       `);
       const vendidas = filtrarPorIntervalo(fonadasVendidasResultado.rows, 'data_pedido', inicio, fim);
+      vendidas.forEach((l) => vendasDetalhadas.push({ data: l.data_pedido, valor: l.valor, sistema: 'FONADA' }));
       valorVendido += vendidas.reduce((soma, l) => soma + valorNumero(l.valor), 0);
       valorRecebidoVendasPeriodo += vendidas
         .filter((l) => String(l.pagou || '').toUpperCase() === 'SIM')
@@ -358,6 +402,7 @@ router.get('/recebimentos', async (req, res) => {
         SELECT valor, valor_recebido, data_pedido, pagou FROM ao_vivo WHERE excluido_em IS NULL
       `);
       const vendidos = filtrarPorIntervalo(aoVivoVendidoResultado.rows, 'data_pedido', inicio, fim);
+      vendidos.forEach((l) => vendasDetalhadas.push({ data: l.data_pedido, valor: l.valor, sistema: 'AOVIVO' }));
       valorVendido += vendidos.reduce((soma, l) => soma + valorNumero(l.valor), 0);
       valorRecebidoVendasPeriodo += vendidos
         .filter((l) => String(l.pagou || '').toUpperCase() === 'SIM')
@@ -379,6 +424,11 @@ router.get('/recebimentos', async (req, res) => {
         : null,
       fonada: fonadaResumo,
       aoVivo: aoVivoResumo,
+      graficos: {
+        vendidoPorDia: seriePorData(vendasDetalhadas, { valor: (item) => item.valor }),
+        recebidoPorDia: seriePorData(itensDetalhados, { valor: (item) => item.valor }),
+        recebimentosPorForma: totaisPorCategoria(itensDetalhados, (item) => item.forma),
+      },
       ...detalhes,
     });
   } catch (erro) {
