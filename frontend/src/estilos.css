@@ -4761,21 +4761,34 @@ input[type="password"] {
   .recall-contato .recall-whatsapp { width: 38px; }
   .recall-contexto-meta { grid-template-columns: 1fr; gap: 8px; }
 }
-/* Aviso discreto de que um novo deploy está disponível. */
-.aviso-nova-versao {
+/* Avisos globais do PWA: conexão e nova versão ficam empilhados sem
+   disputar espaço, inclusive no celular. */
+.avisos-sistema {
   position: fixed;
   right: 22px;
   bottom: 22px;
   z-index: 10000;
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+  max-width: min(470px, calc(100vw - 32px));
+  pointer-events: none;
+}
+.aviso-nova-versao,
+.aviso-conexao {
   display: flex;
   align-items: center;
-  gap: 18px;
-  max-width: min(470px, calc(100vw - 32px));
+  width: 100%;
   padding: 13px 14px 13px 17px;
-  border: 1px solid #b7cbe3;
   border-radius: 12px;
   background: #fff;
   box-shadow: 0 12px 32px rgba(21, 52, 88, 0.2);
+  pointer-events: auto;
+  animation: aviso-conexao-entrada 260ms cubic-bezier(.2,.8,.2,1) both;
+}
+.aviso-nova-versao {
+  gap: 18px;
+  border: 1px solid #b7cbe3;
   color: #17385f;
 }
 .aviso-nova-versao div { display: grid; gap: 2px; }
@@ -4793,6 +4806,63 @@ input[type="password"] {
   font-weight: 700;
   cursor: pointer;
 }
+.aviso-conexao {
+  gap: 13px;
+  border: 1px solid #e4b368;
+  background: #fffaf1;
+  color: #70420c;
+}
+.aviso-conexao.reconectado {
+  border-color: #91cfad;
+  background: #f2fbf6;
+  color: #17623d;
+}
+.aviso-conexao > div { display: grid; gap: 2px; }
+.aviso-conexao strong { font-size: 14px; }
+.aviso-conexao > div > span { color: #80684c; font-size: 12px; line-height: 1.35; }
+.aviso-conexao.reconectado > div > span { color: #527565; }
+.aviso-conexao-icone {
+  width: 31px;
+  height: 31px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  flex: 0 0 31px;
+  padding-bottom: 7px;
+  border-radius: 50%;
+  background: #f7dfb8;
+}
+.aviso-conexao-icone i {
+  width: 3px;
+  border-radius: 4px;
+  background: currentColor;
+  animation: sinal-sem-internet 1.15s ease-in-out infinite;
+}
+.aviso-conexao-icone i:nth-child(1) { height: 5px; }
+.aviso-conexao-icone i:nth-child(2) { height: 9px; animation-delay: .14s; }
+.aviso-conexao-icone i:nth-child(3) { height: 13px; animation-delay: .28s; }
+.aviso-conexao.reconectado .aviso-conexao-icone { background: #ccebd9; }
+.aviso-conexao.reconectado .aviso-conexao-icone i { animation: sinal-restabelecido 420ms ease-out both; }
+@keyframes aviso-conexao-entrada {
+  from { opacity: 0; transform: translateY(14px) scale(.97); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes sinal-sem-internet {
+  0%, 100% { opacity: .25; transform: scaleY(.72); }
+  50% { opacity: 1; transform: scaleY(1); }
+}
+@keyframes sinal-restabelecido {
+  from { opacity: .25; transform: scaleY(.5); }
+  to { opacity: 1; transform: scaleY(1); }
+}
 @media (max-width: 600px) {
-  .aviso-nova-versao { right: 16px; bottom: 16px; left: 16px; }
+  .avisos-sistema { right: 16px; bottom: 16px; left: 16px; max-width: none; }
+  .aviso-conexao,
+  .aviso-nova-versao { box-sizing: border-box; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aviso-conexao,
+  .aviso-nova-versao,
+  .aviso-conexao-icone i { animation: none; }
 }

@@ -10,6 +10,32 @@ export function TempoRealProvider({ children }) {
   const [evento, setEvento] = useState(null);
   const [novaVersao, setNovaVersao] = useState(false);
   const [revisaoSessao, setRevisaoSessao] = useState(0);
+  const [estadoConexao, setEstadoConexao] = useState(() => navigator.onLine ? 'online' : 'offline');
+  const temporizadorConexaoRef = useRef(null);
+
+  useEffect(() => {
+    function aoFicarOffline() {
+      clearTimeout(temporizadorConexaoRef.current);
+      setEstadoConexao('offline');
+    }
+
+    function aoVoltarOnline() {
+      clearTimeout(temporizadorConexaoRef.current);
+      setEstadoConexao('reconectado');
+      // Reinicia imediatamente o SSE, sem esperar o próximo ciclo de
+      // reconexão exponencial que estava em andamento enquanto offline.
+      setRevisaoSessao((atual) => atual + 1);
+      temporizadorConexaoRef.current = setTimeout(() => setEstadoConexao('online'), 4500);
+    }
+
+    window.addEventListener('offline', aoFicarOffline);
+    window.addEventListener('online', aoVoltarOnline);
+    return () => {
+      clearTimeout(temporizadorConexaoRef.current);
+      window.removeEventListener('offline', aoFicarOffline);
+      window.removeEventListener('online', aoVoltarOnline);
+    };
+  }, []);
 
   useEffect(() => {
     const atualizarSessao = () => setRevisaoSessao((atual) => atual + 1);
@@ -75,10 +101,29 @@ export function TempoRealProvider({ children }) {
   return (
     <TempoRealContext.Provider value={evento}>
       {children}
-      {novaVersao && (
-        <div className="aviso-nova-versao nao-imprimir" role="status">
-          <div><strong>Nova versão disponível</strong><span>Atualize quando terminar o que estiver preenchendo.</span></div>
-          <button type="button" onClick={() => window.location.reload()}>Atualizar agora</button>
+      {(estadoConexao !== 'online' || novaVersao) && (
+        <div className="avisos-sistema nao-imprimir" aria-live="assertive">
+          {estadoConexao !== 'online' && (
+            <div className={`aviso-conexao ${estadoConexao}`} role="status">
+              <span className="aviso-conexao-icone" aria-hidden="true">
+                <i /><i /><i />
+              </span>
+              <div>
+                <strong>{estadoConexao === 'offline' ? 'Você está sem internet' : 'Internet restabelecida'}</strong>
+                <span>
+                  {estadoConexao === 'offline'
+                    ? 'O que já está aberto continua visível, mas não será possível salvar até a conexão voltar.'
+                    : 'O sistema voltou a atualizar os dados automaticamente.'}
+                </span>
+              </div>
+            </div>
+          )}
+          {novaVersao && (
+            <div className="aviso-nova-versao" role="status">
+              <div><strong>Nova versão disponível</strong><span>Atualize quando terminar o que estiver preenchendo.</span></div>
+              <button type="button" onClick={() => window.location.reload()}>Atualizar agora</button>
+            </div>
+          )}
         </div>
       )}
     </TempoRealContext.Provider>
