@@ -6,7 +6,7 @@ import { useRascunhos } from '../../RascunhosContext.jsx';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData, formatarHorario, formatarCodigoNumerico, formatarValorMonetario, valorMonetarioParaNumero, numeroParaValorMonetario } from '../../mascaras.js';
 import CampoData from '../../components/CampoData.jsx';
-import { AvisoInline, CabecalhoPagina, EstadoCarregando } from '../../components/Interface.jsx';
+import { AvisoInline, CabecalhoPagina, Dialogo, EstadoCarregando } from '../../components/Interface.jsx';
 
 const VAZIO = {
   senha_os: '', cliente_id: null, data_pedido: '', horario_pedido: '', nascimento: '', tipo: '', recall: 'NÃO', recall_codigo: '',
@@ -830,13 +830,7 @@ export default function FormFonada() {
       </div>
 
       {remarcarAberto && (
-        <div className="modal-fundo" onClick={cancelarRemarcarMensagem}>
-          <div className="modal-caixa" role="dialog" aria-modal="true" aria-label={`Remarcar a ${remarcarAberto}ª mensagem`} onClick={(e) => e.stopPropagation()}>
-            <div className="section-title">Não atendeu — {remarcarAberto}ª mensagem</div>
-            <p className="fs-sm" style={{ color: 'var(--tinta-suave)', marginBottom: 10 }}>
-              A tentativa fica registrada no horário atual do sistema. Escolha o novo dia e horário
-              para remarcar a {remarcarAberto}ª mensagem.
-            </p>
+        <Dialogo titulo={`Não atendeu — ${remarcarAberto}ª mensagem`} descricao="A tentativa será registrada agora. Escolha o novo dia e horário da mensagem." onClose={cancelarRemarcarMensagem}>
             <div className="grade grade-2">
               <div className="campo">
                 <label>Novo dia *</label>
@@ -871,8 +865,7 @@ export default function FormFonada() {
                 {salvandoRemarcacao ? 'Salvando...' : 'Registrar e remarcar'}
               </button>
             </div>
-          </div>
-        </div>
+        </Dialogo>
       )}
     </div>
   );

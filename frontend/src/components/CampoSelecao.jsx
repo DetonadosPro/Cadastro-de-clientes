@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 
 // Campo somente-clicável com um drawer de opções — mesmo visual do
 // CampoComSugestoes, mas sem digitação livre: a pessoa só pode
@@ -9,6 +9,7 @@ import React, { useEffect, useRef, useState } from 'react';
 export default function CampoSelecao({ value, onChange, opcoes, placeholder, style, disabled, className }) {
   const [aberto, setAberto] = useState(false);
   const raizRef = useRef(null);
+  const listaId = useId();
 
   useEffect(() => {
     if (!aberto) return;
@@ -40,15 +41,27 @@ export default function CampoSelecao({ value, onChange, opcoes, placeholder, sty
         onClick={() => !disabled && setAberto((v) => !v)}
         disabled={disabled}
         style={{ cursor: disabled ? 'not-allowed' : 'pointer' }}
+        role="combobox"
+        aria-expanded={aberto}
+        aria-controls={listaId}
+        aria-haspopup="listbox"
+        onKeyDown={(evento) => {
+          if (evento.key === 'Enter' || evento.key === ' ' || evento.key === 'ArrowDown') {
+            evento.preventDefault();
+            if (!disabled) setAberto(true);
+          }
+        }}
       />
       {aberto && opcoes.length > 0 && (
-        <div className="sugestoes-popover">
+        <div className="sugestoes-popover" id={listaId} role="listbox">
           {opcoes.map((o) => (
             <button
               type="button"
               key={o}
               className={`sugestoes-item ${value === o ? 'selecionado' : ''}`}
               onMouseDown={(e) => { e.preventDefault(); escolher(o); }}
+              role="option"
+              aria-selected={value === o}
             >
               {o}
             </button>

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '../api.js';
 
 function valorUtil(valor) { const texto = String(valor || '').trim(); return texto && texto !== '-' ? texto : ''; }
@@ -26,9 +27,10 @@ export default function ClienteDrawer({ clienteId, onFechar, onNavegar }) {
       if (e.shiftKey && document.activeElement === primeiro) { e.preventDefault(); ultimo.focus(); }
       if (!e.shiftKey && document.activeElement === ultimo) { e.preventDefault(); primeiro.focus(); }
     };
+    document.body.classList.add('sobreposicao-aberta');
     document.addEventListener('keydown', aoTeclar);
     requestAnimationFrame(() => fecharRef.current?.focus());
-    return () => { ativo = false; document.removeEventListener('keydown', aoTeclar); };
+    return () => { ativo = false; document.body.classList.remove('sobreposicao-aberta'); document.removeEventListener('keydown', aoTeclar); };
   }, [clienteId, onFechar]);
 
   if (!clienteId) return null;
@@ -38,7 +40,7 @@ export default function ClienteDrawer({ clienteId, onFechar, onNavegar }) {
   const mensagensEmHaver = dados?.mensagensEmHaver || [];
   const valorPendente = Number(resumo.valor_pendente || 0);
 
-  return (
+  return createPortal(
     <div className="drawer-cliente-overlay" onMouseDown={onFechar} role="presentation">
       <aside ref={drawerRef} className="drawer-cliente" role="dialog" aria-modal="true" aria-label="Resumo do cliente" onMouseDown={(e) => e.stopPropagation()}>
         <button ref={fecharRef} type="button" className="drawer-cliente-fechar" onClick={onFechar} aria-label="Fechar painel">×</button>
@@ -92,7 +94,8 @@ export default function ClienteDrawer({ clienteId, onFechar, onNavegar }) {
           </>
         )}
       </aside>
-    </div>
+    </div>,
+    document.body
   );
 }
 

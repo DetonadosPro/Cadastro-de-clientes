@@ -7,7 +7,7 @@ import React from 'react';
 // escolhe.
 export default function SeletorPilulas({ opcoes, valor, onChange, disabled }) {
   return (
-    <div className="seletor-pilulas">
+    <div className="seletor-pilulas" role="group" aria-label="Escolha uma opção">
       {opcoes.map((opcao) => (
         <button
           key={opcao}
@@ -15,6 +15,7 @@ export default function SeletorPilulas({ opcoes, valor, onChange, disabled }) {
           className={`pilula ${valor === opcao ? 'ativa' : ''}`}
           onClick={() => onChange(opcao)}
           disabled={disabled}
+          aria-pressed={valor === opcao}
         >
           {opcao}
         </button>

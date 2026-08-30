@@ -9,7 +9,7 @@ import CampoData from '../../components/CampoData.jsx';
 import CampoComSugestoes from '../../components/CampoComSugestoes.jsx';
 import CampoSelecao from '../../components/CampoSelecao.jsx';
 import PaginaImpressaoAoVivo from './PaginaImpressaoAoVivo.jsx';
-import { AvisoInline, CabecalhoPagina, EstadoCarregando } from '../../components/Interface.jsx';
+import { AvisoInline, CabecalhoPagina, Dialogo, EstadoCarregando } from '../../components/Interface.jsx';
 
 const VAZIO = {
   numero_os: '', cliente_id: null, data_pedido: '', horario_pedido: '', dia_entrega: '', horario_entrega: '',
@@ -764,17 +764,14 @@ export default function FormAoVivo() {
       )}
 
       {modalPagamento && (
-        <div className="modal-fundo nao-imprimir" onClick={() => setModalPagamento(false)}>
-          <div className="modal-caixa" role="dialog" aria-modal="true" aria-label={`Receber pagamento da O.S. ${dados.numero_os || id}`} onClick={(e) => e.stopPropagation()}>
-            <div className="section-title">Receber pagamento — O.S. {dados.numero_os || id}</div>
+        <Dialogo titulo={`Receber pagamento — O.S. ${dados.numero_os || id}`} descricao="Registre os dados do recebimento para atualizar a cobrança." onClose={() => setModalPagamento(false)}>
             <div className="grade grade-3">
               <div className="campo"><label>Data</label><CampoData value={dataRecebimento} onChange={(v) => setDataRecebimento(formatarData(v))} /></div>
               <div className="campo"><label>Valor recebido</label><input type="number" min="0" step="0.01" value={valorRecebimento} onChange={(e) => setValorRecebimento(e.target.value)} /></div>
               <div className="campo"><label>Forma</label><select value={formaRecebimento} onChange={(e) => setFormaRecebimento(e.target.value)}><option>PIX</option><option>DINHEIRO</option><option>CARTÃO</option><option>DEPÓSITO</option><option>PRESENCIAL</option><option>OUTRO</option></select></div>
             </div>
             <div className="acoes-modal-cobranca"><button type="button" className="btn secundario" onClick={() => setModalPagamento(false)}>Cancelar</button><button type="button" className="btn" onClick={confirmarPagamento} disabled={salvandoPagamento}>{salvandoPagamento ? 'Salvando...' : 'Confirmar pagamento'}</button></div>
-          </div>
-        </div>
+        </Dialogo>
       )}
     </div>
   );

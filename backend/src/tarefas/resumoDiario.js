@@ -3,6 +3,7 @@
 const { db } = require('../db/database');
 const { enviarEmail } = require('../servicos/email');
 const { enviarTelegram, telegramDisponivel } = require('../servicos/telegram');
+const { montarMensagensTelegram, montarTextoEmail } = require('../servicos/formatarResumoTelegram');
 
 function hojeBr() {
   const partes = new Intl.DateTimeFormat('pt-BR', {
@@ -28,8 +29,57 @@ function paraChaveComparavel(dataBr) {
   return `${ano}-${mm}-${dd}`;
 }
 
-function formatarReais(valor) {
-  return (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+function somaValores(lista, campo = 'valor') {
+  return lista.reduce((soma, item) => soma + Number(item[campo] || 0), 0);
+}
+
+function primeiroValor(...valores) {
+  return valores.map((valor) => String(valor ?? '').trim()).find(Boolean) || '';
+}
+
+function agendaFonadaDoDia(fonadas, hojeChave) {
+  return fonadas.flatMap((pedido) => [1, 2].flatMap((mensagem) => {
+    const prefixo = `p${mensagem}`;
+    const data = pedido[`${prefixo}_dia`];
+    if (paraChaveComparavel(data) !== hojeChave) return [];
+    return [{
+      tipo: 'FONADA',
+      os: pedido.senha_os || pedido.id,
+      mensagem,
+      data,
+      horario: pedido[`${prefixo}_horario`],
+      cliente: pedido.nome_comprador,
+      destinatario: pedido[`${prefixo}_para`],
+      tema: pedido[`${prefixo}_tema`],
+      telefone: primeiroValor(pedido[`${prefixo}_celular`], pedido[`${prefixo}_fixo`], pedido.comprador_whatsapp, pedido.comprador_celular),
+      responsavel: pedido[`${prefixo}_quem_oferece`],
+      status: primeiroValor(pedido[`${prefixo}_resultado`], 'Agendada'),
+      pagou: pedido.pagou,
+      formaPagamento: primeiroValor(pedido.pagou === 'SIM' ? pedido.recebi : '', pedido.periodo),
+      dataPagamento: pedido.data_pagamento,
+      dataCobranca: pedido.cobranca,
+    }];
+  }));
+}
+
+function agendaAoVivoDoDia(pedidos, hojeChave) {
+  return pedidos.filter((pedido) => paraChaveComparavel(pedido.dia_entrega) === hojeChave).map((pedido) => ({
+    tipo: 'AO VIVO',
+    os: pedido.numero_os || pedido.id,
+    data: pedido.dia_entrega,
+    horario: pedido.horario_entrega,
+    cliente: pedido.comprador,
+    destinatario: pedido.para,
+    tema: [pedido.tema_1, pedido.tema_2, pedido.tema_3, pedido.tema_4].filter(Boolean).join(' · '),
+    telefone: primeiroValor(pedido.celular, pedido.celular2, pedido.celular_local, pedido.fixo_local),
+    responsavel: pedido.oferecimento,
+    status: primeiroValor(pedido.resultado_entrega, 'Agendada'),
+    pagou: pedido.pagou,
+    formaPagamento: primeiroValor(pedido.pagou === 'SIM' ? pedido.forma_recebimento : '', pedido.pagamento),
+    dataPagamento: pedido.data_pagou,
+    dataCobranca: pedido.data_cobranca,
+    observacoes: pedido.observacoes,
+  }));
 }
 
 async function montarResumoDoDia() {
@@ -38,11 +88,17 @@ async function montarResumoDoDia() {
 
   const [fonadasResultado, aoVivoResultado] = await Promise.all([
     db.query(`
-      SELECT valor, data_pedido, pagou, data_pagamento
+      SELECT id, senha_os, nome_comprador, data_pedido, comprador_whatsapp, comprador_celular,
+             p1_dia, p1_horario, p1_para, p1_tema, p1_fixo, p1_celular, p1_quem_oferece, p1_resultado,
+             p2_dia, p2_horario, p2_para, p2_tema, p2_fixo, p2_celular, p2_quem_oferece, p2_resultado,
+             valor, cobranca, periodo, pagou, recebi, data_pagamento
       FROM fonadas WHERE excluido_em IS NULL
     `),
     db.query(`
-      SELECT valor, valor_recebido, data_pedido, pagou, data_pagou
+      SELECT id, numero_os, comprador, para, oferecimento, data_pedido, dia_entrega, horario_entrega,
+             celular, celular2, celular_local, fixo_local, tema_1, tema_2, tema_3, tema_4, observacoes,
+             valor, pagamento, pagou, data_pagou, data_cobranca, valor_recebido,
+             forma_recebimento, resultado_entrega, entregue_por
       FROM ao_vivo WHERE excluido_em IS NULL
     `),
   ]);
@@ -55,11 +111,11 @@ async function montarResumoDoDia() {
 
   const resumoFonada = {
     quantidadeVendida: fonadasVendidasHoje.length,
-    valorVendido: fonadasVendidasHoje.reduce((soma, l) => soma + (l.valor || 0), 0),
+    valorVendido: somaValores(fonadasVendidasHoje),
     quantidadeRecebida: fonadasRecebidasHoje.length,
-    valorRecebido: fonadasRecebidasHoje.reduce((soma, l) => soma + (l.valor || 0), 0),
+    valorRecebido: somaValores(fonadasRecebidasHoje),
     quantidadePendente: fonadasPendentesHoje.length,
-    valorPendente: fonadasPendentesHoje.reduce((soma, l) => soma + (l.valor || 0), 0),
+    valorPendente: somaValores(fonadasPendentesHoje),
   };
 
   // --- AO VIVO ---
@@ -77,17 +133,21 @@ async function montarResumoDoDia() {
 
   const resumoAoVivo = {
     quantidadeVendida: aoVivoVendidasHoje.length,
-    valorVendido: aoVivoVendidasHoje.reduce((soma, l) => soma + (l.valor || 0), 0),
+    valorVendido: somaValores(aoVivoVendidasHoje),
     quantidadeRecebida: aoVivoRecebidasHoje.length,
-    valorRecebido: aoVivoRecebidasHoje.reduce((soma, l) => soma + (l.valor_recebido ?? l.valor ?? 0), 0),
+    valorRecebido: aoVivoRecebidasHoje.reduce((soma, l) => soma + Number(l.valor_recebido ?? l.valor ?? 0), 0),
     quantidadePendente: aoVivoPendentesHoje.length,
-    valorPendente: aoVivoPendentesHoje.reduce((soma, l) => soma + (l.valor || 0), 0),
+    valorPendente: somaValores(aoVivoPendentesHoje),
   };
 
   return {
     dia: hoje,
     fonada: resumoFonada,
     aoVivo: resumoAoVivo,
+    agenda: {
+      fonadas: agendaFonadaDoDia(fonadas, hojeChave),
+      aoVivo: agendaAoVivoDoDia(aoVivo, hojeChave),
+    },
     total: {
       quantidadeVendida: resumoFonada.quantidadeVendida + resumoAoVivo.quantidadeVendida,
       valorVendido: resumoFonada.valorVendido + resumoAoVivo.valorVendido,
@@ -103,36 +163,25 @@ async function rodarResumoDiario() {
   console.log('📊 Gerando resumo diário...');
   try {
     const resumo = await montarResumoDoDia();
-    const { fonada, aoVivo, total } = resumo;
-
-    const texto =
-      `📋 Resumo do dia ${resumo.dia} — Pombo-Correio\n\n` +
-      `💰 Vendido\n` +
-      `Fonada: ${fonada.quantidadeVendida} pedido(s), ${formatarReais(fonada.valorVendido)}\n` +
-      `Ao vivo: ${aoVivo.quantidadeVendida} pedido(s), ${formatarReais(aoVivo.valorVendido)}\n` +
-      `Total: ${total.quantidadeVendida} pedido(s), ${formatarReais(total.valorVendido)}\n\n` +
-      `✅ Recebido\n` +
-      `Fonada: ${fonada.quantidadeRecebida} pagamento(s), ${formatarReais(fonada.valorRecebido)}\n` +
-      `Ao vivo: ${aoVivo.quantidadeRecebida} pagamento(s), ${formatarReais(aoVivo.valorRecebido)}\n` +
-      `Total: ${total.quantidadeRecebida} pagamento(s), ${formatarReais(total.valorRecebido)}\n\n` +
-      `⏳ Pendente de hoje\n` +
-      `Fonada: ${fonada.quantidadePendente} pedido(s), ${formatarReais(fonada.valorPendente)}\n` +
-      `Ao vivo: ${aoVivo.quantidadePendente} pedido(s), ${formatarReais(aoVivo.valorPendente)}\n` +
-      `Total: ${total.quantidadePendente} pedido(s), ${formatarReais(total.valorPendente)}`;
 
     if (telegramDisponivel()) {
-      const resultado = await enviarTelegram(texto);
-      if (resultado.enviado) {
-        console.log('✅ Resumo diário enviado por Telegram com sucesso.');
-      } else {
-        console.warn(`⚠️  Resumo gerado, mas não enviado por Telegram: ${resultado.motivo}`);
+      const mensagens = montarMensagensTelegram(resumo);
+      let mensagensEnviadas = 0;
+      for (const mensagem of mensagens) {
+        const resultado = await enviarTelegram(mensagem);
+        if (!resultado.enviado) {
+          console.warn(`⚠️  Resumo gerado, mas não enviado por Telegram: ${resultado.motivo}`);
+          return;
+        }
+        mensagensEnviadas += resultado.mensagens || 1;
       }
+      console.log(`✅ Resumo diário enviado por Telegram com sucesso (${mensagensEnviadas} mensagem(ns)).`);
       return;
     }
 
     const resultado = await enviarEmail({
       assunto: `Resumo do dia — ${resumo.dia}`,
-      texto: `${texto}\n\n(Configure TELEGRAM_BOT_TOKEN e TELEGRAM_CHAT_ID no Railway para receber isso automaticamente pelo Telegram, sem precisar abrir o email.)`,
+      texto: `${montarTextoEmail(resumo)}\n\nConfigure TELEGRAM_BOT_TOKEN e TELEGRAM_CHAT_ID no Railway para receber este resumo automaticamente pelo Telegram.`,
     });
 
     if (resultado.enviado) {

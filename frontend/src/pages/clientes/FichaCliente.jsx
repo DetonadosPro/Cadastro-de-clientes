@@ -6,7 +6,7 @@ import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
 import CampoEnderecoAutocomplete from '../../components/CampoEnderecoAutocomplete.jsx';
 import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
-import { AvisoInline, CabecalhoPagina, EstadoCarregando } from '../../components/Interface.jsx';
+import { AvisoInline, CabecalhoPagina, Dialogo, EstadoCarregando } from '../../components/Interface.jsx';
 
 function IconeVoltar() {
   return (
@@ -247,13 +247,7 @@ export default function FichaCliente() {
       )}
 
       {mostrandoBloqueio && (
-        <div className="modal-fundo" onClick={() => setMostrandoBloqueio(false)}>
-          <div className="modal-caixa" role="dialog" aria-modal="true" aria-label={`Bloquear ${cliente.nome}`} onClick={(e) => e.stopPropagation()}>
-            <div className="section-title">Bloquear {cliente.nome}</div>
-            <p className="fs-sm" style={{ color: 'var(--tinta-suave)', marginBottom: 12 }}>
-              Depois de bloqueado, não será possível criar ou editar pedidos deste cliente em nenhuma
-              tela (Fonada, Ao vivo, Cobrança, Agenda), até que seja desbloqueado.
-            </p>
+        <Dialogo titulo={`Bloquear ${cliente.nome}`} descricao="O bloqueio impede novos pedidos e alterações em Fonada, Ao vivo, Cobrança e Agenda até que o cliente seja desbloqueado." onClose={() => setMostrandoBloqueio(false)}>
             <div className="campo">
               <label>Motivo (opcional)</label>
               <input
@@ -270,8 +264,7 @@ export default function FichaCliente() {
                 {salvandoBloqueio ? 'Bloqueando...' : 'Confirmar bloqueio'}
               </button>
             </div>
-          </div>
-        </div>
+        </Dialogo>
       )}
 
       <div className="ficha-cliente-visao-geral">

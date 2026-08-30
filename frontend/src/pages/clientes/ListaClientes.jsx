@@ -4,7 +4,7 @@ import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
 import ClienteDrawer from '../../components/ClienteDrawer.jsx';
-import { AvisoInline, CabecalhoPagina, EstadoVazio, Paginacao } from '../../components/Interface.jsx';
+import { AvisoInline, CabecalhoPagina, Dialogo, EstadoVazio, Paginacao } from '../../components/Interface.jsx';
 
 const FILTROS_RAPIDOS = [
   ['pendencia', 'Com cobrança pendente'],
@@ -549,10 +549,7 @@ export default function ListaClientes() {
       )}
 
       {comparacaoMescla && (
-        <div className="modal-fundo" onClick={() => setComparacaoMescla(null)}>
-          <div className="modal-caixa modal-mesclar-clientes" role="dialog" aria-modal="true" aria-label="Comparar e mesclar clientes" onClick={(e) => e.stopPropagation()}>
-            <div className="section-title">Comparar e mesclar clientes</div>
-            <p className="fs-sm texto-suave">Escolha qual cadastro será mantido. Todos os pedidos do outro cadastro serão transferidos, e ele irá para a lixeira.</p>
+        <Dialogo titulo="Comparar e mesclar clientes" descricao="Escolha o cadastro principal. Os pedidos serão transferidos e o cadastro duplicado seguirá para a Lixeira." onClose={() => setComparacaoMescla(null)} className="modal-mesclar-clientes">
             <div className="comparacao-clientes">
               {[comparacaoMescla.a, comparacaoMescla.b].map((clienteComparado) => (
                 <label key={clienteComparado.id} className={`cartao-comparacao-cliente ${String(destinoMescla) === String(clienteComparado.id) ? 'selecionado' : ''}`}>
@@ -584,18 +581,13 @@ export default function ListaClientes() {
               <button type="button" className="btn secundario" onClick={() => setComparacaoMescla(null)}>Cancelar</button>
               <button type="button" className="btn" onClick={confirmarMesclagem} disabled={mesclando}>{mesclando ? 'Mesclando...' : 'Confirmar mesclagem'}</button>
             </div>
-          </div>
-        </div>
+        </Dialogo>
       )}
       {confirmacaoExclusao && (
-        <div className="modal-fundo" onMouseDown={() => setConfirmacaoExclusao(false)}>
-          <div className="modal-caixa confirmacao-contextual" role="dialog" aria-modal="true" aria-labelledby="titulo-exclusao-clientes" onMouseDown={(e) => e.stopPropagation()}>
+        <Dialogo titulo="Enviar para a lixeira?" descricao={`${selecionados.size} cliente${selecionados.size > 1 ? 's' : ''} e seus pedidos sairão da lista principal, mas poderão ser restaurados.`} onClose={() => setConfirmacaoExclusao(false)} className="confirmacao-contextual">
             <div className="confirmacao-icone">!</div>
-            <h2 id="titulo-exclusao-clientes">Enviar para a lixeira?</h2>
-            <p>{selecionados.size} cliente{selecionados.size > 1 ? 's' : ''} e seus pedidos sairão da lista principal. Você poderá revisar e restaurar pela Lixeira.</p>
             <div className="confirmacao-acoes"><button className="btn secundario" onClick={() => setConfirmacaoExclusao(false)}>Cancelar</button><button className="btn perigo" onClick={confirmarExclusaoSelecionados} disabled={excluindoSelecionados}>{excluindoSelecionados ? 'Enviando…' : 'Confirmar'}</button></div>
-          </div>
-        </div>
+        </Dialogo>
       )}
       <ClienteDrawer clienteId={clienteDrawerId} onFechar={fecharDrawer} onNavegar={navegarDoDrawer} />
     </div>

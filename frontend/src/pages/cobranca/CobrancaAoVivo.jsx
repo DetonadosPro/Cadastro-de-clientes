@@ -5,7 +5,7 @@ import { useToast } from '../../ToastContext.jsx';
 import { formatarData } from '../../mascaras.js';
 import CampoData from '../../components/CampoData.jsx';
 import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
-import { AvisoInline, EstadoCarregando, EstadoVazio } from '../../components/Interface.jsx';
+import { AvisoInline, Dialogo, EstadoCarregando, EstadoVazio } from '../../components/Interface.jsx';
 
 function hojeBr() {
   const data = new Date();
@@ -293,7 +293,7 @@ function Resumo({ titulo, pedidos, valor, quantidade, classe, onClick }) {
 }
 
 function Modal({ titulo, fechar, children }) {
-  return <div className="modal-fundo nao-imprimir" onClick={fechar}><div className="modal-caixa" role="dialog" aria-modal="true" aria-label={titulo} onClick={(e) => e.stopPropagation()}><div className="section-title">{titulo}</div>{children}</div></div>;
+  return <Dialogo titulo={titulo} onClose={fechar} className="nao-imprimir">{children}</Dialogo>;
 }
 
 function Acoes({ cancelar, confirmar, salvando, rotulo }) {

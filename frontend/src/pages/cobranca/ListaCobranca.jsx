@@ -6,7 +6,7 @@ import { formatarData } from '../../mascaras.js';
 import PaginaImpressaoRecibos from './PaginaImpressaoRecibos.jsx';
 import CampoData from '../../components/CampoData.jsx';
 import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
-import { AvisoInline, EstadoCarregando, EstadoVazio } from '../../components/Interface.jsx';
+import { AvisoInline, Dialogo, EstadoCarregando, EstadoVazio } from '../../components/Interface.jsx';
 
 function dataLocalFormatada(deslocamento = 0) {
   const data = new Date();
@@ -463,7 +463,7 @@ function ResumoCobranca({ titulo, pedidos, classe, onClick }) {
   return <button type="button" className={`resumo-cobranca-operacional ${classe}`} onClick={onClick}><span>{titulo}</span><strong>{formatarReais(somarPedidos(pedidos))}</strong><small>{pedidos.length} pedido(s)</small></button>;
 }
 function Modal({ titulo, onClose, children }) {
-  return <div className="modal-fundo nao-imprimir" onClick={onClose}><div className="modal-caixa" role="dialog" aria-modal="true" aria-label={titulo} onClick={(e) => e.stopPropagation()}><div className="section-title">{titulo}</div>{children}</div></div>;
+  return <Dialogo titulo={titulo} onClose={onClose} className="nao-imprimir">{children}</Dialogo>;
 }
 function AcoesModal({ onCancelar, onConfirmar, salvando, rotulo }) {
   return <div className="acoes-modal-cobranca"><button type="button" className="btn secundario" onClick={onCancelar}>Cancelar</button><button type="button" className="btn" onClick={onConfirmar} disabled={salvando}>{salvando ? 'Salvando...' : rotulo}</button></div>;

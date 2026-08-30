@@ -15,7 +15,58 @@ function telegramDisponivel() {
   return Boolean(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID);
 }
 
-async function enviarTelegram(texto) {
+function escaparHtml(valor) {
+  return String(valor ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+}
+
+function dividirMensagem(texto, limite = 3800) {
+  if (texto.length <= limite) return [texto];
+  const blocos = texto.split(/\n{2,}/);
+  const partes = [];
+  let atual = '';
+
+  function adicionarTrecho(trecho) {
+    const candidato = atual ? `${atual}\n\n${trecho}` : trecho;
+    if (candidato.length <= limite) {
+      atual = candidato;
+      return;
+    }
+    if (atual) partes.push(atual);
+    atual = '';
+    if (trecho.length <= limite) {
+      atual = trecho;
+      return;
+    }
+    const linhas = trecho.split('\n');
+    linhas.forEach((linha) => {
+      if (linha.length > limite) {
+        if (atual) partes.push(atual);
+        atual = '';
+        for (let inicio = 0; inicio < linha.length; inicio += limite) {
+          const fragmento = linha.slice(inicio, inicio + limite);
+          if (fragmento.length === limite) partes.push(fragmento);
+          else atual = fragmento;
+        }
+        return;
+      }
+      const comLinha = atual ? `${atual}\n${linha}` : linha;
+      if (comLinha.length <= limite) atual = comLinha;
+      else {
+        if (atual) partes.push(atual);
+        atual = linha;
+      }
+    });
+  }
+
+  blocos.forEach(adicionarTrecho);
+  if (atual) partes.push(atual);
+  return partes;
+}
+
+async function enviarTelegram(texto, opcoes = {}) {
   if (!telegramDisponivel()) {
     console.warn('⚠️  Telegram não enviado — TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID não configurados.');
     return { enviado: false, motivo: 'não configurado' };
@@ -23,25 +74,31 @@ async function enviarTelegram(texto) {
 
   try {
     const url = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`;
-    const resposta = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: process.env.TELEGRAM_CHAT_ID,
-        text: texto,
-      }),
-    });
+    const partes = dividirMensagem(texto, opcoes.limite || 3800);
 
-    if (!resposta.ok) {
-      const detalhe = await resposta.text().catch(() => '');
-      throw new Error(`Telegram respondeu ${resposta.status}: ${detalhe}`);
+    for (const parte of partes) {
+      const resposta = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: process.env.TELEGRAM_CHAT_ID,
+          text: parte,
+          parse_mode: opcoes.parseMode || 'HTML',
+          disable_web_page_preview: true,
+        }),
+      });
+
+      if (!resposta.ok) {
+        const detalhe = await resposta.text().catch(() => '');
+        throw new Error(`Telegram respondeu ${resposta.status}: ${detalhe}`);
+      }
     }
 
-    return { enviado: true };
+    return { enviado: true, mensagens: partes.length };
   } catch (erro) {
     console.error('❌ Erro ao enviar Telegram:', erro.message);
     return { enviado: false, motivo: erro.message };
   }
 }
 
-module.exports = { enviarTelegram, telegramDisponivel };
+module.exports = { enviarTelegram, telegramDisponivel, escaparHtml, dividirMensagem };

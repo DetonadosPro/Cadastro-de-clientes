@@ -10,7 +10,7 @@ import { useAgendaAlerta, statusUrgenciaItem } from '../../AgendaAlertaContext.j
 import { formatarData, formatarHorario } from '../../mascaras.js';
 import CampoData from '../../components/CampoData.jsx';
 import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
-import { AvisoInline, CabecalhoPagina } from '../../components/Interface.jsx';
+import { AvisoInline, CabecalhoPagina, Dialogo } from '../../components/Interface.jsx';
 
 // Data de hoje no mesmo formato usado nos campos do sistema (dd/mm/aa).
 function hojeFormatado() {
@@ -774,13 +774,11 @@ export default function Agenda() {
       )}
 
       {itemRemarcarAberto && (
-        <div className="modal-fundo" onClick={cancelarRemarcar}>
-          <div className="modal-caixa" role="dialog" aria-modal="true" aria-label={`Remarcar mensagem de ${itemRemarcarAberto.nome}`} onClick={(e) => e.stopPropagation()}>
-            <div className="section-title">Não atendeu — {itemRemarcarAberto.nome}</div>
-            <p className="fs-sm" style={{ color: 'var(--tinta-suave)', marginBottom: 10 }}>
-              A tentativa fica registrada no horário atual do sistema. Escolha o novo dia e horário
-              para remarcar a {itemRemarcarAberto.mensagem}ª mensagem.
-            </p>
+        <Dialogo
+          titulo={`Não atendeu — ${itemRemarcarAberto.nome}`}
+          descricao={`A tentativa será registrada agora. Escolha quando remarcar a ${itemRemarcarAberto.mensagem}ª mensagem.`}
+          onClose={cancelarRemarcar}
+        >
             <div className="grade grade-2">
               <div className="campo">
                 <label>Novo dia *</label>
@@ -815,14 +813,11 @@ export default function Agenda() {
                 {salvandoRemarcacao ? 'Salvando...' : 'Registrar e remarcar'}
               </button>
             </div>
-          </div>
-        </div>
+        </Dialogo>
       )}
 
       {lembreteAberto && (
-        <div className="modal-fundo" onClick={() => setLembreteAberto(null)}>
-          <div className="modal-caixa modal-lembrete" role="dialog" aria-modal="true" aria-label={lembreteAberto.novo ? 'Novo lembrete' : 'Editar lembrete'} onClick={(e) => e.stopPropagation()}>
-            <div className="section-title">{lembreteAberto.novo ? 'Novo lembrete' : 'Editar lembrete'}</div>
+        <Dialogo titulo={lembreteAberto.novo ? 'Novo lembrete' : 'Editar lembrete'} descricao="Organize uma tarefa avulsa junto à agenda operacional." onClose={() => setLembreteAberto(null)} className="modal-lembrete">
             <div className="campo">
               <label>Título *</label>
               <input autoFocus maxLength={160} value={formLembrete.titulo} onChange={(e) => setFormLembrete((atual) => ({ ...atual, titulo: e.target.value }))} placeholder="Ex: Ligar para fornecedor" />
@@ -845,8 +840,7 @@ export default function Agenda() {
               <button type="button" className="btn secundario" onClick={() => setLembreteAberto(null)}>Cancelar</button>
               <button type="button" className="btn" onClick={salvarLembrete} disabled={salvandoLembrete}>{salvandoLembrete ? 'Salvando...' : 'Salvar lembrete'}</button>
             </div>
-          </div>
-        </div>
+        </Dialogo>
       )}
 
     </div>

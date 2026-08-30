@@ -224,7 +224,7 @@ export function AgendaAlertaProvider({ children }) {
         contagemAtual === 1
           ? '1 mensagem está atrasada na Agenda.'
           : `${contagemAtual} mensagens estão atrasadas na Agenda.`,
-        'erro'
+        'aviso'
       );
       ultimoSomEmRef.current = agora;
     }
