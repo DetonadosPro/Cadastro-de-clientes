@@ -6,6 +6,7 @@ import { useRascunhos } from '../../RascunhosContext.jsx';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData, formatarHorario, formatarCodigoNumerico, formatarValorMonetario, valorMonetarioParaNumero, numeroParaValorMonetario } from '../../mascaras.js';
 import CampoData from '../../components/CampoData.jsx';
+import { AvisoInline, CabecalhoPagina, EstadoCarregando } from '../../components/Interface.jsx';
 
 const VAZIO = {
   senha_os: '', cliente_id: null, data_pedido: '', horario_pedido: '', nascimento: '', tipo: '', recall: 'NÃO', recall_codigo: '',
@@ -506,14 +507,16 @@ export default function FormFonada() {
     voltarHistorico();
   }
 
-  if (carregando) return <p style={{ color: 'var(--tinta-suave)' }}>Carregando...</p>;
+  if (carregando) return <EstadoCarregando rotulo="Preparando o pedido de Fonada…" linhas={8} />;
 
   if (erro && !dados.cliente_id) {
     return (
-      <div className="painel" style={{ maxWidth: 480 }}>
-        <p className="fs-sm" style={{ color: 'var(--selo)', marginBottom: 12 }}>{erro}</p>
-        <button className="btn" onClick={() => navigate('/clientes')}>Ir para Clientes</button>
-      </div>
+      <AvisoInline
+        className="form-erro-vinculo"
+        tom="erro"
+        titulo="O pedido precisa de um cliente"
+        acao={<button className="btn" onClick={() => navigate('/clientes')}>Escolher cliente</button>}
+      >{erro}</AvisoInline>
     );
   }
 
@@ -554,6 +557,13 @@ export default function FormFonada() {
 
   return (
     <div className="form-pagina pagina-fonada-ampliada">
+      <CabecalhoPagina
+        className="form-cabecalho-pedido"
+        contexto="Pedido · Fonada"
+        titulo={editando ? 'Editar pedido' : 'Novo pedido'}
+        descricao={cliente ? `${cliente.nome} · organize as duas transmissões e as condições de cobrança.` : 'Preencha as transmissões e as condições do pedido.'}
+        meta={dados.senha_os ? `O.S. ${dados.senha_os}` : 'Nova O.S.'}
+      />
       {estaBloqueado && (
         <div className="aviso-bloqueio" style={{ marginBottom: 16 }}>
           <strong>Cliente bloqueado.</strong> Este pedido está travado para edição — só é possível visualizar.
@@ -740,12 +750,6 @@ export default function FormFonada() {
         </div>
 
         <div>
-          <div style={estilos.osTopo}>
-            {dados.senha_os
-              ? <span className="carimbo-os">O.S. {dados.senha_os}</span>
-              : <span className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Calculando O.S...</span>}
-          </div>
-
           {(idAnterior !== null || idProximo !== null || podeBuscarPaginaAnterior || podeBuscarPaginaProxima) && (
             <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
               <button
@@ -777,7 +781,7 @@ export default function FormFonada() {
             </div>
           )}
 
-          {erro && <p className="fs-sm" style={{ color: 'var(--selo)', marginBottom: 10 }}>{erro}</p>}
+          {erro && <AvisoInline tom="erro" titulo="Revise o pedido antes de salvar">{erro}</AvisoInline>}
 
           <div className="section-box actions-grid">
             <button type="button" className="btn-action destaque" onClick={salvar} disabled={salvando || algumaDataNoPassado}>
@@ -827,7 +831,7 @@ export default function FormFonada() {
 
       {remarcarAberto && (
         <div className="modal-fundo" onClick={cancelarRemarcarMensagem}>
-          <div className="modal-caixa" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-caixa" role="dialog" aria-modal="true" aria-label={`Remarcar a ${remarcarAberto}ª mensagem`} onClick={(e) => e.stopPropagation()}>
             <div className="section-title">Não atendeu — {remarcarAberto}ª mensagem</div>
             <p className="fs-sm" style={{ color: 'var(--tinta-suave)', marginBottom: 10 }}>
               A tentativa fica registrada no horário atual do sistema. Escolha o novo dia e horário
@@ -1038,11 +1042,12 @@ function BotaoP({ onClick, titulo, desabilitado }) {
       type="button"
       className="btn-small botao-p-copiar"
       title={desabilitado ? 'Disponível apenas para DDD 34' : titulo}
+      aria-label={desabilitado ? 'Cópia indisponível para este telefone' : titulo}
       onClick={onClick}
       disabled={desabilitado}
       style={{ flexShrink: 0 }}
     >
-      P
+      →
     </button>
   );
 }

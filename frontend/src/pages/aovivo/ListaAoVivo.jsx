@@ -4,6 +4,7 @@ import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarData } from '../../mascaras.js';
 import PaginaImpressaoAoVivo from './PaginaImpressaoAoVivo.jsx';
+import { AvisoInline, CabecalhoPagina, EstadoCarregando, EstadoVazio, Paginacao } from '../../components/Interface.jsx';
 
 function IconeBusca() {
   return (
@@ -247,12 +248,13 @@ export default function ListaAoVivo() {
 
   return (
     <div className="lista-aovivo-pagina">
-      <div className="nao-imprimir lista-aovivo-cabecalho">
-        <div>
-          <h1 style={{ marginBottom: 2 }}>Pedidos Ao Vivo</h1>
-          <p className="fs-sm" style={{ color: 'var(--tinta-suave)', margin: 0 }}>Acompanhe eventos, entregas e pagamentos.</p>
-        </div>
-        <div className="lista-aovivo-acoes-topo">
+      <CabecalhoPagina
+        className="nao-imprimir"
+        contexto="Pedidos"
+        titulo="Ao vivo"
+        descricao="Acompanhe eventos, locais de entrega e pagamentos com leitura rápida."
+        meta={!carregando ? `${total} pedido${total === 1 ? '' : 's'}` : null}
+        acoes={<div className="lista-aovivo-acoes-topo">
           <button
             type="button"
             className="btn secundario"
@@ -264,8 +266,8 @@ export default function ListaAoVivo() {
               ? `Imprimir selecionados (${selecionados.size})`
               : `Imprimir página (${itens.length})`}
           </button>
-        </div>
-      </div>
+        </div>}
+      />
 
       <div className="nao-imprimir lista-aovivo-busca">
         <select
@@ -295,14 +297,12 @@ export default function ListaAoVivo() {
         {selecionados.size > 0 && <span className="lista-aovivo-selecionados">{selecionados.size} selecionado(s)</span>}
       </div>
 
-      {erro && <p className="nao-imprimir" style={{ color: '#dc3545' }}>{erro}</p>}
+      {erro && <AvisoInline className="nao-imprimir" tom="erro" titulo="Não foi possível carregar os pedidos">{erro}</AvisoInline>}
 
       {carregando ? (
-        <p className="nao-imprimir" style={{ color: '#6c757d' }}>Carregando...</p>
+        <EstadoCarregando className="nao-imprimir" rotulo="Carregando pedidos Ao Vivo…" linhas={7} />
       ) : itens.length === 0 ? (
-        <div className="painel nao-imprimir" style={{ textAlign: 'center', color: '#6c757d' }}>
-          Nenhum pedido encontrado.
-        </div>
+        <EstadoVazio className="nao-imprimir" icone="♪" titulo="Nenhum pedido encontrado" descricao={buscaUrl ? 'Revise o termo ou limpe os filtros para ampliar os resultados.' : 'Novos pedidos Ao Vivo são criados a partir da ficha do cliente.'} acao={buscaUrl ? <button className="btn secundario" onClick={limparBusca}>Limpar busca</button> : null} />
       ) : (
         <>
           <div className="painel nao-imprimir lista-aovivo-tabela-painel">
@@ -377,17 +377,7 @@ export default function ListaAoVivo() {
             </div>
           </div>
 
-          <div className="nao-imprimir lista-aovivo-paginacao">
-            <button className="btn secundario" disabled={paginaUrl <= 1} onClick={() => irParaPagina(paginaUrl - 1)}>
-              ← Anterior
-            </button>
-            <span className="fs-sm" style={{ color: '#6c757d' }}>
-              Página {paginaUrl} de {totalPaginas} — {total} pedido(s)
-            </span>
-            <button className="btn secundario" disabled={paginaUrl >= totalPaginas} onClick={() => irParaPagina(paginaUrl + 1)}>
-              Próxima →
-            </button>
-          </div>
+          <Paginacao pagina={paginaUrl} totalPaginas={totalPaginas} total={total} rotulo="pedidos" onAnterior={() => irParaPagina(paginaUrl - 1)} onProxima={() => irParaPagina(paginaUrl + 1)} className="nao-imprimir lista-aovivo-paginacao" />
         </>
       )}
 

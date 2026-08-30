@@ -4,6 +4,7 @@ import { api } from '../../api.js';
 import { formatarData } from '../../mascaras.js';
 import CampoData from '../../components/CampoData.jsx';
 import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
+import { AvisoInline, CabecalhoPagina, EstadoCarregando, EstadoVazio as EstadoVazioInterface } from '../../components/Interface.jsx';
 import {
   GraficoBarrasCategorias,
   GraficoEvolucaoVendas,
@@ -40,12 +41,7 @@ export default function Relatorios() {
 
   return (
     <div>
-      <div style={{ marginBottom: 20 }}>
-        <h1 style={{ marginBottom: 2 }}>Relatórios</h1>
-        <p className="fs-sm" style={{ color: 'var(--tinta-suave)', margin: 0 }}>
-          Valores por período — vendas realizadas e pagamentos recebidos
-        </p>
-      </div>
+      <CabecalhoPagina contexto="Gestão" titulo="Relatórios" descricao="Compare vendas, recebimentos e desempenho da equipe por período e tipo de pedido." />
 
       <div className="section-box secao-relatorios">
         <div className="abas-cliente abas-relatorio">
@@ -247,12 +243,12 @@ function AbaVendas({ sistema, intervalo, ativa }) {
         inicio={inicio} fim={fim} setInicio={setInicio} setFim={setFim} setIntervalo={setIntervalo}
       />
 
-      {erro && <p className="fs-sm" style={{ color: 'var(--selo)' }}>{erro}</p>}
+      {erro && <AvisoInline tom="erro" titulo="Não foi possível montar o relatório">{erro}</AvisoInline>}
 
       {!jaBuscou ? (
-        <EstadoVazio texto="Preencha o período para visualizar o relatório." />
+        <EstadoVazioInterface className="estado-vazio-plano" icone="↗" titulo="Escolha um período" descricao="Informe as datas ou use um dos atalhos para visualizar o relatório de vendas." />
       ) : carregando ? (
-        <p className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Carregando...</p>
+        <EstadoCarregando className="estado-carregando-plano" rotulo="Calculando vendas e indicadores…" linhas={5} />
       ) : dados && (
         <>
           <div className="grade grade-relatorio grade-3 resumo-principal-relatorio">
@@ -347,12 +343,12 @@ function AbaRecebimentos({ sistema, intervalo, ativa }) {
         inicio={inicio} fim={fim} setInicio={setInicio} setFim={setFim} setIntervalo={setIntervalo}
       />
 
-      {erro && <p className="fs-sm" style={{ color: 'var(--selo)' }}>{erro}</p>}
+      {erro && <AvisoInline tom="erro" titulo="Não foi possível montar o relatório">{erro}</AvisoInline>}
 
       {!jaBuscou ? (
-        <EstadoVazio texto="Preencha o período para visualizar o relatório." />
+        <EstadoVazioInterface className="estado-vazio-plano" icone="R$" titulo="Escolha um período" descricao="Informe as datas ou use um dos atalhos para visualizar os recebimentos." />
       ) : carregando ? (
-        <p className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Carregando...</p>
+        <EstadoCarregando className="estado-carregando-plano" rotulo="Calculando recebimentos…" linhas={5} />
       ) : dados && (
         <>
           <div className="grade grade-relatorio grade-3 resumo-principal-relatorio">
@@ -446,12 +442,12 @@ function AbaDesempenho({ sistema, intervalo, ativa }) {
         inicio={inicio} fim={fim} setInicio={setInicio} setFim={setFim} setIntervalo={setIntervalo}
       />
 
-      {erro && <p className="fs-sm" style={{ color: 'var(--selo)' }}>{erro}</p>}
+      {erro && <AvisoInline tom="erro" titulo="Não foi possível montar o relatório">{erro}</AvisoInline>}
 
       {!jaBuscou ? (
-        <EstadoVazio texto="Preencha o período para visualizar o relatório." />
+        <EstadoVazioInterface className="estado-vazio-plano" icone="↗" titulo="Escolha um período" descricao="Informe as datas ou use um dos atalhos para comparar o desempenho da equipe." />
       ) : carregando ? (
-        <p className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Carregando...</p>
+        <EstadoCarregando className="estado-carregando-plano" rotulo="Calculando o desempenho da equipe…" linhas={5} />
       ) : dados && (
         <>
           <ComparacaoPeriodo dados={dados.comparacao} metrica="Vendas da equipe" />
@@ -460,10 +456,7 @@ function AbaDesempenho({ sistema, intervalo, ativa }) {
             <GraficoQuantidadeTicket funcionarios={dados.funcionarios} />
           </div>
           {dados.funcionarios.length === 0 ? (
-          <div className="painel" style={{ marginTop: 16, textAlign: 'center', color: 'var(--tinta-suave)' }}>
-            Nenhuma venda com vendedor registrado nesse período. Pedidos antigos, de antes desse
-            registro existir, não aparecem aqui.
-          </div>
+          <EstadoVazioInterface className="estado-vazio-plano" icone="↗" titulo="Sem vendas atribuídas neste período" descricao="Pedidos antigos, anteriores ao registro de vendedor, não aparecem nesta comparação." />
         ) : (
           <TabelaDesempenho funcionarios={dados.funcionarios} valorEquipe={dados.valorEquipe} />
           )}
@@ -565,14 +558,6 @@ function BlocoSistema({ titulo, cor, children }) {
       <div className="bloco-sistema-titulo">{titulo}</div>
       {children}
     </div>
-  );
-}
-
-function EstadoVazio({ texto }) {
-  return (
-    <p className="fs-sm" style={{ color: 'var(--tinta-suave)', textAlign: 'center', padding: '28px 0' }}>
-      {texto}
-    </p>
   );
 }
 

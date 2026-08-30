@@ -10,6 +10,7 @@ import { useAgendaAlerta, statusUrgenciaItem } from '../../AgendaAlertaContext.j
 import { formatarData, formatarHorario } from '../../mascaras.js';
 import CampoData from '../../components/CampoData.jsx';
 import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
+import { AvisoInline, CabecalhoPagina } from '../../components/Interface.jsx';
 
 // Data de hoje no mesmo formato usado nos campos do sistema (dd/mm/aa).
 function hojeFormatado() {
@@ -599,13 +600,12 @@ export default function Agenda() {
   return (
     <div className="agenda-v2">
       <Relogio />
-      <div className="agenda-cabecalho-v2">
-        <div>
-          <span className="pagina-kicker">Operação diária</span>
-          <h1>Agenda</h1>
-          <p>{ehHoje ? 'Acompanhe o ritmo de hoje e as próximas mensagens.' : `Consultando ${rotuloDiaSemana(dataSelecionada)}, ${dataSelecionada}.`}</p>
-        </div>
-        <div className="agenda-controles-v2">
+      <CabecalhoPagina
+        className="agenda-cabecalho-v3"
+        contexto="Operação diária"
+        titulo="Agenda"
+        descricao={ehHoje ? 'Acompanhe o ritmo de hoje e as próximas mensagens.' : `Consultando ${rotuloDiaSemana(dataSelecionada)}, ${dataSelecionada}.`}
+        acoes={<div className="agenda-controles-v2">
           <button type="button" className="btn-small agenda-novo-lembrete" onClick={abrirNovoLembrete}>+ Lembrete</button>
           <button type="button" className="agenda-seta-dia" onClick={() => selecionarDiaAdjacente(-1)} aria-label="Dia anterior">←</button>
           <CampoData
@@ -623,8 +623,8 @@ export default function Agenda() {
           {!ehHoje && (
             <span className="aviso-consulta-agenda"><i /> Somente visualização</span>
           )}
-        </div>
-      </div>
+        </div>}
+      />
 
       <div className="carrossel-dias-agenda" aria-label="Navegação pelos dias da agenda">
         <button type="button" className="seta-carrossel-agenda" onClick={() => moverJanela('tras')} disabled={Boolean(direcaoCarrossel)} aria-label="Mostrar dia anterior">‹</button>
@@ -650,7 +650,7 @@ export default function Agenda() {
       </div>
 
       <div key={`${dataSelecionada}-${aba}`} className={`agenda-conteudo-transicao ${direcaoConteudo}`}>
-      {erro && <div className="aviso-bloqueio">{erro}</div>}
+      {erro && <AvisoInline tom="erro" titulo="Não foi possível atualizar a agenda">{erro}</AvisoInline>}
 
       {carregando && !dataRef ? (
         <SkeletonAgenda />
@@ -688,7 +688,7 @@ export default function Agenda() {
             </button>
           </div>
 
-          <div className="grid-agenda-lista-painel" style={{ padding: 16 }}>
+          <div className={`grid-agenda-lista-painel ${listaAtual.length === 0 ? 'sem-itens' : ''}`}>
             <div className="lista-agenda-compacta">
               {listaAtual.length === 0 ? (
                 <AgendaVazia ehHoje={ehHoje} onNovo={abrirNovoLembrete} />
@@ -724,7 +724,7 @@ export default function Agenda() {
               )}
             </div>
 
-            <div className={`painel-detalhes-agenda ${itemSelecionado ? 'drawer-aberto' : ''}`}>
+            {listaAtual.length > 0 && <div className={`painel-detalhes-agenda ${itemSelecionado ? 'drawer-aberto' : ''}`}>
               {itemSelecionado && (
                 <button
                   type="button"
@@ -763,7 +763,7 @@ export default function Agenda() {
                   onExcluir={excluirLembrete}
                 />
               )}
-            </div>
+            </div>}
           </div>
         </div>
       )}
@@ -775,7 +775,7 @@ export default function Agenda() {
 
       {itemRemarcarAberto && (
         <div className="modal-fundo" onClick={cancelarRemarcar}>
-          <div className="modal-caixa" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-caixa" role="dialog" aria-modal="true" aria-label={`Remarcar mensagem de ${itemRemarcarAberto.nome}`} onClick={(e) => e.stopPropagation()}>
             <div className="section-title">Não atendeu — {itemRemarcarAberto.nome}</div>
             <p className="fs-sm" style={{ color: 'var(--tinta-suave)', marginBottom: 10 }}>
               A tentativa fica registrada no horário atual do sistema. Escolha o novo dia e horário
@@ -821,7 +821,7 @@ export default function Agenda() {
 
       {lembreteAberto && (
         <div className="modal-fundo" onClick={() => setLembreteAberto(null)}>
-          <div className="modal-caixa modal-lembrete" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-caixa modal-lembrete" role="dialog" aria-modal="true" aria-label={lembreteAberto.novo ? 'Novo lembrete' : 'Editar lembrete'} onClick={(e) => e.stopPropagation()}>
             <div className="section-title">{lembreteAberto.novo ? 'Novo lembrete' : 'Editar lembrete'}</div>
             <div className="campo">
               <label>Título *</label>

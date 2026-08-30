@@ -6,6 +6,7 @@ import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
 import CampoEnderecoAutocomplete from '../../components/CampoEnderecoAutocomplete.jsx';
 import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
+import { AvisoInline, CabecalhoPagina, EstadoCarregando } from '../../components/Interface.jsx';
 
 function IconeVoltar() {
   return (
@@ -192,8 +193,8 @@ export default function FichaCliente() {
     }
   }
 
-  if (carregando) return <p style={{ color: 'var(--tinta-suave)' }}>Carregando...</p>;
-  if (erro) return <p style={{ color: 'var(--selo)' }}>{erro}</p>;
+  if (carregando) return <EstadoCarregando rotulo="Carregando a ficha do cliente…" linhas={7} />;
+  if (erro) return <AvisoInline tom="erro" titulo="Não foi possível abrir a ficha" acao={<button type="button" className="btn secundario" onClick={voltar}>Voltar aos clientes</button>}>{erro}</AvisoInline>;
   if (!cliente) return null;
 
   const totalFonada = pedidosFonada.reduce((soma, p) => soma + (p.valor || 0), 0);
@@ -224,27 +225,19 @@ export default function FichaCliente() {
 
   return (
     <div className="form-pagina">
-      <div className="cabecalho-ficha-cliente" style={estilos.cabecalho}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <h1 style={{ marginBottom: 4 }}>{cliente.nome}</h1>
-            {cliente.bloqueado && <span className="tag pendente" style={{ marginBottom: 4 }}>Bloqueado</span>}
-            {cadastroIncompleto && <span className="tag aviso" style={{ marginBottom: 4 }}>Revisar cadastro</span>}
-          </div>
-          <p className="fs-sm" style={{ color: 'var(--tinta-suave)', margin: 0 }}>
-            Cliente desde {new Date(cliente.criado_em).toLocaleDateString('pt-BR')}
-          </p>
-        </div>
-        <div className="acoes-ficha-cliente">
-          <button className="btn" onClick={novoPedidoFonada}>Nova fonada</button>
-          <button className="btn" onClick={novoPedidoAoVivo}>Novo ao vivo</button>
+      <CabecalhoPagina
+        contexto="Ficha do cliente"
+        titulo={<span className="ficha-cliente-titulo"><span>{cliente.nome}</span>{cliente.bloqueado && <span className="tag pendente">Bloqueado</span>}{cadastroIncompleto && <span className="tag aviso">Revisar cadastro</span>}</span>}
+        descricao={`Cliente desde ${new Date(cliente.criado_em).toLocaleDateString('pt-BR')} · ${totalPedidos} pedido${totalPedidos === 1 ? '' : 's'} registrado${totalPedidos === 1 ? '' : 's'}`}
+        acoes={<div className="acoes-ficha-cliente">
+          <div className="acoes-pedido-cliente"><button className="btn" onClick={novoPedidoFonada}>Nova fonada</button><button className="btn btn-tonal" onClick={novoPedidoAoVivo}>Novo ao vivo</button></div>
           {whatsappLink && <a className="btn-small cobranca-whatsapp whatsapp-mobile-ficha" href={whatsappLink} target="_blank" rel="noreferrer" aria-label="Abrir WhatsApp" title="Abrir WhatsApp"><IconeWhatsApp /></a>}
           <button className="btn secundario" onClick={() => navigate(`/cobranca?nome=${encodeURIComponent(cliente.nome)}`)}>Ver cobrança</button>
           <button className="btn secundario" onClick={voltar} style={{ gap: 6 }}>
             <IconeVoltar /> Voltar
           </button>
-        </div>
-      </div>
+        </div>}
+      />
 
       {cliente.bloqueado && (
         <div className="aviso-bloqueio">
@@ -255,7 +248,7 @@ export default function FichaCliente() {
 
       {mostrandoBloqueio && (
         <div className="modal-fundo" onClick={() => setMostrandoBloqueio(false)}>
-          <div className="modal-caixa" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-caixa" role="dialog" aria-modal="true" aria-label={`Bloquear ${cliente.nome}`} onClick={(e) => e.stopPropagation()}>
             <div className="section-title">Bloquear {cliente.nome}</div>
             <p className="fs-sm" style={{ color: 'var(--tinta-suave)', marginBottom: 12 }}>
               Depois de bloqueado, não será possível criar ou editar pedidos deste cliente em nenhuma
@@ -281,7 +274,8 @@ export default function FichaCliente() {
         </div>
       )}
 
-      <div className="section-box">
+      <div className="ficha-cliente-visao-geral">
+      <div className="section-box ficha-cliente-dados">
         <div className="section-title">
           <span>Dados do cliente</span>
           {!editando && <div className="acoes-dados-cliente">
@@ -366,7 +360,7 @@ export default function FichaCliente() {
         )}
       </div>
 
-      <div className="section-box">
+      <div className="section-box ficha-cliente-resumo">
         <div className="section-title">Resumo do cliente</div>
         <div className="resumo-operacional-cliente">
           <CartaoIndicador label="Último pedido" valor={ultimoPedido || 'Sem pedidos'} />
@@ -375,6 +369,7 @@ export default function FichaCliente() {
           <CartaoIndicador label="Valor pendente" valor={formatarReais(valorPendente)} destaque={valorPendente > 0} />
           <CartaoIndicador label="Próxima cobrança" valor={proximaCobranca || 'Nenhuma'} />
         </div>
+      </div>
       </div>
 
       <div className="section-box" style={{ padding: 0, overflow: 'hidden' }}>
@@ -490,11 +485,9 @@ export default function FichaCliente() {
 
 function Info({ label, valor }) {
   return (
-    <div>
-      <div className="fs-xs" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--tinta-suave)', marginBottom: 2 }}>
-        {label}
-      </div>
-      <div className="fs-md">{valor || '—'}</div>
+    <div className="ficha-cliente-info">
+      <div className="info-label">{label}</div>
+      <div className="info-valor">{valor || '—'}</div>
     </div>
   );
 }

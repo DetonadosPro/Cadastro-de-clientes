@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../api.js';
 import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
+import { AvisoInline, CabecalhoPagina, EstadoCarregando, EstadoVazio, Paginacao } from '../../components/Interface.jsx';
 
 function IconeInfo() {
   return (
@@ -179,14 +180,12 @@ export default function ListaFonada() {
 
   return (
     <div className="lista-fonada-pagina">
-      <div className="lista-fonada-cabecalho">
-        <div>
-          <h1 style={{ marginBottom: 2 }}>Pedidos de Fonada</h1>
-          <p className="fs-sm" style={{ color: 'var(--tinta-suave)', margin: 0 }}>
-            Encontre e acompanhe pedidos de mensagem por telefone.
-          </p>
-        </div>
-      </div>
+      <CabecalhoPagina
+        contexto="Pedidos"
+        titulo="Fonada"
+        descricao="Encontre pedidos, acompanhe as duas transmissões e confira pagamentos em uma única lista."
+        meta={!carregando ? `${total} pedido${total === 1 ? '' : 's'}` : null}
+      />
 
       <div className="lista-fonada-busca">
         <select
@@ -220,16 +219,17 @@ export default function ListaFonada() {
         {!carregando && <span className="lista-fonada-total">{total} pedido(s) encontrado(s)</span>}
       </div>
 
-      {erro && <p style={{ color: 'var(--selo)' }}>{erro}</p>}
+      {erro && <AvisoInline tom="erro" titulo="Não foi possível carregar os pedidos">{erro}</AvisoInline>}
 
       {carregando ? (
-        <p style={{ color: 'var(--tinta-suave)' }}>Carregando...</p>
+        <EstadoCarregando rotulo="Carregando pedidos de Fonada…" linhas={7} />
       ) : itens.length === 0 ? (
-        <div className="painel" style={{ textAlign: 'center', color: 'var(--tinta-suave)' }}>
-          {buscaUrl
-            ? 'Nenhum pedido encontrado com esses filtros.'
-            : 'Nenhum pedido de mensagem fonada ainda. Novos pedidos são criados a partir da ficha do cliente.'}
-        </div>
+        <EstadoVazio
+          icone="☎"
+          titulo={buscaUrl ? 'Nenhum pedido encontrado' : 'Nenhum pedido de Fonada ainda'}
+          descricao={buscaUrl ? 'Revise o termo ou limpe os filtros para ampliar os resultados.' : 'Novos pedidos são criados a partir da ficha de cada cliente.'}
+          acao={buscaUrl ? <button className="btn secundario" onClick={limparBusca}>Limpar busca</button> : null}
+        />
       ) : (
         <>
           <div className="painel lista-fonada-tabela-painel">
@@ -304,17 +304,7 @@ export default function ListaFonada() {
             </div>
           </div>
 
-          <div className="lista-fonada-paginacao">
-            <button className="btn secundario" disabled={paginaUrl <= 1} onClick={() => irParaPagina(paginaUrl - 1)}>
-              ← Anterior
-            </button>
-            <span className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>
-              Página {paginaUrl} de {totalPaginas} — {total} pedido(s)
-            </span>
-            <button className="btn secundario" disabled={paginaUrl >= totalPaginas} onClick={() => irParaPagina(paginaUrl + 1)}>
-              Próxima →
-            </button>
-          </div>
+          <Paginacao pagina={paginaUrl} totalPaginas={totalPaginas} total={total} rotulo="pedidos" onAnterior={() => irParaPagina(paginaUrl - 1)} onProxima={() => irParaPagina(paginaUrl + 1)} className="lista-fonada-paginacao" />
         </>
       )}
     </div>

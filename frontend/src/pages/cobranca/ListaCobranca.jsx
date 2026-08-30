@@ -6,6 +6,7 @@ import { formatarData } from '../../mascaras.js';
 import PaginaImpressaoRecibos from './PaginaImpressaoRecibos.jsx';
 import CampoData from '../../components/CampoData.jsx';
 import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
+import { AvisoInline, EstadoCarregando, EstadoVazio } from '../../components/Interface.jsx';
 
 function dataLocalFormatada(deslocamento = 0) {
   const data = new Date();
@@ -154,7 +155,7 @@ function reciboJaImpresso(pedido) {
   return valor !== '' && valor !== 'NÃO' && valor !== 'NAO' && valor !== '0';
 }
 
-export default function ListaCobranca() {
+export default function ListaCobranca({ mostrarCabecalho = true }) {
   const [parametrosUrl, setParametrosUrl] = useSearchParams();
   const [cobrarDia, setCobrarDia] = useState('');
   const [filtroRapido, setFiltroRapido] = useState(() => parametrosUrl.get('filtro') || 'todas');
@@ -311,7 +312,7 @@ export default function ListaCobranca() {
 
   return (
     <div>
-      <div className="cobranca-cabecalho nao-imprimir">
+      {mostrarCabecalho && <div className="cobranca-cabecalho nao-imprimir">
         <div><h1 style={{ marginBottom: 2 }}>Cobrança</h1><p className="fs-sm texto-suave" style={{ margin: 0 }}>Organize a rota por urgência e dê baixa nos recebimentos</p></div>
         {pedidosVisiveis.length > 0 && <div className="cobranca-acoes-impressao">
           {pedidosSelecionados.length > 0 && <button type="button" className="btn-small" onClick={() => setSelecionados(new Set())}>Limpar seleção</button>}
@@ -319,7 +320,7 @@ export default function ListaCobranca() {
             <IconeImpressora /> {pedidosSelecionados.length > 0 ? `Imprimir selecionados (${pedidosSelecionados.length})` : `Imprimir lista (${pedidosVisiveis.length})`}
           </button>
         </div>}
-      </div>
+      </div>}
 
       <div className="painel cobranca-filtros nao-imprimir">
         <div className="cobranca-atalhos">
@@ -335,7 +336,7 @@ export default function ListaCobranca() {
         </div>
       </div>
 
-      {erro && <p className="nao-imprimir" style={{ color: 'var(--selo)' }}>{erro}</p>}
+      {erro && <AvisoInline className="nao-imprimir" tom="erro" titulo="Não foi possível atualizar as cobranças">{erro}</AvisoInline>}
       {jaBuscou && !carregando && (
         <div className="grade-resumo-cobranca-operacional nao-imprimir">
           <ResumoCobranca titulo="Atrasadas" pedidos={atrasadas} classe="atrasada" onClick={() => aplicarFiltro('atrasadas')} />
@@ -346,16 +347,16 @@ export default function ListaCobranca() {
         </div>
       )}
 
-      {!jaBuscou ? <div className="painel estado-cobranca nao-imprimir">Carregando cobranças...</div>
-        : carregando ? <p className="texto-suave nao-imprimir">Carregando...</p>
-          : grupos.length === 0 ? <div className="painel estado-cobranca nao-imprimir">Nenhuma cobrança encontrada nesse grupo.</div>
+      {!jaBuscou ? <EstadoCarregando className="nao-imprimir" rotulo="Carregando cobranças…" linhas={4} />
+        : carregando ? <EstadoCarregando className="nao-imprimir" rotulo="Atualizando cobranças…" linhas={4} />
+          : grupos.length === 0 ? <EstadoVazio className="nao-imprimir cobranca-estado-vazio" icone="R$" titulo="Nenhuma cobrança neste grupo" descricao="Altere o período, a situação ou os dados de busca para consultar outros recebimentos." />
             : <>
               <ListaGrupos grupos={grupos} pedidosVisiveis={pedidosVisiveis} expandidos={expandidos} selecionados={selecionados} alternarGrupo={alternarGrupo} alternarSelecao={alternarSelecao} imprimir={imprimir} abrirBaixa={abrirBaixa} abrirReagendamento={abrirReagendamento} navigate={navigate} />
               <BotaoMostrarMais temMais={lista.temMais} restantes={lista.restantes} onClick={lista.mostrarMais} />
             </>}
 
       {pedidosBaixa.length > 0 && (
-        <Modal titulo={`Dar baixa — ${pedidosBaixa[0].nome}`} onClose={() => setPedidosBaixa([])}>
+        <Modal titulo={`Dar baixa — ${pedidosBaixa[0].nome || 'cliente não informado'}`} onClose={() => setPedidosBaixa([])}>
           <div className="resumo-modal-cobranca"><strong>{pedidosBaixa.length} pedido(s)</strong><strong>{formatarReais(somarPedidos(pedidosBaixa))}</strong></div>
           <div className="campo" style={{ maxWidth: 150 }}><label>Dia do pagamento</label><CampoData placeholder="dd/mm/aa" value={dataBaixa} onChange={(v) => setDataBaixa(formatarData(v))} /></div>
           <div className="campo"><label>Observação</label><input placeholder="Observação do recebimento..." value={statusBaixa} onChange={(e) => setStatusBaixa(e.target.value)} /></div>
@@ -363,7 +364,7 @@ export default function ListaCobranca() {
         </Modal>
       )}
       {pedidosReagendar.length > 0 && (
-        <Modal titulo={`Reagendar — ${pedidosReagendar[0].nome}`} onClose={() => setPedidosReagendar([])}>
+        <Modal titulo={`Reagendar — ${pedidosReagendar[0].nome || 'cliente não informado'}`} onClose={() => setPedidosReagendar([])}>
           <p className="fs-sm texto-suave">A nova data será aplicada a {pedidosReagendar.length} pedido(s).</p>
           <div className="campo" style={{ maxWidth: 150 }}><label>Nova data</label><CampoData placeholder="dd/mm/aa" value={novaData} minimo={hojeSemHora()} onChange={(v) => setNovaData(formatarData(v))} /></div>
           <AcoesModal onCancelar={() => setPedidosReagendar([])} onConfirmar={confirmarReagendamento} salvando={salvandoReagendamento} rotulo="Reagendar" />
@@ -462,7 +463,7 @@ function ResumoCobranca({ titulo, pedidos, classe, onClick }) {
   return <button type="button" className={`resumo-cobranca-operacional ${classe}`} onClick={onClick}><span>{titulo}</span><strong>{formatarReais(somarPedidos(pedidos))}</strong><small>{pedidos.length} pedido(s)</small></button>;
 }
 function Modal({ titulo, onClose, children }) {
-  return <div className="modal-fundo nao-imprimir" onClick={onClose}><div className="modal-caixa" onClick={(e) => e.stopPropagation()}><div className="section-title">{titulo}</div>{children}</div></div>;
+  return <div className="modal-fundo nao-imprimir" onClick={onClose}><div className="modal-caixa" role="dialog" aria-modal="true" aria-label={titulo} onClick={(e) => e.stopPropagation()}><div className="section-title">{titulo}</div>{children}</div></div>;
 }
 function AcoesModal({ onCancelar, onConfirmar, salvando, rotulo }) {
   return <div className="acoes-modal-cobranca"><button type="button" className="btn secundario" onClick={onCancelar}>Cancelar</button><button type="button" className="btn" onClick={onConfirmar} disabled={salvando}>{salvando ? 'Salvando...' : rotulo}</button></div>;

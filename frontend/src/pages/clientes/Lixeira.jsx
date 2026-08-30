@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
+import { AvisoInline, CabecalhoPagina, EstadoCarregando, EstadoVazio, Paginacao } from '../../components/Interface.jsx';
 
 export default function Lixeira() {
   const [busca, setBusca] = useState('');
@@ -86,35 +87,31 @@ export default function Lixeira() {
   }
 
   return (
-    <div>
-      <div style={estilos.cabecalho}>
-        <div>
-          <h1 style={{ marginBottom: 2 }}>Lixeira</h1>
-          <p className="fs-sm" style={{ color: '#6c757d', margin: 0 }}>
-            Clientes excluídos — restaure ou apague para sempre
-          </p>
-        </div>
+    <div className="lixeira-pagina">
+      <CabecalhoPagina
+        contexto="Clientes"
+        titulo="Lixeira"
+        descricao="Revise cadastros removidos, consulte os pedidos vinculados e restaure quando necessário."
+        meta={!carregando ? `${total} removido${total === 1 ? '' : 's'}` : null}
+      />
+
+      <div className="painel lixeira-toolbar">
+        <form onSubmit={aoSubmeterBusca} className="lixeira-busca-form">
+          <label htmlFor="busca-lixeira">Localizar cadastro removido</label>
+          <div className="lixeira-busca-controles">
+            <input id="busca-lixeira" type="search" placeholder="Digite o nome do cliente" value={busca} onChange={(e) => setBusca(e.target.value)} className="busca-input" />
+            <button type="submit" className="btn secundario">Buscar</button>
+          </div>
+        </form>
+        <p>Abra uma linha para conferir os pedidos antes de restaurar ou apagar definitivamente.</p>
       </div>
 
-      <form onSubmit={aoSubmeterBusca} className="lixeira-busca-form" style={estilos.buscaForm}>
-        <input
-          type="text"
-          placeholder="Buscar por nome..."
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          className="busca-input"
-        />
-        <button type="submit" className="btn secundario">Buscar</button>
-      </form>
-
-      {erro && <p style={{ color: '#dc3545' }}>{erro}</p>}
+      {erro && <AvisoInline tom="erro" titulo="Não foi possível carregar a lixeira">{erro}</AvisoInline>}
 
       {carregando ? (
-        <p style={{ color: '#6c757d' }}>Carregando...</p>
+        <EstadoCarregando rotulo="Carregando cadastros removidos…" linhas={6} />
       ) : itens.length === 0 ? (
-        <div className="painel" style={{ textAlign: 'center', color: '#6c757d' }}>
-          A lixeira está vazia.
-        </div>
+        <EstadoVazio icone="♲" titulo={busca ? 'Nenhum cadastro removido encontrado' : 'A lixeira está vazia'} descricao={busca ? 'Tente outro nome ou limpe a busca.' : 'Quando um cliente for removido, ele aparecerá aqui antes da exclusão definitiva.'} />
       ) : (
         <>
           <div className="painel" style={{ padding: 0, overflow: 'hidden' }}>
@@ -142,24 +139,20 @@ export default function Lixeira() {
                           onClick={() => alternarExpandido(c)}
                           style={{ cursor: 'pointer' }}
                         >
-                          <td style={{ width: 24, color: '#6c757d' }}>{aberto ? '▾' : '▸'}</td>
+                          <td className="lixeira-expansor">{aberto ? '▾' : '▸'}</td>
                           <td style={{ fontWeight: 700 }}>{c.nome}</td>
                           <td>{c.nascimento || '—'}</td>
                           <td>{c.celular || c.fixo || '—'}</td>
                           <td>{totalPedidos > 0 ? `${totalPedidos} pedido(s)` : '—'}</td>
                           <td>{new Date(c.excluido_em).toLocaleString('pt-BR')}</td>
                           <td>
-                            <div
-                              style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}
-                              onClick={(e) => e.stopPropagation()}
-                            >
+                            <div className="lixeira-acoes" onClick={(e) => e.stopPropagation()}>
                               <button type="button" className="btn-small" onClick={() => restaurar(c)}>
                                 Restaurar
                               </button>
                               <button
                                 type="button"
-                                className="btn-small"
-                                style={{ color: '#dc3545', borderColor: '#dc3545' }}
+                                className="btn-small perigo"
                                 onClick={() => apagarDefinitivo(c)}
                               >
                                 Apagar de vez
@@ -169,20 +162,20 @@ export default function Lixeira() {
                         </tr>
                         {aberto && (
                           <tr className="lixeira-linha-detalhes">
-                            <td colSpan={7} style={{ background: '#f8f9fa', padding: '12px 20px' }}>
+                            <td colSpan={7}>
                               {!pedidos ? (
-                                <span className="fs-sm" style={{ color: '#6c757d' }}>Carregando pedidos...</span>
+                                <span className="lixeira-detalhe-vazio">Carregando pedidos…</span>
                               ) : totalPedidos === 0 ? (
-                                <span className="fs-sm" style={{ color: '#6c757d' }}>Este cliente não tinha pedidos.</span>
+                                <span className="lixeira-detalhe-vazio">Este cliente não tinha pedidos.</span>
                               ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                <div className="lixeira-pedidos-grid">
                                   {pedidos.fonada.length > 0 && (
-                                    <div>
-                                      <div className="fs-xs" style={{ fontWeight: 700, marginBottom: 4, color: '#6c757d' }}>
+                                    <div className="lixeira-pedidos-grupo">
+                                      <div className="lixeira-pedidos-titulo">
                                         FONADA ({pedidos.fonada.length})
                                       </div>
                                       {pedidos.fonada.map((p) => (
-                                        <div key={`f-${p.id}`} className="fs-sm" style={{ padding: '4px 0' }}>
+                                        <div key={`f-${p.id}`} className="lixeira-pedido-linha">
                                           OS {p.senha_os || p.id} — {p.nome_comprador} — {p.data_pedido || '—'}
                                           {p.valor ? ` — ${Number(p.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}` : ''}
                                         </div>
@@ -190,12 +183,12 @@ export default function Lixeira() {
                                     </div>
                                   )}
                                   {pedidos.aoVivo.length > 0 && (
-                                    <div>
-                                      <div className="fs-xs" style={{ fontWeight: 700, marginBottom: 4, color: '#6c757d' }}>
+                                    <div className="lixeira-pedidos-grupo">
+                                      <div className="lixeira-pedidos-titulo">
                                         AO VIVO ({pedidos.aoVivo.length})
                                       </div>
                                       {pedidos.aoVivo.map((p) => (
-                                        <div key={`a-${p.id}`} className="fs-sm" style={{ padding: '4px 0' }}>
+                                        <div key={`a-${p.id}`} className="lixeira-pedido-linha">
                                           OS {p.numero_os || p.id} — {p.comprador} — {p.dia_entrega || '—'}
                                           {p.valor ? ` — ${Number(p.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}` : ''}
                                         </div>
@@ -215,17 +208,7 @@ export default function Lixeira() {
             </div>
           </div>
 
-          <div className="lixeira-paginacao" style={estilos.paginacao}>
-            <button className="btn secundario" disabled={pagina <= 1} onClick={() => setPagina((p) => p - 1)}>
-              ← Anterior
-            </button>
-            <span className="fs-sm" style={{ color: '#6c757d' }}>
-              Página {pagina} de {totalPaginas} — {total} cliente(s) na lixeira
-            </span>
-            <button className="btn secundario" disabled={pagina >= totalPaginas} onClick={() => setPagina((p) => p + 1)}>
-              Próxima →
-            </button>
-          </div>
+          <Paginacao pagina={pagina} totalPaginas={totalPaginas} total={total} rotulo="clientes removidos" onAnterior={() => setPagina((p) => p - 1)} onProxima={() => setPagina((p) => p + 1)} className="lixeira-paginacao" />
         </>
       )}
     </div>

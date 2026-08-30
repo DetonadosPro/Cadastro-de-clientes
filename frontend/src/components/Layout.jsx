@@ -85,6 +85,36 @@ function IconeLixeira() {
   );
 }
 
+function MarcaPombo({ pequena = false }) {
+  return (
+    <span className={`marca-pombo ${pequena ? 'pequena' : ''}`} aria-hidden="true">
+      <svg viewBox="0 0 32 32" fill="none">
+        <path d="M6.5 9.5h19v13h-19z" stroke="currentColor" strokeWidth="1.8" />
+        <path d="m7.5 10.5 8.5 7 8.5-7M7.5 21.5l6.3-5.1m10.7 5.1-6.3-5.1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </span>
+  );
+}
+
+const ROTAS = [
+  { teste: /^\/agenda/, secao: 'Operação', titulo: 'Agenda' },
+  { teste: /^\/clientes\/novo/, secao: 'Clientes', titulo: 'Novo cliente' },
+  { teste: /^\/clientes\/lixeira/, secao: 'Clientes', titulo: 'Lixeira' },
+  { teste: /^\/clientes\/\d+/, secao: 'Clientes', titulo: 'Ficha do cliente' },
+  { teste: /^\/clientes/, secao: 'Relacionamento', titulo: 'Clientes' },
+  { teste: /^\/cobranca/, secao: 'Financeiro', titulo: 'Cobrança' },
+  { teste: /^\/recall/, secao: 'Relacionamento', titulo: 'Recall' },
+  { teste: /^\/relatorios/, secao: 'Gestão', titulo: 'Relatórios' },
+  { teste: /^\/fonada\/novo/, secao: 'Pedidos · Fonada', titulo: 'Novo pedido' },
+  { teste: /^\/fonada\/hoje/, secao: 'Pedidos · Fonada', titulo: 'Transmissões de hoje' },
+  { teste: /^\/fonada\/\d+/, secao: 'Pedidos · Fonada', titulo: 'Editar pedido' },
+  { teste: /^\/fonada/, secao: 'Pedidos', titulo: 'Fonada' },
+  { teste: /^\/ao-vivo\/novo/, secao: 'Pedidos · Ao vivo', titulo: 'Novo pedido' },
+  { teste: /^\/ao-vivo\/hoje/, secao: 'Pedidos · Ao vivo', titulo: 'Agenda de hoje' },
+  { teste: /^\/ao-vivo\/\d+/, secao: 'Pedidos · Ao vivo', titulo: 'Editar pedido' },
+  { teste: /^\/ao-vivo/, secao: 'Pedidos', titulo: 'Ao vivo' },
+];
+
 
 export default function Layout() {
   const navigate = useNavigate();
@@ -104,6 +134,9 @@ export default function Layout() {
   // bordas de urgência na tela Agenda ficam sempre sincronizadas, já
   // que ambas partem do mesmo dado buscado no mesmo instante.
   const { alertaMenu: alertaAgenda } = useAgendaAlerta();
+  const contextoRota = ROTAS.find((item) => item.teste.test(location.pathname)) || { secao: 'Pombo-Correio', titulo: 'Visão geral' };
+  const inicialUsuario = (nomeExibicao || usuario || 'U').trim().charAt(0).toUpperCase();
+  const estaCriandoCliente = location.pathname === '/clientes/novo';
 
   useAtualizacaoTempoReal(
     ['agenda', 'clientes', 'fonadas', 'ao-vivo', 'cobranca', 'recall', 'relatorios'],
@@ -234,7 +267,7 @@ export default function Layout() {
           {menuAberto ? '✕' : '☰'}
         </button>
         <div style={estilos.marca}>
-          <div style={estilos.carimboMini}>PC</div>
+          <MarcaPombo pequena />
           <span style={estilos.marcaTexto}>Pombo-Correio</span>
         </div>
         <div style={estilos.crachaTopbar} title="Usuário logado no momento">
@@ -244,8 +277,8 @@ export default function Layout() {
 
       <aside className={`layout-sidebar nao-imprimir ${menuAberto ? 'aberto' : ''} ${sidebarCompacta ? 'compacta' : ''}`}>
         <div className="layout-marca-desktop" style={estilos.marca}>
-          <div style={estilos.carimboMini}>PC</div>
-          <span className="nav-label" style={estilos.marcaTexto}>Pombo-Correio</span>
+          <MarcaPombo />
+          <span className="nav-label marca-texto-wrap"><strong style={estilos.marcaTexto}>Pombo-Correio</strong><small>Gestão operacional</small></span>
           <button type="button" className="sidebar-recolher" onClick={() => setSidebarCompacta((v) => !v)} aria-label={sidebarCompacta ? 'Expandir menu' : 'Recolher menu'} title={sidebarCompacta ? 'Expandir menu' : 'Recolher menu'}>{sidebarCompacta ? '›' : '‹'}</button>
         </div>
 
@@ -322,8 +355,8 @@ export default function Layout() {
 
           <div className="nav-label" style={estilos.rodapeSidebar}>
             <div style={estilos.crachaSidebar} title="Usuário logado no momento">
-              <span style={estilos.crachaSidebarRotulo}>Logado como</span>
-              <span style={estilos.crachaSidebarNome}>{nomeExibicao}</span>
+              <span className="usuario-avatar">{inicialUsuario}</span>
+              <span className="usuario-identidade"><span style={estilos.crachaSidebarRotulo}>Logado como</span><span style={estilos.crachaSidebarNome}>{nomeExibicao}</span></span>
             </div>
             <button onClick={sair} className="btn-sair-menu">
               Sair
@@ -337,14 +370,19 @@ export default function Layout() {
       )}
 
       <main className="layout-conteudo" ref={conteudoRef}>
-        <div className="workspace-topbar nao-imprimir">
+        <div className={`workspace-topbar nao-imprimir ${estaCriandoCliente ? 'sem-acao-principal' : ''}`}>
+          <nav className="workspace-contexto" aria-label="Localização atual">
+            <span>{contextoRota.secao}</span><i aria-hidden="true">/</i><strong>{contextoRota.titulo}</strong>
+          </nav>
           <button type="button" className="workspace-command" onClick={() => setCommandAberta(true)} aria-label="Abrir busca global">
             <span>⌕</span><span>Buscar clientes, páginas ou ações</span><kbd>Ctrl K</kbd>
           </button>
-          <button type="button" className="workspace-novo" onClick={() => navigate('/clientes/novo')}><span>＋</span> Novo cliente <kbd>N</kbd></button>
+          {!estaCriandoCliente && <button type="button" className="workspace-novo" onClick={() => navigate('/clientes/novo')}><span>＋</span> Novo cliente <kbd>N</kbd></button>}
         </div>
         <div className="layout-pagina">
-          <Outlet key={chaveConteudo} />
+          <div className="pagina-transicao" key={`${location.pathname}-${chaveConteudo}`}>
+            <Outlet />
+          </div>
         </div>
       </main>
       <CommandPalette aberta={commandAberta} onFechar={() => setCommandAberta(false)} onNavegar={navigate} />

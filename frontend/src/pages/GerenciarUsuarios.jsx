@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api.js';
 import { formatarData } from '../mascaras.js';
+import CampoData from '../components/CampoData.jsx';
+import { AvisoInline, CabecalhoPagina, EstadoCarregando, EstadoVazio } from '../components/Interface.jsx';
 
 export default function GerenciarUsuarios() {
   const [senhaMestra, setSenhaMestra] = useState('');
@@ -134,23 +136,23 @@ function PainelUsuarios({ senhaMestra }) {
   return (
     <div className="usuarios-pagina">
       <div className="usuarios-conteudo">
-        <div className="usuarios-cabecalho">
-          <div>
-            <h1 style={{ marginBottom: 2 }}>Usuários do sistema</h1>
-            <p className="fs-sm texto-suave" style={{ margin: 0 }}>Criar e remover contas de login</p>
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+        <CabecalhoPagina
+          contexto="Administração"
+          titulo="Usuários do sistema"
+          descricao="Crie contas de acesso e mantenha a identificação da equipe organizada."
+          acoes={<>
             <button type="button" className="btn" onClick={() => setMostrandoForm((v) => !v)}>
               {mostrandoForm ? 'Cancelar' : '+ Novo usuário'}
             </button>
             <Link to="/login" className="btn secundario" style={{ textDecoration: 'none' }}>
               Voltar ao login
             </Link>
-          </div>
-        </div>
+          </>}
+        />
 
         {mostrandoForm && (
-          <form onSubmit={criar} className="painel" style={{ marginBottom: 20 }}>
+          <form onSubmit={criar} className="painel usuario-formulario">
+            <div className="section-title">Dados do novo usuário</div>
             <div className="grade grade-2">
               <div className="campo">
                 <label>Nome completo</label>
@@ -158,7 +160,7 @@ function PainelUsuarios({ senhaMestra }) {
               </div>
               <div className="campo">
                 <label>Data de nascimento</label>
-                <input placeholder="dd/mm/aa" value={novaDataNascimento} onChange={(e) => setNovaDataNascimento(formatarData(e.target.value))} />
+                <CampoData placeholder="dd/mm/aa" value={novaDataNascimento} onChange={(valor) => setNovaDataNascimento(formatarData(valor))} />
               </div>
             </div>
             <div className="grade grade-2">
@@ -171,8 +173,8 @@ function PainelUsuarios({ senhaMestra }) {
                 <input type="password" value={novaSenha} onChange={(e) => setNovaSenha(e.target.value)} placeholder="mínimo 3 caracteres" />
               </div>
             </div>
-            {erroForm && <p className="login-erro">{erroForm}</p>}
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            {erroForm && <AvisoInline tom="erro" titulo="Revise os dados do usuário">{erroForm}</AvisoInline>}
+            <div className="usuario-formulario-acoes">
               <button type="submit" className="btn" disabled={salvando}>
                 {salvando ? 'Criando...' : 'Criar usuário'}
               </button>
@@ -180,16 +182,14 @@ function PainelUsuarios({ senhaMestra }) {
           </form>
         )}
 
-        {erro && <p className="login-erro">{erro}</p>}
+        {erro && <AvisoInline tom="erro" titulo="Não foi possível carregar os usuários" acao={<button type="button" className="btn secundario" onClick={carregar}>Tentar novamente</button>}>{erro}</AvisoInline>}
 
         {carregando ? (
-          <p className="texto-suave">Carregando...</p>
+          <EstadoCarregando rotulo="Carregando usuários…" linhas={4} />
         ) : usuarios.length === 0 ? (
-          <div className="painel estado-cobranca">
-            Nenhum usuário cadastrado ainda.
-          </div>
+          <EstadoVazio icone="＋" titulo="Nenhum usuário cadastrado" descricao="Crie a primeira conta para liberar o acesso da equipe ao sistema." acao={<button type="button" className="btn" onClick={() => setMostrandoForm(true)}>Criar usuário</button>} />
         ) : (
-          <div className="painel" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="painel usuarios-tabela-painel">
             <table className="tabela-lista tabela-usuarios">
               <thead>
                 <tr>

@@ -9,6 +9,7 @@ import CampoData from '../../components/CampoData.jsx';
 import CampoComSugestoes from '../../components/CampoComSugestoes.jsx';
 import CampoSelecao from '../../components/CampoSelecao.jsx';
 import PaginaImpressaoAoVivo from './PaginaImpressaoAoVivo.jsx';
+import { AvisoInline, CabecalhoPagina, EstadoCarregando } from '../../components/Interface.jsx';
 
 const VAZIO = {
   numero_os: '', cliente_id: null, data_pedido: '', horario_pedido: '', dia_entrega: '', horario_entrega: '',
@@ -416,14 +417,16 @@ export default function FormAoVivo() {
     return () => window.removeEventListener('keydown', aoPressionarTecla);
   }, [editando, id, dados]);
 
-  if (carregando) return <p style={{ color: 'var(--tinta-suave)' }}>Carregando...</p>;
+  if (carregando) return <EstadoCarregando rotulo="Preparando o pedido Ao vivo…" linhas={8} />;
 
   if (erro && !dados.cliente_id) {
     return (
-      <div className="painel" style={{ maxWidth: 480 }}>
-        <p className="fs-sm" style={{ color: 'var(--selo)', marginBottom: 12 }}>{erro}</p>
-        <button className="btn" onClick={() => navigate('/clientes')}>Ir para Clientes</button>
-      </div>
+      <AvisoInline
+        className="form-erro-vinculo"
+        tom="erro"
+        titulo="O pedido precisa de um cliente"
+        acao={<button className="btn" onClick={() => navigate('/clientes')}>Escolher cliente</button>}
+      >{erro}</AvisoInline>
     );
   }
 
@@ -440,6 +443,13 @@ export default function FormAoVivo() {
   return (
     <div className="pagina-aovivo-ampliada">
       <div className="form-pagina form-compacto nao-imprimir">
+      <CabecalhoPagina
+        className="form-cabecalho-pedido"
+        contexto="Pedido · Ao vivo"
+        titulo={editando ? 'Editar pedido' : 'Novo pedido'}
+        descricao={cliente ? `${cliente.nome} · concentre evento, homenagem, músicas e pagamento no mesmo fluxo.` : 'Preencha evento, homenagem, músicas e condições do pedido.'}
+        meta={dados.numero_os ? `O.S. ${dados.numero_os}` : 'Nova O.S.'}
+      />
       {estaBloqueado && (
         <div className="aviso-bloqueio" style={{ marginBottom: 16 }}>
           <strong>Cliente bloqueado.</strong> Este pedido está travado para edição — só é possível visualizar.
@@ -678,13 +688,7 @@ export default function FormAoVivo() {
         </div>
 
         <div>
-          <div style={estilos.osTopo}>
-            {dados.numero_os
-              ? <span className="carimbo-os">O.S. {dados.numero_os}</span>
-              : <span className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Calculando O.S...</span>}
-          </div>
-
-          {erro && <p className="fs-sm" style={{ color: 'var(--selo)', marginBottom: 10 }}>{erro}</p>}
+          {erro && <AvisoInline tom="erro" titulo="Revise o pedido antes de salvar">{erro}</AvisoInline>}
 
           <div className="section-box actions-grid">
             <button type="button" className="btn-action destaque" onClick={salvar} disabled={salvando || diaEventoNoPassado}>
@@ -761,7 +765,7 @@ export default function FormAoVivo() {
 
       {modalPagamento && (
         <div className="modal-fundo nao-imprimir" onClick={() => setModalPagamento(false)}>
-          <div className="modal-caixa" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-caixa" role="dialog" aria-modal="true" aria-label={`Receber pagamento da O.S. ${dados.numero_os || id}`} onClick={(e) => e.stopPropagation()}>
             <div className="section-title">Receber pagamento — O.S. {dados.numero_os || id}</div>
             <div className="grade grade-3">
               <div className="campo"><label>Data</label><CampoData value={dataRecebimento} onChange={(v) => setDataRecebimento(formatarData(v))} /></div>

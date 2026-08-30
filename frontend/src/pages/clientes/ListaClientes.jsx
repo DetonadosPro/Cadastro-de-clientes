@@ -4,6 +4,7 @@ import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
 import ClienteDrawer from '../../components/ClienteDrawer.jsx';
+import { AvisoInline, CabecalhoPagina, EstadoVazio, Paginacao } from '../../components/Interface.jsx';
 
 const FILTROS_RAPIDOS = [
   ['pendencia', 'Com cobrança pendente'],
@@ -362,18 +363,12 @@ export default function ListaClientes() {
 
   return (
     <div className="clientes-workspace">
-      <div className="pagina-cabecalho-v2">
-        <div>
-          <span className="pagina-kicker">Relacionamento</span>
-          <h1>Clientes</h1>
-          <p>Consulte contatos e histórico sem perder o contexto da lista.</p>
-        </div>
-        <div className="pagina-acoes-v2">
-          <button className="btn" onClick={() => navigate('/clientes/novo')} style={{ gap: 8 }}>
-            <IconeMais /> Novo cliente
-          </button>
-        </div>
-      </div>
+      <CabecalhoPagina
+        contexto="Relacionamento"
+        titulo="Clientes"
+        descricao="Encontre contatos, identifique pendências e abra o histórico sem perder o contexto da lista."
+        meta={!carregando ? `${total} cliente${total === 1 ? '' : 's'}` : null}
+      />
 
       {sugestoesVisiveis.length > 0 && (
         <div className="painel" style={estilos.avisoDuplicata}>
@@ -431,6 +426,10 @@ export default function ListaClientes() {
       )}
 
       <div className="painel clientes-filtros">
+        <div className="filtros-cabecalho">
+          <div><strong>Localizar clientes</strong><span>Combine nome, contato, aniversário ou situação.</span></div>
+          {(busca || telefone || aniversario || situacao) && <button type="button" className="btn-small" onClick={() => { setBusca(''); setTelefone(''); setAniversario(''); setSituacao(''); }}>Limpar tudo</button>}
+        </div>
         <div className="clientes-filtros-rapidos">
           {FILTROS_RAPIDOS.map(([valor, rotulo]) => (
             <button key={valor} type="button" className={situacao === valor ? 'ativo' : ''} onClick={() => aplicarFiltroRapido(valor)}>{rotulo}</button>
@@ -440,7 +439,6 @@ export default function ListaClientes() {
           <div className="campo clientes-campo-nome"><label>Nome</label><input type="text" placeholder="Nome do cliente" value={busca} onChange={(e) => setBusca(e.target.value)} /></div>
           <div className="campo"><label>Telefone ou WhatsApp</label><input type="text" inputMode="numeric" placeholder="(34) 9 9999-9999" value={telefone} onChange={(e) => setTelefone(formatarTelefonePesquisa(e.target.value))} /></div>
           <div className="campo"><label>Aniversário</label><input type="text" inputMode="numeric" placeholder="dd/mm" value={aniversario} onChange={(e) => setAniversario(formatarData(e.target.value))} /></div>
-          {(busca || telefone || aniversario || situacao) && <button type="button" className="btn-small" onClick={() => { setBusca(''); setTelefone(''); setAniversario(''); setSituacao(''); }}>Limpar filtros</button>}
         </div>
       </div>
 
@@ -452,20 +450,19 @@ export default function ListaClientes() {
         </div>
       )}
 
-      {erro && <p style={{ color: 'var(--selo)' }}>{erro}</p>}
+      {erro && <AvisoInline tom="erro" titulo="Não foi possível carregar os clientes">{erro}</AvisoInline>}
       {mesclando && <p className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Mesclando clientes...</p>}
 
       {carregando ? (
         <SkeletonClientes />
       ) : itens.length === 0 ? (
-        <div className="estado-vazio-v2 painel">
-          <div className="estado-vazio-icone">⌕</div>
-          <h3>Nenhum cliente encontrado</h3>
-          <p>{busca || telefone || aniversario || situacao ? 'Revise os filtros ou limpe a busca para ver outros cadastros.' : 'Cadastre o primeiro cliente para começar.'}</p>
-          {busca || telefone || aniversario || situacao
+        <EstadoVazio
+          titulo="Nenhum cliente encontrado"
+          descricao={busca || telefone || aniversario || situacao ? 'Revise os filtros ou limpe a busca para ver outros cadastros.' : 'Cadastre o primeiro cliente para começar.'}
+          acao={busca || telefone || aniversario || situacao
             ? <button className="btn secundario" onClick={() => { setBusca(''); setTelefone(''); setAniversario(''); setSituacao(''); }}>Limpar filtros</button>
-            : <button className="btn" onClick={() => navigate('/clientes/novo')}>+ Novo cliente</button>}
-        </div>
+            : <button className="btn" onClick={() => navigate('/clientes/novo')}><IconeMais /> Novo cliente</button>}
+        />
       ) : (
         <>
           <div className="painel" style={{ padding: 0, overflow: 'hidden' }}>
@@ -547,23 +544,13 @@ export default function ListaClientes() {
             </div>
           </div>
 
-          <div style={estilos.paginacao}>
-            <button className="btn secundario" disabled={paginaUrl <= 1} onClick={() => irParaPagina(paginaUrl - 1)}>
-              ← Anterior
-            </button>
-            <span className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>
-              Página {paginaUrl} de {totalPaginas} — {total} cliente(s)
-            </span>
-            <button className="btn secundario" disabled={paginaUrl >= totalPaginas} onClick={() => irParaPagina(paginaUrl + 1)}>
-              Próxima →
-            </button>
-          </div>
+          <Paginacao pagina={paginaUrl} totalPaginas={totalPaginas} total={total} rotulo="clientes" onAnterior={() => irParaPagina(paginaUrl - 1)} onProxima={() => irParaPagina(paginaUrl + 1)} />
         </>
       )}
 
       {comparacaoMescla && (
         <div className="modal-fundo" onClick={() => setComparacaoMescla(null)}>
-          <div className="modal-caixa modal-mesclar-clientes" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-caixa modal-mesclar-clientes" role="dialog" aria-modal="true" aria-label="Comparar e mesclar clientes" onClick={(e) => e.stopPropagation()}>
             <div className="section-title">Comparar e mesclar clientes</div>
             <p className="fs-sm texto-suave">Escolha qual cadastro será mantido. Todos os pedidos do outro cadastro serão transferidos, e ele irá para a lixeira.</p>
             <div className="comparacao-clientes">

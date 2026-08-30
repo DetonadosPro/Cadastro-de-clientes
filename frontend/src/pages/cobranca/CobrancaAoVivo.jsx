@@ -5,6 +5,7 @@ import { useToast } from '../../ToastContext.jsx';
 import { formatarData } from '../../mascaras.js';
 import CampoData from '../../components/CampoData.jsx';
 import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
+import { AvisoInline, EstadoCarregando, EstadoVazio } from '../../components/Interface.jsx';
 
 function hojeBr() {
   const data = new Date();
@@ -86,7 +87,7 @@ function rotuloData(pedido) {
   return `Daqui a ${dias} dias`;
 }
 
-export default function CobrancaAoVivo() {
+export default function CobrancaAoVivo({ mostrarCabecalho = true }) {
   const [parametrosUrl, setParametrosUrl] = useSearchParams();
   const [pendentes, setPendentes] = useState([]);
   const [recebidas, setRecebidas] = useState([]);
@@ -224,9 +225,9 @@ export default function CobrancaAoVivo() {
 
   return (
     <div>
-      <div className="cobranca-cabecalho nao-imprimir">
+      {mostrarCabecalho && <div className="cobranca-cabecalho nao-imprimir">
         <div><h1 style={{ marginBottom: 2 }}>Cobrança — Ao Vivo</h1><p className="fs-sm texto-suave" style={{ margin: 0 }}>Pagamento e realização da mensagem são controles independentes</p></div>
-      </div>
+      </div>}
 
       <div className="grade-resumo-cobranca-operacional nao-imprimir">
         <Resumo titulo="Pendente" valor={totalPendente} quantidade={pendentes.length} classe="total" onClick={() => setFiltro('pendentes')} />
@@ -246,8 +247,8 @@ export default function CobrancaAoVivo() {
         </div>
       </div>
 
-      {erro && <p style={{ color: 'var(--selo)' }}>{erro}</p>}
-      {carregando ? <p className="texto-suave">Carregando...</p> : visiveis.length === 0 ? <div className="painel estado-cobranca">Nenhum pagamento Ao Vivo encontrado.</div> : (
+      {erro && <AvisoInline tom="erro" titulo="Não foi possível atualizar os pagamentos">{erro}</AvisoInline>}
+      {carregando ? <EstadoCarregando rotulo="Atualizando pagamentos Ao vivo…" linhas={4} /> : visiveis.length === 0 ? <EstadoVazio className="cobranca-estado-vazio" icone="R$" titulo="Nenhum pagamento Ao vivo neste grupo" descricao="Altere a situação, o nome ou a O.S. para consultar outros registros." /> : (
         <div className="lista-cobranca-aovivo nao-imprimir">
           {lista.itensVisiveis.map((pedido) => {
             const whatsapp = telefoneWhatsApp(pedido.whatsapp || pedido.celular);
@@ -292,7 +293,7 @@ function Resumo({ titulo, pedidos, valor, quantidade, classe, onClick }) {
 }
 
 function Modal({ titulo, fechar, children }) {
-  return <div className="modal-fundo nao-imprimir" onClick={fechar}><div className="modal-caixa" onClick={(e) => e.stopPropagation()}><div className="section-title">{titulo}</div>{children}</div></div>;
+  return <div className="modal-fundo nao-imprimir" onClick={fechar}><div className="modal-caixa" role="dialog" aria-modal="true" aria-label={titulo} onClick={(e) => e.stopPropagation()}><div className="section-title">{titulo}</div>{children}</div></div>;
 }
 
 function Acoes({ cancelar, confirmar, salvando, rotulo }) {

@@ -5,6 +5,7 @@ import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
 import { useSmartBack } from '../../hooks/useSmartBack.js';
 import CampoEnderecoAutocomplete from '../../components/CampoEnderecoAutocomplete.jsx';
+import { AvisoInline, CabecalhoPagina } from '../../components/Interface.jsx';
 
 function IconeAviso() {
   return (
@@ -102,19 +103,12 @@ export default function FormNovoCliente() {
 
   return (
     <div className="form-pagina cadastro-cliente-pagina">
-      <div className="pagina-cabecalho-v2">
-        <div>
-          <span className="pagina-kicker">Cadastro inteligente</span>
-          <h1>Novo cliente</h1>
-          <p>Comece pelas informações essenciais. Os demais dados são opcionais.</p>
-        </div>
-        <button type="button" className="btn secundario" onClick={cancelar}>Fechar</button>
-      </div>
+      <CabecalhoPagina contexto="Clientes" titulo="Novo cliente" descricao="Comece pelas informações essenciais. Endereço e referência podem ser acrescentados agora ou depois." acoes={<button type="button" className="btn secundario" onClick={cancelar}>Fechar</button>} />
 
-      {erro && <p className="fs-sm" style={{ color: 'var(--selo)', marginBottom: 12 }}>{erro}</p>}
+      {erro && <AvisoInline tom="erro" titulo="Não foi possível salvar o cliente">{erro}</AvisoInline>}
 
       {duplicados && duplicados.length > 0 && (
-        <div className="painel" style={estilos.avisoDuplicado}>
+        <div className="painel cadastro-duplicados" style={estilos.avisoDuplicado}>
           <div style={{ fontWeight: 700, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8, color: 'var(--aviso)' }}>
             <IconeAviso /> Já existe cliente parecido com o mesmo aniversário
           </div>
@@ -218,11 +212,9 @@ export default function FormNovoCliente() {
       )}
 
       {duplicados && duplicados.length === 0 && (
-        <div className="painel">
-          <p className="fs-sm" style={{ color: 'var(--ok)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <IconeOk /> Nenhuma duplicidade encontrada. Pode confirmar o cadastro.
-          </p>
-          <div style={estilos.rodapeBotoes}>
+        <div className="painel cadastro-confirmacao">
+          <AvisoInline tom="sucesso" titulo="Cadastro pronto para confirmar">Nenhuma duplicidade foi encontrada com nome e aniversário semelhantes.</AvisoInline>
+          <div className="cadastro-confirmacao-acoes" style={estilos.rodapeBotoes}>
             <button type="button" className="btn secundario" onClick={cancelar}>Cancelar</button>
             <button type="button" className="btn" onClick={salvarDeVerdade} disabled={salvando}>
               {salvando ? 'Salvando...' : 'Confirmar e salvar'}

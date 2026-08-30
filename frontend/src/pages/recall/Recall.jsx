@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api, getNomeExibicao } from '../../api.js';
-import { useToast } from '../../ToastContext.jsx';
 import { buildRecallWhatsAppUrl } from '../../utils/mensagemRecall.js';
+import { AvisoInline, CabecalhoPagina, EstadoCarregando } from '../../components/Interface.jsx';
 
 function isoLocal(data = new Date()) { return `${data.getFullYear()}-${String(data.getMonth()+1).padStart(2,'0')}-${String(data.getDate()).padStart(2,'0')}`; }
 function somarDias(iso, dias) { const d=new Date(`${iso}T12:00:00`); d.setDate(d.getDate()+dias); return isoLocal(d); }
@@ -22,14 +22,14 @@ function normalizarBusca(valor) { return String(valor||'').normalize('NFD').repl
 function correspondeBusca(valor, termo) { const alvo=normalizarBusca(valor); const compacto=(texto)=>texto.replace(/[^a-z0-9]/g,''); return alvo.includes(termo)||compacto(alvo).includes(compacto(termo)); }
 
 export default function Recall() {
-  const navigate=useNavigate(); const { mostrarToast }=useToast(); const [params,setParams]=useSearchParams();
+  const navigate=useNavigate(); const [params,setParams]=useSearchParams();
   const [data,setData]=useState(params.get('data')||isoLocal());
   const [modoFila,setModoFila]=useState(params.get('modo')==='aniversario'?'ANIVERSARIO':'DIA_MENSAGEM');
-  const [dados,setDados]=useState(null); const [selecionado,setSelecionado]=useState(null); const [carregando,setCarregando]=useState(false); const [buscaNome,setBuscaNome]=useState(params.get('busca')||'');
+  const [dados,setDados]=useState(null); const [selecionado,setSelecionado]=useState(null); const [carregando,setCarregando]=useState(false); const [erro,setErro]=useState(''); const [buscaNome,setBuscaNome]=useState(params.get('busca')||'');
   const listaRef=useRef(null);
 
   function listaDoModo(resposta=dados, modo=modoFila){const lista=modo==='ANIVERSARIO'?(resposta?.porAniversario||[]):(resposta?.porDiaMensagem||[]);return lista.filter(i=>nomePessoaValido(i.clienteNome)&&nomePessoaValido(i.aniversariante));}
-  async function carregarFila(dataAlvo=data, relacaoAlvo=null, modoAlvo=modoFila) { setCarregando(true); try { const r=await api.recall.fila(dataAlvo); const lista=listaDoModo(r,modoAlvo); setDados(r); setSelecionado((atual)=>lista.find(i=>i.relacaoChave===(relacaoAlvo||atual?.relacaoChave))||lista[0]||null); } catch(e){mostrarToast(e.message,'erro');} finally{setCarregando(false);} }
+  async function carregarFila(dataAlvo=data, relacaoAlvo=null, modoAlvo=modoFila) { setCarregando(true); setErro(''); try { const r=await api.recall.fila(dataAlvo); const lista=listaDoModo(r,modoAlvo); setDados(r); setSelecionado((atual)=>lista.find(i=>i.relacaoChave===(relacaoAlvo||atual?.relacaoChave))||lista[0]||null); } catch(e){setDados(null);setSelecionado(null);setErro(e.message||'Não foi possível montar a fila.');} finally{setCarregando(false);} }
   useEffect(()=>{ carregarFila(data,params.get('relacao')||null,modoFila); },[data]);
   useEffect(()=>{ setParams((p)=>{ const n=new URLSearchParams(p); n.set('aba','fila'); n.set('data',data); n.set('modo',modoFila==='ANIVERSARIO'?'aniversario':'dia-mensagem'); if(selecionado?.relacaoChave)n.set('relacao',selecionado.relacaoChave);else if(dados)n.delete('relacao'); if(buscaNome)n.set('busca',buscaNome);else n.delete('busca'); return n; },{replace:true}); },[data,modoFila,selecionado?.relacaoChave,buscaNome]);
   useEffect(()=>{if(dados){const lista=listaDoModo(dados,modoFila);setSelecionado(lista.find(i=>i.relacaoChave===selecionado?.relacaoChave)||lista[0]||null);}},[modoFila]);
@@ -67,11 +67,11 @@ export default function Recall() {
   }
 
   return <div className="recall-page">
-    <header className="recall-cabecalho"><div><span className="recall-sobretitulo">Central de relacionamento</span><h1>Recall</h1><p>Duas pesquisas diferentes, organizadas em filas sem pessoas repetidas.</p></div></header>
+    <CabecalhoPagina contexto="Central de relacionamento" titulo="Recall" descricao="Duas pesquisas complementares, organizadas em filas sem pessoas repetidas." />
     <>
       <div className="recall-dias">{dias.map((d,i)=><button key={d} className={d===data?'ativo':''} onClick={()=>setData(d)}><small>{i===0?'Hoje':i===1?'Amanhã':dataLegivel(d).split(' ')[0]}</small><strong>{dataLegivel(d).split(' ').slice(-1)}</strong></button>)}</div>
       {dados&&<div className="recall-fontes recall-seletor-pesquisas" role="tablist" aria-label="Tipo de pesquisa"><button type="button" role="tab" aria-selected={modoFila==='DIA_MENSAGEM'} className={modoFila==='DIA_MENSAGEM'?'ativo':''} onClick={()=>setModoFila('DIA_MENSAGEM')}><span className="recall-pesquisa-texto"><small>Pesquisa 1</small><strong>Por dia da mensagem</strong></span><em aria-label={`${listaDoModo(dados,'DIA_MENSAGEM').length} pessoas`}>{listaDoModo(dados,'DIA_MENSAGEM').length}</em></button><button type="button" role="tab" aria-selected={modoFila==='ANIVERSARIO'} className={modoFila==='ANIVERSARIO'?'ativo':''} onClick={()=>setModoFila('ANIVERSARIO')}><span className="recall-pesquisa-texto"><small>Pesquisa 2</small><strong>Aniversário do cliente</strong></span><em aria-label={`${listaDoModo(dados,'ANIVERSARIO').length} pessoas`}>{listaDoModo(dados,'ANIVERSARIO').length}</em></button></div>}
-      {carregando?<div className="painel recall-vazio">Montando a fila…</div>:!itensAtivos.length?<div className="painel recall-vazio"><strong>Fila livre para este dia</strong><span>Nenhuma relação foi encontrada nesta pesquisa.</span></div>:<div className="recall-workspace">
+      {erro?<AvisoInline tom="erro" titulo="Não foi possível montar a fila" acao={<button type="button" className="btn secundario" onClick={()=>carregarFila()}>Tentar novamente</button>}>{erro}</AvisoInline>:carregando?<EstadoCarregando className="recall-estado-carregando" rotulo="Montando a fila de relacionamento…" linhas={3}/>:!itensAtivos.length?<div className="painel recall-vazio"><strong>Fila livre para este dia</strong><span>Nenhuma relação foi encontrada nesta pesquisa.</span></div>:<div className="recall-workspace">
         <div className="recall-lista-coluna"><label className="recall-pesquisa-nome"><IconeBusca/><input type="search" value={buscaNome} onChange={(e)=>setBuscaNome(e.target.value)} placeholder="Buscar por nome ou senha..." aria-label="Buscar nas duas pesquisas por nome ou senha"/></label><section className="recall-lista" ref={listaRef} onScroll={guardarScrollLista}>{itensFiltrados.length?itensFiltrados.map(i=><button key={i.relacaoChave} className={`recall-linha ${selecionado?.relacaoChave===i.relacaoChave?'selecionada':''}`} onClick={()=>setSelecionado(i)}><span className="recall-avatar">{i.clienteNome?.charAt(0)}</span><span><strong className="recall-lista-relacao"><span title={i.clienteNome}>{nomeCurto(i.clienteNome)}{i.clienteBloqueado&&<em className="recall-bloqueado">Bloqueado</em>}</span>{!i.clienteBloqueado&&<><b>→</b><span title={i.aniversariante}>{nomeCurto(i.aniversariante)}{i.aniversarianteBloqueado&&<em className="recall-bloqueado">Bloqueado</em>}</span></>}</strong></span></button>):<div className="recall-lista-sem-resultado">Nenhum nome ou senha encontrado.</div>}</section></div>
         {selecionado&&<Detalhes item={selecionado} modoFila={selecionado._modoFila||modoFila} modoWhatsapp={modoFila} criarPedido={criarPedido} navigate={navigate} returnTo={urlRetornoFila()} posicao={indiceSelecionado+1} total={itensFiltrados.length} onAnterior={()=>navegarNaLista(-1)} onProximo={()=>navegarNaLista(1)}/>}
       </div>}
