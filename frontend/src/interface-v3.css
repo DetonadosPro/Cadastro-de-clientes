@@ -486,6 +486,14 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--carimbo); }
 .linha-agenda-horario { color: #254f86; font-size: 13px; font-variant-numeric: tabular-nums; }
 .linha-agenda-os { font-size: 10px; }
 .painel-detalhes-agenda { border-radius: 16px; box-shadow: var(--sombra-sm); }
+.agenda-horario-detalhe { margin-bottom: 11px; color: var(--tinta-suave); font-size: 11px; font-variant-numeric: tabular-nums; }
+.agenda-destinatario-contato { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(118px, .8fr); align-items: start; gap: 10px 18px; margin-bottom: 13px; padding-inline: 2px; }
+.agenda-destinatario-principal, .agenda-destinatario-celular, .agenda-destinatario-fixo { min-width: 0; }
+.agenda-destinatario-principal .fs-xs { color: var(--carimbo) !important; font-weight: 800; }
+.agenda-destinatario-principal .fs-md { color: var(--tinta); font-size: 17px; font-weight: 760; line-height: 1.25; overflow-wrap: anywhere; }
+.agenda-destinatario-celular .fs-xs { color: #51709a !important; font-weight: 800; }
+.agenda-destinatario-celular .fs-md { color: var(--carimbo); font-size: 14px; font-weight: 720; }
+.agenda-destinatario-fixo { grid-column: 1 / -1; }
 .agenda-mensagem-contexto { display: grid; gap: 10px; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--papel-alt); }
 .agenda-contexto-duplo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .agenda-tema-bloco, .agenda-oferece-bloco { min-width: 0; padding: 12px 13px; border: 1px solid var(--borda); border-radius: 10px; }
@@ -493,6 +501,10 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--carimbo); }
 .agenda-oferece-bloco { border-left: 3px solid #8a6b38; background: #fcfaf5; }
 .agenda-tema-bloco .info-label, .agenda-oferece-bloco .info-label { font-size: 9px; }
 .agenda-oferece-bloco .info-valor { color: #513f25; font-weight: 700; }
+.agenda-cliente-secundario { min-width: 0; display: flex; align-items: baseline; gap: 7px; margin: -2px 2px 13px; color: var(--tinta-suave); }
+.agenda-cliente-secundario > span:first-child { flex: 0 0 auto; font-size: 9px; font-weight: 720; letter-spacing: .045em; text-transform: uppercase; }
+.agenda-cliente-nome { min-width: 0; color: #667386; font-size: 12px; font-weight: 400; line-height: 1.35; overflow-wrap: anywhere; }
+.agenda-cliente-nome.link-whatsapp:hover { color: var(--carimbo); }
 .agenda-concluidos { margin-top: 14px; border: 1px solid var(--borda); border-radius: 13px; background: #fff; }
 .agenda-concluidos-toggle { min-height: 48px; padding: 0 14px; }
 .agenda-vazia, .agenda-pendentes-vazia, .estado-vazio-v2 { color: var(--tinta-suave); }

@@ -1001,18 +1001,14 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onD
           </span>
         )}
       </div>
-      <NomeComWhatsapp
-        nome={item.nome_comprador}
-        whatsapp={item.whatsapp}
-      />
-      <div className="fs-sm" style={{ color: 'var(--tinta-suave)', marginBottom: 14, paddingBottom: 14, borderBottom: '2px solid var(--papel-alt)' }}>
+      <div className="agenda-horario-detalhe">
         {item.horario || '—'}
       </div>
 
-      <div className="grade grade-2" style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid var(--papel-alt)' }}>
-        <Info label="Destinatário" valor={item.para} />
-        {item.celular && <InfoTelefone label="Celular" valor={item.celular} />}
-        {item.fixo && <Info label="Fixo" valor={item.fixo} />}
+      <div className="agenda-destinatario-contato">
+        <Info className="agenda-destinatario-principal" label="Destinatário" valor={item.para} />
+        {item.celular && <InfoTelefone className="agenda-destinatario-celular" label="Celular" valor={item.celular} />}
+        {item.fixo && <Info className="agenda-destinatario-fixo" label="Fixo" valor={item.fixo} />}
       </div>
 
       <div className="agenda-mensagem-contexto">
@@ -1049,6 +1045,11 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onD
             )}
           </>
         )}
+      </div>
+
+      <div className="agenda-cliente-secundario">
+        <span>Cliente</span>
+        <NomeComWhatsapp nome={item.nome_comprador} whatsapp={item.whatsapp} />
       </div>
 
       {(!ehHoje || jaPassada) && item.resultado && (
@@ -1331,15 +1332,14 @@ function abrirWhatsappSeExistir(whatsapp, mensagem) {
 function NomeComWhatsapp({ nome, whatsapp }) {
   const link = linkWhatsappDe(whatsapp);
   if (!link) {
-    return <div className="fs-lg" style={{ fontWeight: 700, marginBottom: 2 }}>{nome || '—'}</div>;
+    return <span className="agenda-cliente-nome">{nome || '—'}</span>;
   }
   return (
     <a
       href={link}
       target="_blank"
       rel="noopener noreferrer"
-      className="fs-lg link-whatsapp"
-      style={{ fontWeight: 700, marginBottom: 2, display: 'inline-block' }}
+      className="agenda-cliente-nome link-whatsapp"
       title="Abrir conversa no WhatsApp"
     >
       {nome || '—'}
@@ -1347,9 +1347,9 @@ function NomeComWhatsapp({ nome, whatsapp }) {
   );
 }
 
-function Info({ label, valor }) {
+function Info({ label, valor, className = '' }) {
   return (
-    <div>
+    <div className={className}>
       <div className="fs-xs" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--tinta-suave)', marginBottom: 2 }}>
         {label}
       </div>
@@ -1361,11 +1361,11 @@ function Info({ label, valor }) {
 // Igual a Info, mas o valor vira link clicável para abrir a conversa no
 // WhatsApp (wa.me), usado no Celular — mesmo padrão de formatação de
 // número usado no cadastro (DDI 55 + DDD + número, só dígitos).
-function InfoTelefone({ label, valor, mensagem }) {
+function InfoTelefone({ label, valor, mensagem, className = '' }) {
   const linkWhatsapp = linkWhatsappDe(valor, mensagem);
 
   return (
-    <div>
+    <div className={className}>
       <div className="fs-xs" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--tinta-suave)', marginBottom: 2 }}>
         {label}
       </div>
