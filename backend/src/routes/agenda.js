@@ -110,7 +110,11 @@ router.get('/hoje', async (req, res) => {
 
     const aoVivoResultado = await db.query(`
       SELECT id, numero_os, comprador, cliente_id, para, dia_entrega, horario_entrega,
-             endereco, bairro, referencia, brinde, pagamento, pagou, data_pagou,
+             endereco, bairro, referencia, fixo_local, celular_local,
+             tema_1, mensagem_codigo_1, tema_2, mensagem_codigo_2,
+             tema_3, mensagem_codigo_3, tema_4, mensagem_codigo_4,
+             musica_1, musica_2, musica_3, musica_4, musica_5, musica_6,
+             brinde, pagamento, pagou, data_pagou,
              resultado_entrega, entregue_por
       FROM ao_vivo
       WHERE excluido_em IS NULL AND dia_entrega IN ($1, $2)

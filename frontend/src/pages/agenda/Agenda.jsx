@@ -739,6 +739,7 @@ export default function Agenda() {
                   ✕
                 </button>
               )}
+              <div key={itemSelecionado?._chave || 'sem-selecao'} className="agenda-detalhe-transicao">
               {!itemSelecionado ? (
                 <p className="fs-sm" style={{ color: 'var(--tinta-suave)', textAlign: 'center', padding: '24px 12px' }}>
                   Selecione um item da lista para ver os detalhes.
@@ -767,6 +768,7 @@ export default function Agenda() {
                   onExcluir={excluirLembrete}
                 />
               )}
+              </div>
             </div>}
           </div>
         </div>
@@ -984,8 +986,9 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onD
     || (par && par.statusMensagemEmHaver === 'EXPIRADA');
 
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+    <div className="agenda-detalhe agenda-detalhe-fonada">
+      <header className="agenda-detalhe-cabecalho">
+      <div className="agenda-detalhe-status">
         <span className="carimbo-os carimbo-os-lista">{item.senha_os || item.pedidoId}</span>
         {par ? (
           <span className="tag neutro" style={{ fontWeight: 700 }}>1ª + 2ª mensagem juntas</span>
@@ -1002,68 +1005,56 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onD
         )}
       </div>
       <div className="agenda-horario-detalhe">
-        {item.horario || '—'}
+        <span>Horário</span><strong>{item.horario || '—'}</strong>
       </div>
+      </header>
 
-      <div className="agenda-destinatario-contato">
+      <section className="agenda-destinatario-contato">
         <Info className="agenda-destinatario-principal" label="Destinatário" valor={item.para} />
-        {item.celular && <InfoTelefone className="agenda-destinatario-celular" label="Celular" valor={item.celular} />}
-        {item.fixo && <Info className="agenda-destinatario-fixo" label="Fixo" valor={item.fixo} />}
-      </div>
+        {(item.celular || item.fixo) && (
+          <div className="agenda-contatos-destinatario">
+            {item.celular && <InfoTelefone className="agenda-destinatario-celular" label="Celular" valor={item.celular} />}
+            {item.fixo && <Info className="agenda-destinatario-fixo" label="Fixo" valor={item.fixo} />}
+          </div>
+        )}
+      </section>
 
-      <div className="agenda-mensagem-contexto">
-        {par ? (
-          <>
-            <div className="agenda-contexto-duplo">
-              <section className="agenda-tema-bloco">
-                <Info label="Tema da 1ª mensagem" valor={item.tema ? `${item.tema}${item.codigo ? ' · ' + item.codigo : ''}` : (item.codigo || null)} />
-              </section>
-              <section className="agenda-tema-bloco">
-                <Info label="Tema da 2ª mensagem" valor={par.tema ? `${par.tema}${par.codigo ? ' · ' + par.codigo : ''}` : (par.codigo || null)} />
-              </section>
-            </div>
-            {(item.quemOferece || par.quemOferece) && (
-              <div className="agenda-contexto-duplo">
-                <section className="agenda-oferece-bloco">
-                  <Info label="Oferecimento da 1ª mensagem" valor={item.quemOferece || '—'} />
-                </section>
-                <section className="agenda-oferece-bloco">
-                  <Info label="Oferecimento da 2ª mensagem" valor={par.quemOferece || '—'} />
-                </section>
-              </div>
-            )}
-          </>
-        ) : (
-          <>
-            <section className="agenda-tema-bloco">
-              <Info label="Tema" valor={item.tema ? `${item.tema}${item.codigo ? ' · ' + item.codigo : ''}` : (item.codigo || null)} />
-            </section>
-            {item.quemOferece && (
-              <section className="agenda-oferece-bloco">
-                <Info label="Quem oferece" valor={item.quemOferece} />
-              </section>
-            )}
-          </>
+      <div className={`agenda-mensagem-contexto ${par ? 'agenda-mensagem-contexto-duplo' : ''}`}>
+        <MensagemFonada
+          numero={par ? 1 : null}
+          tema={item.tema}
+          codigo={item.codigo}
+          quemOferece={item.quemOferece}
+        />
+        {par && (
+          <MensagemFonada
+            numero={2}
+            tema={par.tema}
+            codigo={par.codigo}
+            quemOferece={par.quemOferece}
+          />
         )}
       </div>
+
+      <section className="agenda-operacao-bloco">
+      {(!ehHoje || jaPassada) && item.resultado && (
+        <div>
+          <Info label={par ? 'Resultado (1ª)' : 'Resultado'} valor={item.resultado} />
+        </div>
+      )}
+      {par && (!ehHoje || jaPassada) && par.resultado && (
+        <div>
+          <Info label="Resultado (2ª)" valor={par.resultado} />
+        </div>
+      )}
+      </section>
 
       <div className="agenda-cliente-secundario">
         <span>Cliente</span>
         <NomeComWhatsapp nome={item.nome_comprador} whatsapp={item.whatsapp} />
       </div>
 
-      {(!ehHoje || jaPassada) && item.resultado && (
-        <div style={{ marginBottom: 14 }}>
-          <Info label={par ? 'Resultado (1ª)' : 'Resultado'} valor={item.resultado} />
-        </div>
-      )}
-      {par && (!ehHoje || jaPassada) && par.resultado && (
-        <div style={{ marginBottom: 14 }}>
-          <Info label="Resultado (2ª)" valor={par.resultado} />
-        </div>
-      )}
-
-      <div style={{ display: 'flex', gap: 8, marginBottom: ehHoje && !jaPassada ? 8 : 0 }}>
+      <div className="agenda-acoes-secundarias">
         {item.cliente_id && (
           <button type="button" className="btn-action" style={{ flex: 1 }} onClick={() => navigate(`/clientes/${item.cliente_id}`)}>
             <IconeUsuario /> Ver cliente
@@ -1075,7 +1066,7 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onD
       </div>
       {mensagemExpirada && <div className="aviso-bloqueio" style={{ marginBottom: 10 }}>A segunda mensagem venceu em {item.dataExpiracaoMensagem || par?.dataExpiracaoMensagem} e não pode mais ser utilizada.</div>}
       {ehHoje && !jaPassada && !mensagemExpirada && (
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="agenda-acoes-principais">
           <button type="button" className="btn-action perigo-acao" style={{ flex: 1 }} onClick={() => onAbrirRemarcar(item)}>
             <IconeNaoAtendeu /> Não atendeu
           </button>
@@ -1249,31 +1240,89 @@ function CardRemarcacoesPrazo({ pedidoId }) {
 
 function DetalhesAoVivo({ item, ehHoje, navigate }) {
   const urgencia = (ehHoje && !item.passada) ? statusUrgenciaItem(item.horario_entrega) : null;
+  const mensagens = [1, 2, 3, 4]
+    .map((numero) => ({ numero, tema: item[`tema_${numero}`], codigo: item[`mensagem_codigo_${numero}`] }))
+    .filter((mensagem) => mensagem.tema || mensagem.codigo);
+  const musicas = [1, 2, 3, 4, 5, 6].map((numero) => item[`musica_${numero}`]).filter(Boolean);
+  const contatoLocal = item.celular_local || item.fixo_local;
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+    <div className="agenda-detalhe agenda-detalhe-aovivo">
+      <header className="agenda-detalhe-cabecalho">
+      <div className="agenda-detalhe-status">
         <span className="carimbo-os carimbo-os-lista">{item.numero_os || item.id}</span>
-        {urgencia === 'atrasada' && <span className="tag neutro">Horário passado</span>}
+        <span className="tag neutro">Ao vivo</span>
+        {urgencia === 'atrasada' && <span className="tag pendente">Atrasado</span>}
         {urgencia === 'proxima' && <span className="tag aviso">Chegando</span>}
         {item.passada && <span className="tag ok">Entregue</span>}
-        <span className="tag neutro">Agenda</span>
         {item.pagou === 'SIM' && <span className="tag ok">Pago</span>}
+        {item.pagou !== 'SIM' && <span className="tag neutro">Pagamento pendente</span>}
       </div>
-      <div className="fs-lg" style={{ fontWeight: 700, marginBottom: 2 }}>{item.comprador || '—'}</div>
-      <div className="fs-sm" style={{ color: 'var(--tinta-suave)', marginBottom: 14, paddingBottom: 14, borderBottom: '2px solid var(--papel-alt)' }}>{item.horario_entrega || '—'}</div>
-      {item.resultado_entrega && <div className="fs-xs texto-suave" style={{ marginBottom: 14 }}>{item.resultado_entrega}</div>}
-      <div className="grade grade-2" style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid var(--papel-alt)' }}>
-        <Info label="Destinatário" valor={item.para} />
-        <Info label="Endereço" valor={item.endereco} />
-        <Info label="Bairro" valor={item.bairro} />
-        <Info label="Referência" valor={item.referencia} />
+      <div className="agenda-horario-detalhe"><span>Entrega</span><strong>{item.horario_entrega || '—'}</strong></div>
+      </header>
+
+      <section className="agenda-destinatario-aovivo">
+        <Info className="agenda-destinatario-principal" label="Destinatário" valor={item.para} />
+        {contatoLocal && <InfoTelefone className="agenda-destinatario-celular" label="Contato do local" valor={contatoLocal} />}
+      </section>
+
+      {mensagens.length > 0 && (
+        <section className="agenda-conteudo-aovivo">
+          <div className="agenda-secao-rotulo">Conteúdo da homenagem</div>
+          <div className="agenda-mensagens-aovivo">
+            {mensagens.map((mensagem) => (
+              <div className="agenda-mensagem-aovivo" key={mensagem.numero}>
+                <span>{mensagens.length > 1 ? `${mensagem.numero}ª mensagem` : 'Mensagem'}</span>
+                <strong>{mensagem.tema || 'Tema não informado'}</strong>
+                {mensagem.codigo && <small>Código {mensagem.codigo}</small>}
+              </div>
+            ))}
+          </div>
+          {musicas.length > 0 && <div className="agenda-musicas-aovivo"><span>Músicas</span><strong>{musicas.join(' · ')}</strong></div>}
+        </section>
+      )}
+
+      <section className="agenda-operacao-aovivo">
+        <div className="agenda-secao-rotulo">Entrega</div>
+        <div className="agenda-endereco-principal">{item.endereco || 'Endereço não informado'}</div>
+        <div className="agenda-endereco-complementos">
+          {item.bairro && <span>{item.bairro}</span>}
+          {item.referencia && <span>Referência: {item.referencia}</span>}
+        </div>
+        {item.brinde && <Info label="Brinde" valor={item.brinde} />}
+        {item.resultado_entrega && <div className="agenda-resultado-entrega"><span>Resultado</span><strong>{item.resultado_entrega}</strong></div>}
+      </section>
+
+      <div className="agenda-cliente-secundario">
+        <span>Cliente</span><span className="agenda-cliente-nome">{item.comprador || '—'}</span>
       </div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+
+      <div className="agenda-acoes-secundarias">
         {item.cliente_id && <button type="button" className="btn-action" style={{ flex: 1 }} onClick={() => navigate(`/clientes/${item.cliente_id}`)}><IconeUsuario /> Ver cliente</button>}
         <button type="button" className="btn-action" style={{ flex: 1 }} onClick={() => navigate(`/ao-vivo/${item.id}`)}><IconePedido /> Abrir pedido</button>
       </div>
-      <p className="fs-xs texto-suave" style={{ margin: 0 }}>A Agenda é somente informativa. O pagamento é controlado na tela de Cobrança.</p>
+      <p className="agenda-nota-operacional">Pagamento controlado na tela de Cobrança.</p>
     </div>
+  );
+}
+
+function MensagemFonada({ numero, tema, codigo, quemOferece }) {
+  return (
+    <section className="agenda-mensagem-fonada">
+      {numero && <div className="agenda-mensagem-identificador">{numero}ª mensagem</div>}
+      <div className="agenda-tema-fonada">
+        <span>Tema</span>
+        <div className="agenda-tema-linha">
+          <strong>{tema || 'Não informado'}</strong>
+          {codigo && <small>{codigo}</small>}
+        </div>
+      </div>
+      {quemOferece && (
+        <div className="agenda-oferecimento-fonada">
+          <span>Oferecimento</span>
+          <p>{quemOferece}</p>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -1350,10 +1399,10 @@ function NomeComWhatsapp({ nome, whatsapp }) {
 function Info({ label, valor, className = '' }) {
   return (
     <div className={className}>
-      <div className="fs-xs" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--tinta-suave)', marginBottom: 2 }}>
+      <div className="fs-xs info-label" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--tinta-suave)', marginBottom: 2 }}>
         {label}
       </div>
-      <div className="fs-md">{valor || '—'}</div>
+      <div className="fs-md info-valor">{valor || '—'}</div>
     </div>
   );
 }
@@ -1366,7 +1415,7 @@ function InfoTelefone({ label, valor, mensagem, className = '' }) {
 
   return (
     <div className={className}>
-      <div className="fs-xs" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--tinta-suave)', marginBottom: 2 }}>
+      <div className="fs-xs info-label" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--tinta-suave)', marginBottom: 2 }}>
         {label}
       </div>
       {linkWhatsapp ? (
@@ -1374,13 +1423,13 @@ function InfoTelefone({ label, valor, mensagem, className = '' }) {
           href={linkWhatsapp}
           target="_blank"
           rel="noopener noreferrer"
-          className="fs-md link-whatsapp"
+          className="fs-md info-valor link-whatsapp"
           title={mensagem ? 'Enviar confirmação no WhatsApp' : 'Abrir conversa no WhatsApp'}
         >
           {valor}
         </a>
       ) : (
-        <div className="fs-md">{valor || '—'}</div>
+        <div className="fs-md info-valor">{valor || '—'}</div>
       )}
     </div>
   );

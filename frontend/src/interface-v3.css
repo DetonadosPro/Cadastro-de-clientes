@@ -474,7 +474,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--carimbo); }
 .carrossel-dias-agenda { gap: 4px; }
 .calendario-dia { border-radius: 9px; }
 .calendario-dia:hover { background: var(--carimbo-suave); }
-.grid-agenda-lista-painel { gap: 16px; }
+.grid-agenda-lista-painel { grid-template-columns: minmax(460px, 1.35fr) minmax(410px, .85fr); gap: 16px; }
 .agenda-v2 .grid-agenda-lista-painel.sem-itens { min-height: 280px; grid-template-columns: 1fr; }
 .agenda-v2 .grid-agenda-lista-painel.sem-itens .lista-agenda-compacta { min-height: 250px; display: grid; place-items: center; }
 .agenda-v2 .grid-agenda-lista-painel.sem-itens .agenda-vazia { width: min(100%, 520px); }
@@ -485,30 +485,98 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--carimbo); }
 .linha-agenda-titulo { color: var(--tinta); font-size: 13px; }
 .linha-agenda-horario { color: #254f86; font-size: 13px; font-variant-numeric: tabular-nums; }
 .linha-agenda-os { font-size: 10px; }
-.painel-detalhes-agenda { border-radius: 16px; box-shadow: var(--sombra-sm); }
-.agenda-horario-detalhe { margin-bottom: 11px; color: var(--tinta-suave); font-size: 11px; font-variant-numeric: tabular-nums; }
-.agenda-destinatario-contato { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(118px, .8fr); align-items: start; gap: 10px 18px; margin-bottom: 13px; padding-inline: 2px; }
+.painel-detalhes-agenda { min-width: 0; padding: 18px; border-radius: 16px; box-shadow: var(--sombra-sm); }
+.agenda-detalhe-transicao { min-width: 0; animation: agenda-detalhe-entrada 150ms ease-out both; }
+@keyframes agenda-detalhe-entrada { from { opacity: .2; transform: translateX(5px); } to { opacity: 1; transform: none; } }
+.agenda-detalhe { min-width: 0; }
+.agenda-detalhe-cabecalho { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 20px; padding-bottom: 13px; border-bottom: 1px solid #e9edf2; }
+.agenda-detalhe-status { min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.agenda-horario-detalhe { flex: 0 0 auto; display: grid; justify-items: end; gap: 1px; margin: 0; color: var(--tinta-suave); font-size: 9px; font-weight: 720; letter-spacing: .055em; text-transform: uppercase; font-variant-numeric: tabular-nums; }
+.agenda-horario-detalhe strong { color: #244f86; font-size: 20px; font-weight: 760; letter-spacing: -.025em; line-height: 1; }
+.agenda-destinatario-contato { display: grid; gap: 7px; margin-bottom: 18px; padding-inline: 2px; }
 .agenda-destinatario-principal, .agenda-destinatario-celular, .agenda-destinatario-fixo { min-width: 0; }
 .agenda-destinatario-principal .fs-xs { color: var(--carimbo) !important; font-weight: 800; }
-.agenda-destinatario-principal .fs-md { color: var(--tinta); font-size: 17px; font-weight: 760; line-height: 1.25; overflow-wrap: anywhere; }
-.agenda-destinatario-celular .fs-xs { color: #51709a !important; font-weight: 800; }
+.agenda-destinatario-principal .fs-md { color: var(--tinta); font-size: 20px; font-weight: 780; letter-spacing: -.015em; line-height: 1.2; overflow-wrap: anywhere; }
+.agenda-contatos-destinatario { min-width: 0; display: flex; align-items: flex-start; flex-wrap: wrap; gap: 6px 22px; }
+.agenda-contatos-destinatario > div { position: relative; }
+.agenda-contatos-destinatario > div + div::before { content: ''; position: absolute; top: 4px; bottom: 3px; left: -11px; width: 1px; background: #dfe5ec; }
+.agenda-destinatario-celular .fs-xs, .agenda-destinatario-fixo .fs-xs { margin-bottom: 0 !important; color: #6e7d91 !important; font-size: 8px; font-weight: 760; }
 .agenda-destinatario-celular .fs-md { color: var(--carimbo); font-size: 14px; font-weight: 720; }
-.agenda-destinatario-fixo { grid-column: 1 / -1; }
-.agenda-mensagem-contexto { display: grid; gap: 10px; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--papel-alt); }
-.agenda-contexto-duplo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.agenda-tema-bloco, .agenda-oferece-bloco { min-width: 0; padding: 12px 13px; border: 1px solid var(--borda); border-radius: 10px; }
-.agenda-tema-bloco { border-left: 3px solid var(--carimbo); background: #f7faff; }
-.agenda-oferece-bloco { border-left: 3px solid #8a6b38; background: #fcfaf5; }
-.agenda-tema-bloco .info-label, .agenda-oferece-bloco .info-label { font-size: 9px; }
-.agenda-oferece-bloco .info-valor { color: #513f25; font-weight: 700; }
-.agenda-cliente-secundario { min-width: 0; display: flex; align-items: baseline; gap: 7px; margin: -2px 2px 13px; color: var(--tinta-suave); }
+.agenda-destinatario-fixo .fs-md { color: #46566d; font-size: 13px; font-weight: 650; }
+.agenda-mensagem-contexto { display: grid; margin-bottom: 14px; padding: 2px 2px 16px; border-bottom: 1px solid var(--papel-alt); }
+.agenda-mensagem-contexto-duplo { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.agenda-mensagem-fonada { min-width: 0; padding: 0 10px 0 2px; }
+.agenda-mensagem-contexto-duplo .agenda-mensagem-fonada + .agenda-mensagem-fonada { padding: 0 2px 0 12px; border-left: 1px solid #d9e0e9; }
+.agenda-mensagem-identificador { margin-bottom: 10px; color: var(--carimbo); font-size: 9px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.agenda-tema-fonada { min-width: 0; display: grid; gap: 2px; }
+.agenda-tema-fonada > span, .agenda-oferecimento-fonada > span { color: #748196; font-size: 8px; font-weight: 780; letter-spacing: .055em; text-transform: uppercase; }
+.agenda-tema-linha { min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 2px 5px; }
+.agenda-tema-linha > strong { min-width: 0; color: #26384f; font-size: 15px; font-weight: 760; letter-spacing: -.01em; line-height: 1.3; overflow-wrap: anywhere; }
+.agenda-tema-linha > small { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px; color: #53647a; font-size: 13px; font-weight: 720; line-height: 1; white-space: nowrap; }
+.agenda-tema-linha > small::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: #9aa5b3; }
+.agenda-oferecimento-fonada { min-width: 0; margin-top: 11px; padding-top: 10px; border-top: 1px solid #e7ebf0; }
+.agenda-oferecimento-fonada p { margin: 3px 0 0; color: #4d4437; font-size: 13px; font-weight: 620; line-height: 1.42; overflow-wrap: anywhere; }
+.agenda-operacao-bloco { display: grid; gap: 8px; margin-bottom: 12px; }
+.agenda-operacao-bloco:empty { display: none; }
+.agenda-cliente-secundario { min-width: 0; display: flex; align-items: baseline; gap: 7px; margin: 0 2px 14px; padding-top: 2px; color: var(--tinta-suave); }
 .agenda-cliente-secundario > span:first-child { flex: 0 0 auto; font-size: 9px; font-weight: 720; letter-spacing: .045em; text-transform: uppercase; }
 .agenda-cliente-nome { min-width: 0; color: #667386; font-size: 12px; font-weight: 400; line-height: 1.35; overflow-wrap: anywhere; }
 .agenda-cliente-nome.link-whatsapp:hover { color: var(--carimbo); }
+.agenda-acoes-secundarias, .agenda-acoes-principais { display: flex; gap: 8px; }
+.agenda-acoes-secundarias { margin-bottom: 8px; }
+.agenda-acoes-principais { padding-top: 2px; }
+.agenda-destinatario-aovivo { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(138px, .8fr); gap: 12px 20px; margin-bottom: 18px; padding-inline: 2px; }
+.agenda-conteudo-aovivo { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid #e9edf2; }
+.agenda-secao-rotulo { margin-bottom: 8px; color: #738095; font-size: 9px; font-weight: 780; letter-spacing: .065em; text-transform: uppercase; }
+.agenda-mensagens-aovivo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.agenda-mensagem-aovivo { min-width: 0; display: grid; gap: 3px; padding: 11px 12px; border: 1px solid #dbe5f1; border-left: 3px solid var(--carimbo); border-radius: 10px; background: #f7faff; }
+.agenda-mensagem-aovivo > span { color: #667891; font-size: 9px; font-weight: 760; letter-spacing: .045em; text-transform: uppercase; }
+.agenda-mensagem-aovivo > strong { color: #26384f; font-size: 13px; line-height: 1.3; overflow-wrap: anywhere; }
+.agenda-mensagem-aovivo > small { color: #748196; font-size: 10px; overflow-wrap: anywhere; }
+.agenda-musicas-aovivo { display: grid; gap: 2px; margin-top: 8px; padding: 9px 11px; border-radius: 9px; background: #f8fafc; }
+.agenda-musicas-aovivo span { color: #788597; font-size: 9px; font-weight: 760; letter-spacing: .045em; text-transform: uppercase; }
+.agenda-musicas-aovivo strong { color: #425168; font-size: 11px; font-weight: 620; line-height: 1.4; overflow-wrap: anywhere; }
+.agenda-operacao-aovivo { display: grid; gap: 5px; margin-bottom: 12px; }
+.agenda-endereco-principal { color: #2f3d50; font-size: 13px; font-weight: 680; line-height: 1.35; overflow-wrap: anywhere; }
+.agenda-endereco-complementos { display: flex; flex-wrap: wrap; gap: 5px 12px; color: #6b788b; font-size: 11px; line-height: 1.4; }
+.agenda-operacao-aovivo > .info-label { margin-top: 7px; }
+.agenda-resultado-entrega { display: grid; gap: 2px; margin-top: 7px; padding: 8px 10px; border-left: 3px solid var(--ok); border-radius: 7px; background: var(--ok-suave); }
+.agenda-resultado-entrega span { color: #47705d; font-size: 9px; font-weight: 760; letter-spacing: .045em; text-transform: uppercase; }
+.agenda-resultado-entrega strong { color: var(--ok); font-size: 11px; line-height: 1.35; overflow-wrap: anywhere; }
+.agenda-nota-operacional { margin: 2px 0 0; color: #7b8797; font-size: 10px; line-height: 1.4; }
 .agenda-concluidos { margin-top: 14px; border: 1px solid var(--borda); border-radius: 13px; background: #fff; }
 .agenda-concluidos-toggle { min-height: 48px; padding: 0 14px; }
 .agenda-vazia, .agenda-pendentes-vazia, .estado-vazio-v2 { color: var(--tinta-suave); }
 .agenda-vazia-icone, .estado-vazio-icone { border: 1px solid #dbe6f4; background: #f0f5fc; color: var(--carimbo); box-shadow: none; }
+
+@media (max-width: 1100px) and (min-width: 901px) {
+  .grid-agenda-lista-painel { grid-template-columns: minmax(360px, 1fr) minmax(360px, .9fr); }
+  .agenda-mensagens-aovivo { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 900px) {
+  .grid-agenda-lista-painel { grid-template-columns: 1fr; }
+  .painel-detalhes-agenda { padding: 44px 16px 18px; }
+  .agenda-detalhe-cabecalho { margin-bottom: 16px; }
+  .agenda-destinatario-contato, .agenda-destinatario-aovivo { grid-template-columns: 1fr; gap: 8px; }
+}
+
+@media (max-width: 520px) {
+  .agenda-mensagem-contexto-duplo, .agenda-mensagens-aovivo { grid-template-columns: 1fr; }
+  .agenda-mensagem-fonada { padding: 0 0 14px; }
+  .agenda-mensagem-contexto-duplo .agenda-mensagem-fonada + .agenda-mensagem-fonada { padding: 14px 0 0; border-top: 1px solid #cfd8e4; border-left: 0; }
+  .agenda-detalhe-cabecalho { align-items: flex-start; }
+  .agenda-horario-detalhe strong { font-size: 18px; }
+  .agenda-destinatario-principal .fs-md { font-size: 18px; }
+  .agenda-contatos-destinatario { gap: 6px 18px; }
+  .agenda-contatos-destinatario > div + div::before { left: -9px; }
+  .agenda-acoes-secundarias, .agenda-acoes-principais { display: grid; grid-template-columns: 1fr; }
+  .agenda-acoes-secundarias .btn-action, .agenda-acoes-principais .btn-action { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agenda-detalhe-transicao { animation-duration: 1ms; }
+}
 
 /* Billing */
 .central-cobranca { max-width: 1780px; margin-inline: auto; }
