@@ -43,8 +43,8 @@ function iniciarAgendador() {
     rodarBackupSemanal();
   });
 
-  // Resumo diário — todo dia às 21h (horário de Brasília) = 00h UTC.
-  const cronResumo = process.env.CRON_RESUMO || '0 1 * * *';
+  // Resumo diário — todo dia às 23h (horário de Brasília) = 02h UTC.
+  const cronResumo = process.env.CRON_RESUMO || '0 2 * * *';
   cron.schedule(cronResumo, () => {
     rodarResumoDiario();
   });
