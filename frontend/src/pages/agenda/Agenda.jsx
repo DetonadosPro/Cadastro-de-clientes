@@ -549,7 +549,11 @@ export default function Agenda() {
           senhaOs={item.senha_os}
           horario={item.horario}
           titulo={item.nome_comprador}
-          tagExtra={item.statusMensagemEmHaver === 'EXPIRADA' ? 'Expirada' : aba === 'geral' ? 'Fonada' : item.agrupada ? '1ª + 2ª juntas' : `${item.mensagem}ª msg`}
+          tagExtra={item.statusMensagemEmHaver === 'EXPIRADA'
+            ? 'Expirada'
+            : item.agrupada
+              ? (aba === 'geral' ? 'Fonada · 1ª + 2ª juntas' : '1ª + 2ª juntas')
+              : (aba === 'geral' ? 'Fonada' : `${item.mensagem}ª msg`)}
           tagExtraDestaque={Boolean(item.agrupada)}
           status={(!ehHoje || jaPassada) ? (item.resultado ? 'Passada' : 'Pendente') : null}
           statusOk={Boolean(item.resultado)}
@@ -1011,29 +1015,39 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onD
         {item.fixo && <Info label="Fixo" valor={item.fixo} />}
       </div>
 
-      <div className="grade grade-2" style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid var(--papel-alt)' }}>
+      <div className="agenda-mensagem-contexto">
         {par ? (
-          <div style={{ gridColumn: '1 / -1' }}>
-            <div className="grade grade-2">
-              <Info label="Tema (1ª)" valor={item.tema ? `${item.tema}${item.codigo ? ' · ' + item.codigo : ''}` : (item.codigo || null)} />
-              <Info label="Tema (2ª)" valor={par.tema ? `${par.tema}${par.codigo ? ' · ' + par.codigo : ''}` : (par.codigo || null)} />
+          <>
+            <div className="agenda-contexto-duplo">
+              <section className="agenda-tema-bloco">
+                <Info label="Tema da 1ª mensagem" valor={item.tema ? `${item.tema}${item.codigo ? ' · ' + item.codigo : ''}` : (item.codigo || null)} />
+              </section>
+              <section className="agenda-tema-bloco">
+                <Info label="Tema da 2ª mensagem" valor={par.tema ? `${par.tema}${par.codigo ? ' · ' + par.codigo : ''}` : (par.codigo || null)} />
+              </section>
             </div>
             {(item.quemOferece || par.quemOferece) && (
-              <div className="grade grade-2" style={{ marginTop: 12 }}>
-                {item.quemOferece && <Info label="Quem oferece (1ª)" valor={item.quemOferece} />}
-                {par.quemOferece && <Info label="Quem oferece (2ª)" valor={par.quemOferece} />}
+              <div className="agenda-contexto-duplo">
+                <section className="agenda-oferece-bloco">
+                  <Info label="Oferecimento da 1ª mensagem" valor={item.quemOferece || '—'} />
+                </section>
+                <section className="agenda-oferece-bloco">
+                  <Info label="Oferecimento da 2ª mensagem" valor={par.quemOferece || '—'} />
+                </section>
               </div>
             )}
-          </div>
+          </>
         ) : (
-          <div style={{ gridColumn: '1 / -1' }}>
-            <Info label="Tema" valor={item.tema ? `${item.tema}${item.codigo ? ' · ' + item.codigo : ''}` : (item.codigo || null)} />
+          <>
+            <section className="agenda-tema-bloco">
+              <Info label="Tema" valor={item.tema ? `${item.tema}${item.codigo ? ' · ' + item.codigo : ''}` : (item.codigo || null)} />
+            </section>
             {item.quemOferece && (
-              <div style={{ marginTop: 12 }}>
+              <section className="agenda-oferece-bloco">
                 <Info label="Quem oferece" valor={item.quemOferece} />
-              </div>
+              </section>
             )}
-          </div>
+          </>
         )}
       </div>
 

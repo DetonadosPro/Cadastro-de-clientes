@@ -486,6 +486,13 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--carimbo); }
 .linha-agenda-horario { color: #254f86; font-size: 13px; font-variant-numeric: tabular-nums; }
 .linha-agenda-os { font-size: 10px; }
 .painel-detalhes-agenda { border-radius: 16px; box-shadow: var(--sombra-sm); }
+.agenda-mensagem-contexto { display: grid; gap: 10px; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--papel-alt); }
+.agenda-contexto-duplo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.agenda-tema-bloco, .agenda-oferece-bloco { min-width: 0; padding: 12px 13px; border: 1px solid var(--borda); border-radius: 10px; }
+.agenda-tema-bloco { border-left: 3px solid var(--carimbo); background: #f7faff; }
+.agenda-oferece-bloco { border-left: 3px solid #8a6b38; background: #fcfaf5; }
+.agenda-tema-bloco .info-label, .agenda-oferece-bloco .info-label { font-size: 9px; }
+.agenda-oferece-bloco .info-valor { color: #513f25; font-weight: 700; }
 .agenda-concluidos { margin-top: 14px; border: 1px solid var(--borda); border-radius: 13px; background: #fff; }
 .agenda-concluidos-toggle { min-height: 48px; padding: 0 14px; }
 .agenda-vazia, .agenda-pendentes-vazia, .estado-vazio-v2 { color: var(--tinta-suave); }
