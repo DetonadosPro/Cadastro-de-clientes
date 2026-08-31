@@ -642,8 +642,16 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--carimbo); }
 .pagina-aovivo-ampliada .campo-data-raiz input { min-width:0; height:24px; white-space:nowrap; }
 .pagina-fonada-ampliada .linha-dia-horario-fonada > .campo-data-raiz { width:128px !important; min-width:128px !important; }
 .pagina-fonada-ampliada .linha-dia-horario-fonada > .campo-data-raiz input { font-size:12px; letter-spacing:0; }
-.grafico-linha.pagamentos-presencial { fill:none; stroke:#d77b61; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; }
-.grafico-svg .ponto-presencial { stroke:#d77b61; }
+.grafico-linha-forma { fill:none; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; }
+.seletor-series-grafico { display:flex; gap:5px; }
+.seletor-series-grafico button { padding:3px 7px; border:1px solid transparent; border-radius:7px; background:transparent; cursor:pointer; }
+.seletor-series-grafico button.ativo { border-color:#c8d6e6; background:#f3f7fc; box-shadow:0 1px 3px rgba(20,45,75,.08); }
+.grafico-linha.serie-atenuada { opacity:.24; }
+.grafico-linha.serie-destaque { stroke-width:3.5; opacity:1; }
+.resumo-serie-selecionada { display:flex; align-items:baseline; gap:9px; margin-top:5px; padding:8px 10px; border-radius:8px; background:#f6f8fb; }
+.resumo-serie-selecionada strong { color:var(--carimbo); font-size:10px; text-transform:uppercase; }
+.resumo-serie-selecionada span { font:750 13px var(--fonte-mono); }
+.resumo-serie-selecionada small { color:var(--tinta-suave); font-size:10px; }
 .pagina-fonada-ampliada .actions-grid,
 .pagina-aovivo-ampliada .actions-grid { min-width:0; }
 .pagina-fonada-ampliada .acoes-secundarias-mobile,

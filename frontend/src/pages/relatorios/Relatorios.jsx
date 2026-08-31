@@ -186,12 +186,35 @@ function formasDosItens(itens = []) {
   return [...mapa.values()].sort((a, b) => b.valor - a.valor);
 }
 
+function pagamentosPorDiaDosItens(itens = []) {
+  const mapa = new Map();
+  itens.forEach((item) => {
+    if (!item.data) return;
+    const formaOriginal = String(item.forma || 'NÃO INFORMADO').trim().toUpperCase();
+    const forma = item.sistema === 'FONADA' ? (formaOriginal.includes('PIX') ? 'PIX' : 'PRESENCIAL') : formaOriginal;
+    const ponto = mapa.get(item.data) || { data: item.data, total: 0, formas: {} };
+    ponto.total += 1;
+    ponto.formas[forma] = (ponto.formas[forma] || 0) + 1;
+    mapa.set(item.data, ponto);
+  });
+  const chaveData = (data) => String(data).split('/').reverse().join('');
+  return [...mapa.values()].sort((a, b) => chaveData(a.data).localeCompare(chaveData(b.data)));
+}
+
 function graficosVendas(dados) {
   const fallback = serieDosItens(dados?.itens);
+  const pagamentosApi = dados?.graficos?.pagamentosPorDia || [];
+  const pagamentosNormalizados = pagamentosApi.map((ponto) => ponto.formas ? ponto : ({
+    data: ponto.data,
+    total: Number(ponto.quantidade || 0) || Number(ponto.pix || 0) + Number(ponto.presencial || 0),
+    formas: { PIX: Number(ponto.pix || 0), PRESENCIAL: Number(ponto.presencial || 0) },
+  }));
   return {
     vendasPorDia: dados?.graficos?.vendasPorDia?.length ? dados.graficos.vendasPorDia : fallback,
     periodoAnterior: dados?.graficos?.periodoAnterior || [],
-    pagamentosPorDia: dados?.graficos?.pagamentosPorDia || [],
+    pagamentosPorDia: pagamentosNormalizados.length
+      ? pagamentosNormalizados
+      : pagamentosPorDiaDosItens(dados?.itens),
   };
 }
 
@@ -496,7 +519,8 @@ function FormularioPeriodo({ inicio, fim, inicioB, fimB, setInicio, setFim, setI
       const mm = String(data.getMonth() + 1).padStart(2, '0');
       return `${dd}/${mm}/${String(data.getFullYear()).slice(-2)}`;
     };
-    setIntervalo(paraCampo(primeiro), paraCampo(ultimo));
+    const diaIsolado = tipo === 'hoje' || tipo === 'ontem';
+    setIntervalo(paraCampo(primeiro), diaIsolado ? '' : paraCampo(ultimo));
   }
 
   return (

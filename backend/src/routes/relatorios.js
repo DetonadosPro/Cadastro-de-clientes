@@ -226,6 +226,23 @@ function totaisPorCategoria(itens, obterCategoria) {
   return [...totais.values()].sort((a, b) => b.valor - a.valor);
 }
 
+function serieFormasPagamento(itens) {
+  const porData = new Map();
+  for (const item of itens) {
+    const chave = paraChaveComparavel(item.data);
+    if (!chave) continue;
+    const formaOriginal = String(item.forma || 'NÃO INFORMADO').trim().toUpperCase();
+    const forma = item.sistema === 'FONADA'
+      ? (formaOriginal.includes('PIX') ? 'PIX' : 'PRESENCIAL')
+      : normalizarFormaRecebimento(formaOriginal, formaOriginal);
+    const ponto = porData.get(chave) || { data: item.data, total: 0, formas: {} };
+    ponto.total += 1;
+    ponto.formas[forma] = (ponto.formas[forma] || 0) + 1;
+    porData.set(chave, ponto);
+  }
+  return [...porData.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, ponto]) => ponto);
+}
+
 // GET /api/relatorios/vendas?inicio=dd/mm/aa&fim=dd/mm/aa&sistema=FONADA|AOVIVO|TODOS
 router.get('/vendas', async (req, res) => {
   try {
@@ -345,11 +362,7 @@ router.get('/vendas', async (req, res) => {
           quantidadeFonada: (item) => item.sistema === 'FONADA' ? 1 : 0,
           quantidadeAoVivo: (item) => item.sistema === 'AOVIVO' ? 1 : 0,
         }),
-        pagamentosPorDia: seriePorData(itensDetalhados, {
-          pix: (item) => String(item.forma || '').toUpperCase().includes('PIX') ? 1 : 0,
-          presencial: (item) => String(item.forma || '').toUpperCase().includes('PIX') ? 0 : 1,
-          quantidade: () => 1,
-        }),
+        pagamentosPorDia: serieFormasPagamento(itensDetalhados),
         periodoAnterior: seriePorData(itensPeriodoAnterior, {
           valor: (item) => item.valor,
           quantidade: () => 1,
