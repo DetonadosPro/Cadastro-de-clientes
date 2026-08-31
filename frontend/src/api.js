@@ -243,12 +243,18 @@ export const api = {
 
   // ---------- Relatórios financeiros por período ----------
   relatorios: {
-    vendas: (inicio, fim, sistema = 'TODOS') =>
-      chamar(`/relatorios/vendas?inicio=${encodeURIComponent(inicio)}&fim=${encodeURIComponent(fim)}&sistema=${encodeURIComponent(sistema)}`),
-    recebimentos: (inicio, fim, sistema = 'TODOS') =>
-      chamar(`/relatorios/recebimentos?inicio=${encodeURIComponent(inicio)}&fim=${encodeURIComponent(fim)}&sistema=${encodeURIComponent(sistema)}`),
-    desempenho: (inicio, fim, sistema = 'TODOS') =>
-      chamar(`/relatorios/desempenho?inicio=${encodeURIComponent(inicio)}&fim=${encodeURIComponent(fim)}&sistema=${encodeURIComponent(sistema)}`),
+    vendas: (inicio, fim, sistema = 'TODOS', opcoes = {}) => {
+      const params = new URLSearchParams({ inicio, fim: fim || '', sistema, ...opcoes });
+      return chamar(`/relatorios/vendas?${params}`);
+    },
+    recebimentos: (inicio, fim, sistema = 'TODOS', opcoes = {}) => {
+      const params = new URLSearchParams({ inicio, fim: fim || '', sistema, ...opcoes });
+      return chamar(`/relatorios/recebimentos?${params}`);
+    },
+    desempenho: (inicio, fim, sistema = 'TODOS', opcoes = {}) => {
+      const params = new URLSearchParams({ inicio, fim: fim || '', sistema, ...opcoes });
+      return chamar(`/relatorios/desempenho?${params}`);
+    },
   },
 
   // ---------- Recall (fila de relacionamento cliente ↔ aniversariante) ----------

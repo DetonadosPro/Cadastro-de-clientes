@@ -395,6 +395,23 @@ async function iniciarBanco() {
   `);
   await pool.query('UPDATE ao_vivo SET financeiro_migrado = TRUE WHERE financeiro_migrado = FALSE');
 
+  // Corrige somente valores legados cuja intenção é inequívoca. A antiga
+  // migração podia copiar “PAGO” (status) para forma_recebimento. Formas
+  // reconhecíveis são recuperadas; status puro volta a NULL para não virar
+  // uma categoria financeira falsa nos relatórios.
+  await pool.query(`
+    UPDATE ao_vivo
+    SET forma_recebimento = CASE
+      WHEN UPPER(COALESCE(forma_recebimento, '')) LIKE '%PIX%' THEN 'PIX'
+      WHEN UPPER(COALESCE(forma_recebimento, '')) ~ 'D[ÉE]BITO|DEBITO' THEN 'DÉBITO'
+      WHEN UPPER(COALESCE(forma_recebimento, '')) ~ 'CR[ÉE]DITO|CREDITO' THEN 'CRÉDITO'
+      WHEN UPPER(COALESCE(forma_recebimento, '')) LIKE '%CART%' THEN 'CARTÃO'
+      WHEN UPPER(COALESCE(forma_recebimento, '')) ~ 'DINHEIRO|GRANA|PRESENCIAL' THEN 'DINHEIRO'
+      ELSE NULL
+    END
+    WHERE UPPER(TRIM(COALESCE(forma_recebimento, ''))) LIKE '%PAGO%'
+  `);
+
   // Trava de integridade contra O.S. duplicada: dois pedidos criados ao
   // mesmo tempo em máquinas diferentes podiam, antes desta trava,
   // receber o mesmo número sugerido (o cálculo de "próxima O.S." não

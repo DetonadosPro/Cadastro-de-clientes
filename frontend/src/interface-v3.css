@@ -616,6 +616,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--carimbo); }
 
 /* Reports */
 .grade-relatorio, .grade-graficos-relatorio, .grade-graficos-recebimentos { gap: 14px; }
+.grade-graficos-relatorio { grid-template-columns: repeat(auto-fit,minmax(min(100%,560px),1fr)); align-items:start; }
 .grafico-relatorio { border: 1px solid var(--borda); border-radius: 14px; background: #fff; box-shadow: var(--sombra-xs); }
 .grafico-cabecalho { padding-bottom: 12px; border-bottom: 1px solid #edf0f4; }
 .grafico-cabecalho h3 { color: var(--tinta); }
@@ -623,6 +624,41 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--carimbo); }
 .grafico-barra-trilho, .grafico-ranking-trilho { background: #edf1f5; }
 .grafico-barra-linha > span, .grafico-ranking-linha > span { color: #536174; }
 .tabela-desempenho-wrap, .lista-relatorio-scroll { border: 1px solid var(--borda); border-radius: 12px; overflow: auto; }
+.form-periodo-relatorio { align-items:end; }
+.periodo-identificador { align-self:center; padding:6px 9px; border-radius:7px; background:#eaf1fa; color:var(--carimbo); font-size:10px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
+.periodo-comparacao-b { margin-top:9px; padding-top:10px; border-top:1px solid #dfe6ee; animation:pagina-v3-entrada 150ms ease-out both; }
+.botao-comparar-periodo { min-width:138px; }
+.resumo-sistemas-linear { display:grid; margin:14px 0; border-block:1px solid #e2e8ef; }
+.resumo-sistema-linha { display:grid; grid-template-columns:8px 90px 110px minmax(120px,.55fr) minmax(190px,1fr); align-items:center; gap:10px; min-height:50px; padding:8px 4px; }
+.resumo-sistema-linha + .resumo-sistema-linha { border-top:1px solid #edf1f5; }
+.resumo-sistema-linha > i { width:7px; height:7px; border-radius:50%; background:#245fa4; }
+.resumo-sistema-linha.aovivo > i { background:#d77b61; }
+.resumo-sistema-linha strong { font-size:12px; }
+.resumo-sistema-linha span,.resumo-sistema-linha small { color:var(--tinta-suave); font-size:11px; }
+.resumo-sistema-linha b { font:750 13px var(--fonte-mono); }
+.controles-paginacao-relatorio { display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+.controles-paginacao-relatorio label { display:flex; align-items:center; gap:5px; color:var(--tinta-suave); font-size:10px; }
+.controles-paginacao-relatorio select,.controles-paginacao-relatorio button { min-height:30px; padding:4px 8px; border:1px solid var(--borda); border-radius:7px; background:#fff; color:var(--tinta); font-size:10px; }
+.controles-paginacao-relatorio button:not(:disabled):hover { border-color:#9fb6d2; background:#f2f6fb; }
+.grafico-ponto-interativo { cursor:help; outline:none; }
+.grafico-ponto-interativo:focus circle,.grafico-ponto-interativo:focus rect,.grafico-ponto-interativo:hover circle { filter:drop-shadow(0 2px 4px rgba(20,52,88,.2)); }
+
+/* Densidade compartilhada dos formulários operacionais */
+.pagina-fonada-ampliada .form-row > input,
+.pagina-fonada-ampliada .form-row > select,
+.pagina-aovivo-ampliada .form-row > input,
+.pagina-aovivo-ampliada .form-row > select { min-height:38px; height:38px; padding-block:6px; font-size:13px; }
+.pagina-fonada-ampliada .campo-data-raiz,
+.pagina-aovivo-ampliada .campo-data-raiz { min-height:38px; height:38px; box-sizing:border-box; white-space:nowrap; }
+.pagina-fonada-ampliada .campo-data-raiz input,
+.pagina-aovivo-ampliada .campo-data-raiz input { min-width:0; height:36px; white-space:nowrap; }
+.pagina-fonada-ampliada .linha-dia-horario-fonada > .campo-data-raiz { width:116px !important; min-width:116px !important; }
+.pagina-fonada-ampliada .actions-grid,
+.pagina-aovivo-ampliada .actions-grid { min-width:0; }
+.pagina-fonada-ampliada .acoes-secundarias-mobile,
+.pagina-aovivo-ampliada .acoes-secundarias-mobile { display:flex; flex-wrap:wrap; gap:7px; min-width:0; }
+.pagina-fonada-ampliada .acoes-secundarias-mobile .btn-action,
+.pagina-aovivo-ampliada .acoes-secundarias-mobile .btn-action { flex:1 1 120px; min-width:0; }
 
 /* Client detail, drawer and overlays */
 .cabecalho-ficha-cliente h1 { color: var(--tinta); }
@@ -780,7 +816,11 @@ body.sobreposicao-aberta .layout-conteudo { overflow: hidden; }
   .toast-regiao { right: 14px; bottom: max(14px, env(safe-area-inset-bottom)); left: 14px; width: auto; }
   .toast { grid-template-columns: 32px minmax(0,1fr) 28px; padding: 12px 11px 14px; }
   .toast-icone { width: 32px; height: 32px; }
-  .grafico-svg { min-width: 500px; }
+  .grafico-svg { min-width: 0; }
+  .resumo-sistema-linha { grid-template-columns:8px 72px 1fr auto; gap:7px; }
+  .resumo-sistema-linha small { grid-column:2/-1; }
+  .controles-paginacao-relatorio { align-items:flex-start; }
+  .form-periodo-relatorio .periodo-identificador { flex:1 0 100%; }
   .drawer-cliente { width: 100%; padding: 20px 16px; }
   .drawer-cliente-acoes { grid-template-columns: 1fr 1fr; }
   .drawer-resumo-grid { grid-template-columns: 1fr 1fr; }

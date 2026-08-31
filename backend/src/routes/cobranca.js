@@ -172,7 +172,10 @@ router.put('/ao-vivo/:id/baixa', async (req, res) => {
     }
     const valorRecebidoInformado = Number(req.body.valorRecebido);
     const valorRecebido = Number.isFinite(valorRecebidoInformado) ? valorRecebidoInformado : Number(existente.rows[0].valor || 0);
-    const formaRecebimento = String(req.body.formaRecebimento || existente.rows[0].pagamento || 'PRESENCIAL').trim();
+    let formaRecebimento = String(req.body.formaRecebimento || existente.rows[0].pagamento || 'PRESENCIAL').trim();
+    if (/^(?:T[ÁA] )?PAGO(?:\s*\d.*)?$/i.test(formaRecebimento)) {
+      formaRecebimento = 'NÃO INFORMADO';
+    }
     if (valorRecebido < 0) return res.status(400).json({ erro: 'O valor recebido não pode ser negativo.' });
     if (!formaRecebimento) return res.status(400).json({ erro: 'Informe a forma de recebimento.' });
     const recebidoPor = await nomeUsuarioLogado(req);

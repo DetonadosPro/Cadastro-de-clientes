@@ -67,15 +67,23 @@ function RotulosEixo({ dados, largura, altura, margemX = MARGEM_X }) {
   });
 }
 
-export function GraficoEvolucaoVendas({ atual = [], anterior = [] }) {
+function tituloPonto(ponto, substantivo = 'pedido') {
+  const total = Number(ponto.valor || 0);
+  const fonada = Number(ponto.fonada || 0);
+  const aoVivo = Number(ponto.aoVivo || 0);
+  const percentual = (valor) => total ? Math.round(valor / total * 1000) / 10 : 0;
+  return `${ponto.data}\nTotal: ${reais(total)} · ${ponto.quantidade || 0} ${substantivo}(s)\nFonada: ${reais(fonada)} · ${ponto.quantidadeFonada || 0} · ${percentual(fonada)}%\nAo Vivo: ${reais(aoVivo)} · ${ponto.quantidadeAoVivo || 0} · ${percentual(aoVivo)}%`;
+}
+
+export function GraficoEvolucaoVendas({ atual = [], anterior = [], sistema = 'TODOS' }) {
   const largura = 720; const altura = 245;
   const maximo = Math.max(1, ...atual.map((p) => Number(p.valor || 0)), ...anterior.map((p) => Number(p.valor || 0)));
   return (
     <PainelGrafico
-      titulo="Evolução das vendas"
-      subtitulo="Valor vendido em cada dia e comparação com o período anterior"
+      titulo={`Evolução das vendas · ${sistema === 'TODOS' ? 'Todos' : sistema === 'FONADA' ? 'Fonada' : 'Ao Vivo'}`}
+      subtitulo="Valor e volume diário; a linha pontilhada representa o período B escolhido"
       amplo
-      legenda={<><Legenda cor={CORES.azul}>Período atual</Legenda><Legenda cor={CORES.azulClaro} tracejada>Anterior</Legenda></>}
+      legenda={<><Legenda cor={CORES.azul}>Período A</Legenda>{anterior.length > 0 && <Legenda cor={CORES.azulClaro} tracejada>Período B</Legenda>}</>}
     >
       {!atual.length ? <EstadoSemDados /> : (
         <div className="grafico-svg-scroll"><svg className="grafico-svg" viewBox={`0 0 ${largura} ${altura}`} role="img" aria-label="Evolução diária das vendas">
@@ -88,7 +96,7 @@ export function GraficoEvolucaoVendas({ atual = [], anterior = [] }) {
           {atual.map((ponto, indice) => {
             const x = atual.length > 1 ? MARGEM_X + indice * ((largura - MARGEM_X * 2) / (atual.length - 1)) : largura / 2;
             const y = altura - MARGEM_Y - (Number(ponto.valor || 0) / maximo) * (altura - MARGEM_Y * 2);
-            return <circle key={`${ponto.data}-${indice}`} cx={x} cy={y} r="4"><title>{ponto.data}: {reais(ponto.valor)} · {ponto.quantidade || 0} pedido(s)</title></circle>;
+            return <circle className="grafico-ponto-interativo" tabIndex="0" key={`${ponto.data}-${indice}`} cx={x} cy={y} r="5"><title>{tituloPonto(ponto)}</title></circle>;
           })}
           <g className="grafico-eixo"><RotulosEixo dados={atual} largura={largura} altura={altura} /></g>
         </svg></div>
@@ -97,13 +105,13 @@ export function GraficoEvolucaoVendas({ atual = [], anterior = [] }) {
   );
 }
 
-export function GraficoVendasPorSistema({ dados = [] }) {
+export function GraficoVendasPorSistema({ dados = [], sistema = 'TODOS' }) {
   const largura = 720; const altura = 245;
   const maximo = Math.max(1, ...dados.map((p) => Number(p.fonada || 0) + Number(p.aoVivo || 0)));
   const faixa = (largura - MARGEM_X * 2) / Math.max(dados.length, 1);
   const barra = Math.max(7, Math.min(34, faixa * .62));
   return (
-    <PainelGrafico titulo="Fonada × Ao Vivo" subtitulo="Composição das vendas por dia" amplo legenda={<><Legenda cor={CORES.azul}>Fonada</Legenda><Legenda cor={CORES.aoVivo}>Ao Vivo</Legenda></>}>
+    <PainelGrafico titulo={sistema === 'TODOS' ? 'Composição Fonada × Ao Vivo' : `Volume diário · ${sistema === 'FONADA' ? 'Fonada' : 'Ao Vivo'}`} subtitulo="Valor, quantidade e participação em cada dia" amplo legenda={sistema === 'TODOS' ? <><Legenda cor={CORES.azul}>Fonada</Legenda><Legenda cor={CORES.aoVivo}>Ao Vivo</Legenda></> : null}>
       {!dados.length ? <EstadoSemDados /> : <div className="grafico-svg-scroll"><svg className="grafico-svg" viewBox={`0 0 ${largura} ${altura}`} role="img" aria-label="Vendas de Fonada e Ao Vivo por dia">
         {[0, .25, .5, .75, 1].map((fator) => { const y = altura - MARGEM_Y - fator * (altura - MARGEM_Y * 2); return <g key={fator}><line x1={MARGEM_X} y1={y} x2={largura - MARGEM_X} y2={y} /><text className="grafico-valor-eixo" x={MARGEM_X - 10} y={y + 4} textAnchor="end">{reaisCurto(maximo * fator)}</text></g>; })}
         {dados.map((ponto, indice) => {
@@ -111,7 +119,7 @@ export function GraficoVendasPorSistema({ dados = [] }) {
           const hFonada = Number(ponto.fonada || 0) / maximo * (altura - MARGEM_Y * 2);
           const hAoVivo = Number(ponto.aoVivo || 0) / maximo * (altura - MARGEM_Y * 2);
           const base = altura - MARGEM_Y;
-          return <g key={ponto.data}><rect className="barra-fonada" x={x} y={base - hFonada} width={barra} height={hFonada}><title>{ponto.data} · Fonada: {reais(ponto.fonada)}</title></rect><rect className="barra-aovivo" x={x} y={base - hFonada - hAoVivo} width={barra} height={hAoVivo}><title>{ponto.data} · Ao Vivo: {reais(ponto.aoVivo)}</title></rect></g>;
+          return <g className="grafico-ponto-interativo" tabIndex="0" key={ponto.data}><title>{tituloPonto(ponto)}</title><rect className="barra-fonada" x={x} y={base - hFonada} width={barra} height={hFonada} /><rect className="barra-aovivo" x={x} y={base - hFonada - hAoVivo} width={barra} height={hAoVivo} /></g>;
         })}
         <g className="grafico-eixo"><RotulosEixo dados={dados} largura={largura} altura={altura} /></g>
       </svg></div>}
@@ -126,14 +134,14 @@ function combinarFluxo(vendido, recebido) {
   return [...mapa.values()].sort((a, b) => String(a.data).split('/').reverse().join('').localeCompare(String(b.data).split('/').reverse().join('')));
 }
 
-export function GraficoVendidoRecebido({ vendido = [], recebido = [] }) {
+export function GraficoVendidoRecebido({ vendido = [], recebido = [], sistema = 'TODOS' }) {
   const dados = combinarFluxo(vendido, recebido);
   const largura = 720; const altura = 245;
   const maximo = Math.max(1, ...dados.flatMap((p) => [p.vendido, p.recebido]));
   const faixa = (largura - MARGEM_X * 2) / Math.max(dados.length, 1);
   const barra = Math.max(6, Math.min(25, faixa * .45));
   const pontos = dados.map((p) => ({ data: p.data, valor: p.vendido }));
-  return <PainelGrafico titulo="Vendido × recebido" subtitulo="Recebimentos do dia podem pertencer a vendas anteriores" amplo legenda={<><Legenda cor={CORES.verde}>Recebido</Legenda><Legenda cor={CORES.azul}>Vendido</Legenda></>}>
+  return <PainelGrafico titulo={`Vendido × recebido · ${sistema === 'TODOS' ? 'Todos' : sistema === 'FONADA' ? 'Fonada' : 'Ao Vivo'}`} subtitulo="Recebimentos do dia podem pertencer a vendas anteriores" amplo legenda={<><Legenda cor={CORES.verde}>Recebido</Legenda><Legenda cor={CORES.azul}>Vendido</Legenda></>}>
     {!dados.length ? <EstadoSemDados /> : <div className="grafico-svg-scroll"><svg className="grafico-svg" viewBox={`0 0 ${largura} ${altura}`} role="img" aria-label="Valores vendidos e recebidos por dia">
       {[0, .25, .5, .75, 1].map((fator) => { const y = altura - MARGEM_Y - fator * (altura - MARGEM_Y * 2); return <g key={fator}><line x1={MARGEM_X} y1={y} x2={largura - MARGEM_X} y2={y} /><text className="grafico-valor-eixo" x={MARGEM_X - 10} y={y + 4} textAnchor="end">{reaisCurto(maximo * fator)}</text></g>; })}
       {dados.map((p, indice) => { const x = MARGEM_X + faixa * indice + faixa / 2 - barra / 2; const h = p.recebido / maximo * (altura - MARGEM_Y * 2); return <rect key={p.data} className="barra-recebido" x={x} y={altura - MARGEM_Y - h} width={barra} height={h}><title>{p.data} · Recebido: {reais(p.recebido)}</title></rect>; })}
@@ -143,10 +151,11 @@ export function GraficoVendidoRecebido({ vendido = [], recebido = [] }) {
   </PainelGrafico>;
 }
 
-export function GraficoBarrasCategorias({ titulo, subtitulo, dados = [] }) {
-  const maximo = Math.max(1, ...dados.map((item) => Number(item.valor || 0)));
+export function GraficoBarrasCategorias({ titulo, subtitulo, dados = [], usarQuantidade = false }) {
+  const metrica = (item) => Number(usarQuantidade ? item.quantidade : item.valor || 0);
+  const maximo = Math.max(1, ...dados.map(metrica));
   return <PainelGrafico titulo={titulo} subtitulo={subtitulo}>
-    {!dados.length ? <EstadoSemDados /> : <div className="grafico-barras-horizontais">{dados.map((item) => <div className="grafico-barra-linha" key={item.categoria} title={`${item.categoria}: ${reais(item.valor)} · ${item.quantidade} pagamento(s)`}><div><strong>{item.categoria}</strong><span>{reais(item.valor)}</span></div><div className="grafico-barra-trilho"><i style={{ width: `${Math.max(3, Number(item.valor || 0) / maximo * 100)}%` }} /></div><small>{item.quantidade} pagamento(s)</small></div>)}</div>}
+    {!dados.length ? <EstadoSemDados /> : <div className="grafico-barras-horizontais">{dados.map((item) => <div className="grafico-barra-linha" key={item.categoria} title={`${item.categoria}: ${usarQuantidade ? `${item.quantidade} pedido(s)` : `${reais(item.valor)} · ${item.quantidade} pagamento(s)`}`}><div><strong>{item.categoria}</strong><span>{usarQuantidade ? item.quantidade : reais(item.valor)}</span></div><div className="grafico-barra-trilho"><i style={{ width: `${Math.max(3, metrica(item) / maximo * 100)}%` }} /></div><small>{usarQuantidade ? `${Math.round(metrica(item) / Math.max(dados.reduce((s, d) => s + metrica(d), 0), 1) * 100)}% dos pedidos` : `${item.quantidade} pagamento(s)`}</small></div>)}</div>}
   </PainelGrafico>;
 }
 

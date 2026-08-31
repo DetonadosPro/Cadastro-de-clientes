@@ -65,22 +65,42 @@ function formaPagamentoAoVivo(pagamento) {
   return texto ? texto.split(/[\s-]+/)[0].toUpperCase() : 'NÃO INFORMADO';
 }
 
+function normalizarFormaRecebimento(forma, pagamento) {
+  const informado = String(forma || '').trim().toUpperCase();
+  const origem = String(pagamento || '').trim().toUpperCase();
+  const texto = informado || origem;
+  if (/PIX/.test(texto)) return 'PIX';
+  if (/D[ÉE]BITO|DEBITO/.test(texto)) return 'DÉBITO';
+  if (/CR[ÉE]DITO|CREDITO/.test(texto)) return 'CRÉDITO';
+  if (/CART/.test(texto)) return 'CARTÃO';
+  if (/DINHEIRO|GRANA|PRESENCIAL/.test(texto)) return 'DINHEIRO';
+  // “PAGO” é status, não forma. Registros antigos receberam esse texto
+  // durante a migração do financeiro; quando não há uma forma recuperável,
+  // o relatório assume explicitamente que ela não foi informada.
+  if (/^(?:T[ÁA] )?PAGO(?:\s*\d.*)?$/.test(texto) || /^[\d.,?]+$/.test(texto)) return 'NÃO INFORMADO';
+  return texto || 'NÃO INFORMADO';
+}
+
 function statusPagamento(valor) {
   return String(valor || '').trim().toUpperCase() === 'SIM' ? 'SIM' : 'NAO';
 }
 
-function prepararItens(itens) {
-  const LIMITE = 200;
+function prepararItens(itens, limiteSolicitado, paginaSolicitada) {
+  const limitesPermitidos = [50, 100, 200, 500];
+  const limite = limitesPermitidos.includes(Number(limiteSolicitado)) ? Number(limiteSolicitado) : 100;
+  const pagina = Math.max(1, Number.parseInt(paginaSolicitada, 10) || 1);
   const ordenados = [...itens].sort((a, b) => {
     const porData = String(paraChaveComparavel(b.data) || '').localeCompare(
       String(paraChaveComparavel(a.data) || '')
     );
     return porData || valorNumero(b.id) - valorNumero(a.id);
   });
-  return {
-    itens: ordenados.slice(0, LIMITE),
-    itensLimitados: itens.length > LIMITE,
-  };
+  const total = ordenados.length;
+  const totalPaginas = Math.max(1, Math.ceil(total / limite));
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const inicio = (paginaAtual - 1) * limite;
+  return { itens: ordenados.slice(inicio, inicio + limite), itensTotal: total,
+    limite, pagina: paginaAtual, totalPaginas, itensLimitados: total > limite };
 }
 
 function resolverIntervalo(inicio, fim) {
@@ -163,6 +183,21 @@ function montarComparacao(valorAtual, valorAnterior, periodoAnterior) {
   };
 }
 
+function montarComparacaoCompleta(atual, anterior, periodoB) {
+  const base = montarComparacao(atual.valor, anterior.valor, periodoB);
+  const diferencaQuantidade = atual.quantidade - anterior.quantidade;
+  const diferencaTicket = atual.ticket - anterior.ticket;
+  return {
+    ...base,
+    periodoA: atual,
+    periodoB: anterior,
+    diferencaQuantidade,
+    percentualQuantidade: anterior.quantidade ? Math.round((diferencaQuantidade / anterior.quantidade) * 1000) / 10 : null,
+    diferencaTicket,
+    percentualTicket: anterior.ticket ? Math.round((diferencaTicket / anterior.ticket) * 1000) / 10 : null,
+  };
+}
+
 function seriePorData(itens, campos) {
   const porData = new Map();
   for (const item of itens) {
@@ -199,7 +234,9 @@ router.get('/vendas', async (req, res) => {
       (req.query.fim || '').trim()
     );
     const sistema = (req.query.sistema || 'TODOS').trim().toUpperCase();
-    const periodoAnterior = resolverPeriodoAnterior(inicio, fim);
+    const periodoAnterior = paraChaveComparavel(req.query.inicioB)
+      ? resolverIntervalo(String(req.query.inicioB).trim(), paraChaveComparavel(req.query.fimB) ? String(req.query.fimB).trim() : '')
+      : null;
     let valorAnterior = 0;
     let resumoFonada = null;
     let resumoAoVivo = null;
@@ -220,7 +257,7 @@ router.get('/vendas', async (req, res) => {
           fonadasResultado.rows, 'data_pedido', periodoAnterior.inicio, periodoAnterior.fim
         );
         valorAnterior += anteriores.reduce((soma, l) => soma + valorNumero(l.valor), 0);
-        anteriores.forEach((l) => itensPeriodoAnterior.push({ data: l.data_pedido, valor: l.valor }));
+        anteriores.forEach((l) => itensPeriodoAnterior.push({ data: l.data_pedido, valor: l.valor, sistema: 'FONADA' }));
       }
       const totalPix = noPeriodo.filter((l) => formaPagamento(l.periodo) === 'PIX').length;
       const totalRecibo = noPeriodo.length - totalPix;
@@ -265,7 +302,7 @@ router.get('/vendas', async (req, res) => {
           aoVivoResultado.rows, 'data_pedido', periodoAnterior.inicio, periodoAnterior.fim
         );
         valorAnterior += anteriores.reduce((soma, l) => soma + valorNumero(l.valor), 0);
-        anteriores.forEach((l) => itensPeriodoAnterior.push({ data: l.data_pedido, valor: l.valor }));
+        anteriores.forEach((l) => itensPeriodoAnterior.push({ data: l.data_pedido, valor: l.valor, sistema: 'AOVIVO' }));
       }
       resumoAoVivo = {
         quantidade: noPeriodo.length,
@@ -286,21 +323,40 @@ router.get('/vendas', async (req, res) => {
     const quantidade = (resumoFonada?.quantidade || 0) + (resumoAoVivo?.quantidade || 0);
     const valorTotal = (resumoFonada?.valorTotal || 0) + (resumoAoVivo?.valorTotal || 0);
 
-    const detalhes = prepararItens(itensDetalhados);
+    const detalhes = prepararItens(itensDetalhados, req.query.limite, req.query.pagina);
+    const quantidadeAnterior = itensPeriodoAnterior.length;
+    const ticketAnterior = calcularTicketMedio(valorAnterior, quantidadeAnterior);
     res.json({
       inicio, fim, sistema,
       fonada: resumoFonada,
       aoVivo: resumoAoVivo,
       geral: { quantidade, valorTotal, ticketMedio: calcularTicketMedio(valorTotal, quantidade) },
-      comparacao: periodoAnterior ? montarComparacao(valorTotal, valorAnterior, periodoAnterior) : null,
+      comparacao: periodoAnterior ? montarComparacaoCompleta(
+        { inicio, fim, valor: valorTotal, quantidade, ticket: calcularTicketMedio(valorTotal, quantidade) },
+        { ...periodoAnterior, valor: valorAnterior, quantidade: quantidadeAnterior, ticket: ticketAnterior },
+        periodoAnterior
+      ) : null,
       graficos: {
         vendasPorDia: seriePorData(itensDetalhados, {
           valor: (item) => item.valor,
           quantidade: () => 1,
           fonada: (item) => item.sistema === 'FONADA' ? item.valor : 0,
           aoVivo: (item) => item.sistema === 'AOVIVO' ? item.valor : 0,
+          quantidadeFonada: (item) => item.sistema === 'FONADA' ? 1 : 0,
+          quantidadeAoVivo: (item) => item.sistema === 'AOVIVO' ? 1 : 0,
         }),
-        periodoAnterior: seriePorData(itensPeriodoAnterior, { valor: (item) => item.valor }),
+        periodoAnterior: seriePorData(itensPeriodoAnterior, {
+          valor: (item) => item.valor,
+          quantidade: () => 1,
+          fonada: (item) => item.sistema === 'FONADA' ? item.valor : 0,
+          aoVivo: (item) => item.sistema === 'AOVIVO' ? item.valor : 0,
+          quantidadeFonada: (item) => item.sistema === 'FONADA' ? 1 : 0,
+          quantidadeAoVivo: (item) => item.sistema === 'AOVIVO' ? 1 : 0,
+        }),
+        origemFonada: resumoFonada ? [
+          { categoria: 'RECALL', quantidade: resumoFonada.totalRecall, valor: resumoFonada.totalRecall },
+          { categoria: 'CLIENTES', quantidade: resumoFonada.totalOutros, valor: resumoFonada.totalOutros },
+        ] : [],
       },
       ...detalhes,
     });
@@ -318,11 +374,14 @@ router.get('/recebimentos', async (req, res) => {
       (req.query.fim || '').trim()
     );
     const sistema = (req.query.sistema || 'TODOS').trim().toUpperCase();
-    const periodoAnterior = resolverPeriodoAnterior(inicio, fim);
+    const periodoAnterior = paraChaveComparavel(req.query.inicioB)
+      ? resolverIntervalo(String(req.query.inicioB).trim(), paraChaveComparavel(req.query.fimB) ? String(req.query.fimB).trim() : '')
+      : null;
     let valorRecebidoAnterior = 0;
     let fonadaResumo = null;
     let aoVivoResumo = null;
     const itensDetalhados = [];
+    const itensPeriodoAnterior = [];
     const vendasDetalhadas = [];
 
     if (sistema === 'FONADA' || sistema === 'TODOS') {
@@ -335,9 +394,11 @@ router.get('/recebimentos', async (req, res) => {
       `, limites);
       const noPeriodo = filtrarPorIntervalo(fonadasResultado.rows, 'data_pagamento', inicio, fim);
       if (periodoAnterior) {
-        valorRecebidoAnterior += filtrarPorIntervalo(
+        const anteriores = filtrarPorIntervalo(
           fonadasResultado.rows, 'data_pagamento', periodoAnterior.inicio, periodoAnterior.fim
-        ).reduce((soma, l) => soma + valorNumero(l.valor), 0);
+        );
+        valorRecebidoAnterior += anteriores.reduce((soma, l) => soma + valorNumero(l.valor), 0);
+        anteriores.forEach((l) => itensPeriodoAnterior.push({ data: l.data_pagamento, valor: l.valor, sistema: 'FONADA' }));
       }
       const totalPix = noPeriodo.filter((l) => formaPagamento(l.periodo) === 'PIX').length;
       const totalRecibo = noPeriodo.length - totalPix;
@@ -380,9 +441,11 @@ router.get('/recebimentos', async (req, res) => {
       const noPeriodoAVista = noPeriodo.filter((l) => !ehPrazoAoVivo(l.pagamento));
       const noPeriodoPrazo = noPeriodo.filter((l) => ehPrazoAoVivo(l.pagamento));
       if (periodoAnterior) {
-        valorRecebidoAnterior += filtrarPorIntervalo(
+        const anteriores = filtrarPorIntervalo(
           linhasRecebidas, 'data_pagou', periodoAnterior.inicio, periodoAnterior.fim
-        ).reduce((soma, l) => soma + valorNumero(l.valor_recebido ?? l.valor), 0);
+        );
+        valorRecebidoAnterior += anteriores.reduce((soma, l) => soma + valorNumero(l.valor_recebido ?? l.valor), 0);
+        anteriores.forEach((l) => itensPeriodoAnterior.push({ data: l.data_pagou, valor: l.valor_recebido ?? l.valor, sistema: 'AOVIVO' }));
       }
 
       aoVivoResumo = {
@@ -398,7 +461,7 @@ router.get('/recebimentos', async (req, res) => {
         itensDetalhados.push({
           id: l.id, sistema: 'AOVIVO', os: l.numero_os || l.id,
           nome: l.comprador || '—', valor: valorNumero(l.valor_recebido ?? l.valor),
-          forma: l.forma_recebimento || formaPagamentoAoVivo(l.pagamento), data: l.data_pagou,
+          forma: normalizarFormaRecebimento(l.forma_recebimento, l.pagamento), data: l.data_pagou,
           statusPagamento: statusPagamento(l.pagou),
         });
       }
@@ -406,7 +469,7 @@ router.get('/recebimentos', async (req, res) => {
         itensDetalhados.push({
           id: l.id, sistema: 'AOVIVO', os: l.numero_os || l.id,
           nome: l.comprador || '—', valor: valorNumero(l.valor_recebido ?? l.valor),
-          forma: l.forma_recebimento || 'PRAZO', data: l.data_pagou,
+          forma: normalizarFormaRecebimento(l.forma_recebimento, l.pagamento), data: l.data_pagou,
           statusPagamento: statusPagamento(l.pagou),
         });
       }
@@ -454,7 +517,7 @@ router.get('/recebimentos', async (req, res) => {
         .filter((l) => String(l.pagou || '').toUpperCase() !== 'SIM')
         .reduce((soma, l) => soma + valorNumero(l.valor), 0);
     }
-    const detalhes = prepararItens(itensDetalhados);
+    const detalhes = prepararItens(itensDetalhados, req.query.limite, req.query.pagina);
 
     res.json({
       inicio, fim, sistema,
@@ -462,14 +525,24 @@ router.get('/recebimentos', async (req, res) => {
       valorVendido,
       valorRecebidoVendasPeriodo,
       valorAReceberVendasPeriodo,
-      comparacao: periodoAnterior
-        ? montarComparacao(valorTotal, valorRecebidoAnterior, periodoAnterior)
-        : null,
+      comparacao: periodoAnterior ? montarComparacaoCompleta(
+        { inicio, fim, valor: valorTotal, quantidade, ticket: calcularTicketMedio(valorTotal, quantidade) },
+        { ...periodoAnterior, valor: valorRecebidoAnterior, quantidade: itensPeriodoAnterior.length,
+          ticket: calcularTicketMedio(valorRecebidoAnterior, itensPeriodoAnterior.length) },
+        periodoAnterior
+      ) : null,
       fonada: fonadaResumo,
       aoVivo: aoVivoResumo,
       graficos: {
         vendidoPorDia: seriePorData(vendasDetalhadas, { valor: (item) => item.valor }),
-        recebidoPorDia: seriePorData(itensDetalhados, { valor: (item) => item.valor }),
+        recebidoPorDia: seriePorData(itensDetalhados, {
+          valor: (item) => item.valor, quantidade: () => 1,
+          fonada: (item) => item.sistema === 'FONADA' ? item.valor : 0,
+          aoVivo: (item) => item.sistema === 'AOVIVO' ? item.valor : 0,
+          quantidadeFonada: (item) => item.sistema === 'FONADA' ? 1 : 0,
+          quantidadeAoVivo: (item) => item.sistema === 'AOVIVO' ? 1 : 0,
+        }),
+        periodoAnterior: seriePorData(itensPeriodoAnterior, { valor: (item) => item.valor, quantidade: () => 1 }),
         recebimentosPorForma: totaisPorCategoria(itensDetalhados, (item) => item.forma),
       },
       ...detalhes,
@@ -492,7 +565,9 @@ router.get('/desempenho', async (req, res) => {
       (req.query.fim || '').trim()
     );
     const sistema = (req.query.sistema || 'TODOS').trim().toUpperCase();
-    const periodoAnterior = resolverPeriodoAnterior(inicio, fim);
+    const periodoAnterior = paraChaveComparavel(req.query.inicioB)
+      ? resolverIntervalo(String(req.query.inicioB).trim(), paraChaveComparavel(req.query.fimB) ? String(req.query.fimB).trim() : '')
+      : null;
     let valorEquipeAnterior = 0;
 
     // Mapa por nome de usuário -> acumulador de métricas.

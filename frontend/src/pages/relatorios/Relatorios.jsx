@@ -97,6 +97,8 @@ export default function Relatorios() {
 function useIntervaloData(searchParams, setSearchParams) {
   const inicio = searchParams.get('inicio') || '';
   const fim = searchParams.get('fim') || '';
+  const inicioB = searchParams.get('inicioB') || '';
+  const fimB = searchParams.get('fimB') || '';
   function definir(campo, valor) {
     const formatado = formatarData(valor);
     setSearchParams((atuais) => {
@@ -107,9 +109,14 @@ function useIntervaloData(searchParams, setSearchParams) {
     }, { replace: true });
   }
   return {
-    inicio, fim,
+    inicio, fim, inicioB, fimB,
     setInicio: (v) => definir('inicio', v),
     setFim: (v) => definir('fim', v),
+    setInicioB: (v) => definir('inicioB', v),
+    setFimB: (v) => definir('fimB', v),
+    limparComparacao: () => {
+      setSearchParams((atuais) => { const novos = new URLSearchParams(atuais); novos.delete('inicioB'); novos.delete('fimB'); return novos; }, { replace: true });
+    },
     setIntervalo: (novoInicio, novoFim) => {
       const inicioFormatado = formatarData(novoInicio);
       const fimFormatado = formatarData(novoFim);
@@ -198,11 +205,12 @@ function graficosRecebimentos(dados) {
 }
 
 function AbaVendas({ sistema, intervalo, ativa }) {
-  const { inicio, fim, setInicio, setFim, setIntervalo } = intervalo;
+  const { inicio, fim, inicioB, fimB, setInicio, setFim, setInicioB, setFimB, limparComparacao, setIntervalo } = intervalo;
   const [dados, setDados] = useState(null);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
   const [jaBuscou, setJaBuscou] = useState(false);
+  const [paginacao, setPaginacao] = useState({ limite: 100, pagina: 1 });
   const series = graficosVendas(dados);
 
   async function buscar(e, sistemaAtual = sistema) {
@@ -215,7 +223,7 @@ function AbaVendas({ sistema, intervalo, ativa }) {
     setErro('');
     setJaBuscou(true);
     try {
-      const resp = await api.relatorios.vendas(inicio, fim, sistemaAtual);
+      const resp = await api.relatorios.vendas(inicio, fim, sistemaAtual, { inicioB, fimB, ...paginacao });
       setDados(resp);
     } catch (err) {
       setErro(err.message);
@@ -235,12 +243,13 @@ function AbaVendas({ sistema, intervalo, ativa }) {
     const temporizador = setTimeout(() => buscar(null, sistema), 300);
     return () => clearTimeout(temporizador);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inicio, fim, sistema, ativa]);
+  }, [inicio, fim, inicioB, fimB, sistema, ativa, paginacao.limite, paginacao.pagina]);
 
   return (
     <div>
       <FormularioPeriodo
-        inicio={inicio} fim={fim} setInicio={setInicio} setFim={setFim} setIntervalo={setIntervalo}
+        inicio={inicio} fim={fim} inicioB={inicioB} fimB={fimB} setInicio={setInicio} setFim={setFim}
+        setInicioB={setInicioB} setFimB={setFimB} limparComparacao={limparComparacao} setIntervalo={setIntervalo}
       />
 
       {erro && <AvisoInline tom="erro" titulo="Não foi possível montar o relatório">{erro}</AvisoInline>}
@@ -252,45 +261,21 @@ function AbaVendas({ sistema, intervalo, ativa }) {
       ) : dados && (
         <>
           <div className="grade grade-relatorio grade-3 resumo-principal-relatorio">
-            <CartaoValor label="Vendido no período" valor={formatarReais(dados.geral.valorTotal)} destaque />
+            <CartaoValor label="Vendido no período" valor={formatarReais(dados.geral.valorTotal)} destaque
+              sub={sistema === 'TODOS' ? `Fonada ${Math.round((dados.fonada?.valorTotal || 0) / Math.max(dados.geral.valorTotal, 1) * 100)}% · Ao Vivo ${Math.round((dados.aoVivo?.valorTotal || 0) / Math.max(dados.geral.valorTotal, 1) * 100)}%` : null} />
             <CartaoValor label="Pedidos" valor={dados.geral.quantidade} />
             <CartaoValor label="Ticket médio" valor={formatarReais(dados.geral.ticketMedio)} />
           </div>
           <ComparacaoPeriodo dados={dados.comparacao} metrica="Vendas" />
           <div className="grade-graficos-relatorio">
-            <GraficoEvolucaoVendas atual={series.vendasPorDia} anterior={series.periodoAnterior} />
-            <GraficoVendasPorSistema dados={series.vendasPorDia} />
+            <GraficoEvolucaoVendas atual={series.vendasPorDia} anterior={series.periodoAnterior} sistema={sistema} />
+            <GraficoVendasPorSistema dados={series.vendasPorDia} sistema={sistema} />
+            {dados.graficos?.origemFonada?.length > 0 && <GraficoBarrasCategorias titulo="Origem dos pedidos Fonada" subtitulo="Recall e clientes são origens; não formas de pagamento" dados={dados.graficos.origemFonada} usarQuantidade />}
           </div>
 
-          {dados.fonada && (
-            <BlocoSistema titulo="Fonada" cor="azul">
-              <div className="grade grade-relatorio grade-4">
-                <CartaoValor label="Total de pedidos" valor={dados.fonada.quantidade} />
-                <CartaoValor label="PIX" valor={dados.fonada.totalPix} sub={`${dados.fonada.percentualPix}%`} />
-                <CartaoValor label="Outros" valor={dados.fonada.totalRecibo} sub={`${dados.fonada.percentualRecibo}%`} />
-                <CartaoValor label="Valor total" valor={formatarReais(dados.fonada.valorTotal)} />
-              </div>
-              <div className="grade grade-relatorio grade-3" style={{ marginTop: 10 }}>
-                <CartaoValor label="Recall" valor={dados.fonada.totalRecall} sub={`${dados.fonada.percentualRecall}%`} />
-                <CartaoValor label="Clientes" valor={dados.fonada.totalOutros} sub={`${dados.fonada.percentualOutros}%`} />
-                <CartaoValor label="Ticket médio" valor={formatarReais(dados.fonada.ticketMedio)} />
-              </div>
-            </BlocoSistema>
-          )}
+          <ResumoSistemas dados={dados} tipo="vendas" />
 
-          {dados.aoVivo && (
-            <BlocoSistema titulo="Ao vivo" cor="vermelho">
-              <div className="grade grade-relatorio grade-2">
-                <CartaoValor label="Total de pedidos" valor={dados.aoVivo.quantidade} />
-                <CartaoValor label="Valor total" valor={formatarReais(dados.aoVivo.valorTotal)} />
-              </div>
-              <div className="grade grade-relatorio grade-2" style={{ marginTop: 10 }}>
-                <CartaoValor label="Ticket médio" valor={formatarReais(dados.aoVivo.ticketMedio)} />
-              </div>
-            </BlocoSistema>
-          )}
-
-          <TabelaDetalhada itens={dados.itens || []} tituloColunaValor="Venda" limitado={dados.itensLimitados} />
+          <TabelaDetalhada dados={dados} itens={dados.itens || []} tituloColunaValor="Venda" onPaginacao={setPaginacao} />
         </>
       )}
     </div>
@@ -298,11 +283,12 @@ function AbaVendas({ sistema, intervalo, ativa }) {
 }
 
 function AbaRecebimentos({ sistema, intervalo, ativa }) {
-  const { inicio, fim, setInicio, setFim, setIntervalo } = intervalo;
+  const { inicio, fim, inicioB, fimB, setInicio, setFim, setInicioB, setFimB, limparComparacao, setIntervalo } = intervalo;
   const [dados, setDados] = useState(null);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
   const [jaBuscou, setJaBuscou] = useState(false);
+  const [paginacao, setPaginacao] = useState({ limite: 100, pagina: 1 });
   const series = graficosRecebimentos(dados);
 
   async function buscar(e, sistemaAtual = sistema) {
@@ -315,7 +301,7 @@ function AbaRecebimentos({ sistema, intervalo, ativa }) {
     setErro('');
     setJaBuscou(true);
     try {
-      const resp = await api.relatorios.recebimentos(inicio, fim, sistemaAtual);
+      const resp = await api.relatorios.recebimentos(inicio, fim, sistemaAtual, { inicioB, fimB, ...paginacao });
       setDados(resp);
     } catch (err) {
       setErro(err.message);
@@ -335,12 +321,13 @@ function AbaRecebimentos({ sistema, intervalo, ativa }) {
     const temporizador = setTimeout(() => buscar(null, sistema), 300);
     return () => clearTimeout(temporizador);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inicio, fim, sistema, ativa]);
+  }, [inicio, fim, inicioB, fimB, sistema, ativa, paginacao.limite, paginacao.pagina]);
 
   return (
     <div>
       <FormularioPeriodo
-        inicio={inicio} fim={fim} setInicio={setInicio} setFim={setFim} setIntervalo={setIntervalo}
+        inicio={inicio} fim={fim} inicioB={inicioB} fimB={fimB} setInicio={setInicio} setFim={setFim}
+        setInicioB={setInicioB} setFimB={setFimB} limparComparacao={limparComparacao} setIntervalo={setIntervalo}
       />
 
       {erro && <AvisoInline tom="erro" titulo="Não foi possível montar o relatório">{erro}</AvisoInline>}
@@ -352,13 +339,14 @@ function AbaRecebimentos({ sistema, intervalo, ativa }) {
       ) : dados && (
         <>
           <div className="grade grade-relatorio grade-3 resumo-principal-relatorio">
-            <CartaoValor label="Recebido no período" valor={formatarReais(dados.valorTotal)} sub={`${dados.quantidade} registro(s)`} destaque />
+            <CartaoValor label="Recebido no período" valor={formatarReais(dados.valorTotal)}
+              sub={sistema === 'TODOS' ? `Fonada ${Math.round((dados.fonada?.valorTotal || 0) / Math.max(dados.valorTotal, 1) * 100)}% · Ao Vivo ${Math.round((dados.aoVivo?.valorTotal || 0) / Math.max(dados.valorTotal, 1) * 100)}%` : `${dados.quantidade} registro(s)`} destaque />
             <CartaoValor label="Vendido no período" valor={formatarReais(dados.valorVendido)} sub="Pedidos criados nessas datas" />
             <CartaoValor label="Ainda a receber" valor={formatarReais(dados.valorAReceberVendasPeriodo)} sub="Dos pedidos vendidos nessas datas" />
           </div>
           <ComparacaoPeriodo dados={dados.comparacao} metrica="Recebimentos" />
           <div className="grade-graficos-relatorio grade-graficos-recebimentos">
-            <GraficoVendidoRecebido vendido={series.vendidoPorDia} recebido={series.recebidoPorDia} />
+            <GraficoVendidoRecebido vendido={series.vendidoPorDia} recebido={series.recebidoPorDia} sistema={sistema} />
             <GraficoBarrasCategorias
               titulo="Formas de recebimento"
               subtitulo="Valor efetivamente recebido em cada forma"
@@ -366,31 +354,9 @@ function AbaRecebimentos({ sistema, intervalo, ativa }) {
             />
           </div>
 
-          {dados.fonada && (
-            <BlocoSistema titulo="Fonada" cor="azul">
-              <div className="grade grade-relatorio grade-4">
-                <CartaoValor label="Total de pedidos" valor={dados.fonada.quantidade} />
-                <CartaoValor label="PIX" valor={dados.fonada.totalPix} sub={`${dados.fonada.percentualPix}%`} />
-                <CartaoValor label="Outros" valor={dados.fonada.totalRecibo} sub={`${dados.fonada.percentualRecibo}%`} />
-                <CartaoValor label="Valor total" valor={formatarReais(dados.fonada.valorTotal)} />
-              </div>
-            </BlocoSistema>
-          )}
+          <ResumoSistemas dados={dados} tipo="recebimentos" />
 
-          {dados.aoVivo && (
-            <BlocoSistema titulo="Ao vivo" cor="vermelho">
-              <div className="grade grade-relatorio grade-2">
-                <CartaoValor label="Total de pedidos" valor={dados.aoVivo.quantidade} />
-                <CartaoValor label="Valor total" valor={formatarReais(dados.aoVivo.valorTotal)} />
-              </div>
-              <div className="grade grade-relatorio grade-2" style={{ marginTop: 10 }}>
-                <CartaoValor label="Na entrega" valor={formatarReais(dados.aoVivo.valorAVista)} sub={`${dados.aoVivo.quantidadeAVista} pedido(s)`} />
-                <CartaoValor label="A prazo recebido" valor={formatarReais(dados.aoVivo.valorPrazo)} sub={`${dados.aoVivo.quantidadePrazo} pedido(s)`} />
-              </div>
-            </BlocoSistema>
-          )}
-
-          <TabelaDetalhada itens={dados.itens || []} tituloColunaValor="Recebido" limitado={dados.itensLimitados} />
+          <TabelaDetalhada dados={dados} itens={dados.itens || []} tituloColunaValor="Recebido" onPaginacao={setPaginacao} />
         </>
       )}
     </div>
@@ -398,7 +364,7 @@ function AbaRecebimentos({ sistema, intervalo, ativa }) {
 }
 
 function AbaDesempenho({ sistema, intervalo, ativa }) {
-  const { inicio, fim, setInicio, setFim, setIntervalo } = intervalo;
+  const { inicio, fim, inicioB, fimB, setInicio, setFim, setInicioB, setFimB, limparComparacao, setIntervalo } = intervalo;
   const [dados, setDados] = useState(null);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
@@ -414,7 +380,7 @@ function AbaDesempenho({ sistema, intervalo, ativa }) {
     setErro('');
     setJaBuscou(true);
     try {
-      const resp = await api.relatorios.desempenho(inicio, fim, sistemaAtual);
+      const resp = await api.relatorios.desempenho(inicio, fim, sistemaAtual, { inicioB, fimB });
       setDados(resp);
     } catch (err) {
       setErro(err.message);
@@ -434,12 +400,13 @@ function AbaDesempenho({ sistema, intervalo, ativa }) {
     const temporizador = setTimeout(() => buscar(null, sistema), 300);
     return () => clearTimeout(temporizador);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inicio, fim, sistema, ativa]);
+  }, [inicio, fim, inicioB, fimB, sistema, ativa]);
 
   return (
     <div>
       <FormularioPeriodo
-        inicio={inicio} fim={fim} setInicio={setInicio} setFim={setFim} setIntervalo={setIntervalo}
+        inicio={inicio} fim={fim} inicioB={inicioB} fimB={fimB} setInicio={setInicio} setFim={setFim}
+        setInicioB={setInicioB} setFimB={setFimB} limparComparacao={limparComparacao} setIntervalo={setIntervalo}
       />
 
       {erro && <AvisoInline tom="erro" titulo="Não foi possível montar o relatório">{erro}</AvisoInline>}
@@ -503,7 +470,8 @@ function TabelaDesempenho({ funcionarios, valorEquipe }) {
   );
 }
 
-function FormularioPeriodo({ inicio, fim, setInicio, setFim, setIntervalo }) {
+function FormularioPeriodo({ inicio, fim, inicioB, fimB, setInicio, setFim, setInicioB, setFimB, limparComparacao, setIntervalo }) {
+  const [comparando, setComparando] = useState(Boolean(inicioB));
   function aplicarAtalho(tipo) {
     const hoje = new Date();
     let primeiro = new Date(hoje);
@@ -539,6 +507,7 @@ function FormularioPeriodo({ inicio, fim, setInicio, setFim, setIntervalo }) {
         <button type="button" onClick={() => aplicarAtalho('mes-anterior')}>Mês anterior</button>
       </div>
       <div className="form-periodo-relatorio">
+        <span className="periodo-identificador">Período A</span>
         <div className="campo">
           <label>Data inicial</label>
           <CampoData placeholder="dd/mm/aa" value={inicio} onChange={setInicio} />
@@ -547,18 +516,36 @@ function FormularioPeriodo({ inicio, fim, setInicio, setFim, setIntervalo }) {
           <label>Data final</label>
           <CampoData placeholder="dd/mm/aa" value={fim} onChange={setFim} />
         </div>
+        <button className="btn btn-secundario botao-comparar-periodo" type="button" onClick={() => {
+          if (comparando) limparComparacao?.();
+          setComparando(!comparando);
+        }}>{comparando ? 'Remover comparação' : 'Comparar período'}</button>
       </div>
+      {comparando && <div className="form-periodo-relatorio periodo-comparacao-b">
+        <span className="periodo-identificador">Período B</span>
+        <div className="campo"><label>Data inicial</label><CampoData placeholder="dd/mm/aa" value={inicioB} onChange={setInicioB} /></div>
+        <div className="campo"><label>Data final</label><CampoData placeholder="dd/mm/aa" value={fimB} onChange={setFimB} /></div>
+        <span className="texto-suave fs-xs">Escolha qualquer intervalo para uma comparação direta.</span>
+      </div>}
     </div>
   );
 }
 
-function BlocoSistema({ titulo, cor, children }) {
-  return (
-    <div className={`bloco-sistema bloco-sistema-${cor}`}>
-      <div className="bloco-sistema-titulo">{titulo}</div>
-      {children}
-    </div>
-  );
+function ResumoSistemas({ dados, tipo }) {
+  const linhas = [];
+  if (dados.fonada) linhas.push({ nome: 'Fonada', classe: 'fonada', quantidade: dados.fonada.quantidade,
+    valor: dados.fonada.valorTotal, complemento: tipo === 'vendas'
+      ? `Recall ${dados.fonada.totalRecall} · Clientes ${dados.fonada.totalOutros} · PIX ${dados.fonada.percentualPix}%`
+      : `PIX ${dados.fonada.percentualPix}% · Outros ${dados.fonada.percentualRecibo}%` });
+  if (dados.aoVivo) linhas.push({ nome: 'Ao Vivo', classe: 'aovivo', quantidade: dados.aoVivo.quantidade,
+    valor: dados.aoVivo.valorTotal, complemento: tipo === 'vendas'
+      ? `Ticket ${formatarReais(dados.aoVivo.ticketMedio)}`
+      : `Na entrega ${formatarReais(dados.aoVivo.valorAVista)} · A prazo ${formatarReais(dados.aoVivo.valorPrazo)}` });
+  return <section className="resumo-sistemas-linear" aria-label="Composição por sistema">
+    {linhas.map((linha) => <div className={`resumo-sistema-linha ${linha.classe}`} key={linha.nome}>
+      <i /><strong>{linha.nome}</strong><span>{linha.quantidade} pedido(s)</span><b>{formatarReais(linha.valor)}</b><small>{linha.complemento}</small>
+    </div>)}
+  </section>;
 }
 
 function CartaoValor({ label, valor, sub, destaque }) {
@@ -574,21 +561,21 @@ function CartaoValor({ label, valor, sub, destaque }) {
 function ComparacaoPeriodo({ dados, metrica }) {
   if (!dados) return null;
   const classe = dados.direcao === 'ALTA' ? 'alta' : dados.direcao === 'QUEDA' ? 'queda' : 'estavel';
-  const titulo = dados.direcao === 'ALTA' ? 'Evolução' : dados.direcao === 'QUEDA' ? 'Queda' : 'Estável';
   const simbolo = dados.direcao === 'ALTA' ? '↑' : dados.direcao === 'QUEDA' ? '↓' : '→';
   const diferenca = Math.abs(dados.diferenca || 0);
 
   return (
     <div className={`comparacao-periodo ${classe}`}>
       <div>
-        <div className="comparacao-periodo-titulo">{metrica}: {titulo}</div>
+        <div className="comparacao-periodo-titulo">{metrica}: período A × período B</div>
         <div className="fs-xs texto-suave">
-          Período anterior: {dados.inicio} a {dados.fim} · {formatarReais(dados.valorAnterior)}
+          {dados.periodoA ? `A: ${dados.periodoA.inicio} a ${dados.periodoA.fim || dados.periodoA.inicio} · ` : ''}B: {dados.inicio} a {dados.fim || dados.inicio}
         </div>
       </div>
       <div className="comparacao-periodo-resultado">
         <strong>{simbolo} {dados.percentual == null ? 'Sem base anterior' : `${Math.abs(dados.percentual)}%`}</strong>
         <span>{formatarReais(diferenca)} {dados.direcao === 'QUEDA' ? 'a menos' : dados.direcao === 'ALTA' ? 'a mais' : 'de diferença'}</span>
+        {Number.isFinite(dados.diferencaQuantidade) && <small>{dados.diferencaQuantidade >= 0 ? '+' : ''}{dados.diferencaQuantidade} pedidos · ticket {dados.diferencaTicket >= 0 ? '+' : ''}{formatarReais(dados.diferencaTicket)}</small>}
       </div>
     </div>
   );
@@ -596,9 +583,8 @@ function ComparacaoPeriodo({ dados, metrica }) {
 
 // Tabela com um pedido por linha (comprador, O.S., forma, valor).
 // Clicar na linha abre o pedido, igual às listas de Fonada/Ao Vivo.
-function TabelaDetalhada({ itens, tituloColunaValor, limitado }) {
+function TabelaDetalhada({ dados, itens, tituloColunaValor, onPaginacao }) {
   const navigate = useNavigate();
-  const lista = useListaIncremental(itens, `${tituloColunaValor}:${itens[0]?.data || ''}:${itens.length}`);
 
   if (itens.length === 0) {
     return (
@@ -612,7 +598,15 @@ function TabelaDetalhada({ itens, tituloColunaValor, limitado }) {
     <div className="painel" style={{ marginTop: 16, padding: 0, overflow: 'hidden' }}>
       <div className="cabecalho-lista-relatorio">
         <strong>Pedidos do período</strong>
-        <span className="fs-xs texto-suave">{limitado ? 'Exibindo os primeiros 200 registros' : `${itens.length} registro(s)`}</span>
+        <div className="controles-paginacao-relatorio">
+          <span className="fs-xs texto-suave">Exibindo {itens.length} de {dados.itensTotal ?? itens.length}</span>
+          <label>Por página <select value={dados.limite || 100} onChange={(e) => onPaginacao({ limite: Number(e.target.value), pagina: 1 })}>
+            {[50, 100, 200, 500].map((valor) => <option value={valor} key={valor}>{valor}</option>)}
+          </select></label>
+          <button type="button" disabled={(dados.pagina || 1) <= 1} onClick={() => onPaginacao({ limite: dados.limite, pagina: dados.pagina - 1 })}>Anterior</button>
+          <span>{dados.pagina || 1}/{dados.totalPaginas || 1}</span>
+          <button type="button" disabled={(dados.pagina || 1) >= (dados.totalPaginas || 1)} onClick={() => onPaginacao({ limite: dados.limite, pagina: dados.pagina + 1 })}>Próxima</button>
+        </div>
       </div>
       <div className="lista-relatorio-scroll">
         <table className="tabela-lista">
@@ -628,7 +622,7 @@ function TabelaDetalhada({ itens, tituloColunaValor, limitado }) {
             </tr>
           </thead>
           <tbody>
-            {lista.itensVisiveis.map((item) => (
+            {itens.map((item) => (
               <tr
                 key={`${item.sistema}-${item.id}`}
                 onClick={() => navigate(item.sistema === 'FONADA' ? `/fonada/${item.id}` : `/ao-vivo/${item.id}`)}
@@ -653,7 +647,6 @@ function TabelaDetalhada({ itens, tituloColunaValor, limitado }) {
           </tbody>
         </table>
       </div>
-      <BotaoMostrarMais temMais={lista.temMais} restantes={lista.restantes} onClick={lista.mostrarMais} />
     </div>
   );
 }
