@@ -501,6 +501,10 @@ router.get('/recebimentos', async (req, res) => {
     let valorVendido = 0;
     let valorAReceberVendasPeriodo = 0;
     let valorRecebidoVendasPeriodo = 0;
+    const composicaoVendasPeriodo = {
+      fonada: { vendido: 0, aReceber: 0 },
+      aoVivo: { vendido: 0, aReceber: 0 },
+    };
     if (sistema === 'FONADA' || sistema === 'TODOS') {
       const limites = limitesConsulta(inicio, fim);
       const fonadasVendidasResultado = await db.query(`
@@ -511,10 +515,14 @@ router.get('/recebimentos', async (req, res) => {
       const vendidas = filtrarPorIntervalo(fonadasVendidasResultado.rows, 'data_pedido', inicio, fim);
       vendidas.forEach((l) => vendasDetalhadas.push({ data: l.data_pedido, valor: l.valor, sistema: 'FONADA' }));
       valorVendido += vendidas.reduce((soma, l) => soma + valorNumero(l.valor), 0);
+      composicaoVendasPeriodo.fonada.vendido = vendidas.reduce((soma, l) => soma + valorNumero(l.valor), 0);
       valorRecebidoVendasPeriodo += vendidas
         .filter((l) => String(l.pagou || '').toUpperCase() === 'SIM')
         .reduce((soma, l) => soma + valorNumero(l.valor), 0);
       valorAReceberVendasPeriodo += vendidas
+        .filter((l) => String(l.pagou || '').toUpperCase() !== 'SIM')
+        .reduce((soma, l) => soma + valorNumero(l.valor), 0);
+      composicaoVendasPeriodo.fonada.aReceber = vendidas
         .filter((l) => String(l.pagou || '').toUpperCase() !== 'SIM')
         .reduce((soma, l) => soma + valorNumero(l.valor), 0);
     }
@@ -528,10 +536,14 @@ router.get('/recebimentos', async (req, res) => {
       const vendidos = filtrarPorIntervalo(aoVivoVendidoResultado.rows, 'data_pedido', inicio, fim);
       vendidos.forEach((l) => vendasDetalhadas.push({ data: l.data_pedido, valor: l.valor, sistema: 'AOVIVO' }));
       valorVendido += vendidos.reduce((soma, l) => soma + valorNumero(l.valor), 0);
+      composicaoVendasPeriodo.aoVivo.vendido = vendidos.reduce((soma, l) => soma + valorNumero(l.valor), 0);
       valorRecebidoVendasPeriodo += vendidos
         .filter((l) => String(l.pagou || '').toUpperCase() === 'SIM')
         .reduce((soma, l) => soma + valorNumero(l.valor_recebido ?? l.valor), 0);
       valorAReceberVendasPeriodo += vendidos
+        .filter((l) => String(l.pagou || '').toUpperCase() !== 'SIM')
+        .reduce((soma, l) => soma + valorNumero(l.valor), 0);
+      composicaoVendasPeriodo.aoVivo.aReceber = vendidos
         .filter((l) => String(l.pagou || '').toUpperCase() !== 'SIM')
         .reduce((soma, l) => soma + valorNumero(l.valor), 0);
     }
@@ -543,6 +555,7 @@ router.get('/recebimentos', async (req, res) => {
       valorVendido,
       valorRecebidoVendasPeriodo,
       valorAReceberVendasPeriodo,
+      composicaoVendasPeriodo,
       comparacao: periodoAnterior ? montarComparacaoCompleta(
         { inicio, fim, valor: valorTotal, quantidade, ticket: calcularTicketMedio(valorTotal, quantidade) },
         { ...periodoAnterior, valor: valorRecebidoAnterior, quantidade: itensPeriodoAnterior.length,

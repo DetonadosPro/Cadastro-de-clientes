@@ -186,6 +186,10 @@ function formasDosItens(itens = []) {
   return [...mapa.values()].sort((a, b) => b.valor - a.valor);
 }
 
+function percentual(parte, total) {
+  return Math.round(Number(parte || 0) / Math.max(Number(total || 0), 1) * 100);
+}
+
 function pagamentosPorDiaDosItens(itens = []) {
   const mapa = new Map();
   itens.forEach((item) => {
@@ -296,8 +300,8 @@ function AbaVendas({ sistema, intervalo, ativa }) {
           </div>
           <ComparacaoPeriodo dados={dados.comparacao} metrica="Vendas" />
           <div className="grade-graficos-relatorio">
-            <GraficoEvolucaoVendas atual={series.vendasPorDia} anterior={series.periodoAnterior} sistema={sistema} />
-            <GraficoVendasPorSistema dados={series.vendasPorDia} sistema={sistema} />
+            {fim && <GraficoEvolucaoVendas atual={series.vendasPorDia} anterior={series.periodoAnterior} sistema={sistema} />}
+            {fim && <GraficoVendasPorSistema dados={series.vendasPorDia} sistema={sistema} />}
             <GraficoQuantidadePagamentos dados={series.pagamentosPorDia} />
             {sistema === 'FONADA' && dados.graficos?.origemFonada?.length > 0 && <GraficoBarrasCategorias titulo="Origem dos pedidos Fonada" subtitulo="Recall e clientes são origens; não formas de pagamento" dados={dados.graficos.origemFonada} usarQuantidade />}
           </div>
@@ -365,15 +369,26 @@ function AbaRecebimentos({ sistema, intervalo, ativa }) {
         <EstadoCarregando className="estado-carregando-plano" rotulo="Calculando recebimentos…" linhas={5} />
       ) : dados && (
         <>
+          {(() => {
+            const vendidoFonada = dados.composicaoVendasPeriodo?.fonada?.vendido || 0;
+            const vendidoAoVivo = dados.composicaoVendasPeriodo?.aoVivo?.vendido || 0;
+            const receberFonada = dados.composicaoVendasPeriodo?.fonada?.aReceber || 0;
+            const receberAoVivo = dados.composicaoVendasPeriodo?.aoVivo?.aReceber || 0;
+            return <>
           <div className="grade grade-relatorio grade-3 resumo-principal-relatorio">
             <CartaoValor label="Recebido no período" valor={formatarReais(dados.valorTotal)}
-              sub={sistema === 'TODOS' ? `Fonada ${Math.round((dados.fonada?.valorTotal || 0) / Math.max(dados.valorTotal, 1) * 100)}% · Ao Vivo ${Math.round((dados.aoVivo?.valorTotal || 0) / Math.max(dados.valorTotal, 1) * 100)}%` : `${dados.quantidade} registro(s)`} destaque />
-            <CartaoValor label="Vendido no período" valor={formatarReais(dados.valorVendido)} sub="Pedidos criados nessas datas" />
-            <CartaoValor label="Ainda a receber" valor={formatarReais(dados.valorAReceberVendasPeriodo)} sub="Dos pedidos vendidos nessas datas" />
+              sub={sistema === 'TODOS' ? `Fonada ${percentual(dados.fonada?.valorTotal, dados.valorTotal)}% · Ao Vivo ${percentual(dados.aoVivo?.valorTotal, dados.valorTotal)}%` : `${dados.quantidade} registro(s)`}
+              tooltip={sistema === 'TODOS' ? `Fonada: ${formatarReais(dados.fonada?.valorTotal)}\nAo Vivo: ${formatarReais(dados.aoVivo?.valorTotal)}` : null} destaque />
+            <CartaoValor label="Vendido no período" valor={formatarReais(dados.valorVendido)}
+              sub={sistema === 'TODOS' ? `Fonada ${percentual(vendidoFonada, dados.valorVendido)}% · Ao Vivo ${percentual(vendidoAoVivo, dados.valorVendido)}%` : null}
+              tooltip={sistema === 'TODOS' ? `Fonada: ${formatarReais(vendidoFonada)}\nAo Vivo: ${formatarReais(vendidoAoVivo)}` : null} />
+            <CartaoValor label="Ainda a receber" valor={formatarReais(dados.valorAReceberVendasPeriodo)}
+              sub={sistema === 'TODOS' ? `Fonada ${percentual(receberFonada, dados.valorAReceberVendasPeriodo)}% · Ao Vivo ${percentual(receberAoVivo, dados.valorAReceberVendasPeriodo)}%` : null}
+              tooltip={sistema === 'TODOS' ? `Fonada: ${formatarReais(receberFonada)}\nAo Vivo: ${formatarReais(receberAoVivo)}` : null} />
           </div>
           <ComparacaoPeriodo dados={dados.comparacao} metrica="Recebimentos" />
           <div className="grade-graficos-relatorio grade-graficos-recebimentos">
-            <GraficoVendidoRecebido vendido={series.vendidoPorDia} recebido={series.recebidoPorDia} sistema={sistema} />
+            {fim && <GraficoVendidoRecebido vendido={series.vendidoPorDia} recebido={series.recebidoPorDia} sistema={sistema} />}
             <GraficoBarrasCategorias
               titulo="Formas de recebimento"
               subtitulo="Valor efetivamente recebido em cada forma"
@@ -383,6 +398,8 @@ function AbaRecebimentos({ sistema, intervalo, ativa }) {
 
 
           <TabelaDetalhada dados={dados} itens={dados.itens || []} tituloColunaValor="Recebido" onPaginacao={setPaginacao} />
+            </>;
+          })()}
         </>
       )}
     </div>

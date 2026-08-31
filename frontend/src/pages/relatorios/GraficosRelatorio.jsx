@@ -96,12 +96,12 @@ export function GraficoEvolucaoVendas({ atual = [], anterior = [], sistema = 'TO
           })}
           {anterior.length > 0 && <polyline className={`grafico-linha anterior ${periodoDestacado === 'B' ? 'serie-destaque' : 'serie-atenuada'}`} points={pontosLinha(anterior, maximo, largura, altura)} />}
           <polyline className={`grafico-linha atual ${periodoDestacado === 'A' ? 'serie-destaque' : 'serie-atenuada'}`} points={pontosLinha(atual, maximo, largura, altura)} />
-          {atual.map((ponto, indice) => {
-            const x = atual.length > 1 ? MARGEM_X + indice * ((largura - MARGEM_X * 2) / (atual.length - 1)) : largura / 2;
+          {selecionado.map((ponto, indice) => {
+            const x = selecionado.length > 1 ? MARGEM_X + indice * ((largura - MARGEM_X * 2) / (selecionado.length - 1)) : largura / 2;
             const y = altura - MARGEM_Y - (Number(ponto.valor || 0) / maximo) * (altura - MARGEM_Y * 2);
-            return <circle className="grafico-ponto-interativo" tabIndex="0" key={`${ponto.data}-${indice}`} cx={x} cy={y} r="5"><title>{tituloPonto(ponto)}</title></circle>;
+            return <circle className="grafico-ponto-interativo" tabIndex="0" key={`${periodoDestacado}-${ponto.data}-${indice}`} cx={x} cy={y} r="5"><title>{tituloPonto(ponto)}</title></circle>;
           })}
-          <g className="grafico-eixo"><RotulosEixo dados={atual} largura={largura} altura={altura} /></g>
+          <g className="grafico-eixo"><RotulosEixo dados={selecionado} largura={largura} altura={altura} /></g>
         </svg></div>
       )}
       {!!selecionado.length && <div className="resumo-serie-selecionada"><strong>Período {periodoDestacado}</strong><span>{reais(resumoSelecionado.valor)}</span><small>{resumoSelecionado.quantidade} pedido(s) · ticket {reais(resumoSelecionado.quantidade ? resumoSelecionado.valor / resumoSelecionado.quantidade : 0)}</small></div>}
@@ -132,24 +132,16 @@ export function GraficoVendasPorSistema({ dados = [], sistema = 'TODOS' }) {
 }
 
 export function GraficoQuantidadePagamentos({ dados = [] }) {
-  const largura = 720; const altura = 245;
   const categorias = [...new Set(dados.flatMap((p) => Object.keys(p.formas || {})))];
   const paleta = [CORES.azul, CORES.aoVivo, CORES.verde, '#8b6caf', '#b58a2a', '#718096'];
   const totalPeriodo = dados.reduce((soma, p) => soma + Number(p.total || 0), 0);
   const totalCategoria = (categoria) => dados.reduce((soma, p) => soma + Number(p.formas?.[categoria] || 0), 0);
-  const maximo = Math.max(1, ...dados.flatMap((p) => categorias.map((categoria) => Number(p.formas?.[categoria] || 0))));
-  return <PainelGrafico titulo="Origem dos pagamentos" subtitulo="Quantidade diária e participação por forma" amplo legenda={<>{categorias.map((categoria, i) => <Legenda key={categoria} cor={paleta[i % paleta.length]}>{categoria} · {totalPeriodo ? Math.round(totalCategoria(categoria) / totalPeriodo * 1000) / 10 : 0}%</Legenda>)}</>}>
-    {!dados.length ? <EstadoSemDados /> : <div className="grafico-svg-scroll"><svg className="grafico-svg" viewBox={`0 0 ${largura} ${altura}`} role="img" aria-label="Quantidade de pagamentos por PIX e presencial">
-      {[0, .25, .5, .75, 1].map((fator) => { const y = altura - MARGEM_Y - fator * (altura - MARGEM_Y * 2); return <g key={fator}><line x1={MARGEM_X} y1={y} x2={largura - MARGEM_X} y2={y} /><text className="grafico-valor-eixo" x={MARGEM_X - 10} y={y + 4} textAnchor="end">{Math.round(maximo * fator)}</text></g>; })}
-      {categorias.map((categoria, i) => <polyline key={categoria} className="grafico-linha grafico-linha-forma" style={{ stroke: paleta[i % paleta.length] }} points={pontosLinha(dados.map((p) => ({ data: p.data, valor: p.formas?.[categoria] || 0 })), maximo, largura, altura)} />)}
-      {dados.map((ponto, indice) => {
-        const x = dados.length > 1 ? MARGEM_X + indice * ((largura - MARGEM_X * 2) / (dados.length - 1)) : largura / 2;
-        const total = Number(ponto.total || 0);
-        const titulo = `${ponto.data}\nTotal: ${total} pagamento(s)\n${categorias.map((categoria) => `${categoria}: ${ponto.formas?.[categoria] || 0} · ${total ? Math.round(Number(ponto.formas?.[categoria] || 0) / total * 1000) / 10 : 0}%`).join('\n')}`;
-        return <g className="grafico-ponto-interativo" tabIndex="0" key={ponto.data}><title>{titulo}</title>{categorias.map((categoria, i) => { const y = altura - MARGEM_Y - Number(ponto.formas?.[categoria] || 0) / maximo * (altura - MARGEM_Y * 2); return <circle key={categoria} cx={x} cy={y} r="4.5" style={{ stroke: paleta[i % paleta.length] }} />; })}</g>;
-      })}
-      <g className="grafico-eixo"><RotulosEixo dados={dados} largura={largura} altura={altura} /></g>
-    </svg></div>}
+  return <PainelGrafico titulo="Origem dos pagamentos" subtitulo="Quantidade e participação por forma" amplo legenda={<>{categorias.map((categoria, i) => <Legenda key={categoria} cor={paleta[i % paleta.length]}>{categoria} · {totalPeriodo ? Math.round(totalCategoria(categoria) / totalPeriodo * 1000) / 10 : 0}%</Legenda>)}</>}>
+    {!dados.length ? <EstadoSemDados /> : <div className="grafico-barras-horizontais origem-pagamentos-barras">{categorias.map((categoria, i) => {
+      const quantidade = totalCategoria(categoria);
+      const pct = totalPeriodo ? Math.round(quantidade / totalPeriodo * 1000) / 10 : 0;
+      return <div className="grafico-barra-linha" key={categoria} title={`${categoria}: ${quantidade} pagamento(s) · ${pct}%`}><div><strong>{categoria}</strong><span>{quantidade}</span></div><div className="grafico-barra-trilho"><i style={{ width: `${Math.max(3, pct)}%`, background: paleta[i % paleta.length] }} /></div><small>{quantidade} pagamento(s) · {pct}%</small></div>;
+    })}</div>}
   </PainelGrafico>;
 }
 
