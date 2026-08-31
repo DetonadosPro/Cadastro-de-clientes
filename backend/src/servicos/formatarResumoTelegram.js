@@ -78,24 +78,57 @@ function montarCabecalhoResumo(resumo) {
   ].join('\n');
 }
 
-function montarBlocosAgenda(resumo) {
+function statusEhConcluido(status) {
+  const normalizado = String(status || '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase();
+  if (!normalizado || normalizado === 'AGENDADA' || normalizado === 'AGENDADO' || normalizado === 'PENDENTE') return false;
+  if (normalizado.startsWith('NAO ') || normalizado.includes('CANCELAD')) return false;
+  return true;
+}
+
+function linhaPendencia(pedido) {
+  const horario = escaparHtml(texto(pedido.horario, 'Sem horário'));
+  const tipo = pedido.tipo === 'FONADA'
+    ? `Fonada${pedido.mensagem ? ` ${pedido.mensagem}ª` : ''}`
+    : 'Ao Vivo';
+  const destinatario = escaparHtml(texto(pedido.destinatario, pedido.cliente || 'Sem destinatário'));
+  const status = escaparHtml(texto(pedido.status, 'Agendada'));
+  return `• <b>${horario}</b> · ${tipo} · ${destinatario} — ${status}`;
+}
+
+function montarResumoOperacional(resumo) {
   const pedidos = [...(resumo.agenda?.fonadas || []), ...(resumo.agenda?.aoVivo || [])]
     .sort((a, b) => String(a.horario || '99:99').localeCompare(String(b.horario || '99:99')));
 
   if (pedidos.length === 0) {
-    return ['🗓 <b>OPERAÇÃO DO DIA</b>\nNenhuma transmissão ou entrega estava agendada para hoje.'];
+    return '🗓 <b>OPERAÇÃO DO DIA</b>\nNenhuma transmissão ou entrega estava agendada para hoje.';
   }
 
-  const abertura = [
-    '🗓 <b>OPERAÇÃO DO DIA</b>',
-    `${resumo.agenda.fonadas.length} mensagem(ns) fonada(s) · ${resumo.agenda.aoVivo.length} entrega(s) ao vivo`,
-  ].join('\n');
+  const pendencias = pedidos.filter((pedido) => !statusEhConcluido(pedido.status));
+  const concluidos = pedidos.length - pendencias.length;
+  if (pendencias.length === 0) {
+    return [
+      '🗓 <b>OPERAÇÃO DO DIA</b>',
+      `✅ <b>Operação concluída</b> · ${concluidos} de ${pedidos.length} compromisso(s)`,
+      'Nenhuma pendência.',
+    ].join('\n');
+  }
 
-  return [abertura, ...pedidos.map(formatarPedido)];
+  return [
+    '🗓 <b>OPERAÇÃO DO DIA</b>',
+    `✅ Concluídos: <b>${concluidos} de ${pedidos.length}</b>`,
+    `⚠️ Pendências: <b>${pendencias.length}</b>`,
+    '',
+    '<b>PENDÊNCIAS</b>',
+    ...pendencias.map(linhaPendencia),
+  ].join('\n');
 }
 
 function montarMensagensTelegram(resumo) {
-  return [montarCabecalhoResumo(resumo), montarBlocosAgenda(resumo).join('\n\n')];
+  return [montarCabecalhoResumo(resumo), montarResumoOperacional(resumo)];
 }
 
 function pedidoTextoSimples(pedido) {
