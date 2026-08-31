@@ -7,6 +7,7 @@ import PaginaImpressaoRecibos from './PaginaImpressaoRecibos.jsx';
 import CampoData from '../../components/CampoData.jsx';
 import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
 import { AvisoInline, Dialogo, EstadoCarregando, EstadoVazio } from '../../components/Interface.jsx';
+import { linkWhatsAppCobranca } from '../../utils/mensagemCobranca.js';
 
 function dataLocalFormatada(deslocamento = 0) {
   const data = new Date();
@@ -142,13 +143,6 @@ function agruparPedidos(pedidos) {
       if (diffB == null) return -1;
       return diffA - diffB || a.nome.localeCompare(b.nome);
     });
-}
-
-function linkWhatsApp(numero) {
-  let digitos = String(numero || '').replace(/\D/g, '');
-  if (digitos.length < 10) return null;
-  if (digitos.length <= 11) digitos = `55${digitos}`;
-  return `https://api.whatsapp.com/send?phone=${digitos}`;
 }
 
 function IconeImpressora() {
@@ -448,7 +442,8 @@ function ListaGrupos({ grupos, pedidosVisiveis, expandidos, selecionados, altern
     <div className="lista-grupos-cobranca nao-imprimir">
       <div className="lista-grupos-meta"><strong>{grupos.length} cliente(s)</strong><span>{pedidosVisiveis.length} pedido(s) · {formatarReais(somarPedidos(pedidosVisiveis))}</span></div>
       {grupos.map((grupo) => {
-        const aberto = expandidos.has(grupo.chave); const primeiro = grupo.pedidos[0]; const whatsapp = linkWhatsApp(grupo.whatsapp);
+        const aberto = expandidos.has(grupo.chave); const primeiro = grupo.pedidos[0];
+        const whatsapp = linkWhatsAppCobranca(grupo.whatsapp, grupo.nome, grupo.valorTotal);
         const quantidadeImpressos = grupo.pedidos.filter(reciboJaImpresso).length;
         return (
           <div className={`grupo-cobranca ${classeUrgencia(primeiro)}`} key={grupo.chave}>

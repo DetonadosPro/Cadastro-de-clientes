@@ -6,6 +6,7 @@ import { formatarData } from '../../mascaras.js';
 import CampoData from '../../components/CampoData.jsx';
 import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
 import { AvisoInline, Dialogo, EstadoCarregando, EstadoVazio } from '../../components/Interface.jsx';
+import { linkWhatsAppCobranca } from '../../utils/mensagemCobranca.js';
 
 function hojeBr() {
   const data = new Date();
@@ -54,13 +55,6 @@ function formaInicial(pedido) {
   if (texto.includes('CART')) return 'CARTÃO';
   if (texto.includes('DEP')) return 'DEPÓSITO';
   return 'PRESENCIAL';
-}
-
-function telefoneWhatsApp(numero) {
-  let digitos = String(numero || '').replace(/\D/g, '');
-  if (digitos.length < 10) return null;
-  if (digitos.length <= 11) digitos = `55${digitos}`;
-  return `https://api.whatsapp.com/send?phone=${digitos}`;
 }
 
 function IconeWhatsAppAntigo() {
@@ -260,7 +254,8 @@ export default function CobrancaAoVivo({ mostrarCabecalho = true }) {
       {carregando ? <EstadoCarregando rotulo="Atualizando pagamentos Ao vivo…" linhas={4} /> : visiveis.length === 0 ? <EstadoVazio className="cobranca-estado-vazio" icone="R$" titulo="Nenhum pagamento Ao vivo neste grupo" descricao="Altere a situação, o nome ou a O.S. para consultar outros registros." /> : (
         <div className="lista-cobranca-aovivo nao-imprimir">
           {lista.itensVisiveis.map((pedido) => {
-            const whatsapp = telefoneWhatsApp(pedido.whatsapp || pedido.celular);
+            const valorMensagem = pedido.pagou === 'SIM' ? (pedido.valorRecebido ?? pedido.valor) : pedido.valor;
+            const whatsapp = linkWhatsAppCobranca(pedido.whatsapp || pedido.celular, pedido.nome, valorMensagem);
             return <div className={`cobranca-aovivo-card ${pedido.pagou === 'SIM' ? 'recebida' : (diasAte(pedido.dataCobranca) ?? 0) < 0 ? 'atrasada' : ''}`} key={pedido.id}>
               <div className="cobranca-aovivo-os"><span className="carimbo-os carimbo-os-lista">{pedido.numero_os || pedido.id}</span><small>{pedido.dataPedido || '—'}</small></div>
               <div className="cobranca-aovivo-cliente"><button type="button" onClick={() => pedido.cliente_id && navigate(`/clientes/${pedido.cliente_id}`)}>{pedido.nome || 'Cliente não informado'}</button><span>Para: {pedido.destinatario || '—'} · Evento: {pedido.dataEvento || '—'} {pedido.horarioEvento || ''}</span></div>
