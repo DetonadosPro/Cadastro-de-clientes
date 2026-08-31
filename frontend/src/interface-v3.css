@@ -644,9 +644,30 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--carimbo); }
 /* Densidade compartilhada dos formulários operacionais */
 .pagina-aovivo-ampliada .secao-aovivo-espacosa.section-box.section-box .form-row > input,
 .pagina-aovivo-ampliada .secao-aovivo-espacosa.section-box.section-box .form-row > select { min-height:26px; height:26px; padding-block:2px; font-size:12px; box-sizing:border-box; }
-.pagina-aovivo-ampliada .campo-data-raiz { min-height:26px; height:26px; box-sizing:border-box; white-space:nowrap; }
-.pagina-aovivo-ampliada .campo-data-raiz input { min-width:0; height:24px; white-space:nowrap; }
-.pagina-fonada-ampliada .linha-dia-horario-fonada > .campo-data-raiz { width:128px !important; min-width:128px !important; }
+.pagina-aovivo-ampliada .campo-data-raiz,
+.pagina-fonada-ampliada .linha-dia-horario-fonada > .campo-data-raiz {
+  min-height:28px;
+  height:28px;
+  padding:0 27px 0 8px;
+  box-sizing:border-box;
+  white-space:nowrap;
+}
+.pagina-aovivo-ampliada .campo-data-raiz input,
+.pagina-fonada-ampliada .linha-dia-horario-fonada > .campo-data-raiz input {
+  min-width:0;
+  height:26px;
+  line-height:16px;
+  padding:0;
+  white-space:nowrap;
+}
+.pagina-aovivo-ampliada .campo-data-raiz .campo-data-botao-icone,
+.pagina-fonada-ampliada .linha-dia-horario-fonada > .campo-data-raiz .campo-data-botao-icone {
+  right:2px;
+  width:22px;
+  height:22px;
+  padding:3px;
+}
+.pagina-fonada-ampliada .linha-dia-horario-fonada > .campo-data-raiz { width:112px !important; min-width:112px !important; }
 .pagina-fonada-ampliada .linha-dia-horario-fonada > .campo-data-raiz input { font-size:12px; letter-spacing:0; }
 .grafico-linha-forma { fill:none; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; }
 .seletor-series-grafico { display:flex; gap:5px; }

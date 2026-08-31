@@ -146,32 +146,38 @@ export function AgendaAlertaProvider({ children }) {
   // cada segundo, mas o contexto só muda quando HH:MM realmente muda.
   const [minutoAtual, setMinutoAtual] = useState(chaveMinutoAtual);
   const buscaEmAndamentoRef = useRef(false);
+  const promessaBuscaRef = useRef(null);
   const buscaPendenteRef = useRef(false);
   const temporizadorTempoRealRef = useRef(null);
 
-  const buscarAgenda = useCallback(() => {
+  const buscarAgenda = useCallback((repetirSeOcupada = true) => {
     if (buscaEmAndamentoRef.current) {
-      buscaPendenteRef.current = true;
-      return;
+      if (repetirSeOcupada) buscaPendenteRef.current = true;
+      return promessaBuscaRef.current;
     }
     buscaEmAndamentoRef.current = true;
-    api.agenda.hoje()
+    const promessa = api.agenda.hoje()
       .then((resp) => {
         setFonadaHoje(resp.fonada || []);
         setAoVivoHoje(resp.aoVivo || []);
         setLembretesHoje(resp.lembretes || []);
         setAgendaHojeCarregada(true);
+        return resp;
       })
       .catch(() => {
         // O polling permanece como contingência caso a conexão em tempo real caia.
+        return null;
       })
       .finally(() => {
         buscaEmAndamentoRef.current = false;
+        promessaBuscaRef.current = null;
         if (buscaPendenteRef.current) {
           buscaPendenteRef.current = false;
           setTimeout(buscarAgenda, 0);
         }
       });
+    promessaBuscaRef.current = promessa;
+    return promessa;
   }, []);
 
   const atualizarPeloTempoReal = useCallback(() => {
@@ -256,7 +262,8 @@ export function AgendaAlertaProvider({ children }) {
 
   const valorContexto = useMemo(() => ({
     alertaMenu, fonadaHoje, aoVivoHoje, lembretesHoje, agendaHojeCarregada, minutoAtual,
-  }), [alertaMenu, fonadaHoje, aoVivoHoje, lembretesHoje, agendaHojeCarregada, minutoAtual]);
+    carregarAgendaHoje: buscarAgenda,
+  }), [alertaMenu, fonadaHoje, aoVivoHoje, lembretesHoje, agendaHojeCarregada, minutoAtual, buscarAgenda]);
 
   return (
     <AgendaAlertaContext.Provider value={valorContexto}>

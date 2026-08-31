@@ -91,6 +91,7 @@ export default function Agenda() {
   const [direcaoConteudo, setDirecaoConteudo] = useState('');
   const temporizadorConteudoRef = useRef(null);
   const temporizadorTempoRealRef = useRef(null);
+  const requisicaoAgendaRef = useRef(0);
   const [ehSmartphone, setEhSmartphone] = useState(() => (
     typeof window !== 'undefined' && window.matchMedia('(max-width: 430px)').matches
   ));
@@ -116,7 +117,7 @@ export default function Agenda() {
   // instante em que ele atualiza — assim a cor da borda dos cards muda
   // exatamente junto com a bolinha, em vez de cada um ter seu próprio
   // temporizador desalinhado.
-  const { fonadaHoje, aoVivoHoje, lembretesHoje, agendaHojeCarregada } = useAgendaAlerta();
+  const { fonadaHoje, aoVivoHoje, lembretesHoje, agendaHojeCarregada, carregarAgendaHoje } = useAgendaAlerta();
 
   // As ações de "Dar baixa" e "Não atendeu" só fazem sentido para o dia
   // de hoje — em qualquer outro dia, a Agenda serve só para consulta.
@@ -135,17 +136,23 @@ export default function Agenda() {
   }, [ehHoje, agendaHojeCarregada, fonadaHoje, aoVivoHoje, lembretesHoje]);
 
   function carregar(data = dataSelecionada) {
+    const idRequisicao = ++requisicaoAgendaRef.current;
     setCarregando(true);
     setErro('');
     api.agenda.hoje(data)
       .then((resp) => {
+        if (idRequisicao !== requisicaoAgendaRef.current) return;
         setDataRef(resp.data);
         setFonada(resp.fonada);
         setAoVivo(resp.aoVivo);
         setLembretes(resp.lembretes || []);
       })
-      .catch((err) => setErro(err.message))
-      .finally(() => setCarregando(false));
+      .catch((err) => {
+        if (idRequisicao === requisicaoAgendaRef.current) setErro(err.message);
+      })
+      .finally(() => {
+        if (idRequisicao === requisicaoAgendaRef.current) setCarregando(false);
+      });
   }
 
   useAtualizacaoTempoReal(['agenda'], () => {
@@ -162,12 +169,31 @@ export default function Agenda() {
 
   useEffect(() => {
     // O provider global já carrega o dia atual para alimentar o alerta do
-    // menu. Reaproveitar essa resposta evita duas chamadas idênticas ao
-    // abrir a Agenda; dias históricos continuam sendo buscados aqui.
-    if (!ehHoje) carregar(dataSelecionada);
-    else setCarregando(!agendaHojeCarregada);
+    // menu. Se a primeira carga ainda estiver em andamento, a tela aguarda
+    // a mesma Promise e usa sua resposta diretamente. Assim ela não fica
+    // presa ao voltar para hoje e também não dispara uma chamada duplicada.
+    let ativo = true;
+    if (!ehHoje) {
+      carregar(dataSelecionada);
+    } else if (agendaHojeCarregada) {
+      requisicaoAgendaRef.current += 1;
+      setCarregando(false);
+    } else {
+      const idRequisicao = ++requisicaoAgendaRef.current;
+      setCarregando(true);
+      setErro('');
+      carregarAgendaHoje(false).then((resp) => {
+        if (!ativo || !resp || idRequisicao !== requisicaoAgendaRef.current) return;
+        setDataRef(resp.data);
+        setFonada(resp.fonada || []);
+        setAoVivo(resp.aoVivo || []);
+        setLembretes(resp.lembretes || []);
+        setCarregando(false);
+      });
+    }
+    return () => { ativo = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dataSelecionada]);
+  }, [dataSelecionada, agendaHojeCarregada, carregarAgendaHoje]);
 
   useEffect(() => {
     setSearchParams((atual) => {
