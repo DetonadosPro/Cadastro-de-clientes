@@ -321,6 +321,11 @@ function AbaRecebimentos({ sistema, intervalo, ativa }) {
   const [jaBuscou, setJaBuscou] = useState(false);
   const [paginacao, setPaginacao] = useState({ limite: 100, pagina: 1 });
   const series = graficosRecebimentos(dados);
+  const composicao = dados?.composicaoVendasPeriodo || null;
+  const vendidoFonada = composicao?.fonada?.vendido || 0;
+  const vendidoAoVivo = composicao?.aoVivo?.vendido || 0;
+  const receberFonada = composicao?.fonada?.aReceber || 0;
+  const receberAoVivo = composicao?.aoVivo?.aReceber || 0;
 
   async function buscar(e, sistemaAtual = sistema) {
     if (e) e.preventDefault();
@@ -369,22 +374,16 @@ function AbaRecebimentos({ sistema, intervalo, ativa }) {
         <EstadoCarregando className="estado-carregando-plano" rotulo="Calculando recebimentos…" linhas={5} />
       ) : dados && (
         <>
-          {(() => {
-            const vendidoFonada = dados.composicaoVendasPeriodo?.fonada?.vendido || 0;
-            const vendidoAoVivo = dados.composicaoVendasPeriodo?.aoVivo?.vendido || 0;
-            const receberFonada = dados.composicaoVendasPeriodo?.fonada?.aReceber || 0;
-            const receberAoVivo = dados.composicaoVendasPeriodo?.aoVivo?.aReceber || 0;
-            return <>
           <div className="grade grade-relatorio grade-3 resumo-principal-relatorio">
             <CartaoValor label="Recebido no período" valor={formatarReais(dados.valorTotal)}
               sub={sistema === 'TODOS' ? `Fonada ${percentual(dados.fonada?.valorTotal, dados.valorTotal)}% · Ao Vivo ${percentual(dados.aoVivo?.valorTotal, dados.valorTotal)}%` : `${dados.quantidade} registro(s)`}
               tooltip={sistema === 'TODOS' ? `Fonada: ${formatarReais(dados.fonada?.valorTotal)}\nAo Vivo: ${formatarReais(dados.aoVivo?.valorTotal)}` : null} destaque />
             <CartaoValor label="Vendido no período" valor={formatarReais(dados.valorVendido)}
-              sub={sistema === 'TODOS' ? `Fonada ${percentual(vendidoFonada, dados.valorVendido)}% · Ao Vivo ${percentual(vendidoAoVivo, dados.valorVendido)}%` : null}
-              tooltip={sistema === 'TODOS' ? `Fonada: ${formatarReais(vendidoFonada)}\nAo Vivo: ${formatarReais(vendidoAoVivo)}` : null} />
+              sub={sistema === 'TODOS' && composicao ? `Fonada ${percentual(vendidoFonada, dados.valorVendido)}% · Ao Vivo ${percentual(vendidoAoVivo, dados.valorVendido)}%` : null}
+              tooltip={sistema === 'TODOS' && composicao ? `Fonada: ${formatarReais(vendidoFonada)}\nAo Vivo: ${formatarReais(vendidoAoVivo)}` : null} />
             <CartaoValor label="Ainda a receber" valor={formatarReais(dados.valorAReceberVendasPeriodo)}
-              sub={sistema === 'TODOS' ? `Fonada ${percentual(receberFonada, dados.valorAReceberVendasPeriodo)}% · Ao Vivo ${percentual(receberAoVivo, dados.valorAReceberVendasPeriodo)}%` : null}
-              tooltip={sistema === 'TODOS' ? `Fonada: ${formatarReais(receberFonada)}\nAo Vivo: ${formatarReais(receberAoVivo)}` : null} />
+              sub={sistema === 'TODOS' && composicao ? `Fonada ${percentual(receberFonada, dados.valorAReceberVendasPeriodo)}% · Ao Vivo ${percentual(receberAoVivo, dados.valorAReceberVendasPeriodo)}%` : null}
+              tooltip={sistema === 'TODOS' && composicao ? `Fonada: ${formatarReais(receberFonada)}\nAo Vivo: ${formatarReais(receberAoVivo)}` : null} />
           </div>
           <ComparacaoPeriodo dados={dados.comparacao} metrica="Recebimentos" />
           <div className="grade-graficos-relatorio grade-graficos-recebimentos">
@@ -398,8 +397,6 @@ function AbaRecebimentos({ sistema, intervalo, ativa }) {
 
 
           <TabelaDetalhada dados={dados} itens={dados.itens || []} tituloColunaValor="Recebido" onPaginacao={setPaginacao} />
-            </>;
-          })()}
         </>
       )}
     </div>
