@@ -25,8 +25,15 @@ function IconeOk() {
 
 const VAZIO = {
   nome: '', nascimento: '', fixo: '', whatsapp: '', celular: '',
-  endereco: '', complemento: '', bairro: '', referencia: '',
+  endereco: '', numero: '', complemento: '', bairro: '', referencia: '',
 };
+
+function enderecoCompleto(endereco, numero) {
+  const logradouro = String(endereco || '').trim();
+  const numeroInformado = String(numero || '').trim();
+  if (!numeroInformado) return logradouro;
+  return `${logradouro}${logradouro ? ', ' : ''}${numeroInformado}`;
+}
 
 export default function FormNovoCliente() {
   const navigate = useNavigate();
@@ -62,7 +69,14 @@ export default function FormNovoCliente() {
   async function salvarDeVerdade() {
     setSalvando(true);
     try {
-      const novo = await api.clientes.criar(dados);
+      // O banco atual mantém logradouro e número juntos em `endereco`.
+      // A tela os separa para facilitar o preenchimento, mas envia o mesmo
+      // formato histórico consumido por pedidos, cobrança e recibos.
+      const { numero, ...dadosPersistidos } = dados;
+      const novo = await api.clientes.criar({
+        ...dadosPersistidos,
+        endereco: enderecoCompleto(dados.endereco, numero),
+      });
       mostrarToast('Cliente cadastrado com sucesso.');
       navigate(`/clientes/${novo.id}`, { replace: true });
     } catch (err) {
@@ -184,14 +198,20 @@ export default function FormNovoCliente() {
               <span className="form-etapa-numero">2</span><span><strong>Endereço e referência</strong><small>Opcional · pode ser preenchido agora ou depois</small></span><b>{enderecoAberto ? '−' : '+'}</b>
             </button>
             {enderecoAberto && <div className="form-disclosure-conteudo">
-              <div className="campo" style={{ gap: 6, marginBottom: 18 }}>
-                <label>Endereço</label>
-                <CampoEnderecoAutocomplete
-                  value={dados.endereco}
-                  onChange={(valor) => set('endereco', valor)}
-                  onSelecionar={selecionarEndereco}
-                  className="campo-endereco-cliente"
-                />
+              <div className="linha-form-cliente endereco-numero-cliente" style={{ display: 'flex', gap: 12, alignItems: 'end', marginBottom: 18 }}>
+                <div className="campo" style={{ flex: '1 1 auto', minWidth: 0, gap: 6, marginBottom: 0 }}>
+                  <label>Endereço</label>
+                  <CampoEnderecoAutocomplete
+                    value={dados.endereco}
+                    onChange={(valor) => set('endereco', valor)}
+                    onSelecionar={selecionarEndereco}
+                    className="campo-endereco-cliente"
+                  />
+                </div>
+                <div className="campo campo-numero-cliente" style={{ flex: '0 0 96px', width: 96, gap: 6, marginBottom: 0 }}>
+                  <label>Nº</label>
+                  <input value={dados.numero} onChange={(e) => set('numero', e.target.value)} placeholder="Nº / S/N" />
+                </div>
               </div>
               <div className="linha-form-cliente" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 4 }}>
                 <div className="campo campo-largura-fixa" style={{ flex: '0 0 auto', width: 180, marginBottom: 0, gap: 6 }}><label>Complemento</label><input value={dados.complemento} onChange={(e) => set('complemento', e.target.value)} /></div>
