@@ -616,6 +616,7 @@ export default function FormAoVivo() {
                     <div className="form-row">
                       <label>Dia pag.:</label>
                       <CampoData
+                        className="campo-dia-pagamento-aovivo"
                         placeholder="dd/mm/aa"
                         value={pagamentoParseado.diaPag}
                         onChange={(v) => {
@@ -623,7 +624,7 @@ export default function FormAoVivo() {
                           set('pagamento', montarPagamento({ ...pagamentoParseado, diaPag: mascarado }));
                         }}
                         minimo={!editando ? hojeSemHora() : undefined}
-                        style={{ width: 129, flex: '0 0 auto' }}
+                        style={{ width: 112, flex: '0 0 auto' }}
                       />
                     </div>
                     <div className="form-row">
