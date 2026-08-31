@@ -220,7 +220,14 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
   const lista = useListaIncremental(pedidosFiltrados, `${filtroRapido}:${cobrarDia}:${nome}:${os}`);
   const pedidosVisiveis = lista.itensVisiveis;
   const grupos = useMemo(() => agruparPedidos(pedidosVisiveis), [pedidosVisiveis]);
-  const pedidosSelecionados = useMemo(() => pedidosVisiveis.filter((pedido) => selecionados.has(pedido.id)), [pedidosVisiveis, selecionados]);
+  // A lista exibida é ordenada por grupos (data/urgência e cliente). A impressão
+  // precisa percorrer essa mesma sequência, não a ordem original da API nem a
+  // ordem em que as caixas foram marcadas.
+  const pedidosNaOrdemDaLista = useMemo(() => grupos.flatMap((grupo) => grupo.pedidos), [grupos]);
+  const pedidosSelecionados = useMemo(
+    () => pedidosNaOrdemDaLista.filter((pedido) => selecionados.has(pedido.id)),
+    [pedidosNaOrdemDaLista, selecionados],
+  );
   const todosVisiveisSelecionados = pedidosVisiveis.length > 0 && pedidosVisiveis.every((pedido) => selecionados.has(pedido.id));
   const atrasadas = pendentes.filter((p) => (diferencaParaHoje(p.cobranca) ?? 1) < 0);
   const paraHoje = pendentes.filter((p) => diferencaParaHoje(dataDaAgenda(p)) === 0);
@@ -348,7 +355,7 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
         <div><h1 style={{ marginBottom: 2 }}>Cobrança</h1><p className="fs-sm texto-suave" style={{ margin: 0 }}>Organize a rota por urgência e dê baixa nos recebimentos</p></div>
         {pedidosVisiveis.length > 0 && <div className="cobranca-acoes-impressao">
           {pedidosSelecionados.length > 0 && <button type="button" className="btn-small" onClick={() => setSelecionados(new Set())}>Limpar seleção</button>}
-          <button type="button" className="btn cobranca-imprimir" onClick={() => imprimir(pedidosSelecionados.length > 0 ? pedidosSelecionados : pedidosVisiveis)}>
+          <button type="button" className="btn cobranca-imprimir" onClick={() => imprimir(pedidosSelecionados.length > 0 ? pedidosSelecionados : pedidosNaOrdemDaLista)}>
             <IconeImpressora /> {pedidosSelecionados.length > 0 ? `Imprimir selecionados (${pedidosSelecionados.length})` : `Imprimir lista (${pedidosVisiveis.length})`}
           </button>
         </div>}
