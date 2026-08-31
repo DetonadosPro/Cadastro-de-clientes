@@ -662,8 +662,25 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--carimbo); }
 .pagina-aovivo-ampliada .actions-grid { min-width:0; }
 .pagina-fonada-ampliada .acoes-secundarias-mobile,
 .pagina-aovivo-ampliada .acoes-secundarias-mobile { display:flex; flex-wrap:wrap; gap:7px; min-width:0; }
+.pagina-fonada-ampliada .acoes-secundarias-mobile,
+.pagina-aovivo-ampliada .acoes-secundarias-mobile {
+  grid-column:1 / -1;
+  width:100%;
+}
 .pagina-fonada-ampliada .acoes-secundarias-mobile .btn-action,
 .pagina-aovivo-ampliada .acoes-secundarias-mobile .btn-action { flex:1 1 120px; min-width:0; }
+.pagina-fonada-ampliada .acoes-secundarias-mobile .btn-action:not(.fechar-acao),
+.pagina-aovivo-ampliada .acoes-secundarias-mobile .btn-action:not(.fechar-acao) {
+  flex:1 1 calc(50% - 3.5px);
+  min-height:46px;
+}
+.pagina-fonada-ampliada .acoes-secundarias-mobile .btn-action.fechar-acao,
+.pagina-aovivo-ampliada .acoes-secundarias-mobile .btn-action.fechar-acao {
+  flex:1 0 100%;
+  min-height:46px;
+  flex-direction:row;
+  font-size:12px;
+}
 
 /* Client detail, drawer and overlays */
 .cabecalho-ficha-cliente h1 { color: var(--tinta); }

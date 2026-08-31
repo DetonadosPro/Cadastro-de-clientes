@@ -706,7 +706,7 @@ export default function FormAoVivo() {
               <button
                 type="button"
                 className="btn-action fechar-acao"
-                style={{ gridColumn: editando ? undefined : 'span 2', pointerEvents: 'auto' }}
+                style={{ pointerEvents: 'auto' }}
                 onClick={fechar}
               >
                 {editando ? <IconeVoltar /> : <IconeFechar />} {editando ? 'Voltar' : 'Fechar'}
