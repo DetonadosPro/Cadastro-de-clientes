@@ -642,6 +642,11 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--carimbo); }
 .grafico-ponto-interativo:focus circle,.grafico-ponto-interativo:focus rect,.grafico-ponto-interativo:hover circle { filter:drop-shadow(0 2px 4px rgba(20,52,88,.2)); }
 
 /* Densidade compartilhada dos formulários operacionais */
+.pagina-aovivo-ampliada .secao-aovivo-espacosa.section-box.section-box .form-row input:not([type="checkbox"]):not([type="radio"]),
+.pagina-aovivo-ampliada .secao-aovivo-espacosa.section-box.section-box .form-row select,
+.pagina-aovivo-ampliada .secao-aovivo-espacosa.section-box.section-box .form-row textarea {
+  font-size:12px;
+}
 .pagina-aovivo-ampliada .secao-aovivo-espacosa.section-box.section-box .form-row > input,
 .pagina-aovivo-ampliada .secao-aovivo-espacosa.section-box.section-box .form-row > select { min-height:26px; height:26px; padding-block:2px; font-size:12px; box-sizing:border-box; }
 .pagina-aovivo-ampliada .secao-financeiro-aovivo.section-box.section-box .form-row > .campo-sugestoes-raiz {
