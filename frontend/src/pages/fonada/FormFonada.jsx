@@ -612,6 +612,7 @@ export default function FormFonada() {
               <div className="form-row">
                 <label style={{ minWidth: 'auto' }}>Cob. dia:</label>
                 <CampoData
+                  className="campo-cobranca-fonada"
                   placeholder="dd/mm/aa"
                   value={dados.cobranca}
                   onChange={(v) => { setComMascara('cobranca', v, 'data'); setCampoObrigatorioFaltando(null); }}
@@ -937,7 +938,7 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
           value={dados[`${p}_dia`]}
           onChange={(v) => setComMascara(`${p}_dia`, v, 'data')}
           disabled={bloqueada}
-          style={{ fontWeight: 700, flex: '0 0 auto', width: 112, minWidth: 0 }}
+          style={{ flex: '0 0 auto', width: 112, minWidth: 0 }}
           minimo={!editando ? hojeSemHora() : undefined}
         />
         <label style={{ minWidth: 'auto', marginLeft: 6 }}>Horário:</label>
@@ -946,7 +947,7 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
           value={dados[`${p}_horario`]}
           onChange={(e) => setComMascara(`${p}_horario`, e.target.value, 'horario')}
           disabled={bloqueada}
-          style={{ fontWeight: 700, flex: '0 0 auto', width: 56, minWidth: 0 }}
+          style={{ flex: '0 0 auto', width: 56, minWidth: 0 }}
         />
         {mostrarBotaoP && (
           <BotaoP
@@ -961,7 +962,7 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
           O dia não pode ser anterior a hoje.
         </p>
       )}
-      <CampoComP label="Quem oferece" nomeCampo="quem_oferece" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} copiarBloqueado={copiarBloqueado} negrito classeExtra="campo-quem-oferece" multilinha />
+      <CampoComP label="Quem oferece" nomeCampo="quem_oferece" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} copiarBloqueado={copiarBloqueado} classeExtra="campo-quem-oferece" multilinha />
       <CampoComP label="Resultado" nomeCampo="resultado" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} copiarBloqueado={copiarBloqueado} negrito cor="var(--selo)" classeExtra="campo-resultado" />
 
       {editando && diaPreenchido && situacaoMensagem?.status !== 'EXPIRADA' && (

@@ -668,7 +668,26 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--carimbo); }
   padding:3px;
 }
 .pagina-fonada-ampliada .linha-dia-horario-fonada > .campo-data-raiz { width:112px !important; min-width:112px !important; }
-.pagina-fonada-ampliada .linha-dia-horario-fonada > .campo-data-raiz input { font-size:12px; letter-spacing:0; }
+.pagina-fonada-ampliada .linha-dia-horario-fonada > .campo-data-raiz input { font-size:12px; font-weight:400; letter-spacing:0; }
+.pagina-fonada-ampliada .linha-dia-horario-fonada > input,
+.pagina-fonada-ampliada .campo-quem-oferece textarea { font-weight:400; }
+.pagina-fonada-ampliada .campo-data-raiz.campo-cobranca-fonada {
+  min-height:28px;
+  height:28px;
+  padding:0 27px 0 8px;
+  box-sizing:border-box;
+}
+.pagina-fonada-ampliada .campo-data-raiz.campo-cobranca-fonada input {
+  height:26px;
+  line-height:16px;
+  padding:0;
+}
+.pagina-fonada-ampliada .campo-data-raiz.campo-cobranca-fonada .campo-data-botao-icone {
+  right:2px;
+  width:22px;
+  height:22px;
+  padding:3px;
+}
 .grafico-linha-forma { fill:none; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; }
 .seletor-series-grafico { display:flex; gap:5px; }
 .seletor-series-grafico button { padding:3px 7px; border:1px solid transparent; border-radius:7px; background:transparent; cursor:pointer; }
