@@ -193,6 +193,7 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
   const [expandidos, setExpandidos] = useState(new Set());
   const [selecionados, setSelecionados] = useState(new Set());
   const [pedidosImpressao, setPedidosImpressao] = useState([]);
+  const [confirmacaoImpressao, setConfirmacaoImpressao] = useState([]);
   const [pedidosBaixa, setPedidosBaixa] = useState([]);
   const [dataBaixa, setDataBaixa] = useState('');
   const [statusBaixa, setStatusBaixa] = useState('');
@@ -284,15 +285,24 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
       return novo;
     });
   }
-  async function imprimir(pedidos) {
+  function imprimir(pedidos) {
     if (!pedidos.length) return mostrarToast('Não há pedidos para imprimir.', 'erro');
-    const ids = pedidos.map((pedido) => pedido.id);
     const preparados = pedidos.map((pedido) => ({ ...pedido, impresso: 'SIM' }));
-    const atualizar = (lista) => lista.map((pedido) => ids.includes(pedido.id) ? { ...pedido, impresso: 'SIM' } : pedido);
     setPedidosImpressao(preparados);
+    setTimeout(() => {
+      window.print();
+      setConfirmacaoImpressao(preparados);
+    }, 50);
+  }
+
+  async function confirmarImpressaoConcluida() {
+    const pedidos = confirmacaoImpressao;
+    const ids = pedidos.map((pedido) => pedido.id);
+    const atualizar = (lista) => lista.map((pedido) => ids.includes(pedido.id) ? { ...pedido, impresso: 'SIM' } : pedido);
     setPendentes(atualizar);
     setRecebidas(atualizar);
-    setTimeout(() => window.print(), 50);
+    setConfirmacaoImpressao([]);
+    setPedidosImpressao([]);
     try {
       await api.cobranca.marcarImpressos(ids);
     } catch (err) {
@@ -302,6 +312,11 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
         mostrarToast('O recibo foi aberto, mas não foi possível salvar o status de impressão.', 'erro');
       }
     }
+  }
+
+  function cancelarConfirmacaoImpressao() {
+    setConfirmacaoImpressao([]);
+    setPedidosImpressao([]);
   }
   function abrirBaixa(pedidos) { setPedidosBaixa(pedidos); setDataBaixa(dataLocalFormatada()); setStatusBaixa(pedidos[0]?.recebi || ''); }
   async function confirmarBaixa() {
@@ -404,6 +419,16 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
           <p className="fs-sm texto-suave">A nova data será aplicada a {pedidosReagendar.length} pedido(s).</p>
           <div className="campo" style={{ maxWidth: 150 }}><label>Nova data</label><CampoData placeholder="dd/mm/aa" value={novaData} minimo={hojeSemHora()} onChange={(v) => setNovaData(formatarData(v))} /></div>
           <AcoesModal onCancelar={() => setPedidosReagendar([])} onConfirmar={confirmarReagendamento} salvando={salvandoReagendamento} rotulo="Reagendar" />
+        </Modal>
+      )}
+      {confirmacaoImpressao.length > 0 && (
+        <Modal titulo="A impressão foi concluída?" onClose={cancelarConfirmacaoImpressao}>
+          <p className="fs-sm texto-suave">Confirme somente se o recibo realmente foi impresso. Se você cancelou a janela de impressão, escolha “Não, cancelei”.</p>
+          <div className="resumo-modal-cobranca"><strong>{confirmacaoImpressao.length} recibo(s)</strong><strong>{formatarReais(somarPedidos(confirmacaoImpressao))}</strong></div>
+          <div className="acoes-modal-cobranca">
+            <button type="button" className="btn secundario" onClick={cancelarConfirmacaoImpressao}>Não, cancelei</button>
+            <button type="button" className="btn" onClick={confirmarImpressaoConcluida}>Sim, foi impresso</button>
+          </div>
         </Modal>
       )}
       {pedidosImpressao.length > 0 && <div className="somente-imprimir"><PaginaImpressaoRecibos pedidos={pedidosImpressao} /></div>}

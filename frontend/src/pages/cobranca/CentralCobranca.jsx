@@ -13,7 +13,9 @@ export default function CentralCobranca() {
 
   return (
     <div className="central-cobranca">
-      <CabecalhoPagina contexto="Financeiro" titulo="Cobrança" descricao="Priorize recebimentos, organize a rota e registre pagamentos sem perder o contexto do pedido." />
+      <div className="nao-imprimir">
+        <CabecalhoPagina contexto="Financeiro" titulo="Cobrança" descricao="Priorize recebimentos, organize a rota e registre pagamentos sem perder o contexto do pedido." />
+      </div>
       <div className="central-cobranca-navegacao nao-imprimir">
         <span>Tipo de pedido</span>
         <div className="abas-cliente cobranca-abas-sistema">
