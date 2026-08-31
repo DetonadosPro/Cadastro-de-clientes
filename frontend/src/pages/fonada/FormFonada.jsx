@@ -808,7 +808,7 @@ export default function FormFonada() {
           </div>
 
           <div className="section-box section-box-somente-leitura">
-            <div className="section-title">Lançamento</div>
+            <div className="section-title">Pagamento</div>
             <InfoLinha label="Pagou" valor={dados.pagou === 'SIM' ? 'Sim' : 'Não'} />
             <InfoLinha label="Data do pagamento" valor={dados.data_pagamento} />
             <InfoLinha label="Status" valor={dados.recebi} />

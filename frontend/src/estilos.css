@@ -587,7 +587,7 @@ input, select, textarea {
   margin-bottom: 12px;
 }
 
-/* Cards de informação só de leitura (Lançamento, Registro do pedido)
+/* Cards de informação só de leitura (Pagamento, Registro do pedido)
    — fundo levemente acinzentado e mais compactos, para o olho já
    identificar de longe que não são editáveis, diferente dos cards de
    formulário ao redor. */
