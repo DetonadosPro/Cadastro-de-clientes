@@ -595,6 +595,12 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--carimbo); }
 .pedido-cobranca-individual { border-color: #e4e9ef; border-radius: 10px; background: #fff; }
 .cobranca-aovivo-card { border: 1px solid var(--borda); border-radius: 13px; background: #fff; box-shadow: var(--sombra-xs); }
 .cobranca-aovivo-card:hover { border-color: #c4d0dd; box-shadow: var(--sombra-sm); }
+.cobranca-barra-selecao { position:sticky; top:calc(var(--topbar-workspace,64px) + 10px); z-index:24; display:flex; align-items:center; justify-content:space-between; gap:16px; margin:12px 0; padding:11px 13px; border:1px solid #a9c3e2; border-radius:11px; background:#f4f8fd; box-shadow:0 8px 24px rgba(25,60,100,.12); }
+.cobranca-barra-selecao > div:first-child { display:grid; grid-template-columns:auto 1fr; align-items:center; gap:2px 8px; min-width:0; }
+.cobranca-barra-selecao .selecao-contagem { grid-row:1/3; display:grid; place-items:center; min-width:30px; height:30px; padding:0 7px; border-radius:8px; background:var(--carimbo); color:#fff; font:800 12px var(--fonte-mono); }
+.cobranca-barra-selecao strong { color:var(--tinta); font-size:11.5px; }
+.cobranca-barra-selecao small { color:var(--tinta-suave); font-size:10px; }
+.cobranca-barra-selecao-acoes { display:flex; align-items:center; justify-content:flex-end; gap:7px; flex-wrap:wrap; }
 
 /* Recall */
 .recall-page { max-width: 1780px; }
@@ -837,6 +843,9 @@ body.sobreposicao-aberta .layout-conteudo { overflow: hidden; }
   .central-cobranca-navegacao { align-items: stretch; flex-direction: column; gap: 7px; }
   .central-cobranca-navegacao .cobranca-abas-sistema { width: 100%; }
   .central-cobranca-navegacao .aba-cliente-botao { flex: 1; }
+  .cobranca-barra-selecao { position:static; align-items:stretch; flex-direction:column; }
+  .cobranca-barra-selecao-acoes { display:grid; grid-template-columns:1fr 1fr; }
+  .cobranca-barra-selecao-acoes .cobranca-imprimir { grid-column:1/-1; width:100%; }
   .acoes-ficha-cliente { width: 100%; justify-content: flex-start; }
   .acoes-pedido-cliente { width: 100%; padding: 0 0 8px; border-right: 0; border-bottom: 1px solid #e2e7ed; }
   .acoes-pedido-cliente .btn { flex: 1; }

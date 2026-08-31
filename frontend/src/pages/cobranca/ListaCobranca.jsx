@@ -220,6 +220,7 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
   const pedidosVisiveis = lista.itensVisiveis;
   const grupos = useMemo(() => agruparPedidos(pedidosVisiveis), [pedidosVisiveis]);
   const pedidosSelecionados = useMemo(() => pedidosVisiveis.filter((pedido) => selecionados.has(pedido.id)), [pedidosVisiveis, selecionados]);
+  const todosVisiveisSelecionados = pedidosVisiveis.length > 0 && pedidosVisiveis.every((pedido) => selecionados.has(pedido.id));
   const atrasadas = pendentes.filter((p) => (diferencaParaHoje(p.cobranca) ?? 1) < 0);
   const paraHoje = pendentes.filter((p) => diferencaParaHoje(dataDaAgenda(p)) === 0);
   const futuras = pendentes.filter((p) => (diferencaParaHoje(dataDaAgenda(p)) ?? -1) > 0);
@@ -351,6 +352,25 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
           <div className="campo cobranca-filtro-nome"><label>Nome</label><input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do comprador" /></div>
         </div>
       </div>
+
+      {pedidosSelecionados.length > 0 && (
+        <div className="cobranca-barra-selecao nao-imprimir" role="region" aria-label="Ações para cobranças selecionadas">
+          <div>
+            <span className="selecao-contagem">{pedidosSelecionados.length}</span>
+            <strong>{pedidosSelecionados.length === 1 ? 'cobrança selecionada' : 'cobranças selecionadas'}</strong>
+            <small>Escolha todos os resultados visíveis ou imprima somente a seleção.</small>
+          </div>
+          <div className="cobranca-barra-selecao-acoes">
+            <button type="button" className="btn-small" onClick={() => alternarSelecao(pedidosVisiveis)}>
+              {todosVisiveisSelecionados ? 'Desmarcar todos' : `Selecionar todos (${pedidosVisiveis.length})`}
+            </button>
+            <button type="button" className="btn-small" onClick={() => setSelecionados(new Set())}>Limpar seleção</button>
+            <button type="button" className="btn cobranca-imprimir" onClick={() => imprimir(pedidosSelecionados)}>
+              <IconeImpressora /> Imprimir selecionados ({pedidosSelecionados.length})
+            </button>
+          </div>
+        </div>
+      )}
 
       {erro && <AvisoInline className="nao-imprimir" tom="erro" titulo="Não foi possível atualizar as cobranças">{erro}</AvisoInline>}
       {jaBuscou && !carregando && (
