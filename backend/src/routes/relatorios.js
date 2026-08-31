@@ -345,6 +345,11 @@ router.get('/vendas', async (req, res) => {
           quantidadeFonada: (item) => item.sistema === 'FONADA' ? 1 : 0,
           quantidadeAoVivo: (item) => item.sistema === 'AOVIVO' ? 1 : 0,
         }),
+        pagamentosPorDia: seriePorData(itensDetalhados, {
+          pix: (item) => String(item.forma || '').toUpperCase().includes('PIX') ? 1 : 0,
+          presencial: (item) => String(item.forma || '').toUpperCase().includes('PIX') ? 0 : 1,
+          quantidade: () => 1,
+        }),
         periodoAnterior: seriePorData(itensPeriodoAnterior, {
           valor: (item) => item.valor,
           quantidade: () => 1,

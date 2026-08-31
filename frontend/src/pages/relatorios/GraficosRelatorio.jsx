@@ -127,6 +127,34 @@ export function GraficoVendasPorSistema({ dados = [], sistema = 'TODOS' }) {
   );
 }
 
+export function GraficoQuantidadePagamentos({ dados = [] }) {
+  const largura = 720; const altura = 245;
+  const maximo = Math.max(1, ...dados.flatMap((p) => [Number(p.pix || 0), Number(p.presencial || 0)]));
+  const totalPix = dados.reduce((soma, p) => soma + Number(p.pix || 0), 0);
+  const totalPresencial = dados.reduce((soma, p) => soma + Number(p.presencial || 0), 0);
+  const totalPeriodo = totalPix + totalPresencial;
+  const percentualPix = totalPeriodo ? Math.round(totalPix / totalPeriodo * 1000) / 10 : 0;
+  const seriePix = dados.map((p) => ({ data: p.data, valor: p.pix }));
+  const seriePresencial = dados.map((p) => ({ data: p.data, valor: p.presencial }));
+  return <PainelGrafico titulo="Origem dos pagamentos" subtitulo="Quantidade diária e participação de PIX e presencial" amplo legenda={<><Legenda cor={CORES.azul}>PIX · {percentualPix}%</Legenda><Legenda cor={CORES.aoVivo}>Presencial · {Math.round((100 - percentualPix) * 10) / 10}%</Legenda></>}>
+    {!dados.length ? <EstadoSemDados /> : <div className="grafico-svg-scroll"><svg className="grafico-svg" viewBox={`0 0 ${largura} ${altura}`} role="img" aria-label="Quantidade de pagamentos por PIX e presencial">
+      {[0, .25, .5, .75, 1].map((fator) => { const y = altura - MARGEM_Y - fator * (altura - MARGEM_Y * 2); return <g key={fator}><line x1={MARGEM_X} y1={y} x2={largura - MARGEM_X} y2={y} /><text className="grafico-valor-eixo" x={MARGEM_X - 10} y={y + 4} textAnchor="end">{Math.round(maximo * fator)}</text></g>; })}
+      <polyline className="grafico-linha atual" points={pontosLinha(seriePix, maximo, largura, altura)} />
+      <polyline className="grafico-linha pagamentos-presencial" points={pontosLinha(seriePresencial, maximo, largura, altura)} />
+      {dados.map((ponto, indice) => {
+        const x = dados.length > 1 ? MARGEM_X + indice * ((largura - MARGEM_X * 2) / (dados.length - 1)) : largura / 2;
+        const total = Number(ponto.pix || 0) + Number(ponto.presencial || 0);
+        const pctPix = total ? Math.round(Number(ponto.pix || 0) / total * 1000) / 10 : 0;
+        const titulo = `${ponto.data}\nTotal: ${total} pagamento(s)\nPIX: ${ponto.pix || 0} · ${pctPix}%\nPresencial: ${ponto.presencial || 0} · ${Math.round((100 - pctPix) * 10) / 10}%`;
+        const yPix = altura - MARGEM_Y - Number(ponto.pix || 0) / maximo * (altura - MARGEM_Y * 2);
+        const yPresencial = altura - MARGEM_Y - Number(ponto.presencial || 0) / maximo * (altura - MARGEM_Y * 2);
+        return <g className="grafico-ponto-interativo" tabIndex="0" key={ponto.data}><title>{titulo}</title><circle cx={x} cy={yPix} r="5" /><circle className="ponto-presencial" cx={x} cy={yPresencial} r="5" /></g>;
+      })}
+      <g className="grafico-eixo"><RotulosEixo dados={dados} largura={largura} altura={altura} /></g>
+    </svg></div>}
+  </PainelGrafico>;
+}
+
 function combinarFluxo(vendido, recebido) {
   const mapa = new Map();
   vendido.forEach((p) => mapa.set(p.data, { data: p.data, vendido: Number(p.valor || 0), recebido: 0 }));

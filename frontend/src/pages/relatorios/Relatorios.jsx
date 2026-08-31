@@ -10,6 +10,7 @@ import {
   GraficoEvolucaoVendas,
   GraficoQuantidadeTicket,
   GraficoRankingEquipe,
+  GraficoQuantidadePagamentos,
   GraficoVendasPorSistema,
   GraficoVendidoRecebido,
 } from './GraficosRelatorio.jsx';
@@ -190,6 +191,7 @@ function graficosVendas(dados) {
   return {
     vendasPorDia: dados?.graficos?.vendasPorDia?.length ? dados.graficos.vendasPorDia : fallback,
     periodoAnterior: dados?.graficos?.periodoAnterior || [],
+    pagamentosPorDia: dados?.graficos?.pagamentosPorDia || [],
   };
 }
 
@@ -262,18 +264,20 @@ function AbaVendas({ sistema, intervalo, ativa }) {
         <>
           <div className="grade grade-relatorio grade-3 resumo-principal-relatorio">
             <CartaoValor label="Vendido no período" valor={formatarReais(dados.geral.valorTotal)} destaque
-              sub={sistema === 'TODOS' ? `Fonada ${Math.round((dados.fonada?.valorTotal || 0) / Math.max(dados.geral.valorTotal, 1) * 100)}% · Ao Vivo ${Math.round((dados.aoVivo?.valorTotal || 0) / Math.max(dados.geral.valorTotal, 1) * 100)}%` : null} />
-            <CartaoValor label="Pedidos" valor={dados.geral.quantidade} />
+              sub={sistema === 'TODOS' ? `Fonada ${Math.round((dados.fonada?.valorTotal || 0) / Math.max(dados.geral.valorTotal, 1) * 100)}% · Ao Vivo ${Math.round((dados.aoVivo?.valorTotal || 0) / Math.max(dados.geral.valorTotal, 1) * 100)}%` : null}
+              tooltip={sistema === 'TODOS' ? `Fonada: ${formatarReais(dados.fonada?.valorTotal)}\nAo Vivo: ${formatarReais(dados.aoVivo?.valorTotal)}` : null} />
+            <CartaoValor label="Pedidos" valor={dados.geral.quantidade}
+              sub={sistema === 'TODOS' ? `Fonada ${Math.round((dados.fonada?.quantidade || 0) / Math.max(dados.geral.quantidade, 1) * 100)}% · Ao Vivo ${Math.round((dados.aoVivo?.quantidade || 0) / Math.max(dados.geral.quantidade, 1) * 100)}%` : null}
+              tooltip={sistema === 'TODOS' ? `Fonada: ${dados.fonada?.quantidade || 0} pedido(s)\nAo Vivo: ${dados.aoVivo?.quantidade || 0} pedido(s)` : null} />
             <CartaoValor label="Ticket médio" valor={formatarReais(dados.geral.ticketMedio)} />
           </div>
           <ComparacaoPeriodo dados={dados.comparacao} metrica="Vendas" />
           <div className="grade-graficos-relatorio">
             <GraficoEvolucaoVendas atual={series.vendasPorDia} anterior={series.periodoAnterior} sistema={sistema} />
             <GraficoVendasPorSistema dados={series.vendasPorDia} sistema={sistema} />
-            {dados.graficos?.origemFonada?.length > 0 && <GraficoBarrasCategorias titulo="Origem dos pedidos Fonada" subtitulo="Recall e clientes são origens; não formas de pagamento" dados={dados.graficos.origemFonada} usarQuantidade />}
+            <GraficoQuantidadePagamentos dados={series.pagamentosPorDia} />
+            {sistema === 'FONADA' && dados.graficos?.origemFonada?.length > 0 && <GraficoBarrasCategorias titulo="Origem dos pedidos Fonada" subtitulo="Recall e clientes são origens; não formas de pagamento" dados={dados.graficos.origemFonada} usarQuantidade />}
           </div>
-
-          <ResumoSistemas dados={dados} tipo="vendas" />
 
           <TabelaDetalhada dados={dados} itens={dados.itens || []} tituloColunaValor="Venda" onPaginacao={setPaginacao} />
         </>
@@ -354,7 +358,6 @@ function AbaRecebimentos({ sistema, intervalo, ativa }) {
             />
           </div>
 
-          <ResumoSistemas dados={dados} tipo="recebimentos" />
 
           <TabelaDetalhada dados={dados} itens={dados.itens || []} tituloColunaValor="Recebido" onPaginacao={setPaginacao} />
         </>
@@ -531,26 +534,9 @@ function FormularioPeriodo({ inicio, fim, inicioB, fimB, setInicio, setFim, setI
   );
 }
 
-function ResumoSistemas({ dados, tipo }) {
-  const linhas = [];
-  if (dados.fonada) linhas.push({ nome: 'Fonada', classe: 'fonada', quantidade: dados.fonada.quantidade,
-    valor: dados.fonada.valorTotal, complemento: tipo === 'vendas'
-      ? `Recall ${dados.fonada.totalRecall} · Clientes ${dados.fonada.totalOutros} · PIX ${dados.fonada.percentualPix}%`
-      : `PIX ${dados.fonada.percentualPix}% · Outros ${dados.fonada.percentualRecibo}%` });
-  if (dados.aoVivo) linhas.push({ nome: 'Ao Vivo', classe: 'aovivo', quantidade: dados.aoVivo.quantidade,
-    valor: dados.aoVivo.valorTotal, complemento: tipo === 'vendas'
-      ? `Ticket ${formatarReais(dados.aoVivo.ticketMedio)}`
-      : `Na entrega ${formatarReais(dados.aoVivo.valorAVista)} · A prazo ${formatarReais(dados.aoVivo.valorPrazo)}` });
-  return <section className="resumo-sistemas-linear" aria-label="Composição por sistema">
-    {linhas.map((linha) => <div className={`resumo-sistema-linha ${linha.classe}`} key={linha.nome}>
-      <i /><strong>{linha.nome}</strong><span>{linha.quantidade} pedido(s)</span><b>{formatarReais(linha.valor)}</b><small>{linha.complemento}</small>
-    </div>)}
-  </section>;
-}
-
-function CartaoValor({ label, valor, sub, destaque }) {
+function CartaoValor({ label, valor, sub, destaque, tooltip }) {
   return (
-    <div className={`cartao-valor ${destaque ? 'destaque' : ''}`}>
+    <div className={`cartao-valor ${destaque ? 'destaque' : ''}`} title={tooltip || undefined} tabIndex={tooltip ? 0 : undefined}>
       <div className="cartao-valor-label">{label}</div>
       <div className="cartao-valor-numero">{valor}</div>
       {sub && <div className="fs-xs" style={{ marginTop: 4, opacity: 0.8 }}>{sub}</div>}
