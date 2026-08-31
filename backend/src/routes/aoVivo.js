@@ -411,7 +411,6 @@ router.delete('/:id', async (req, res) => {
   try {
     const existente = await client.query('SELECT id FROM ao_vivo WHERE id = $1', [req.params.id]);
     if (existente.rows.length === 0) {
-      client.release();
       return res.status(404).json({ erro: 'Registro não encontrado.' });
     }
 
@@ -454,13 +453,11 @@ router.post('/:id/nao-recebeu', async (req, res) => {
   try {
     const pedidoResultado = await client.query('SELECT id, cliente_id, pagamento FROM ao_vivo WHERE id = $1', [req.params.id]);
     if (pedidoResultado.rows.length === 0) {
-      client.release();
       return res.status(404).json({ erro: 'Pedido não encontrado.' });
     }
 
     const pedido = pedidoResultado.rows[0];
     if (!String(pedido.pagamento || '').startsWith('PRAZO')) {
-      client.release();
       return res.status(400).json({ erro: 'Este pedido não está com pagamento a prazo.' });
     }
 
@@ -468,7 +465,6 @@ router.post('/:id/nao-recebeu', async (req, res) => {
     if (clienteId) {
       const clienteResultado = await client.query('SELECT bloqueado FROM clientes WHERE id = $1', [clienteId]);
       if (clienteResultado.rows[0]?.bloqueado) {
-        client.release();
         return res.status(403).json({ erro: 'Este cliente está bloqueado. Não é possível registrar tentativas para ele.' });
       }
     }

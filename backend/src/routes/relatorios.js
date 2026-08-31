@@ -125,6 +125,30 @@ function resolverPeriodoAnterior(inicio, fim) {
   return { inicio: utcParaDataBr(inicioAnterior), fim: utcParaDataBr(fimAnterior) };
 }
 
+// As datas antigas foram armazenadas como texto em formatos com ano de
+// dois ou quatro dígitos. Esta expressão produz uma chave YYYY-MM-DD sem
+// converter para DATE (há registros históricos com dias inexistentes,
+// que a regra atual ainda compara como texto). Assim o PostgreSQL pode
+// descartar o histórico fora do período antes de enviá-lo ao Node.
+function chaveDataSql(campo) {
+  return `CASE
+    WHEN ${campo} ~ '^\\d{2}/\\d{2}/\\d{2}$'
+      THEN '20' || RIGHT(${campo}, 2) || '-' || SUBSTRING(${campo}, 4, 2) || '-' || LEFT(${campo}, 2)
+    WHEN ${campo} ~ '^\\d{2}/\\d{2}/\\d{4}$'
+      THEN RIGHT(${campo}, 4) || '-' || SUBSTRING(${campo}, 4, 2) || '-' || LEFT(${campo}, 2)
+  END`;
+}
+
+function limitesConsulta(inicio, fim, periodoAnterior = null) {
+  const chaves = [
+    paraChaveComparavel(inicio),
+    paraChaveComparavel(fim || inicio),
+    paraChaveComparavel(periodoAnterior?.inicio),
+    paraChaveComparavel(periodoAnterior?.fim),
+  ].filter(Boolean).sort();
+  return [chaves[0], chaves[chaves.length - 1]];
+}
+
 function montarComparacao(valorAtual, valorAnterior, periodoAnterior) {
   const atual = valorNumero(valorAtual);
   const anterior = valorNumero(valorAnterior);
@@ -183,9 +207,13 @@ router.get('/vendas', async (req, res) => {
     const itensPeriodoAnterior = [];
 
     if (sistema === 'FONADA' || sistema === 'TODOS') {
+      const limites = limitesConsulta(inicio, fim, periodoAnterior);
       const fonadasResultado = await db.query(`
-        SELECT id, valor, periodo, data_pedido, recall, pagou, nome_comprador, senha_os FROM fonadas WHERE excluido_em IS NULL
-      `);
+        SELECT id, valor, periodo, data_pedido, recall, pagou, nome_comprador, senha_os
+        FROM fonadas
+        WHERE excluido_em IS NULL
+          AND ${chaveDataSql('data_pedido')} BETWEEN $1 AND $2
+      `, limites);
       const noPeriodo = filtrarPorIntervalo(fonadasResultado.rows, 'data_pedido', inicio, fim);
       if (periodoAnterior) {
         const anteriores = filtrarPorIntervalo(
@@ -224,9 +252,13 @@ router.get('/vendas', async (req, res) => {
     }
 
     if (sistema === 'AOVIVO' || sistema === 'TODOS') {
+      const limites = limitesConsulta(inicio, fim, periodoAnterior);
       const aoVivoResultado = await db.query(`
-        SELECT id, valor, data_pedido, comprador, numero_os, pagamento, pagou FROM ao_vivo WHERE excluido_em IS NULL
-      `);
+        SELECT id, valor, data_pedido, comprador, numero_os, pagamento, pagou
+        FROM ao_vivo
+        WHERE excluido_em IS NULL
+          AND ${chaveDataSql('data_pedido')} BETWEEN $1 AND $2
+      `, limites);
       const noPeriodo = filtrarPorIntervalo(aoVivoResultado.rows, 'data_pedido', inicio, fim);
       if (periodoAnterior) {
         const anteriores = filtrarPorIntervalo(
@@ -294,11 +326,13 @@ router.get('/recebimentos', async (req, res) => {
     const vendasDetalhadas = [];
 
     if (sistema === 'FONADA' || sistema === 'TODOS') {
+      const limites = limitesConsulta(inicio, fim, periodoAnterior);
       const fonadasResultado = await db.query(`
         SELECT id, valor, periodo, data_pagamento, pagou, nome_comprador, senha_os
         FROM fonadas
         WHERE excluido_em IS NULL AND pagou = 'SIM' AND data_pagamento IS NOT NULL
-      `);
+          AND ${chaveDataSql('data_pagamento')} BETWEEN $1 AND $2
+      `, limites);
       const noPeriodo = filtrarPorIntervalo(fonadasResultado.rows, 'data_pagamento', inicio, fim);
       if (periodoAnterior) {
         valorRecebidoAnterior += filtrarPorIntervalo(
@@ -327,12 +361,15 @@ router.get('/recebimentos', async (req, res) => {
     }
 
     if (sistema === 'AOVIVO' || sistema === 'TODOS') {
+      const limites = limitesConsulta(inicio, fim, periodoAnterior);
       const aoVivoResultado = await db.query(`
         SELECT id, valor, comprador, numero_os, pagamento, pagou, data_pagou,
                valor_recebido, forma_recebimento
         FROM ao_vivo
         WHERE excluido_em IS NULL
-      `);
+          AND pagou = 'SIM' AND data_pagou IS NOT NULL
+          AND ${chaveDataSql('data_pagou')} BETWEEN $1 AND $2
+      `, limites);
 
       // Todo recebimento Ao Vivo usa a baixa financeira. A data do evento
       // e o antigo resultado de entrega não movimentam mais o caixa.
@@ -384,9 +421,12 @@ router.get('/recebimentos', async (req, res) => {
     let valorAReceberVendasPeriodo = 0;
     let valorRecebidoVendasPeriodo = 0;
     if (sistema === 'FONADA' || sistema === 'TODOS') {
+      const limites = limitesConsulta(inicio, fim);
       const fonadasVendidasResultado = await db.query(`
-        SELECT valor, data_pedido, pagou FROM fonadas WHERE excluido_em IS NULL
-      `);
+        SELECT valor, data_pedido, pagou FROM fonadas
+        WHERE excluido_em IS NULL
+          AND ${chaveDataSql('data_pedido')} BETWEEN $1 AND $2
+      `, limites);
       const vendidas = filtrarPorIntervalo(fonadasVendidasResultado.rows, 'data_pedido', inicio, fim);
       vendidas.forEach((l) => vendasDetalhadas.push({ data: l.data_pedido, valor: l.valor, sistema: 'FONADA' }));
       valorVendido += vendidas.reduce((soma, l) => soma + valorNumero(l.valor), 0);
@@ -398,9 +438,12 @@ router.get('/recebimentos', async (req, res) => {
         .reduce((soma, l) => soma + valorNumero(l.valor), 0);
     }
     if (sistema === 'AOVIVO' || sistema === 'TODOS') {
+      const limites = limitesConsulta(inicio, fim);
       const aoVivoVendidoResultado = await db.query(`
-        SELECT valor, valor_recebido, data_pedido, pagou FROM ao_vivo WHERE excluido_em IS NULL
-      `);
+        SELECT valor, valor_recebido, data_pedido, pagou FROM ao_vivo
+        WHERE excluido_em IS NULL
+          AND ${chaveDataSql('data_pedido')} BETWEEN $1 AND $2
+      `, limites);
       const vendidos = filtrarPorIntervalo(aoVivoVendidoResultado.rows, 'data_pedido', inicio, fim);
       vendidos.forEach((l) => vendasDetalhadas.push({ data: l.data_pedido, valor: l.valor, sistema: 'AOVIVO' }));
       valorVendido += vendidos.reduce((soma, l) => soma + valorNumero(l.valor), 0);
@@ -467,10 +510,12 @@ router.get('/desempenho', async (req, res) => {
     }
 
     if (sistema === 'FONADA' || sistema === 'TODOS') {
+      const limites = limitesConsulta(inicio, fim, periodoAnterior);
       const fonadasResultado = await db.query(`
         SELECT valor, data_pedido, vendedor_usuario
         FROM fonadas WHERE excluido_em IS NULL
-      `);
+          AND ${chaveDataSql('data_pedido')} BETWEEN $1 AND $2
+      `, limites);
 
       // Vendas: conta pelo dia do PEDIDO (quando foi vendido).
       const vendidasNoPeriodo = filtrarPorIntervalo(fonadasResultado.rows, 'data_pedido', inicio, fim);
@@ -490,10 +535,12 @@ router.get('/desempenho', async (req, res) => {
     }
 
     if (sistema === 'AOVIVO' || sistema === 'TODOS') {
+      const limites = limitesConsulta(inicio, fim, periodoAnterior);
       const aoVivoResultado = await db.query(`
         SELECT valor, data_pedido, vendedor_usuario
         FROM ao_vivo WHERE excluido_em IS NULL
-      `);
+          AND ${chaveDataSql('data_pedido')} BETWEEN $1 AND $2
+      `, limites);
 
       const vendidosNoPeriodo = filtrarPorIntervalo(aoVivoResultado.rows, 'data_pedido', inicio, fim);
       if (periodoAnterior) {

@@ -7,7 +7,8 @@
 // conta própria com timers desalinhados.
 //
 // Dois relógios diferentes, de propósito:
-// - BUSCA DE DADOS (rede): a cada 30s, busca no servidor se há pedidos
+// - BUSCA DE DADOS (rede): o SSE atualiza na hora e, como contingência,
+//   uma busca leve é feita a cada 2 minutos enquanto a aba está visível.
 //   novos ou se algum já foi baixado. Não precisa ser mais rápido que
 //   isso — a lista de pedidos do dia não muda a todo instante.
 // - RECÁLCULO LOCAL (sem rede): a cada 1s, apenas relê o relógio do
@@ -15,17 +16,22 @@
 //   memória. Como não depende de nenhuma resposta de rede, a mudança
 //   de cor é instantânea — sem a pequena espera de uma requisição.
 
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from './api.js';
 import { useAtualizacaoTempoReal } from './TempoRealContext.jsx';
 import { useToast } from './ToastContext.jsx';
 
 const AgendaAlertaContext = createContext(null);
 
-const INTERVALO_BUSCA_MS = 30000;
+const INTERVALO_BUSCA_MS = 120000;
 const INTERVALO_RECALCULO_MS = 1000;
 const LIMIAR_PROXIMA_MINUTOS = 10;
 const INTERVALO_REPETICAO_SOM_MS = 3 * 60 * 1000;
+
+function chaveMinutoAtual() {
+  const agora = new Date();
+  return `${agora.getHours()}:${agora.getMinutes()}`;
+}
 
 // Diferença em minutos entre um horário "hh:mm" e "agora". Retorna null
 // se o horário estiver vazio ou mal formatado.
@@ -134,56 +140,69 @@ function tocarBeep() {
 export function AgendaAlertaProvider({ children }) {
   const [fonadaHoje, setFonadaHoje] = useState([]);
   const [aoVivoHoje, setAoVivoHoje] = useState([]);
+  const [lembretesHoje, setLembretesHoje] = useState([]);
   const [agendaHojeCarregada, setAgendaHojeCarregada] = useState(false);
-  // Só serve para forçar uma nova renderização a cada segundo — o valor
-  // em si não é usado, é apenas o "pulso" que faz o React reavaliar
-  // corAgregada()/statusUrgenciaItem() com o relógio atualizado.
-  const [, forcarRecalculo] = useState(0);
+  // A urgência muda por minuto, não por segundo. O relógio é conferido a
+  // cada segundo, mas o contexto só muda quando HH:MM realmente muda.
+  const [minutoAtual, setMinutoAtual] = useState(chaveMinutoAtual);
+  const buscaEmAndamentoRef = useRef(false);
+  const buscaPendenteRef = useRef(false);
+  const temporizadorTempoRealRef = useRef(null);
 
   const buscarAgenda = useCallback(() => {
+    if (buscaEmAndamentoRef.current) {
+      buscaPendenteRef.current = true;
+      return;
+    }
+    buscaEmAndamentoRef.current = true;
     api.agenda.hoje()
       .then((resp) => {
         setFonadaHoje(resp.fonada || []);
         setAoVivoHoje(resp.aoVivo || []);
+        setLembretesHoje(resp.lembretes || []);
         setAgendaHojeCarregada(true);
       })
       .catch(() => {
         // O polling permanece como contingência caso a conexão em tempo real caia.
+      })
+      .finally(() => {
+        buscaEmAndamentoRef.current = false;
+        if (buscaPendenteRef.current) {
+          buscaPendenteRef.current = false;
+          setTimeout(buscarAgenda, 0);
+        }
       });
   }, []);
 
-  useAtualizacaoTempoReal(['agenda'], buscarAgenda);
+  const atualizarPeloTempoReal = useCallback(() => {
+    clearTimeout(temporizadorTempoRealRef.current);
+    temporizadorTempoRealRef.current = setTimeout(buscarAgenda, 180);
+  }, [buscarAgenda]);
+
+  useAtualizacaoTempoReal(['agenda'], atualizarPeloTempoReal);
 
   // Busca os dados no servidor periodicamente (rede).
   useEffect(() => {
-    let cancelado = false;
-
     function buscar() {
-      api.agenda.hoje()
-        .then((resp) => {
-          if (cancelado) return;
-          setFonadaHoje(resp.fonada || []);
-          setAoVivoHoje(resp.aoVivo || []);
-          setAgendaHojeCarregada(true);
-        })
-        .catch(() => {
-          // Falha silenciosa — o alerta é só um indicativo visual, não
-          // deve interromper o uso do resto do sistema se a rede falhar.
-        });
+      if (document.visibilityState === 'visible' && navigator.onLine) buscarAgenda();
     }
 
     buscar();
     const intervalo = setInterval(buscar, INTERVALO_BUSCA_MS);
+    document.addEventListener('visibilitychange', buscar);
+    window.addEventListener('online', buscar);
     return () => {
-      cancelado = true;
       clearInterval(intervalo);
+      clearTimeout(temporizadorTempoRealRef.current);
+      document.removeEventListener('visibilitychange', buscar);
+      window.removeEventListener('online', buscar);
     };
-  }, []);
+  }, [buscarAgenda]);
 
-  // Recalcula localmente a cada 1s, sem nenhuma chamada de rede — só
-  // relê o relógio do computador contra os dados já carregados.
+  // Confere o relógio localmente, sem chamadas de rede. O React ignora
+  // os ticks dentro do mesmo minuto porque a string de estado não muda.
   useEffect(() => {
-    const intervalo = setInterval(() => forcarRecalculo((n) => n + 1), INTERVALO_RECALCULO_MS);
+    const intervalo = setInterval(() => setMinutoAtual(chaveMinutoAtual()), INTERVALO_RECALCULO_MS);
     return () => clearInterval(intervalo);
   }, []);
 
@@ -191,7 +210,7 @@ export function AgendaAlertaProvider({ children }) {
   const atrasados = itensAtrasados(fonadaHoje, aoVivoHoje);
 
   // Alerta sonoro + toast: toca uma vez assim que a contagem de
-  // atrasados aumenta (item novo atrasando), e depois repete a cada 5
+  // atrasados aumenta (item novo atrasando), e depois repete a cada 3
   // minutos enquanto a lista de atrasados continuar não-vazia — mesmo
   // que a contagem não mude nesse meio tempo, é um lembrete de que
   // ainda há algo pendente. Resolver todos os atrasos (contagem volta
@@ -230,15 +249,17 @@ export function AgendaAlertaProvider({ children }) {
     }
 
     contagemAnteriorRef.current = contagemAtual;
-    // Este efeito roda a cada pulso de recálculo (1s) — de propósito,
-    // é o que permite tanto reagir a um aumento imediato de atrasados
-    // quanto checar, a cada segundo, se já passou o intervalo de
-    // repetição de 5 minutos.
+    // Este efeito roda quando os dados ou o minuto atual mudam, o que
+    // basta para detectar atrasos e repetir o lembrete a cada 3 minutos.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   });
 
+  const valorContexto = useMemo(() => ({
+    alertaMenu, fonadaHoje, aoVivoHoje, lembretesHoje, agendaHojeCarregada, minutoAtual,
+  }), [alertaMenu, fonadaHoje, aoVivoHoje, lembretesHoje, agendaHojeCarregada, minutoAtual]);
+
   return (
-    <AgendaAlertaContext.Provider value={{ alertaMenu, fonadaHoje, aoVivoHoje, agendaHojeCarregada }}>
+    <AgendaAlertaContext.Provider value={valorContexto}>
       {children}
     </AgendaAlertaContext.Provider>
   );

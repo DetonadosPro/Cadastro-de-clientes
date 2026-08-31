@@ -12,6 +12,8 @@ export function TempoRealProvider({ children }) {
   const [revisaoSessao, setRevisaoSessao] = useState(0);
   const [estadoConexao, setEstadoConexao] = useState(() => navigator.onLine ? 'online' : 'offline');
   const temporizadorConexaoRef = useRef(null);
+  const ultimaVersaoRef = useRef(null);
+  const instanciaServidorRef = useRef(null);
 
   useEffect(() => {
     function aoFicarOffline() {
@@ -61,14 +63,42 @@ export function TempoRealProvider({ children }) {
         });
         if (!resposta.ok || !resposta.body) throw new Error('Fluxo indisponível');
         espera = 1000;
-        await lerEventosSse(resposta, (recebido) => {
-          if (recebido.origem !== ID_TELA) setEvento({ ...recebido, chave: `${Date.now()}-${Math.random()}` });
-        });
+        await lerEventosSse(
+          resposta,
+          (recebido) => {
+            if (Number.isFinite(recebido.versao)) ultimaVersaoRef.current = recebido.versao;
+            if (recebido.instancia) instanciaServidorRef.current = recebido.instancia;
+            if (recebido.origem !== ID_TELA) setEvento({ ...recebido, chave: `${Date.now()}-${Math.random()}` });
+          },
+          (conexao) => {
+            const jaEstavaConectado = instanciaServidorRef.current !== null;
+            const servidorReiniciou = jaEstavaConectado && conexao.instancia !== instanciaServidorRef.current;
+            const perdeuAtualizacao = jaEstavaConectado
+              && Number.isFinite(conexao.versao)
+              && Number.isFinite(ultimaVersaoRef.current)
+              && conexao.versao > ultimaVersaoRef.current;
+            instanciaServidorRef.current = conexao.instancia || instanciaServidorRef.current;
+            ultimaVersaoRef.current = Number.isFinite(conexao.versao) ? conexao.versao : ultimaVersaoRef.current;
+            // A primeira conexão não invalida a tela: ela já está fazendo
+            // sua carga inicial. Só sincroniza se a aba realmente perdeu
+            // uma alteração ou se o processo do backend foi substituído.
+            if (servidorReiniciou || perdeuAtualizacao) {
+              setEvento({
+                topico: 'sistema',
+                topicos: ['clientes', 'fonadas', 'ao-vivo', 'agenda', 'cobranca', 'relatorios', 'recall'],
+                recurso: '/reconexao',
+                metodo: 'SINCRONIZAR',
+                chave: `${Date.now()}-${Math.random()}`,
+              });
+            }
+          }
+        );
       } catch (erro) {
         if (erro.name === 'AbortError' || encerrado) return;
       }
       if (!encerrado) {
-        temporizadorReconexao = setTimeout(conectar, espera);
+        const esperaComDispersao = Math.round(espera * (0.7 + Math.random() * 0.6));
+        temporizadorReconexao = setTimeout(conectar, esperaComDispersao);
         espera = Math.min(espera * 2, 15000);
       }
     }

@@ -24,13 +24,15 @@ test('parser SSE recompõe um evento dividido em vários pacotes', async () => {
   assert.deepEqual(recebidos, [{ topico: 'agenda', topicos: ['agenda'] }]);
 });
 
-test('parser ignora heartbeat e evento de conexão', async () => {
+test('parser ignora heartbeat e informa o evento de conexão separadamente', async () => {
   const recebidos = [];
+  const conexoes = [];
   const resposta = respostaEmPartes([
     ': pulso\n\nevent: conectado\ndata: {"ok":true}\n\n',
   ]);
-  await lerEventosSse(resposta, (evento) => recebidos.push(evento));
+  await lerEventosSse(resposta, (evento) => recebidos.push(evento), (evento) => conexoes.push(evento));
   assert.deepEqual(recebidos, []);
+  assert.deepEqual(conexoes, [{ ok: true }]);
 });
 
 test('parser entrega atualizações consecutivas na ordem', async () => {

@@ -189,6 +189,7 @@ export const api = {
   // ---------- Agenda (mensagens de hoje, fonada + ao vivo) ----------
   agenda: {
     hoje: (data) => chamar(`/agenda/hoje${data ? `?data=${encodeURIComponent(data)}` : ''}`),
+    contagens: (datas) => chamar(`/agenda/contagens?datas=${encodeURIComponent(datas.join(','))}`),
     darBaixaFonada: (pedidoId, mensagem) =>
       chamar(`/agenda/fonada/${pedidoId}/baixa`, { method: 'POST', body: JSON.stringify({ mensagem }) }),
     desfazerBaixaFonada: (pedidoId, mensagem) =>
@@ -206,12 +207,14 @@ export const api = {
 
   // ---------- Cobrança (baixa de pagamento fonada) ----------
   cobranca: {
-    buscar: (cobrarDia, pagou, nome, os) => {
+    buscar: (cobrarDia, pagou, nome, os, extras = {}) => {
       const params = new URLSearchParams();
       if (cobrarDia) params.set('cobrarDia', cobrarDia);
       if (pagou) params.set('pagou', pagou);
       if (nome) params.set('nome', nome);
       if (os) params.set('os', os);
+      if (extras.recebidasInicio) params.set('recebidasInicio', extras.recebidasInicio);
+      if (extras.recebidasFim) params.set('recebidasFim', extras.recebidasFim);
       return chamar(`/cobranca?${params.toString()}`);
     },
     darBaixa: (pedidoId, pagou, recebi, dataPagamento) =>
@@ -222,10 +225,12 @@ export const api = {
       chamar('/cobranca/acoes/reagendar-lote', { method: 'PUT', body: JSON.stringify({ ids, cobrarDia }) }),
     marcarImpressos: (ids) =>
       chamar('/cobranca/acoes/marcar-impressos', { method: 'PUT', body: JSON.stringify({ ids }) }),
-    buscarAoVivo: (pagou = 'NAO', nome = '', os = '') => {
+    buscarAoVivo: (pagou = 'NAO', nome = '', os = '', extras = {}) => {
       const params = new URLSearchParams({ pagou });
       if (nome) params.set('nome', nome);
       if (os) params.set('os', os);
+      if (extras.recebidasInicio) params.set('recebidasInicio', extras.recebidasInicio);
+      if (extras.recebidasFim) params.set('recebidasFim', extras.recebidasFim);
       return chamar(`/cobranca/ao-vivo?${params.toString()}`);
     },
     darBaixaAoVivo: (pedidoId, dados) =>

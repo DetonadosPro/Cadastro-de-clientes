@@ -85,6 +85,17 @@ function IconeLixeira() {
   );
 }
 
+function topicosTempoRealDaRota(caminho) {
+  if (caminho.startsWith('/agenda')) return ['agenda'];
+  if (caminho.startsWith('/cobranca')) return ['cobranca'];
+  if (caminho.startsWith('/relatorios')) return ['relatorios'];
+  if (caminho.startsWith('/recall')) return ['recall'];
+  if (caminho.startsWith('/clientes')) return ['clientes'];
+  if (caminho.startsWith('/fonada')) return ['fonadas'];
+  if (caminho.startsWith('/ao-vivo')) return ['ao-vivo'];
+  return [];
+}
+
 function MarcaPombo({ pequena = false }) {
   return (
     <span className={`marca-pombo ${pequena ? 'pequena' : ''}`} aria-hidden="true">
@@ -137,13 +148,17 @@ export default function Layout() {
   const contextoRota = ROTAS.find((item) => item.teste.test(location.pathname)) || { secao: 'Pombo-Correio', titulo: 'Visão geral' };
   const inicialUsuario = (nomeExibicao || usuario || 'U').trim().charAt(0).toUpperCase();
   const estaCriandoCliente = location.pathname === '/clientes/novo';
+  const topicosTempoReal = topicosTempoRealDaRota(location.pathname);
 
   useAtualizacaoTempoReal(
-    ['agenda', 'clientes', 'fonadas', 'ao-vivo', 'cobranca', 'recall', 'relatorios'],
+    topicosTempoReal,
     (evento) => {
       const caminho = location.pathname;
+      // A Agenda atualiza seus dados diretamente, preservando seleção,
+      // filtros e o carrossel. Remontá-la inteira multiplicava as buscas.
+      if (caminho === '/agenda') return;
       const ehLista = [
-        '/agenda', '/cobranca', '/relatorios', '/recall', '/clientes', '/clientes/lixeira',
+        '/cobranca', '/relatorios', '/recall', '/clientes', '/clientes/lixeira',
         '/fonada', '/fonada/hoje', '/ao-vivo', '/ao-vivo/hoje',
       ].includes(caminho);
       if (ehLista) {

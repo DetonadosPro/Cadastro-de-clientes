@@ -12,6 +12,17 @@ function hojeBr() {
   return `${String(data.getDate()).padStart(2, '0')}/${String(data.getMonth() + 1).padStart(2, '0')}/${String(data.getFullYear()).slice(-2)}`;
 }
 
+function intervaloMesAtual() {
+  const hoje = new Date();
+  const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+  const ano = String(hoje.getFullYear()).slice(-2);
+  const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
+  return {
+    recebidasInicio: `01/${mes}/${ano}`,
+    recebidasFim: `${String(ultimoDia).padStart(2, '0')}/${mes}/${ano}`,
+  };
+}
+
 function hojeSemHora() {
   const data = new Date();
   data.setHours(0, 0, 0, 0);
@@ -123,12 +134,10 @@ export default function CobrancaAoVivo({ mostrarCabecalho = true }) {
     setCarregando(true);
     setErro('');
     try {
-      const [p, r] = await Promise.all([
-        api.cobranca.buscarAoVivo('NAO', nome, os),
-        api.cobranca.buscarAoVivo('SIM', nome, os),
-      ]);
-      setPendentes(p.pedidos || []);
-      setRecebidas(r.pedidos || []);
+      const resposta = await api.cobranca.buscarAoVivo('TODOS', nome, os, intervaloMesAtual());
+      const pedidos = resposta.pedidos || [];
+      setPendentes(pedidos.filter((pedido) => String(pedido.pagou || '').toUpperCase() !== 'SIM'));
+      setRecebidas(pedidos.filter((pedido) => String(pedido.pagou || '').toUpperCase() === 'SIM'));
     } catch (e) {
       setErro(e.message || 'Não foi possível carregar as cobranças Ao Vivo.');
     } finally {

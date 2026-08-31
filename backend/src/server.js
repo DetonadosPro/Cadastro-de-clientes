@@ -44,7 +44,7 @@ dotenv.config({ path: localizarArquivoEnv() });
 
 const express = require('express');
 const cors = require('cors');
-const { iniciarBanco } = require('./db/database');
+const { iniciarBanco, pool } = require('./db/database');
 const { router: authRouter } = require('./routes/auth');
 const fonadasRouter = require('./routes/fonadas');
 const aoVivoRouter = require('./routes/aoVivo');
@@ -55,7 +55,8 @@ const relatoriosRouter = require('./routes/relatorios');
 const recallRouter = require('./routes/recall');
 const autenticar = require('./middleware/autenticar');
 const { iniciarAgendador } = require('./tarefas/agendador');
-const { conectar: conectarTempoReal, observarAlteracoes } = require('./tempoReal');
+const tempoReal = require('./tempoReal');
+const { diagnostico, instrumentarRequests } = require('./observabilidade');
 
 
 async function iniciar() {
@@ -71,12 +72,16 @@ async function iniciar() {
   const app = express();
   app.use(cors());
   app.use(express.json({ limit: '5mb' }));
+  app.use(instrumentarRequests);
 
   app.get('/api/status', (req, res) => {
     res.json({ ok: true, sistema: 'Pombo-Correio', hora: new Date().toISOString() });
   });
-  app.get('/api/eventos', autenticar, conectarTempoReal);
-  app.use('/api', observarAlteracoes);
+  app.get('/api/eventos', autenticar, tempoReal.conectar);
+  app.get('/api/diagnostico/performance', autenticar, (req, res) => {
+    res.json(diagnostico({ pool, tempoReal }));
+  });
+  app.use('/api', tempoReal.observarAlteracoes);
 
   // Rotas para disparar as tarefas agendadas manualmente (útil para
   // testar sem esperar o cron rodar no horário certo) — exigem login,

@@ -11,6 +11,9 @@
 // Se essas variáveis não estiverem configuradas, o envio falha
 // silenciosamente com um aviso no log.
 
+const { performance } = require('node:perf_hooks');
+const { registrarOperacao } = require('../observabilidade');
+
 function telegramDisponivel() {
   return Boolean(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID);
 }
@@ -72,6 +75,7 @@ async function enviarTelegram(texto, opcoes = {}) {
     return { enviado: false, motivo: 'não configurado' };
   }
 
+  const inicio = performance.now();
   try {
     const url = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`;
     const partes = dividirMensagem(texto, opcoes.limite || 3800);
@@ -79,6 +83,7 @@ async function enviarTelegram(texto, opcoes = {}) {
     for (const parte of partes) {
       const resposta = await fetch(url, {
         method: 'POST',
+        signal: AbortSignal.timeout(Number(process.env.TELEGRAM_TIMEOUT_MS || 15000)),
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chat_id: process.env.TELEGRAM_CHAT_ID,
@@ -94,8 +99,10 @@ async function enviarTelegram(texto, opcoes = {}) {
       }
     }
 
+    registrarOperacao('telegram', performance.now() - inicio, true, { mensagens: partes.length });
     return { enviado: true, mensagens: partes.length };
   } catch (erro) {
+    registrarOperacao('telegram', performance.now() - inicio, false);
     console.error('❌ Erro ao enviar Telegram:', erro.message);
     return { enviado: false, motivo: erro.message };
   }

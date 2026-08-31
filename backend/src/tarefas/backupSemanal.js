@@ -13,8 +13,13 @@
 // qualquer descompactador (7-Zip, WinRAR, etc. reconhecem .gz).
 
 const zlib = require('zlib');
+const { promisify } = require('node:util');
+const { performance } = require('node:perf_hooks');
 const { db } = require('../db/database');
 const { enviarEmail } = require('../servicos/email');
+const { registrarOperacao } = require('../observabilidade');
+
+const gzip = promisify(zlib.gzip);
 
 function timestamp() {
   const agora = new Date();
@@ -24,17 +29,26 @@ function timestamp() {
 
 async function gerarBackupTabela(nomeTabela) {
   const resultado = await db.query(`SELECT * FROM ${nomeTabela} ORDER BY id`);
-  // Sem indentação (JSON.stringify sem o `null, 2`) — economiza bastante
-  // espaço logo de cara, antes mesmo da compressão gzip.
-  return JSON.stringify(resultado.rows);
+  // Serializa em blocos e devolve o event loop entre eles. Com mais de
+  // 20 mil pedidos, um JSON.stringify único congelava todas as requests.
+  const partes = ['['];
+  for (let inicio = 0; inicio < resultado.rows.length; inicio += 500) {
+    if (inicio > 0) partes.push(',');
+    partes.push(resultado.rows.slice(inicio, inicio + 500).map((linha) => JSON.stringify(linha)).join(','));
+    await new Promise((resolve) => setImmediate(resolve));
+  }
+  partes.push(']');
+  return partes.join('');
 }
 
-function comprimir(textoJson) {
-  return zlib.gzipSync(Buffer.from(textoJson, 'utf-8')).toString('base64');
+async function comprimir(textoJson) {
+  const compactado = await gzip(Buffer.from(textoJson, 'utf-8'));
+  return compactado.toString('base64');
 }
 
 async function rodarBackupSemanal() {
   console.log('📦 Iniciando backup semanal automático...');
+  const inicio = performance.now();
   try {
     const [fonadas, aoVivo, clientes] = await Promise.all([
       gerarBackupTabela('fonadas'),
@@ -43,10 +57,13 @@ async function rodarBackupSemanal() {
     ]);
 
     const ts = timestamp();
+    const [fonadasGzip, aoVivoGzip, clientesGzip] = await Promise.all([
+      comprimir(fonadas), comprimir(aoVivo), comprimir(clientes),
+    ]);
     const anexos = [
-      { filename: `fonadas-${ts}.json.gz`, content: comprimir(fonadas), jaComprimido: true },
-      { filename: `ao_vivo-${ts}.json.gz`, content: comprimir(aoVivo), jaComprimido: true },
-      { filename: `clientes-${ts}.json.gz`, content: comprimir(clientes), jaComprimido: true },
+      { filename: `fonadas-${ts}.json.gz`, content: fonadasGzip, jaComprimido: true },
+      { filename: `ao_vivo-${ts}.json.gz`, content: aoVivoGzip, jaComprimido: true },
+      { filename: `clientes-${ts}.json.gz`, content: clientesGzip, jaComprimido: true },
     ];
 
     const dataFormatada = new Date().toLocaleDateString('pt-BR');
@@ -61,7 +78,9 @@ async function rodarBackupSemanal() {
     } else {
       console.warn(`⚠️  Backup gerado, mas não enviado: ${resultado.motivo}`);
     }
+    registrarOperacao('backup-diario', performance.now() - inicio, resultado.enviado);
   } catch (erro) {
+    registrarOperacao('backup-diario', performance.now() - inicio, false);
     console.error('❌ Erro ao gerar backup semanal:', erro);
   }
 }

@@ -7,6 +7,7 @@ import {
 } from '../../utils/mensagemAgenda.js';
 import { useToast } from '../../ToastContext.jsx';
 import { useAgendaAlerta, statusUrgenciaItem } from '../../AgendaAlertaContext.jsx';
+import { useAtualizacaoTempoReal } from '../../TempoRealContext.jsx';
 import { formatarData, formatarHorario } from '../../mascaras.js';
 import CampoData from '../../components/CampoData.jsx';
 import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
@@ -89,6 +90,7 @@ export default function Agenda() {
   const temporizadorCarrosselRef = useRef(null);
   const [direcaoConteudo, setDirecaoConteudo] = useState('');
   const temporizadorConteudoRef = useRef(null);
+  const temporizadorTempoRealRef = useRef(null);
   const [ehSmartphone, setEhSmartphone] = useState(() => (
     typeof window !== 'undefined' && window.matchMedia('(max-width: 430px)').matches
   ));
@@ -114,7 +116,7 @@ export default function Agenda() {
   // instante em que ele atualiza — assim a cor da borda dos cards muda
   // exatamente junto com a bolinha, em vez de cada um ter seu próprio
   // temporizador desalinhado.
-  const { fonadaHoje, aoVivoHoje, agendaHojeCarregada } = useAgendaAlerta();
+  const { fonadaHoje, aoVivoHoje, lembretesHoje, agendaHojeCarregada } = useAgendaAlerta();
 
   // As ações de "Dar baixa" e "Não atendeu" só fazem sentido para o dia
   // de hoje — em qualquer outro dia, a Agenda serve só para consulta.
@@ -128,7 +130,9 @@ export default function Agenda() {
     if (!ehHoje || !agendaHojeCarregada) return;
     setFonada(fonadaHoje);
     setAoVivo(aoVivoHoje);
-  }, [ehHoje, agendaHojeCarregada, fonadaHoje, aoVivoHoje]);
+    setLembretes(lembretesHoje);
+    setCarregando(false);
+  }, [ehHoje, agendaHojeCarregada, fonadaHoje, aoVivoHoje, lembretesHoje]);
 
   function carregar(data = dataSelecionada) {
     setCarregando(true);
@@ -144,8 +148,24 @@ export default function Agenda() {
       .finally(() => setCarregando(false));
   }
 
+  useAtualizacaoTempoReal(['agenda'], () => {
+    clearTimeout(temporizadorTempoRealRef.current);
+    temporizadorTempoRealRef.current = setTimeout(() => {
+      // Agrupa mutações próximas (como a baixa das duas mensagens) para
+      // invalidar o carrossel e a data histórica apenas uma vez.
+      setContagensPorData({});
+      // Para hoje, o contexto compartilhado faz uma única busca e também
+      // atualiza o alerta do menu. Datas históricas são recarregadas aqui.
+      if (!ehHoje) carregar(dataSelecionada);
+    }, 180);
+  });
+
   useEffect(() => {
-    carregar(dataSelecionada);
+    // O provider global já carrega o dia atual para alimentar o alerta do
+    // menu. Reaproveitar essa resposta evita duas chamadas idênticas ao
+    // abrir a Agenda; dias históricos continuam sendo buscados aqui.
+    if (!ehHoje) carregar(dataSelecionada);
+    else setCarregando(!agendaHojeCarregada);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataSelecionada]);
 
@@ -171,15 +191,10 @@ export default function Agenda() {
       setCarregandoSemana(false);
       return () => { ativo = false; };
     }
-    Promise.all(diasAindaNaoCarregados.map((data) => api.agenda.hoje(data)))
-      .then((respostas) => {
+    api.agenda.contagens(diasAindaNaoCarregados)
+      .then((resposta) => {
         if (!ativo) return;
-        const novasContagens = {};
-        respostas.forEach((resp, indice) => {
-          const quantidadeFonada = agruparMensagensDuplas(resp.fonada).length;
-          novasContagens[diasAindaNaoCarregados[indice]] = quantidadeFonada + resp.aoVivo.length + (resp.lembretes || []).length;
-        });
-        setContagensPorData((atual) => ({ ...atual, ...novasContagens }));
+        setContagensPorData((atual) => ({ ...atual, ...(resposta.contagens || {}) }));
       })
       .catch(() => {
         // A faixa mantém as contagens já carregadas; uma falha pontual
@@ -202,7 +217,11 @@ export default function Agenda() {
     return () => media.removeEventListener?.('change', atualizar);
   }, []);
 
-  useEffect(() => () => { clearTimeout(temporizadorCarrosselRef.current); clearTimeout(temporizadorConteudoRef.current); }, []);
+  useEffect(() => () => {
+    clearTimeout(temporizadorCarrosselRef.current);
+    clearTimeout(temporizadorConteudoRef.current);
+    clearTimeout(temporizadorTempoRealRef.current);
+  }, []);
 
   useEffect(() => {
     function navegarComTeclado(e) {
@@ -1383,6 +1402,7 @@ function NomeComWhatsapp({ nome, whatsapp }) {
   if (!link) {
     return <span className="agenda-cliente-nome">{nome || '—'}</span>;
   }
+
   return (
     <a
       href={link}

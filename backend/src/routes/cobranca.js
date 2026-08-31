@@ -34,6 +34,25 @@ function chaveHojeBrasilia() {
   return `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
 }
 
+function chaveDataSql(campo) {
+  return `CASE
+    WHEN ${campo} ~ '^\\d{2}/\\d{2}/\\d{2}$'
+      THEN '20' || RIGHT(${campo}, 2) || '-' || SUBSTRING(${campo}, 4, 2) || '-' || LEFT(${campo}, 2)
+    WHEN ${campo} ~ '^\\d{2}/\\d{2}/\\d{4}$'
+      THEN RIGHT(${campo}, 4) || '-' || SUBSTRING(${campo}, 4, 2) || '-' || LEFT(${campo}, 2)
+  END`;
+}
+
+function aplicarRecorteRecebidas(condicoes, params, { pagouFiltro, campoPagou, campoData, inicio, fim }) {
+  const inicioChave = chaveData(inicio);
+  const fimChave = chaveData(fim);
+  if (!inicioChave || !fimChave || pagouFiltro === 'NAO') return;
+  params.push(inicioChave, fimChave);
+  const intervalo = `${chaveDataSql(campoData)} BETWEEN $${params.length - 1} AND $${params.length}`;
+  if (pagouFiltro === 'SIM') condicoes.push(intervalo);
+  else condicoes.push(`(COALESCE(${campoPagou}, '') != 'SIM' OR (${campoPagou} = 'SIM' AND ${intervalo}))`);
+}
+
 function hojeFormatado() {
   const agora = agoraBrasilia();
   return `${String(agora.getDate()).padStart(2, '0')}/${String(agora.getMonth() + 1).padStart(2, '0')}/${String(agora.getFullYear()).slice(-2)}`;
@@ -62,11 +81,17 @@ router.get('/ao-vivo', async (req, res) => {
     const pagouFiltro = String(req.query.pagou || 'NAO').trim().toUpperCase();
     const nome = String(req.query.nome || '').trim();
     const os = String(req.query.os || '').trim();
+    const recebidasInicio = String(req.query.recebidasInicio || '').trim();
+    const recebidasFim = String(req.query.recebidasFim || '').trim();
     const condicoes = ['a.excluido_em IS NULL'];
     const params = [];
 
     if (pagouFiltro === 'SIM') condicoes.push("a.pagou = 'SIM'");
     else if (pagouFiltro === 'NAO') condicoes.push("COALESCE(a.pagou, '') != 'SIM'");
+    aplicarRecorteRecebidas(condicoes, params, {
+      pagouFiltro, campoPagou: 'a.pagou', campoData: 'a.data_pagou',
+      inicio: recebidasInicio, fim: recebidasFim,
+    });
     if (nome) {
       params.push(`%${nome}%`);
       condicoes.push(`COALESCE(c.nome, a.comprador) ILIKE $${params.length}`);
@@ -210,6 +235,8 @@ router.get('/', async (req, res) => {
     const pagouFiltro = (req.query.pagou || 'NAO').trim().toUpperCase();
     const nome = (req.query.nome || '').trim();
     const os = (req.query.os || '').trim();
+    const recebidasInicio = String(req.query.recebidasInicio || '').trim();
+    const recebidasFim = String(req.query.recebidasFim || '').trim();
 
     const condicoes = ['excluido_em IS NULL'];
     const params = [];
@@ -223,6 +250,10 @@ router.get('/', async (req, res) => {
     } else if (pagouFiltro === 'NAO') {
       condicoes.push("(pagou IS NULL OR pagou != 'SIM')");
     }
+    aplicarRecorteRecebidas(condicoes, params, {
+      pagouFiltro, campoPagou: 'pagou', campoData: 'data_pagamento',
+      inicio: recebidasInicio, fim: recebidasFim,
+    });
 
     if (nome) {
       params.push(`%${nome}%`);

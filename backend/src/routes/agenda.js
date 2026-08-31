@@ -64,6 +64,91 @@ function agoraFormatado() {
   return { data: `${dd}/${mm}/${aa}`, horario: `${hh}:${min}`, texto: `${dd}/${mm}/${aa} ${hh}:${min}` };
 }
 
+// GET /api/agenda/contagens?datas=dd/mm/aa,dd/mm/aa...
+// Alimenta o carrossel com uma única ida à API. A implementação anterior
+// buscava a Agenda completa de 9 a 16 dias em paralelo (27 a 48 queries).
+router.get('/contagens', async (req, res) => {
+  try {
+    const solicitadas = String(req.query.datas || '')
+      .split(',')
+      .map((data) => data.trim())
+      .filter(Boolean);
+    if (solicitadas.length === 0 || solicitadas.length > 31) {
+      return res.status(400).json({ erro: 'Informe entre 1 e 31 datas válidas.' });
+    }
+
+    const formatos = solicitadas.map(ambosFormatosDe);
+    const datasIsoValidadas = formatos.map((item) => item && dataBrParaIso(item.curto));
+    if (formatos.some((item) => !item) || datasIsoValidadas.some((data) => !data)) {
+      return res.status(400).json({ erro: 'Uma ou mais datas são inválidas.' });
+    }
+
+    const chavePorFormato = new Map();
+    const datasTexto = [];
+    const datasIso = [];
+    const contagens = {};
+    formatos.forEach((item) => {
+      chavePorFormato.set(item.curto, item.curto);
+      chavePorFormato.set(item.longo, item.curto);
+      datasTexto.push(item.curto, item.longo);
+      datasIso.push(dataBrParaIso(item.curto));
+      contagens[item.curto] = 0;
+    });
+
+    const [fonadasResultado, aoVivoResultado, lembretesResultado] = await Promise.all([
+      db.query(`
+        SELECT id, p1_dia, p1_para, p1_horario, p1_resultado,
+                   p2_dia, p2_para, p2_horario, p2_resultado
+        FROM fonadas
+        WHERE excluido_em IS NULL
+          AND (p1_dia = ANY($1::text[]) OR p2_dia = ANY($1::text[]))
+      `, [datasTexto]),
+      db.query(`
+        SELECT dia_entrega, COUNT(*)::int AS total
+        FROM ao_vivo
+        WHERE excluido_em IS NULL AND dia_entrega = ANY($1::text[])
+        GROUP BY dia_entrega
+      `, [datasTexto]),
+      db.query(`
+        SELECT TO_CHAR(data, 'DD/MM/YY') AS dia, COUNT(*)::int AS total
+        FROM lembretes
+        WHERE data = ANY($1::date[])
+        GROUP BY data
+      `, [datasIso]),
+    ]);
+
+    for (const pedido of fonadasResultado.rows) {
+      const chaveP1 = chavePorFormato.get(pedido.p1_dia);
+      const chaveP2 = chavePorFormato.get(pedido.p2_dia);
+      if (chaveP1) contagens[chaveP1] += 1;
+      if (chaveP2) contagens[chaveP2] += 1;
+
+      const mesmoDestinatario = String(pedido.p1_para || '').trim()
+        && String(pedido.p1_para || '').trim().toUpperCase() === String(pedido.p2_para || '').trim().toUpperCase();
+      const podemSerUmaLinha = chaveP1 && chaveP1 === chaveP2
+        && pedido.p1_dia === pedido.p2_dia
+        && mesmoDestinatario
+        && pedido.p1_horario
+        && pedido.p1_horario === pedido.p2_horario
+        && Boolean(pedido.p1_resultado) === Boolean(pedido.p2_resultado);
+      if (podemSerUmaLinha) contagens[chaveP1] -= 1;
+    }
+
+    aoVivoResultado.rows.forEach((item) => {
+      const chave = chavePorFormato.get(item.dia_entrega);
+      if (chave) contagens[chave] += item.total;
+    });
+    lembretesResultado.rows.forEach((item) => {
+      if (contagens[item.dia] !== undefined) contagens[item.dia] += item.total;
+    });
+
+    res.json({ contagens });
+  } catch (erro) {
+    console.error('Erro ao buscar contagens da agenda:', erro);
+    res.status(500).json({ erro: 'Erro ao buscar contagens da agenda.' });
+  }
+});
+
 // GET /api/agenda/hoje?data=dd/mm/aa
 router.get('/hoje', async (req, res) => {
   try {
@@ -246,7 +331,6 @@ router.post('/fonada/:id/nao-atendeu', async (req, res) => {
   try {
     const pedidoResultado = await client.query('SELECT * FROM fonadas WHERE id = $1', [req.params.id]);
     if (pedidoResultado.rows.length === 0) {
-      client.release();
       return res.status(404).json({ erro: 'Pedido não encontrado.' });
     }
 
@@ -254,7 +338,6 @@ router.post('/fonada/:id/nao-atendeu', async (req, res) => {
     if (clienteId) {
       const clienteResultado = await client.query('SELECT bloqueado FROM clientes WHERE id = $1', [clienteId]);
       if (clienteResultado.rows[0]?.bloqueado) {
-        client.release();
         return res.status(403).json({ erro: 'Este cliente está bloqueado. Não é possível registrar tentativas para ele.' });
       }
     }
@@ -262,7 +345,6 @@ router.post('/fonada/:id/nao-atendeu', async (req, res) => {
     if (mensagem === 2) {
       const validacao = validarDataUsoSegundaMensagem(pedidoResultado.rows[0], remarcadoDia);
       if (!validacao.ok) {
-        client.release();
         return res.status(409).json({ erro: validacao.erro });
       }
     }

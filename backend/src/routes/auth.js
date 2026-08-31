@@ -37,7 +37,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ erro: 'Usuário ou senha inválidos.' });
     }
 
-    const senhaOk = bcrypt.compareSync(senha, linha.senha_hash);
+    const senhaOk = await bcrypt.compare(senha, linha.senha_hash);
     if (!senhaOk) {
       return res.status(401).json({ erro: 'Usuário ou senha inválidos.' });
     }
@@ -104,7 +104,7 @@ router.post('/usuarios', exigirSenhaMestra, async (req, res) => {
       return res.status(409).json({ erro: 'Esse usuário já existe.' });
     }
 
-    const senha_hash = bcrypt.hashSync(senha, 10);
+    const senha_hash = await bcrypt.hash(senha, 10);
     await db.query(
       'INSERT INTO usuarios (usuario, senha_hash, nome, data_nascimento) VALUES ($1, $2, $3, $4)',
       [usuario, senha_hash, nome || null, data_nascimento || null]

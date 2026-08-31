@@ -1,4 +1,4 @@
-export async function lerEventosSse(resposta, aoEvento) {
+export async function lerEventosSse(resposta, aoEvento, aoConectar) {
   const leitor = resposta.body.getReader();
   const decoder = new TextDecoder();
   let acumulado = '';
@@ -11,7 +11,14 @@ export async function lerEventosSse(resposta, aoEvento) {
     for (const bloco of blocos) {
       const tipo = bloco.match(/^event:\s*(.+)$/m)?.[1];
       const texto = bloco.match(/^data:\s*(.+)$/m)?.[1];
-      if (tipo === 'atualizacao' && texto) aoEvento(JSON.parse(texto));
+      if (!texto) continue;
+      try {
+        const dados = JSON.parse(texto);
+        if (tipo === 'atualizacao') aoEvento(dados);
+        else if (tipo === 'conectado') aoConectar?.(dados);
+      } catch {
+        // Um pacote inválido é ignorado sem derrubar todo o fluxo SSE.
+      }
     }
   }
 }

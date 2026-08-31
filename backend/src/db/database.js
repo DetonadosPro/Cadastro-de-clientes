@@ -13,6 +13,8 @@
 //     consultas nas rotas foram reescritas para esse formato.
 
 const { Pool } = require('pg');
+const { performance } = require('node:perf_hooks');
+const { registrarQuery } = require('../observabilidade');
 
 // Em produção (Railway), a variável DATABASE_URL é injetada
 // automaticamente quando você adiciona um banco Postgres ao projeto —
@@ -20,13 +22,34 @@ const { Pool } = require('pg');
 // DATABASE_URL no seu .env apontando para um Postgres de teste.
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  max: Number(process.env.DB_POOL_MAX || 10),
+  idleTimeoutMillis: Number(process.env.DB_IDLE_TIMEOUT_MS || 30000),
+  connectionTimeoutMillis: Number(process.env.DB_CONNECTION_TIMEOUT_MS || 5000),
   ssl: process.env.DATABASE_URL && process.env.DATABASE_URL.includes('railway')
     ? { rejectUnauthorized: false }
     : (process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false),
 });
 
+pool.on('error', (erro) => {
+  // Sem um listener, um erro em uma conexão ociosa pode encerrar o
+  // processo Node. No Railway isso se parece com uma lentidão/cold start.
+  console.error('Erro inesperado em conexão ociosa do PostgreSQL:', erro.message);
+});
+
+async function queryObservada(texto, params) {
+  const inicio = performance.now();
+  try {
+    const resultado = await pool.query(texto, params);
+    registrarQuery(performance.now() - inicio, texto, true);
+    return resultado;
+  } catch (erro) {
+    registrarQuery(performance.now() - inicio, texto, false);
+    throw erro;
+  }
+}
+
 const db = {
-  query: (texto, params) => pool.query(texto, params),
+  query: queryObservada,
   pool,
 };
 
@@ -140,6 +163,8 @@ async function iniciarBanco() {
   await pool.query('CREATE INDEX IF NOT EXISTS idx_fonadas_celular ON fonadas(p1_celular)');
   await pool.query('CREATE INDEX IF NOT EXISTS idx_fonadas_cliente ON fonadas(cliente_id)');
   await pool.query('CREATE INDEX IF NOT EXISTS idx_fonadas_excluido ON fonadas(excluido_em)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_fonadas_p1_dia ON fonadas(p1_dia)');
+  await pool.query('CREATE INDEX IF NOT EXISTS idx_fonadas_p2_dia ON fonadas(p2_dia)');
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS ao_vivo (

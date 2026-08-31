@@ -270,7 +270,6 @@ router.delete('/:id', async (req, res) => {
   try {
     const existente = await client.query('SELECT id FROM fonadas WHERE id = $1', [req.params.id]);
     if (existente.rows.length === 0) {
-      client.release();
       return res.status(404).json({ erro: 'Registro não encontrado.' });
     }
 

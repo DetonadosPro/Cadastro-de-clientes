@@ -16,6 +16,17 @@ function dataLocalFormatada(deslocamento = 0) {
   return `${dd}/${mm}/${String(data.getFullYear()).slice(-2)}`;
 }
 
+function intervaloMesAtual() {
+  const hoje = new Date();
+  const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+  const ano = String(hoje.getFullYear()).slice(-2);
+  const ultimoDia = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).getDate();
+  return {
+    recebidasInicio: `01/${mes}/${ano}`,
+    recebidasFim: `${String(ultimoDia).padStart(2, '0')}/${mes}/${ano}`,
+  };
+}
+
 function hojeSemHora() {
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
@@ -240,11 +251,16 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
       const nomeDaBusca = opcoes.nome ?? nome;
       const osDaBusca = opcoes.os ?? os;
       const dataExata = filtroDaBusca === 'data' ? dataDaBusca : '';
-      const [respPendentes, respRecebidas] = await Promise.all([
-        api.cobranca.buscar(dataExata, 'NAO', nomeDaBusca, osDaBusca), api.cobranca.buscar(dataExata, 'SIM', nomeDaBusca, osDaBusca),
-      ]);
+      // O endpoint já aceita TODOS. Buscar uma vez e separar localmente
+      // evita repetir a mesma leitura e a mesma junção de clientes para
+      // montar as abas de pendentes e recebidas.
+      const recorteRecebidas = filtroDaBusca === 'pagas' ? {} : intervaloMesAtual();
+      const resp = await api.cobranca.buscar(dataExata, 'TODOS', nomeDaBusca, osDaBusca, recorteRecebidas);
       if (idBusca !== ultimaBusca.current) return;
-      setPendentes(respPendentes.pedidos || []); setRecebidas(respRecebidas.pedidos || []); setExpandidos(new Set()); setSelecionados(new Set());
+      const pedidos = resp.pedidos || [];
+      setPendentes(pedidos.filter((pedido) => String(pedido.pagou || '').toUpperCase() !== 'SIM'));
+      setRecebidas(pedidos.filter((pedido) => String(pedido.pagou || '').toUpperCase() === 'SIM'));
+      setExpandidos(new Set()); setSelecionados(new Set());
     } catch (err) {
       if (idBusca === ultimaBusca.current) setErro(err.message);
     } finally {

@@ -471,7 +471,6 @@ router.post('/mesclar-automatico', async (req, res) => {
     const clienteA = resultadoA.rows[0];
     const clienteB = resultadoB.rows[0];
     if (!clienteA || !clienteB) {
-      client.release();
       return res.status(404).json({ erro: 'Um dos clientes não foi encontrado.' });
     }
 
@@ -784,7 +783,6 @@ router.delete('/:id', async (req, res) => {
   try {
     const existente = await client.query('SELECT id FROM clientes WHERE id = $1', [req.params.id]);
     if (existente.rows.length === 0) {
-      client.release();
       return res.status(404).json({ erro: 'Cliente não encontrado.' });
     }
 
@@ -810,7 +808,6 @@ router.post('/:id/restaurar', async (req, res) => {
   try {
     const existente = await client.query('SELECT id FROM clientes WHERE id = $1', [req.params.id]);
     if (existente.rows.length === 0) {
-      client.release();
       return res.status(404).json({ erro: 'Cliente não encontrado.' });
     }
 
@@ -838,11 +835,9 @@ router.delete('/:id/definitivo', async (req, res) => {
     const clienteResultado = await client.query('SELECT * FROM clientes WHERE id = $1', [req.params.id]);
     const cliente = clienteResultado.rows[0];
     if (!cliente) {
-      client.release();
       return res.status(404).json({ erro: 'Cliente não encontrado.' });
     }
     if (!cliente.excluido_em) {
-      client.release();
       return res.status(400).json({ erro: 'O cliente precisa estar na lixeira antes de ser apagado definitivamente.' });
     }
 
@@ -884,11 +879,9 @@ router.post('/:id/mesclar', async (req, res) => {
     const destino = destinoResultado.rows[0];
     const origem = origemResultado.rows[0];
     if (!destino) {
-      client.release();
       return res.status(404).json({ erro: 'Cliente de destino não encontrado.' });
     }
     if (!origem) {
-      client.release();
       return res.status(404).json({ erro: 'Cliente de origem não encontrado.' });
     }
 
