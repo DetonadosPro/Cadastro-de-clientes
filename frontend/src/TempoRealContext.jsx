@@ -68,7 +68,10 @@ export function TempoRealProvider({ children }) {
           (recebido) => {
             if (Number.isFinite(recebido.versao)) ultimaVersaoRef.current = recebido.versao;
             if (recebido.instancia) instanciaServidorRef.current = recebido.instancia;
-            if (recebido.origem !== ID_TELA) setEvento({ ...recebido, chave: `${Date.now()}-${Math.random()}` });
+            // A mesma aba pode alterar um pedido e navegar para a Agenda logo
+            // em seguida. A atualização também precisa chegar aos provedores
+            // globais dessa aba para invalidar dados que ainda estão em cache.
+            setEvento({ ...recebido, chave: `${Date.now()}-${Math.random()}` });
           },
           (conexao) => {
             const jaEstavaConectado = instanciaServidorRef.current !== null;
