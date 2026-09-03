@@ -106,8 +106,9 @@ h3 { font-size: 15px; line-height: 1.3; }
 .nav-item-destaque svg, .nav-item-direto svg { width: 18px; height: 18px; opacity: .92; }
 .nav-divisor { height: 1px; margin: 11px 8px; background: rgba(255,255,255,.08); }
 .nav-secao-titulo { padding: 0 12px 5px; color: #6f90b3; font-size: 9px; font-weight: 750; letter-spacing: .13em; text-transform: uppercase; }
-.nav-continuar { margin: 2px 5px 5px 41px; padding: 5px 8px; border-left: 1px solid rgba(121,164,217,.35); border-radius: 0 7px 7px 0; background: rgba(255,255,255,.035); color: #8fb1d8; box-shadow: none; font-size: 10px; text-decoration: none; animation: none; }
-.nav-continuar:hover, .nav-continuar.active { border-left-color: #77a7df; background: rgba(92,143,207,.13); color: #fff; box-shadow: none; }
+.nav-continuar { margin: 2px 5px 5px 41px; padding: 5px 8px; border-left: 2px solid #f3ad41; border-radius: 0 7px 7px 0; background: rgba(243,173,65,.9); color: #2f2515; box-shadow: 0 3px 9px rgba(8,24,43,.16); font-size: 10px; font-weight: 750; text-decoration: none; animation: none; }
+.nav-continuar:hover, .nav-continuar.active { border-left-color: #ffd17d; background: #f5b34d; color: #21190d; box-shadow: 0 4px 12px rgba(8,24,43,.2); }
+.nav-continuar:focus-visible { outline: 2px solid #ffd17d; outline-offset: 2px; }
 .layout-sidebar-fixo { padding-top: 8px; border-top: 1px solid rgba(255,255,255,.08); }
 .layout-sidebar-fixo > .nav-lixeira { margin: 0 0 8px !important; }
 .layout-sidebar-fixo > .nav-label { display: grid !important; grid-template-columns: 1fr auto; align-items: center; gap: 8px; padding: 10px 4px 0 !important; border-top: 1px solid rgba(255,255,255,.06); }
