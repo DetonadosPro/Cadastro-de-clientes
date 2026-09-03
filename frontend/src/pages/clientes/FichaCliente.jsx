@@ -7,6 +7,7 @@ import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
 import CampoEnderecoAutocomplete from '../../components/CampoEnderecoAutocomplete.jsx';
 import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
 import { AvisoInline, CabecalhoPagina, Dialogo, EstadoCarregando } from '../../components/Interface.jsx';
+import { filtrarPedidosPorMesDaMensagem, MESES, mensagensDoPedidoNoMes } from '../../utils/filtroMesMensagens.js';
 
 function IconeVoltar() {
   return (
@@ -82,7 +83,9 @@ export default function FichaCliente() {
   const [mostrandoBloqueio, setMostrandoBloqueio] = useState(false);
   const [motivoBloqueio, setMotivoBloqueio] = useState('');
   const [salvandoBloqueio, setSalvandoBloqueio] = useState(false);
-  const listaFonada = useListaIncremental(pedidosFonada, `${id}:fonada`);
+  const [mesMensagens, setMesMensagens] = useState('');
+  const pedidosFonadaFiltrados = filtrarPedidosPorMesDaMensagem(pedidosFonada, mesMensagens);
+  const listaFonada = useListaIncremental(pedidosFonadaFiltrados, `${id}:fonada:${mesMensagens}`);
   const listaAoVivo = useListaIncremental(pedidosAoVivo, `${id}:aovivo`);
 
   function carregar() {
@@ -386,10 +389,38 @@ export default function FichaCliente() {
         <div style={{ padding: 16 }}>
           {aba === 'fonada' && (
             <>
+              {pedidosFonada.length > 0 && (
+                <div className="historico-filtro-mes">
+                  <div className="historico-filtro-mes-campo">
+                    <label htmlFor="filtro-mes-mensagem">Mês da mensagem</label>
+                    <select
+                      id="filtro-mes-mensagem"
+                      value={mesMensagens}
+                      onChange={(evento) => setMesMensagens(evento.target.value)}
+                    >
+                      <option value="">Todos os meses</option>
+                      {MESES.map((mes, indice) => <option key={mes} value={indice + 1}>{mes}</option>)}
+                    </select>
+                  </div>
+                  {mesMensagens && (
+                    <div className="historico-filtro-mes-resultado" role="status">
+                      <strong>{pedidosFonadaFiltrados.length}</strong>
+                      <span>pedido{pedidosFonadaFiltrados.length === 1 ? '' : 's'} com mensagem em {MESES[Number(mesMensagens) - 1]}</span>
+                      <button type="button" onClick={() => setMesMensagens('')}>Limpar filtro</button>
+                    </div>
+                  )}
+                </div>
+              )}
               {pedidosFonada.length === 0 ? (
                 <p className="fs-sm" style={{ color: 'var(--tinta-suave)', textAlign: 'center', padding: '20px 0' }}>
                   Nenhum pedido de mensagem fonada ainda.
                 </p>
+              ) : pedidosFonadaFiltrados.length === 0 ? (
+                <div className="historico-filtro-vazio">
+                  <strong>Nenhuma mensagem em {MESES[Number(mesMensagens) - 1]}</strong>
+                  <span>Este cliente não possui 1ª ou 2ª mensagem registrada nesse mês.</span>
+                  <button type="button" className="btn secundario" onClick={() => setMesMensagens('')}>Ver todos os pedidos</button>
+                </div>
               ) : (
                 <div style={{ overflowX: 'auto' }}>
                   <div className="fs-xs" style={{ display: 'flex', gap: 14, marginBottom: 10, color: 'var(--tinta-suave)' }}>
@@ -409,20 +440,27 @@ export default function FichaCliente() {
                       </tr>
                     </thead>
                     <tbody>
-                      {listaFonada.itensVisiveis.map((p) => (
-                        <tr key={p.id} onClick={() => navigate(`/fonada/${p.id}`, { state: { returnTo: `/clientes/${id}` } })}>
+                      {listaFonada.itensVisiveis.map((p) => {
+                        const mensagensNoMes = mensagensDoPedidoNoMes(p, mesMensagens);
+                        return (
+                        <tr key={p.id} className={mesMensagens ? 'historico-pedido-filtrado' : ''} onClick={() => navigate(`/fonada/${p.id}`, { state: { returnTo: `/clientes/${id}` } })}>
                           <td><span className="carimbo-os carimbo-os-lista">{p.senha_os || p.id}</span></td>
                           <td>{p.data_pedido || '—'}</td>
                           <td>
-                            <span className="historico-destinatario"><strong>1ª:</strong> {valorUtil(p.p1_para) || '—'}</span>
-                            {valorUtil(p.p2_para) && <span className="historico-destinatario"><strong>2ª:</strong> {valorUtil(p.p2_para)}</span>}
+                            <span className={`historico-destinatario ${mensagensNoMes.includes(1) ? 'no-mes' : ''}`}>
+                              <strong>1ª:</strong> {mensagensNoMes.includes(1) && <span className="historico-seta-mes" aria-label={`Primeira mensagem em ${MESES[Number(mesMensagens) - 1]}`}>→</span>} {valorUtil(p.p1_para) || '—'}
+                            </span>
+                            {valorUtil(p.p2_para) && <span className={`historico-destinatario ${mensagensNoMes.includes(2) ? 'no-mes' : ''}`}>
+                              <strong>2ª:</strong> {mensagensNoMes.includes(2) && <span className="historico-seta-mes" aria-label={`Segunda mensagem em ${MESES[Number(mesMensagens) - 1]}`}>→</span>} {valorUtil(p.p2_para)}
+                            </span>}
                           </td>
                           <td><span className={`historico-situacao ${p.p1_passada_por || p.p2_passada_por || p.p1_resultado || p.p2_resultado ? 'transmitida' : ''}`}>{p.p1_passada_por || p.p2_passada_por || p.p1_resultado || p.p2_resultado ? 'Transmitida' : 'Agendada'}</span></td>
                           <td><span className={`tag ${p.pagou === 'SIM' ? 'ok' : 'pendente'}`}>{p.pagou === 'SIM' ? 'Recebido' : 'Pendente'}</span><span className="historico-cliente-secundario">{p.periodo || 'Presencial'}</span></td>
                           <td>{p.cobranca_reagendada || p.cobranca || '—'}</td>
                           <td style={{ textAlign: 'right' }}>{p.valor != null ? formatarReais(p.valor) : '—'}</td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                   <BotaoMostrarMais temMais={listaFonada.temMais} restantes={listaFonada.restantes} onClick={listaFonada.mostrarMais} />

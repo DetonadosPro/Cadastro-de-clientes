@@ -796,6 +796,21 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--carimbo); }
 .ficha-cliente-resumo .cartao-valor:last-child { grid-column: 1/-1; min-height: 76px; }
 .aviso-bloqueio, .aviso-mesclagem-clientes { border: 1px solid #efc8ce; border-left: 4px solid var(--selo); border-radius: 11px; background: var(--selo-suave); }
 .abas-cliente { width: max-content; max-width: 100%; overflow-x: auto; }
+.historico-filtro-mes { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin: -2px 0 14px; padding: 0 0 13px; border-bottom: 1px solid #e9edf2; }
+.historico-filtro-mes-campo { display: grid; gap: 5px; width: min(230px,100%); }
+.historico-filtro-mes-campo label { color: #6f7d8f; font-size: 9.5px; font-weight: 720; letter-spacing: .055em; text-transform: uppercase; }
+.historico-filtro-mes-campo select { min-height: 36px; padding: 6px 34px 6px 10px; border: 1px solid #cbd5e1; border-radius: 9px; background-color: #fff; color: var(--tinta); font-size: 12px; font-weight: 620; }
+.historico-filtro-mes-campo select:focus { border-color: var(--azul); outline: 3px solid rgba(35,100,190,.13); }
+.historico-filtro-mes-resultado { display: flex; align-items: center; justify-content: flex-end; gap: 6px; color: var(--tinta-suave); font-size: 11px; }
+.historico-filtro-mes-resultado strong { color: var(--azul); font-size: 13px; }
+.historico-filtro-mes-resultado button { margin-left: 5px; padding: 0; border: 0; background: transparent; color: var(--azul); font: inherit; font-weight: 680; cursor: pointer; }
+.historico-filtro-mes-resultado button:hover { text-decoration: underline; }
+.historico-pedido-filtrado { background: #fbfdff; }
+.historico-destinatario.no-mes { color: #173f78; font-weight: 680; }
+.historico-seta-mes { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; margin-left: 2px; border-radius: 50%; background: #e5f0ff; color: #1e62b5; font-size: 12px; font-weight: 800; line-height: 1; vertical-align: -1px; }
+.historico-filtro-vazio { display: grid; justify-items: center; gap: 6px; padding: 30px 16px; color: var(--tinta-suave); text-align: center; }
+.historico-filtro-vazio strong { color: var(--tinta); font-size: 13px; }
+.historico-filtro-vazio .btn { margin-top: 6px; }
 .info-linha { min-height: 40px; padding: 9px 0; border-bottom-color: #edf0f4; }
 .info-label { color: #7b8797; }
 .info-valor { color: #2f3d50; font-weight: 620; }
@@ -964,6 +979,9 @@ body.sobreposicao-aberta .layout-conteudo { overflow: hidden; }
   .acoes-pedido-cliente .btn { flex: 1; }
   .ficha-cliente-resumo .resumo-operacional-cliente { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .ficha-cliente-resumo .cartao-valor:last-child { grid-column: 1/-1; min-height: 76px; }
+  .historico-filtro-mes { align-items: stretch; flex-direction: column; gap: 9px; }
+  .historico-filtro-mes-campo { width: 100%; }
+  .historico-filtro-mes-resultado { justify-content: flex-start; flex-wrap: wrap; }
 }
 
 @media (max-width: 480px) {
