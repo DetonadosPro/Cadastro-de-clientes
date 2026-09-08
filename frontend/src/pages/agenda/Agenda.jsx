@@ -404,9 +404,10 @@ export default function Agenda() {
   }
 
   function abrirRemarcar(item) {
+    const mensagens = item.agrupada ? [item.mensagem, item.agrupada.mensagem] : [item.mensagem];
     setItemRemarcarAberto({
       pedidoId: item.pedidoId, mensagem: item.mensagem, nome: item.nome_comprador,
-      whatsapp: item.whatsapp, para: item.para,
+      mensagens, whatsapp: item.whatsapp, para: item.para,
     });
     setObservacao('');
     setRemarcadoDia(hojeFormatado());
@@ -434,9 +435,12 @@ export default function Agenda() {
         itemRemarcarAberto.mensagem,
         observacao.trim() || null,
         remarcadoDia.trim(),
-        remarcadoHorario.trim()
+        remarcadoHorario.trim(),
+        itemRemarcarAberto.mensagens
       );
-      mostrarToast('Tentativa registrada e mensagem remarcada.');
+      mostrarToast(itemRemarcarAberto.mensagens.length > 1
+        ? 'Tentativa registrada e as 2 mensagens foram remarcadas.'
+        : 'Tentativa registrada e mensagem remarcada.');
       abrirWhatsappSeExistir(
         itemRemarcarAberto.whatsapp,
         mensagemRegistrarERemarcar(
@@ -827,7 +831,9 @@ export default function Agenda() {
       {itemRemarcarAberto && (
         <Dialogo
           titulo={`Não atendeu — ${itemRemarcarAberto.nome}`}
-          descricao={`A tentativa será registrada agora. Escolha quando remarcar a ${itemRemarcarAberto.mensagem}ª mensagem.`}
+          descricao={itemRemarcarAberto.mensagens.length > 1
+            ? 'A tentativa será registrada nas 2 mensagens. Escolha a nova data e o horário para ambas.'
+            : `A tentativa será registrada agora. Escolha quando remarcar a ${itemRemarcarAberto.mensagem}ª mensagem.`}
           onClose={cancelarRemarcar}
         >
             <div className="grade grade-2">
@@ -861,7 +867,7 @@ export default function Agenda() {
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
               <button type="button" className="btn secundario" onClick={cancelarRemarcar}>Cancelar</button>
               <button type="button" className="btn" onClick={confirmarRemarcar} disabled={salvandoRemarcacao}>
-                {salvandoRemarcacao ? 'Salvando...' : 'Registrar e remarcar'}
+                {salvandoRemarcacao ? 'Salvando...' : (itemRemarcarAberto.mensagens.length > 1 ? 'Registrar e remarcar as 2' : 'Registrar e remarcar')}
               </button>
             </div>
         </Dialogo>

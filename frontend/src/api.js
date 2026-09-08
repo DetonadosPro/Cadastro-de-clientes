@@ -194,10 +194,10 @@ export const api = {
       chamar(`/agenda/fonada/${pedidoId}/baixa`, { method: 'POST', body: JSON.stringify({ mensagem }) }),
     desfazerBaixaFonada: (pedidoId, mensagem) =>
       chamar(`/agenda/fonada/${pedidoId}/desfazer-baixa`, { method: 'POST', body: JSON.stringify({ mensagem }) }),
-    naoAtendeuFonada: (pedidoId, mensagem, observacao, remarcadoDia, remarcadoHorario) =>
+    naoAtendeuFonada: (pedidoId, mensagem, observacao, remarcadoDia, remarcadoHorario, mensagens) =>
       chamar(`/agenda/fonada/${pedidoId}/nao-atendeu`, {
         method: 'POST',
-        body: JSON.stringify({ mensagem, observacao, remarcadoDia, remarcadoHorario }),
+        body: JSON.stringify({ mensagem, mensagens, observacao, remarcadoDia, remarcadoHorario }),
       }),
     buscarTentativas: (pedidoId) => chamar(`/agenda/fonada/${pedidoId}/tentativas`),
     criarLembrete: (dados) => chamar('/agenda/lembretes', { method: 'POST', body: JSON.stringify(dados) }),

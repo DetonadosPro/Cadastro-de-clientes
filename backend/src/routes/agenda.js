@@ -304,9 +304,11 @@ router.post('/fonada/:id/desfazer-baixa', async (req, res) => {
 
 // POST /api/agenda/fonada/:id/nao-atendeu
 router.post('/fonada/:id/nao-atendeu', async (req, res) => {
-  const { mensagem, observacao, remarcadoDia, remarcadoHorario } = req.body;
+  const { mensagem, mensagens, observacao, remarcadoDia, remarcadoHorario } = req.body;
+  const mensagensInformadas = Array.isArray(mensagens) ? mensagens : [mensagem];
+  const mensagensSelecionadas = [...new Set(mensagensInformadas)].sort();
 
-  if (mensagem !== 1 && mensagem !== 2) {
+  if (mensagensSelecionadas.length === 0 || mensagensSelecionadas.some((numero) => numero !== 1 && numero !== 2)) {
     return res.status(400).json({ erro: 'Informe qual mensagem (1 ou 2).' });
   }
   if (!remarcadoDia || !remarcadoHorario) {
@@ -342,7 +344,7 @@ router.post('/fonada/:id/nao-atendeu', async (req, res) => {
       }
     }
 
-    if (mensagem === 2) {
+    if (mensagensSelecionadas.includes(2)) {
       const validacao = validarDataUsoSegundaMensagem(pedidoResultado.rows[0], remarcadoDia);
       if (!validacao.ok) {
         return res.status(409).json({ erro: validacao.erro });
@@ -350,19 +352,26 @@ router.post('/fonada/:id/nao-atendeu', async (req, res) => {
     }
 
     const { texto } = agoraFormatado();
-    const colunaDia = mensagem === 1 ? 'p1_dia' : 'p2_dia';
-    const colunaHorario = mensagem === 1 ? 'p1_horario' : 'p2_horario';
-
     await client.query('BEGIN');
 
-    await client.query(`
-      INSERT INTO tentativas_contato (pedido_id, mensagem, data_hora_tentativa, observacao, remarcado_dia, remarcado_horario)
-      VALUES ($1, $2, $3, $4, $5, $6)
-    `, [req.params.id, mensagem, texto, observacao || null, remarcadoDia, remarcadoHorario]);
+    for (const numeroMensagem of mensagensSelecionadas) {
+      await client.query(`
+        INSERT INTO tentativas_contato (pedido_id, mensagem, data_hora_tentativa, observacao, remarcado_dia, remarcado_horario)
+        VALUES ($1, $2, $3, $4, $5, $6)
+      `, [req.params.id, numeroMensagem, texto, observacao || null, remarcadoDia, remarcadoHorario]);
+    }
 
+    const atualizarPrimeira = mensagensSelecionadas.includes(1);
+    const atualizarSegunda = mensagensSelecionadas.includes(2);
     await client.query(`
-      UPDATE fonadas SET ${colunaDia} = $1, ${colunaHorario} = $2, atualizado_em = NOW() WHERE id = $3
-    `, [remarcadoDia, remarcadoHorario, req.params.id]);
+      UPDATE fonadas SET
+        p1_dia = CASE WHEN $1 THEN $3 ELSE p1_dia END,
+        p1_horario = CASE WHEN $1 THEN $4 ELSE p1_horario END,
+        p2_dia = CASE WHEN $2 THEN $3 ELSE p2_dia END,
+        p2_horario = CASE WHEN $2 THEN $4 ELSE p2_horario END,
+        atualizado_em = NOW()
+      WHERE id = $5
+    `, [atualizarPrimeira, atualizarSegunda, remarcadoDia, remarcadoHorario, req.params.id]);
 
     await client.query('COMMIT');
     res.json({ ok: true });
