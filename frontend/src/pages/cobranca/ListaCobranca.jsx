@@ -526,7 +526,7 @@ function ResumoCobranca({ titulo, pedidos, classe, onClick }) {
   return <button type="button" className={`resumo-cobranca-operacional ${classe}`} onClick={onClick}><span>{titulo}</span><strong>{formatarReais(somarPedidos(pedidos))}</strong><small>{pedidos.length} pedido(s)</small></button>;
 }
 function Modal({ titulo, onClose, children }) {
-  return <Dialogo titulo={titulo} onClose={onClose} className="nao-imprimir">{children}</Dialogo>;
+  return <Dialogo titulo={titulo} onClose={onClose} className="nao-imprimir modal-cobranca-calendario">{children}</Dialogo>;
 }
 function AcoesModal({ onCancelar, onConfirmar, salvando, rotulo }) {
   return <div className="acoes-modal-cobranca"><button type="button" className="btn secundario" onClick={onCancelar}>Cancelar</button><button type="button" className="btn" onClick={onConfirmar} disabled={salvando}>{salvando ? 'Salvando...' : rotulo}</button></div>;

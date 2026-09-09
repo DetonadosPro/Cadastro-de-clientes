@@ -22,6 +22,8 @@
 .layout-sidebar.compacta .nav-item-destaque > span { gap:0 !important; }
 .layout-sidebar.compacta .nav-divisor { margin-inline:5px; }
 .layout-sidebar.compacta .nav-secao-titulo { min-height:9px; padding:0; }
+.layout-sidebar.compacta .nav-pedidos-acesso { padding:5px 3px; border-radius:10px; }
+.layout-sidebar.compacta .nav-pedidos-acesso .nav-item-direto { padding-inline:10px !important; }
 .layout-sidebar.compacta .nav-lixeira { display:flex !important; justify-content:center; padding-inline:8px !important; }
 .layout-sidebar.compacta .nav-continuar { width:10px; height:10px; margin:5px auto 9px; padding:0; border-radius:50%; overflow:hidden; animation:bolinha-alerta-pulso-laranja 1.6s ease-in-out infinite; }
 .layout-sidebar.compacta .bolinha-alerta-agenda { position:absolute; margin:-21px 0 0 20px; }

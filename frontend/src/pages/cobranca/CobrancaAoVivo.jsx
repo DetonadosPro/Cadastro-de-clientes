@@ -297,7 +297,7 @@ function Resumo({ titulo, pedidos, valor, quantidade, classe, onClick }) {
 }
 
 function Modal({ titulo, fechar, children }) {
-  return <Dialogo titulo={titulo} onClose={fechar} className="nao-imprimir">{children}</Dialogo>;
+  return <Dialogo titulo={titulo} onClose={fechar} className="nao-imprimir modal-cobranca-calendario">{children}</Dialogo>;
 }
 
 function Acoes({ cancelar, confirmar, salvando, rotulo }) {
