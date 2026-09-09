@@ -17,11 +17,11 @@ export default function CentralCobranca() {
         <CabecalhoPagina contexto="Financeiro" titulo="Cobrança" descricao="Priorize recebimentos, organize a rota e registre pagamentos sem perder o contexto do pedido." />
       </div>
       <div className="central-cobranca-navegacao nao-imprimir">
-        <span>Tipo de pedido</span>
         <div className="abas-cliente cobranca-abas-sistema">
         <button type="button" className={`aba-cliente-botao ${sistema === 'FONADA' ? 'ativa' : ''}`} onClick={() => mudarSistema('FONADA')}>Fonada</button>
         <button type="button" className={`aba-cliente-botao ${sistema === 'AOVIVO' ? 'ativa' : ''}`} onClick={() => mudarSistema('AOVIVO')}>Ao Vivo</button>
         </div>
+        <span>Tipo de pedido</span>
       </div>
       <div key={sistema} className="central-cobranca-conteudo">
         {sistema === 'FONADA' ? <ListaCobranca mostrarCabecalho={false} /> : <CobrancaAoVivo mostrarCabecalho={false} />}

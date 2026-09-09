@@ -322,30 +322,6 @@ export default function Layout() {
 
           <div className="nav-divisor" />
 
-          <div className="nav-pedidos-acesso">
-            <div className="nav-secao-titulo"><span className="nav-label">Pedidos</span></div>
-
-            <NavLink to="/fonada" className="nav-item-direto" end aria-label="Fonada" title="Fonada" onClick={(e) => aoClicarLinkSecao(e, '/fonada')}>
-              <IconeFonada /> <span className="nav-label">Fonada</span>
-            </NavLink>
-            {rascunhoFonada && (
-              <NavLink to={rotaDoRascunho('/fonada', rascunhoFonada.chave)} className="nav-continuar">
-                <span className="nav-label">↻ Continuar pedido fonada</span>
-              </NavLink>
-            )}
-
-            <NavLink to="/ao-vivo" className="nav-item-direto" end aria-label="Ao vivo" title="Ao vivo" onClick={(e) => aoClicarLinkSecao(e, '/ao-vivo')}>
-              <IconeAoVivo /> <span className="nav-label">Ao vivo</span>
-            </NavLink>
-            {rascunhoAoVivo && (
-              <NavLink to={rotaDoRascunho('/ao-vivo', rascunhoAoVivo.chave)} className="nav-continuar">
-                <span className="nav-label">↻ Continuar pedido ao vivo</span>
-              </NavLink>
-            )}
-          </div>
-
-          <div className="nav-divisor" />
-
           <NavLink to="/cobranca" className="nav-item-direto" aria-label="Cobrança" title="Cobrança" onClick={(e) => aoClicarLinkSecao(e, '/cobranca')}>
             <IconeCobranca /> <span className="nav-label">Cobrança</span>
           </NavLink>
@@ -364,6 +340,27 @@ export default function Layout() {
             <IconeRelatorios /> <span className="nav-label">Relatórios</span>
           </NavLink>
 
+          <div className="nav-divisor" />
+
+          <div className="nav-secao-titulo"><span className="nav-label">Pedidos</span></div>
+
+          <NavLink to="/fonada" className="nav-item-direto" end aria-label="Fonada" title="Fonada" onClick={(e) => aoClicarLinkSecao(e, '/fonada')}>
+            <IconeFonada /> <span className="nav-label">Fonada</span>
+          </NavLink>
+          {rascunhoFonada && (
+            <NavLink to={rotaDoRascunho('/fonada', rascunhoFonada.chave)} className="nav-continuar">
+              <span className="nav-label">↻ Continuar pedido fonada</span>
+            </NavLink>
+          )}
+
+          <NavLink to="/ao-vivo" className="nav-item-direto" end aria-label="Ao vivo" title="Ao vivo" onClick={(e) => aoClicarLinkSecao(e, '/ao-vivo')}>
+            <IconeAoVivo /> <span className="nav-label">Ao vivo</span>
+          </NavLink>
+          {rascunhoAoVivo && (
+            <NavLink to={rotaDoRascunho('/ao-vivo', rascunhoAoVivo.chave)} className="nav-continuar">
+              <span className="nav-label">↻ Continuar pedido ao vivo</span>
+            </NavLink>
+          )}
         </nav>
 
         <div className="layout-sidebar-fixo">
