@@ -691,6 +691,7 @@ input, select, textarea {
   padding-left: 0;
 }
 .coluna-mensagem-titulo {
+  min-height: 23px;
   font-weight: 700;
   font-size: 12px;
   color: var(--carimbo);
