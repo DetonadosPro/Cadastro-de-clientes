@@ -688,7 +688,7 @@ input, select, textarea {
 }
 .coluna-mensagem:first-child {
   border-left: none;
-  padding-left: 0;
+  padding-left: 12px;
 }
 .coluna-mensagem-titulo {
   font-weight: 700;
