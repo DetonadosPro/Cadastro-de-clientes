@@ -340,6 +340,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--carimbo); }
 .form-disclosure { border: 1px solid var(--borda); border-radius: var(--radius); background: #fbfcfd; overflow: hidden; }
 .form-disclosure-botao { min-height: 45px; padding: 0 14px; color: #3d4d63; }
 .botao-p-copiar { min-width: 31px; width: 31px; padding: 0; color: #4e6682; font-size: 15px; }
+.pagina-fonada-ampliada .secao-transmissao .botao-p-copiar { min-height: 26px; height: 26px; align-self: center; }
 .seletor-pilulas { padding: 3px; border: 1px solid var(--borda); border-radius: 9px; background: #eaf0f5; }
 .seletor-pilulas .pilula { min-height: 33px; border: 0; border-radius: 6px; background: transparent; color: #657286; font-weight: 690; transition: background var(--transicao), color var(--transicao), box-shadow var(--transicao), transform var(--transicao); }
 .seletor-pilulas .pilula:hover { color: var(--tinta); }
