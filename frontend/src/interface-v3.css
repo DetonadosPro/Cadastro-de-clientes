@@ -47,7 +47,10 @@ body {
   font-size: 13.5px;
   line-height: 1.5;
   text-rendering: optimizeLegibility;
-  text-transform: none;
+  /* Registros históricos preservam a capitalização digitada no banco.
+     A interface usa maiúsculas globalmente para manter nomes, endereços
+     e informações operacionais consistentes em todas as telas. */
+  text-transform: uppercase;
 }
 input, textarea, select { text-transform: uppercase; }
 input[type="password"] { text-transform: none; }
