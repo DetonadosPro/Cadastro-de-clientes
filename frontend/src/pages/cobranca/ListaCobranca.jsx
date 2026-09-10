@@ -164,6 +164,10 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
   const [parametrosUrl, setParametrosUrl] = useSearchParams();
   const [cobrarDia, setCobrarDia] = useState('');
   const [filtroRapido, setFiltroRapido] = useState(() => parametrosUrl.get('filtro') || 'todas');
+  const [formaFiltro, setFormaFiltro] = useState(() => {
+    const forma = parametrosUrl.get('forma');
+    return ['presencial', 'pix'].includes(forma) ? forma : 'todos';
+  });
   const [nome, setNome] = useState(() => parametrosUrl.get('nome') || '');
   const [os, setOs] = useState(() => parametrosUrl.get('os') || '');
 
@@ -172,13 +176,14 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
       setParametrosUrl((atuais) => {
         const novos = new URLSearchParams(atuais);
         if (filtroRapido && filtroRapido !== 'todas') novos.set('filtro', filtroRapido); else novos.delete('filtro');
+        if (formaFiltro !== 'todos') novos.set('forma', formaFiltro); else novos.delete('forma');
         if (nome) novos.set('nome', nome); else novos.delete('nome');
         if (os) novos.set('os', os); else novos.delete('os');
         return novos;
       }, { replace: true });
     }, 200);
     return () => clearTimeout(temporizador);
-  }, [filtroRapido, nome, os, setParametrosUrl]);
+  }, [filtroRapido, formaFiltro, nome, os, setParametrosUrl]);
   const [pendentes, setPendentes] = useState([]);
   const [recebidas, setRecebidas] = useState([]);
   const [carregando, setCarregando] = useState(false);
@@ -206,12 +211,15 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
   }), [recebidas]);
 
   const pedidosFiltrados = useMemo(() => {
-    if (filtroRapido === 'pagas') return pagasOrdenadas;
-    if (filtroRapido === 'recebidas') return recebidasNoMes;
-    if (filtroRapido === 'data') return pendentes;
-    return filtrarPorSituacao(pendentes, filtroRapido);
-  }, [filtroRapido, pendentes, pagasOrdenadas, recebidasNoMes]);
-  const lista = useListaIncremental(pedidosFiltrados, `${filtroRapido}:${cobrarDia}:${nome}:${os}`);
+    let pedidos;
+    if (filtroRapido === 'pagas') pedidos = pagasOrdenadas;
+    else if (filtroRapido === 'recebidas') pedidos = recebidasNoMes;
+    else if (filtroRapido === 'data') pedidos = pendentes;
+    else pedidos = filtrarPorSituacao(pendentes, filtroRapido);
+    if (formaFiltro === 'todos') return pedidos;
+    return pedidos.filter((pedido) => String(pedido.formaPagamento || '').toLowerCase() === formaFiltro);
+  }, [filtroRapido, formaFiltro, pendentes, pagasOrdenadas, recebidasNoMes]);
+  const lista = useListaIncremental(pedidosFiltrados, `${filtroRapido}:${formaFiltro}:${cobrarDia}:${nome}:${os}`);
   const pedidosVisiveis = lista.itensVisiveis;
   const grupos = useMemo(() => agruparPedidos(pedidosVisiveis), [pedidosVisiveis]);
   // A lista exibida é ordenada por grupos (data/urgência e cliente). A impressão
@@ -274,6 +282,11 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
   function aplicarFiltro(filtro) {
     setFiltroRapido((atual) => atual === filtro ? 'todas' : filtro);
     setCobrarDia('');
+  }
+  function aplicarFormaFiltro(forma) {
+    setFormaFiltro(forma);
+    setSelecionados(new Set());
+    setExpandidos(new Set());
   }
   function alternarGrupo(chave) {
     setExpandidos((atual) => { const novo = new Set(atual); if (novo.has(chave)) novo.delete(chave); else novo.add(chave); return novo; });
@@ -366,6 +379,14 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
           <div className="campo"><label>Data exata</label><CampoData placeholder="dd/mm/aa" value={cobrarDia} onChange={(v) => { const data = formatarData(v); setCobrarDia(data); setFiltroRapido(data ? 'data' : 'todas'); }} /></div>
           <div className="campo cobranca-filtro-os"><label>O.S.</label><input value={os} onChange={(e) => setOs(e.target.value)} placeholder="Número exato" /></div>
           <div className="campo cobranca-filtro-nome"><label>Nome</label><input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do comprador" /></div>
+          <div className="campo cobranca-filtro-forma">
+            <label htmlFor="cobranca-forma-impressao">Forma para impressão</label>
+            <select id="cobranca-forma-impressao" value={formaFiltro} onChange={(e) => aplicarFormaFiltro(e.target.value)}>
+              <option value="todos">Todos</option>
+              <option value="presencial">Presencial</option>
+              <option value="pix">PIX</option>
+            </select>
+          </div>
         </div>
       </div>
 

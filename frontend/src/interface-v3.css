@@ -1026,10 +1026,10 @@ body.sobreposicao-aberta .layout-conteudo { overflow: hidden; }
 .clientes-workspace { max-width: 1440px; margin-inline: auto; }
 .clientes-workspace .clientes-filtros {
   display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 12px;
-  padding: 0 0 18px !important; margin: 0; border: 0 !important;
-  border-bottom: 1px solid var(--borda) !important; background: transparent; box-shadow: none;
+  padding: 16px !important; margin: 0; border: 1px solid var(--borda) !important;
+  background: #fff; box-shadow: none;
 }
-.clientes-filtros .clientes-campos-busca { order: 0; grid-column: 1 / -1; grid-template-columns: minmax(240px, 1fr) minmax(180px, 260px) 140px; }
+.clientes-filtros .clientes-campos-busca { order: 0; grid-column: 1 / -1; grid-template-columns: minmax(240px, 1fr) minmax(180px, 260px) 140px; width: 100%; }
 .clientes-filtros .clientes-filtros-rapidos { order: 1; width: fit-content; margin: 0; border: 0; padding: 0; background: transparent; gap: 6px; }
 .clientes-filtros .clientes-filtros-rapidos button { min-height: 36px; border-radius: 20px; border: 1px solid var(--borda); padding-inline: 14px; }
 .clientes-filtros .filtros-cabecalho { order: 2; margin: 0; padding: 0; border: 0; }
@@ -1052,6 +1052,8 @@ body.sobreposicao-aberta .layout-conteudo { overflow: hidden; }
 .cadastro-cliente-pagina .cadastro-acoes-sticky { padding-top: 20px; }
 .ficha-cliente-dados .grade > div { min-width: 0; overflow-wrap: anywhere; }
 .clientes-ordenacao-mobile { display: none; }
+.cobranca-filtros .cobranca-campos-filtro { grid-template-columns: 150px 120px minmax(220px, 1fr) 190px; }
+.cobranca-filtros .cobranca-filtro-forma select { min-height: 42px; }
 
 @media (max-width: 700px) {
   .clientes-workspace .cabecalho-pagina { gap: 10px; flex-direction: row; flex-wrap: wrap; align-items: center; }
@@ -1087,6 +1089,8 @@ body.sobreposicao-aberta .layout-conteudo { overflow: hidden; }
   .tabela-clientes input[type="checkbox"] { margin: 10px; width: 22px; height: 22px; }
   .cadastro-cliente-pagina .cadastro-inteligente { padding: 16px; }
   .cadastro-cliente-pagina input { min-height: 44px; font-size: 16px; }
+  .cobranca-filtros .cobranca-campos-filtro { grid-template-columns: 1fr 1fr; }
+  .cobranca-filtros .cobranca-filtro-forma { grid-column: 1 / -1; }
 }
 @media (prefers-reduced-motion: reduce) {
   .clientes-resultados { transition: none; }
