@@ -5,7 +5,7 @@
    ================================================================ */
 
 :root {
-  --papel: #f2f5f8;
+  --papel: #f5f6f8;
   --papel-alt: #e9eef4;
   --tinta: #111827;
   --tinta-suave: #647084;
@@ -47,7 +47,7 @@ body {
   font-size: 13.5px;
   line-height: 1.5;
   text-rendering: optimizeLegibility;
-  text-transform: uppercase;
+  text-transform: none;
 }
 input, textarea, select { text-transform: uppercase; }
 input[type="password"] { text-transform: none; }
@@ -139,7 +139,7 @@ h3 { font-size: 15px; line-height: 1.3; }
 .workspace-novo { min-height: 38px; padding: 0 14px; border-radius: 8px; background: var(--carimbo); box-shadow: 0 4px 12px rgba(31,95,191,.2); }
 .workspace-novo:hover { background: #184f9f; transform: translateY(-1px); }
 .workspace-novo:active { transform: translateY(0) scale(.98); }
-.layout-pagina { width: min(100%, 1780px); margin-inline: auto; }
+.layout-pagina { width: min(100%, 1520px); margin-inline: auto; }
 .pagina-transicao { min-width: 0; animation: pagina-v3-entrada 210ms cubic-bezier(.2,.75,.25,1); }
 @keyframes pagina-v3-entrada { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
 
@@ -150,8 +150,8 @@ h3 { font-size: 15px; line-height: 1.3; }
   justify-content: space-between;
   gap: 28px;
   margin-bottom: 18px;
-  padding: 4px 0 18px 17px;
-  border-left: 3px solid var(--carimbo);
+  padding: 4px 0 18px;
+  border-left: 0;
   border-bottom: 1px solid var(--borda);
 }
 .cabecalho-pagina-conteudo { min-width: 0; }
@@ -557,6 +557,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--carimbo); }
 }
 
 @media (max-width: 900px) {
+  .layout-sidebar:not(.aberto) { visibility: hidden; }
   .grid-agenda-lista-painel { grid-template-columns: 1fr; }
   .painel-detalhes-agenda { padding: 44px 16px 18px; }
   .agenda-detalhe-cabecalho { margin-bottom: 16px; }
@@ -1017,3 +1018,76 @@ body.sobreposicao-aberta .layout-conteudo { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Revisão de clientes: busca prioritária e resultados estáveis. */
+.clientes-workspace { max-width: 1440px; margin-inline: auto; }
+.clientes-workspace .clientes-filtros {
+  display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 12px;
+  padding: 0 0 18px !important; margin: 0; border: 0 !important;
+  border-bottom: 1px solid var(--borda) !important; background: transparent; box-shadow: none;
+}
+.clientes-filtros .clientes-campos-busca { order: 0; grid-column: 1 / -1; grid-template-columns: minmax(240px, 1fr) minmax(180px, 260px) 140px; }
+.clientes-filtros .clientes-filtros-rapidos { order: 1; width: fit-content; margin: 0; border: 0; padding: 0; background: transparent; gap: 6px; }
+.clientes-filtros .clientes-filtros-rapidos button { min-height: 36px; border-radius: 20px; border: 1px solid var(--borda); padding-inline: 14px; }
+.clientes-filtros .filtros-cabecalho { order: 2; margin: 0; padding: 0; border: 0; }
+.clientes-filtros .filtros-cabecalho > div { display: none; }
+.clientes-status { min-height: 42px; display: flex; align-items: center; color: var(--tinta-suave); font-size: 12px; }
+.clientes-resultados { transition: opacity 120ms ease; }
+.clientes-resultados.atualizando { opacity: .55; }
+.cliente-nome-abrir, .tabela-ordenar { border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; text-align: inherit; }
+.cliente-nome-abrir { padding: 7px 0; font-weight: 650; white-space: normal; }
+.cliente-nome-abrir:hover { color: var(--carimbo); text-decoration: underline; text-underline-offset: 3px; }
+.tabela-ordenar { padding: 8px 0; font-weight: 700; width: 100%; }
+.tabela-clientes .alca-arrastar { opacity: .45; }
+.tabela-clientes tbody tr td:first-child { transition: none; }
+.tabela-clientes tbody tr:hover td:first-child { padding-left: 12px; }
+.tabela-clientes .cliente-contato-principal { font-weight: 500; font-size: 12.5px; }
+.tabela-clientes .cliente-contagem-detalhe { font-size: 10px; }
+.cadastro-cliente-pagina { max-width: 900px; }
+.cadastro-cliente-pagina .cadastro-inteligente { padding: 24px; }
+.cadastro-cliente-pagina .form-etapa-cabecalho { margin-bottom: 24px; }
+.cadastro-cliente-pagina .cadastro-acoes-sticky { padding-top: 20px; }
+.ficha-cliente-dados .grade > div { min-width: 0; overflow-wrap: anywhere; }
+.clientes-ordenacao-mobile { display: none; }
+
+@media (max-width: 700px) {
+  .clientes-workspace .cabecalho-pagina { gap: 10px; flex-direction: row; flex-wrap: wrap; align-items: center; }
+  .clientes-workspace .cabecalho-pagina-titulo-linha { flex-direction: row; align-items: center; flex-wrap: wrap; }
+  .clientes-workspace .cabecalho-pagina h1 { font-size: 24px; }
+  .clientes-workspace .cabecalho-pagina-acoes { width: auto; }
+  .clientes-workspace .cabecalho-pagina p { display: none; }
+  .clientes-workspace .clientes-filtros { grid-template-columns: minmax(0,1fr); gap: 10px; }
+  .clientes-filtros .clientes-campos-busca { grid-template-columns: minmax(0,1fr) 115px !important; gap: 10px; }
+  .clientes-filtros .clientes-campos-busca > .campo { grid-column: auto !important; min-width: 0; }
+  .clientes-filtros .clientes-campos-busca > .clientes-campo-nome { grid-column: 1 / -1 !important; }
+  .clientes-filtros .clientes-filtros-rapidos { max-width: 100%; width: 100%; }
+  .clientes-filtros .clientes-filtros-rapidos button { min-height: 44px; padding-inline: 10px; font-size: 12px; }
+  .clientes-filtros .filtros-cabecalho { justify-content: flex-end; }
+  .clientes-filtros .filtros-cabecalho:not(:has(button)) { display: none; }
+  .clientes-ordenacao-mobile { display: flex; gap: 8px; align-items: center; margin-block: 12px; }
+  .clientes-ordenacao-mobile select { flex: 1; min-width: 0; min-height: 44px; }
+  .clientes-ordenacao-mobile button { min-width: 44px; min-height: 44px; }
+  .tabela-lista.tabela-clientes tbody tr { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 7px 12px; padding: 14px !important; }
+  .tabela-lista.tabela-clientes tbody td { grid-column: auto; grid-row: auto; min-height: 0; text-align: left !important; padding: 0 !important; overflow: visible; }
+  .tabela-lista.tabela-clientes td[data-label="Selecionar"] { grid-column: 2; grid-row: 1; align-self: start; }
+  .tabela-lista.tabela-clientes td[data-label="Nome"] { grid-column: 1; grid-row: 1; }
+  .tabela-lista.tabela-clientes td[data-label="Contato"] { grid-column: 1; grid-row: 2; }
+  .tabela-lista.tabela-clientes td[data-label="Bairro"] { grid-column: 1; grid-row: 3; }
+  .tabela-lista.tabela-clientes td[data-label="Último pedido"] { grid-column: 1; grid-row: 4; font-size: 12px; }
+  .tabela-lista.tabela-clientes td[data-label="Último pedido"]::before { content: 'Último pedido: '; color: var(--tinta-suave); }
+  .tabela-lista.tabela-clientes td[data-label="Pedidos"] { grid-column: 1; grid-row: 5; font-size: 12px; }
+  .tabela-lista.tabela-clientes td[data-label="Pedidos"] .contagem-pedidos::after { content: ' pedido(s)'; }
+  .tabela-lista.tabela-clientes td[data-label="Pendente"] { grid-column: 1; grid-row: 6; }
+  .tabela-lista.tabela-clientes td[data-label="Pendente"]::before { content: 'Pendente: '; font-weight: 400; color: var(--tinta-suave); }
+  .tabela-clientes .cliente-contagem-detalhe, .tabela-clientes .alca-arrastar { display: none; }
+  .tabela-clientes .cliente-nome-abrir { min-height: 44px; padding: 0; }
+  .tabela-clientes input[type="checkbox"] { margin: 10px; width: 22px; height: 22px; }
+  .cadastro-cliente-pagina .cadastro-inteligente { padding: 16px; }
+  .cadastro-cliente-pagina input { min-height: 44px; font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .clientes-resultados { transition: none; }
+}
+.ficha-informacoes-grupos { display: grid; gap: 22px; }
+.ficha-informacoes-grupos section + section { padding-top: 18px; border-top: 1px solid var(--borda); }
+.ficha-informacoes-grupos h3 { font-size: 12px; color: var(--tinta-suave); font-weight: 600; margin: 0 0 14px; }

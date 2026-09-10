@@ -48,14 +48,20 @@ export function Dialogo({ titulo, descricao, onClose, children, className = '' }
       if (!focaveis.length) return;
       const primeiro = focaveis[0];
       const ultimo = focaveis[focaveis.length - 1];
+      if (!focaveis.includes(document.activeElement)) {
+        evento.preventDefault();
+        (evento.shiftKey ? ultimo : primeiro).focus();
+        return;
+      }
       if (evento.shiftKey && document.activeElement === primeiro) { evento.preventDefault(); ultimo.focus(); }
       if (!evento.shiftKey && document.activeElement === ultimo) { evento.preventDefault(); primeiro.focus(); }
     }
     document.body.classList.add('sobreposicao-aberta');
     document.addEventListener('keydown', aoTeclar);
     const focoAnterior = document.activeElement;
-    requestAnimationFrame(() => painelRef.current?.focus());
+    const quadroFoco = requestAnimationFrame(() => painelRef.current?.focus());
     return () => {
+      cancelAnimationFrame(quadroFoco);
       document.removeEventListener('keydown', aoTeclar);
       document.body.classList.remove('sobreposicao-aberta');
       focoAnterior?.focus?.();
@@ -136,14 +142,14 @@ export function EstadoCarregando({ rotulo = 'Carregando informações…', linha
   );
 }
 
-export function Paginacao({ pagina, totalPaginas, total, rotulo = 'itens', onAnterior, onProxima, className = '' }) {
+export function Paginacao({ pagina, totalPaginas, total, rotulo = 'itens', onAnterior, onProxima, className = '', carregando = false }) {
   return (
     <nav className={`paginacao-interface ${className}`.trim()} aria-label="Paginação">
-      <Botao variante="secundaria" disabled={pagina <= 1} onClick={onAnterior}>← Anterior</Botao>
+      <Botao variante="secundaria" disabled={carregando || pagina <= 1} onClick={onAnterior}>← Anterior</Botao>
       <div className="paginacao-interface-status">
         <strong>{pagina}</strong><span>de {totalPaginas}</span><small>{total} {rotulo}</small>
       </div>
-      <Botao variante="secundaria" disabled={pagina >= totalPaginas} onClick={onProxima}>Próxima →</Botao>
+      <Botao variante="secundaria" disabled={carregando || pagina >= totalPaginas} onClick={onProxima}>Próxima →</Botao>
     </nav>
   );
 }

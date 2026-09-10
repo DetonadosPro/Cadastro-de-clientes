@@ -220,7 +220,7 @@ export default function FichaCliente() {
     .filter((data) => dataBrParaNumero(data) != null && dataBrParaNumero(data) >= hojeUtc)
     .sort((a, b) => dataBrParaNumero(a) - dataBrParaNumero(b))[0];
   const whatsappLink = linkWhatsApp(cliente.whatsapp || cliente.celular);
-  const cadastroIncompleto = !nascimentoValido(cliente.nascimento) || !valorUtil(cliente.whatsapp || cliente.celular || cliente.fixo);
+  const cadastroIncompleto = ![cliente.whatsapp, cliente.celular, cliente.fixo].some(valorUtil);
 
   function formatarReais(v) {
     return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -230,7 +230,7 @@ export default function FichaCliente() {
     <div className="form-pagina">
       <CabecalhoPagina
         contexto="Ficha do cliente"
-        titulo={<span className="ficha-cliente-titulo"><span>{cliente.nome}</span>{cliente.bloqueado && <span className="tag pendente">Bloqueado</span>}{cadastroIncompleto && <span className="tag aviso">Revisar cadastro</span>}</span>}
+        titulo={<span className="ficha-cliente-titulo"><span>{cliente.nome}</span>{cliente.bloqueado && <span className="tag pendente">Bloqueado</span>}{cadastroIncompleto && <span className="tag aviso">Contato não informado</span>}</span>}
         descricao={`Cliente desde ${new Date(cliente.criado_em).toLocaleDateString('pt-BR')} · ${totalPedidos} pedido${totalPedidos === 1 ? '' : 's'} registrado${totalPedidos === 1 ? '' : 's'}`}
         acoes={<div className="acoes-ficha-cliente">
           <div className="acoes-pedido-cliente"><button className="btn" onClick={novoPedidoFonada}>Nova fonada</button><button className="btn btn-tonal" onClick={novoPedidoAoVivo}>Novo ao vivo</button></div>
@@ -284,45 +284,49 @@ export default function FichaCliente() {
         </div>
 
         {!editando ? (
-          <div className="grade grade-3">
+          <div className="ficha-informacoes-grupos">
+            <section><h3>Identificação e contato</h3><div className="grade grade-2">
             <Info label="Nascimento" valor={nascimentoValido(cliente.nascimento) ? cliente.nascimento : ''} />
             <Info label="Telefone fixo" valor={valorUtil(cliente.fixo)} />
             <Info label="WhatsApp" valor={valorUtil(cliente.whatsapp)} />
             <Info label="Celular" valor={valorUtil(cliente.celular)} />
+            </div></section>
+            <section><h3>Endereço e referência</h3><div className="grade grade-2">
             <Info label="Endereço" valor={valorUtil(cliente.endereco)} />
             <Info label="Complemento" valor={valorUtil(cliente.complemento)} />
             <Info label="Bairro" valor={valorUtil(cliente.bairro)} />
             <Info label="Referência" valor={valorUtil(cliente.referencia)} />
+            </div></section>
           </div>
         ) : (
           <>
             <div className="grade grade-2">
               <div className="campo">
-                <label>Nome</label>
-                <input value={dadosEdicao.nome} onChange={(e) => setEdicao('nome', e.target.value)} />
+                <label htmlFor="editar-nome">Nome</label>
+                <input id="editar-nome" value={dadosEdicao.nome} onChange={(e) => setEdicao('nome', e.target.value)} />
               </div>
               <div className="campo">
-                <label>Nascimento</label>
-                <input placeholder="dd/mm/aa" value={dadosEdicao.nascimento || ''} onChange={(e) => setEdicaoComMascara('nascimento', e.target.value, 'data')} />
+                <label htmlFor="editar-nascimento">Nascimento</label>
+                <input id="editar-nascimento" inputMode="numeric" placeholder="dd/mm/aa" value={dadosEdicao.nascimento || ''} onChange={(e) => setEdicaoComMascara('nascimento', e.target.value, 'data')} />
               </div>
             </div>
             <div className="grade grade-3">
               <div className="campo">
-                <label>Telefone fixo</label>
-                <input value={dadosEdicao.fixo || ''} onChange={(e) => setEdicaoComMascara('fixo', e.target.value, 'fixo')} />
+                <label htmlFor="editar-fixo">Telefone fixo</label>
+                <input id="editar-fixo" inputMode="tel" autoComplete="tel" value={dadosEdicao.fixo || ''} onChange={(e) => setEdicaoComMascara('fixo', e.target.value, 'fixo')} />
               </div>
               <div className="campo">
-                <label>WhatsApp</label>
-                <input value={dadosEdicao.whatsapp || ''} onChange={(e) => setEdicaoComMascara('whatsapp', e.target.value, 'celular')} />
+                <label htmlFor="editar-whatsapp">WhatsApp</label>
+                <input id="editar-whatsapp" inputMode="tel" autoComplete="tel" value={dadosEdicao.whatsapp || ''} onChange={(e) => setEdicaoComMascara('whatsapp', e.target.value, 'celular')} />
               </div>
               <div className="campo">
-                <label>Celular</label>
-                <input value={dadosEdicao.celular || ''} onChange={(e) => setEdicaoComMascara('celular', e.target.value, 'celular')} />
+                <label htmlFor="editar-celular">Celular</label>
+                <input id="editar-celular" inputMode="tel" autoComplete="tel" value={dadosEdicao.celular || ''} onChange={(e) => setEdicaoComMascara('celular', e.target.value, 'celular')} />
               </div>
             </div>
             <div className="campo">
-              <label>Endereço</label>
-              <CampoEnderecoAutocomplete
+              <label htmlFor="editar-endereco">Endereço</label>
+              <CampoEnderecoAutocomplete id="editar-endereco"
                 value={dadosEdicao.endereco || ''}
                 onChange={(valor) => setEdicao('endereco', valor)}
                 onSelecionar={({ logradouro, bairro }) => setDadosEdicao((atual) => ({
@@ -334,16 +338,16 @@ export default function FichaCliente() {
             </div>
             <div className="grade grade-3">
               <div className="campo">
-                <label>Complemento</label>
-                <input value={dadosEdicao.complemento || ''} onChange={(e) => setEdicao('complemento', e.target.value)} />
+                <label htmlFor="editar-complemento">Complemento</label>
+                <input id="editar-complemento" value={dadosEdicao.complemento || ''} onChange={(e) => setEdicao('complemento', e.target.value)} />
               </div>
               <div className="campo">
-                <label>Bairro</label>
-                <input value={dadosEdicao.bairro || ''} onChange={(e) => setEdicao('bairro', e.target.value)} />
+                <label htmlFor="editar-bairro">Bairro</label>
+                <input id="editar-bairro" value={dadosEdicao.bairro || ''} onChange={(e) => setEdicao('bairro', e.target.value)} />
               </div>
               <div className="campo">
-                <label>Referência</label>
-                <input value={dadosEdicao.referencia || ''} onChange={(e) => setEdicao('referencia', e.target.value)} />
+                <label htmlFor="editar-referencia">Referência</label>
+                <input id="editar-referencia" value={dadosEdicao.referencia || ''} onChange={(e) => setEdicao('referencia', e.target.value)} />
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>

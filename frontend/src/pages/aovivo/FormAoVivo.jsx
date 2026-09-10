@@ -203,7 +203,7 @@ export default function FormAoVivo() {
         setCarregando(false);
         return;
       }
-      Promise.all([api.clientes.buscar(clienteIdUrl), api.aoVivo.proximaOs()])
+      Promise.all([api.clientes.buscarCadastro(clienteIdUrl), api.aoVivo.proximaOs()])
         .then(([respCliente, respOs]) => {
           const { data, horario } = dataHoraAtual();
           const inicial = {
@@ -233,7 +233,7 @@ export default function FormAoVivo() {
         setQtdMensagens(contarMensagensPreenchidas(normalizado));
         setQtdMusicas(contarPreenchidos(normalizado, 'musica', MIN_MUSICAS, MAX_MUSICAS));
         if (pedido.cliente_id) {
-          return api.clientes.buscar(pedido.cliente_id).then((resp) => setCliente(resp.cliente));
+          return api.clientes.buscarCadastro(pedido.cliente_id).then((resp) => setCliente(resp.cliente));
         }
       })
       .catch((err) => setErro(err.message))

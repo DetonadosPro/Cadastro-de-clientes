@@ -74,7 +74,7 @@ export default function CommandPalette({ aberta, onFechar, onNavegar }) {
 
   useEffect(() => {
     const termoValido = buscaPorTelefone ? telefoneBuscado.length >= 3 : termo.trim().length >= 2;
-    if (!aberta || !termoValido) { setClientes([]); return undefined; }
+    if (!aberta || !termoValido) { setClientes([]); setBuscando(false); return undefined; }
     let ativo = true;
     const timer = setTimeout(async () => {
       setBuscando(true);
@@ -85,7 +85,7 @@ export default function CommandPalette({ aberta, onFechar, onNavegar }) {
           buscaPorTelefone ? '' : 'nome',
           'nome',
           'asc',
-          buscaPorTelefone ? { telefone: telefoneBuscado } : {}
+          { modo: 'contatos', porPagina: 6, ...(buscaPorTelefone ? { telefone: telefoneBuscado } : {}) }
         );
         if (ativo) setClientes((resposta.clientes || []).slice(0, 6));
       } catch {

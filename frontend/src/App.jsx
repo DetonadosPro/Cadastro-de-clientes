@@ -1,23 +1,24 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
+import { EstadoCarregando } from './components/Interface.jsx';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { getUsuarioLogado } from './api.js';
-import Login from './pages/Login.jsx';
-import GerenciarUsuarios from './pages/GerenciarUsuarios.jsx';
+const Login = lazy(() => import('./pages/Login.jsx'));
+const GerenciarUsuarios = lazy(() => import('./pages/GerenciarUsuarios.jsx'));
 import Layout from './components/Layout.jsx';
-import ListaFonada from './pages/fonada/ListaFonada.jsx';
-import FormFonada from './pages/fonada/FormFonada.jsx';
-import HojeFonada from './pages/fonada/HojeFonada.jsx';
-import ListaAoVivo from './pages/aovivo/ListaAoVivo.jsx';
-import FormAoVivo from './pages/aovivo/FormAoVivo.jsx';
-import HojeAoVivo from './pages/aovivo/HojeAoVivo.jsx';
-import ListaClientes from './pages/clientes/ListaClientes.jsx';
-import FormNovoCliente from './pages/clientes/FormNovoCliente.jsx';
-import FichaCliente from './pages/clientes/FichaCliente.jsx';
-import Lixeira from './pages/clientes/Lixeira.jsx';
-import Agenda from './pages/agenda/Agenda.jsx';
-import CentralCobranca from './pages/cobranca/CentralCobranca.jsx';
-import Relatorios from './pages/relatorios/Relatorios.jsx';
-import Recall from './pages/recall/Recall.jsx';
+const ListaFonada = lazy(() => import('./pages/fonada/ListaFonada.jsx'));
+const FormFonada = lazy(() => import('./pages/fonada/FormFonada.jsx'));
+const HojeFonada = lazy(() => import('./pages/fonada/HojeFonada.jsx'));
+const ListaAoVivo = lazy(() => import('./pages/aovivo/ListaAoVivo.jsx'));
+const FormAoVivo = lazy(() => import('./pages/aovivo/FormAoVivo.jsx'));
+const HojeAoVivo = lazy(() => import('./pages/aovivo/HojeAoVivo.jsx'));
+const ListaClientes = lazy(() => import('./pages/clientes/ListaClientes.jsx'));
+const FormNovoCliente = lazy(() => import('./pages/clientes/FormNovoCliente.jsx'));
+const FichaCliente = lazy(() => import('./pages/clientes/FichaCliente.jsx'));
+const Lixeira = lazy(() => import('./pages/clientes/Lixeira.jsx'));
+const Agenda = lazy(() => import('./pages/agenda/Agenda.jsx'));
+const CentralCobranca = lazy(() => import('./pages/cobranca/CentralCobranca.jsx'));
+const Relatorios = lazy(() => import('./pages/relatorios/Relatorios.jsx'));
+const Recall = lazy(() => import('./pages/recall/Recall.jsx'));
 
 function RotaProtegida({ children }) {
   const usuario = getUsuarioLogado();
@@ -27,7 +28,7 @@ function RotaProtegida({ children }) {
 
 export default function App() {
   return (
-    <Routes>
+    <Suspense fallback={<EstadoCarregando rotulo="Abrindo página…" />}><Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/gerenciar-usuarios" element={<GerenciarUsuarios />} />
 
@@ -61,6 +62,6 @@ export default function App() {
         <Route path="ao-vivo/hoje" element={<HojeAoVivo />} />
         <Route path="ao-vivo/:id" element={<FormAoVivo />} />
       </Route>
-    </Routes>
+    </Routes></Suspense>
   );
 }

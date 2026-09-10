@@ -10,6 +10,8 @@ export default function ClienteDrawer({ clienteId, onFechar, onNavegar }) {
   const [erro, setErro] = useState('');
   const fecharRef = useRef(null);
   const drawerRef = useRef(null);
+  const onFecharRef = useRef(onFechar);
+  onFecharRef.current = onFechar;
 
   useEffect(() => {
     if (!clienteId) return undefined;
@@ -17,7 +19,7 @@ export default function ClienteDrawer({ clienteId, onFechar, onNavegar }) {
     setDados(null); setErro('');
     api.clientes.buscarResumo(clienteId).then((resposta) => { if (ativo) setDados(resposta); }).catch((err) => { if (ativo) setErro(err.message); });
     const aoTeclar = (e) => {
-      if (e.key === 'Escape') { e.preventDefault(); onFechar(); return; }
+      if (e.key === 'Escape') { e.preventDefault(); onFecharRef.current(); return; }
       if (e.key !== 'Tab') return;
       const focaveis = Array.from(drawerRef.current?.querySelectorAll('button, input, select, textarea, [href], [tabindex]:not([tabindex="-1"])') || [])
         .filter((elemento) => !elemento.disabled && elemento.getClientRects().length > 0);
@@ -29,9 +31,10 @@ export default function ClienteDrawer({ clienteId, onFechar, onNavegar }) {
     };
     document.body.classList.add('sobreposicao-aberta');
     document.addEventListener('keydown', aoTeclar);
-    requestAnimationFrame(() => fecharRef.current?.focus());
-    return () => { ativo = false; document.body.classList.remove('sobreposicao-aberta'); document.removeEventListener('keydown', aoTeclar); };
-  }, [clienteId, onFechar]);
+    const focoAnterior = document.activeElement;
+    const quadro = requestAnimationFrame(() => fecharRef.current?.focus());
+    return () => { ativo = false; cancelAnimationFrame(quadro); document.body.classList.remove('sobreposicao-aberta'); document.removeEventListener('keydown', aoTeclar); focoAnterior?.focus?.(); };
+  }, [clienteId]);
 
   if (!clienteId) return null;
   const cliente = dados?.cliente;

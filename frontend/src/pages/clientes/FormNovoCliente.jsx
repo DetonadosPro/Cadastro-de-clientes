@@ -88,6 +88,7 @@ export default function FormNovoCliente() {
   }
 
   async function salvar() {
+    if (salvando) return;
     setErro('');
     if (!dados.nome.trim()) {
       setErro('O nome é obrigatório.');
@@ -105,6 +106,8 @@ export default function FormNovoCliente() {
         }
       } catch (err) {
         setSalvando(false);
+        setErro('Não foi possível verificar duplicidades. Tente salvar novamente.');
+        return;
       }
     }
 
@@ -116,7 +119,7 @@ export default function FormNovoCliente() {
   }
 
   return (
-    <div className="form-pagina cadastro-cliente-pagina">
+    <form className="form-pagina cadastro-cliente-pagina" onSubmit={(evento) => { evento.preventDefault(); salvar(); }}>
       <CabecalhoPagina contexto="Clientes" titulo="Novo cliente" descricao="Comece pelas informações essenciais. Endereço e referência podem ser acrescentados agora ou depois." acoes={<button type="button" className="btn secundario" onClick={cancelar}>Fechar</button>} />
 
       {erro && <AvisoInline tom="erro" titulo="Não foi possível salvar o cliente">{erro}</AvisoInline>}
@@ -169,27 +172,27 @@ export default function FormNovoCliente() {
 
           <div className="linha-form-cliente" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 18 }}>
             <div className="campo" style={{ flex: '1 1 280px', minWidth: 200, marginBottom: 0, gap: 6 }}>
-              <label>Nome *</label>
-              <input value={dados.nome} onChange={(e) => set('nome', e.target.value)} autoFocus />
+              <label htmlFor="novo-nome">Nome *</label>
+              <input id="novo-nome" required autoComplete="name" value={dados.nome} onChange={(e) => set('nome', e.target.value)} autoFocus />
             </div>
             <div className="campo campo-largura-fixa" style={{ flex: '0 0 auto', width: 130, marginBottom: 0, gap: 6 }}>
-              <label>Nascimento</label>
-              <input placeholder="dd/mm/aa" value={dados.nascimento} onChange={(e) => setComMascara('nascimento', e.target.value, 'data')} />
+              <label htmlFor="novo-nascimento">Nascimento</label>
+              <input id="novo-nascimento" inputMode="numeric" placeholder="dd/mm/aa" value={dados.nascimento} onChange={(e) => setComMascara('nascimento', e.target.value, 'data')} />
             </div>
           </div>
 
           <div className="linha-form-cliente contatos-principais-cliente" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', paddingBottom: 20, marginBottom: 6 }}>
             <div className="campo campo-largura-fixa" style={{ flex: '0 0 auto', width: 150, marginBottom: 0, gap: 6 }}>
-              <label>Telefone fixo</label>
-              <input value={dados.fixo} onChange={(e) => setComMascara('fixo', e.target.value, 'fixo')} />
+              <label htmlFor="novo-fixo">Telefone fixo</label>
+              <input id="novo-fixo" inputMode="tel" autoComplete="tel" value={dados.fixo} onChange={(e) => setComMascara('fixo', e.target.value, 'fixo')} />
             </div>
             <div className="campo campo-largura-fixa" style={{ flex: '0 0 auto', width: 165, marginBottom: 0, gap: 6 }}>
-              <label>WhatsApp</label>
-              <input value={dados.whatsapp} onChange={(e) => setComMascara('whatsapp', e.target.value, 'celular')} />
+              <label htmlFor="novo-whatsapp">WhatsApp</label>
+              <input id="novo-whatsapp" inputMode="tel" autoComplete="tel" value={dados.whatsapp} onChange={(e) => setComMascara('whatsapp', e.target.value, 'celular')} />
             </div>
             <div className="campo campo-largura-fixa" style={{ flex: '0 0 auto', width: 165, marginBottom: 0, gap: 6 }}>
-              <label>Celular</label>
-              <input value={dados.celular} onChange={(e) => setComMascara('celular', e.target.value, 'celular')} />
+              <label htmlFor="novo-celular">Celular</label>
+              <input id="novo-celular" inputMode="tel" autoComplete="tel" value={dados.celular} onChange={(e) => setComMascara('celular', e.target.value, 'celular')} />
             </div>
           </div>
 
@@ -200,8 +203,8 @@ export default function FormNovoCliente() {
             {enderecoAberto && <div className="form-disclosure-conteudo">
               <div className="linha-form-cliente endereco-numero-cliente" style={{ display: 'flex', gap: 12, alignItems: 'end', marginBottom: 18 }}>
                 <div className="campo" style={{ flex: '1 1 auto', minWidth: 0, gap: 6, marginBottom: 0 }}>
-                  <label>Endereço</label>
-                  <CampoEnderecoAutocomplete
+                  <label htmlFor="novo-endereco">Endereço</label>
+                  <CampoEnderecoAutocomplete id="novo-endereco"
                     value={dados.endereco}
                     onChange={(valor) => set('endereco', valor)}
                     onSelecionar={selecionarEndereco}
@@ -209,14 +212,14 @@ export default function FormNovoCliente() {
                   />
                 </div>
                 <div className="campo campo-numero-cliente" style={{ flex: '0 0 96px', width: 96, gap: 6, marginBottom: 0 }}>
-                  <label>Nº</label>
-                  <input value={dados.numero} onChange={(e) => set('numero', e.target.value)} placeholder="Nº / S/N" />
+                  <label htmlFor="novo-numero">Nº</label>
+                  <input id="novo-numero" value={dados.numero} onChange={(e) => set('numero', e.target.value)} placeholder="Nº / S/N" />
                 </div>
               </div>
               <div className="linha-form-cliente" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 4 }}>
-                <div className="campo campo-largura-fixa" style={{ flex: '0 0 auto', width: 180, marginBottom: 0, gap: 6 }}><label>Complemento</label><input value={dados.complemento} onChange={(e) => set('complemento', e.target.value)} /></div>
-                <div className="campo campo-largura-fixa" style={{ flex: '0 0 auto', width: 180, marginBottom: 0, gap: 6 }}><label>Bairro</label><input value={dados.bairro} onChange={(e) => set('bairro', e.target.value)} /></div>
-                <div className="campo" style={{ flex: '1 1 200px', minWidth: 160, marginBottom: 0, gap: 6 }}><label>Referência</label><input value={dados.referencia} onChange={(e) => set('referencia', e.target.value)} /></div>
+                <div className="campo campo-largura-fixa" style={{ flex: '0 0 auto', width: 180, marginBottom: 0, gap: 6 }}><label htmlFor="novo-complemento">Complemento</label><input id="novo-complemento" value={dados.complemento} onChange={(e) => set('complemento', e.target.value)} /></div>
+                <div className="campo campo-largura-fixa" style={{ flex: '0 0 auto', width: 180, marginBottom: 0, gap: 6 }}><label htmlFor="novo-bairro">Bairro</label><input id="novo-bairro" value={dados.bairro} onChange={(e) => set('bairro', e.target.value)} /></div>
+                <div className="campo" style={{ flex: '1 1 200px', minWidth: 160, marginBottom: 0, gap: 6 }}><label htmlFor="novo-referencia">Referência</label><input id="novo-referencia" value={dados.referencia} onChange={(e) => set('referencia', e.target.value)} /></div>
               </div>
             </div>
             }
@@ -224,7 +227,7 @@ export default function FormNovoCliente() {
 
           <div className="cadastro-acoes-sticky" style={estilos.rodapeBotoes}>
             <button type="button" className="btn secundario" onClick={cancelar}>Cancelar</button>
-            <button type="button" className="btn" onClick={salvar} disabled={salvando}>
+            <button type="submit" className="btn" disabled={salvando}>
               {salvando ? 'Verificando…' : 'Salvar cliente'}
             </button>
           </div>
@@ -233,7 +236,7 @@ export default function FormNovoCliente() {
 
       {duplicados && duplicados.length === 0 && (
         <div className="painel cadastro-confirmacao">
-          <AvisoInline tom="sucesso" titulo="Cadastro pronto para confirmar">Nenhuma duplicidade foi encontrada com nome e aniversário semelhantes.</AvisoInline>
+          <AvisoInline tom="info" titulo="Cadastro pronto para confirmar">Você indicou que se trata de outra pessoa. Confirme para criar o cadastro.</AvisoInline>
           <div className="cadastro-confirmacao-acoes" style={estilos.rodapeBotoes}>
             <button type="button" className="btn secundario" onClick={cancelar}>Cancelar</button>
             <button type="button" className="btn" onClick={salvarDeVerdade} disabled={salvando}>
@@ -242,7 +245,7 @@ export default function FormNovoCliente() {
           </div>
         </div>
       )}
-    </div>
+    </form>
   );
 }
 

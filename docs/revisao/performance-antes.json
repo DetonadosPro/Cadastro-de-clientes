@@ -1,0 +1,571 @@
+{
+  "data": "2026-09-09T23:13:09.938Z",
+  "ambiente": "PostgreSQL local, somente leitura, HTTP loopback, cinco amostras",
+  "registros": {
+    "clientes": "6476",
+    "fonadas": "20359",
+    "ao_vivo": "2527"
+  },
+  "resultados": [
+    {
+      "caminho": "/clientes",
+      "amostras": [
+        {
+          "ms": 95.86,
+          "bytes": 14635,
+          "consultas": [
+            {
+              "ms": 7.27,
+              "linhas": 1
+            },
+            {
+              "ms": 58.67,
+              "linhas": 30
+            }
+          ],
+          "hash": "51395d20e627619888289b68b7883468a6295617803cce33b6dffee9562d323a"
+        },
+        {
+          "ms": 20.47,
+          "bytes": 14635,
+          "consultas": [
+            {
+              "ms": 0.97,
+              "linhas": 1
+            },
+            {
+              "ms": 15.52,
+              "linhas": 30
+            }
+          ],
+          "hash": "51395d20e627619888289b68b7883468a6295617803cce33b6dffee9562d323a"
+        },
+        {
+          "ms": 23.01,
+          "bytes": 14635,
+          "consultas": [
+            {
+              "ms": 1.22,
+              "linhas": 1
+            },
+            {
+              "ms": 17.89,
+              "linhas": 30
+            }
+          ],
+          "hash": "51395d20e627619888289b68b7883468a6295617803cce33b6dffee9562d323a"
+        },
+        {
+          "ms": 28.29,
+          "bytes": 14635,
+          "consultas": [
+            {
+              "ms": 1.13,
+              "linhas": 1
+            },
+            {
+              "ms": 23.02,
+              "linhas": 30
+            }
+          ],
+          "hash": "51395d20e627619888289b68b7883468a6295617803cce33b6dffee9562d323a"
+        },
+        {
+          "ms": 24.81,
+          "bytes": 14635,
+          "consultas": [
+            {
+              "ms": 1.74,
+              "linhas": 1
+            },
+            {
+              "ms": 20.28,
+              "linhas": 30
+            }
+          ],
+          "hash": "51395d20e627619888289b68b7883468a6295617803cce33b6dffee9562d323a"
+        }
+      ]
+    },
+    {
+      "caminho": "/clientes?pagina=2",
+      "amostras": [
+        {
+          "ms": 26.34,
+          "bytes": 14800,
+          "consultas": [
+            {
+              "ms": 1.03,
+              "linhas": 1
+            },
+            {
+              "ms": 19.8,
+              "linhas": 30
+            }
+          ],
+          "hash": "ce5b27872889371c27b6948039a393d317082ad6d990474869520b3637c60446"
+        },
+        {
+          "ms": 22.47,
+          "bytes": 14800,
+          "consultas": [
+            {
+              "ms": 0.96,
+              "linhas": 1
+            },
+            {
+              "ms": 18.77,
+              "linhas": 30
+            }
+          ],
+          "hash": "ce5b27872889371c27b6948039a393d317082ad6d990474869520b3637c60446"
+        },
+        {
+          "ms": 22.47,
+          "bytes": 14800,
+          "consultas": [
+            {
+              "ms": 0.92,
+              "linhas": 1
+            },
+            {
+              "ms": 19.96,
+              "linhas": 30
+            }
+          ],
+          "hash": "ce5b27872889371c27b6948039a393d317082ad6d990474869520b3637c60446"
+        },
+        {
+          "ms": 25.96,
+          "bytes": 14800,
+          "consultas": [
+            {
+              "ms": 1.02,
+              "linhas": 1
+            },
+            {
+              "ms": 20.14,
+              "linhas": 30
+            }
+          ],
+          "hash": "ce5b27872889371c27b6948039a393d317082ad6d990474869520b3637c60446"
+        },
+        {
+          "ms": 22.72,
+          "bytes": 14800,
+          "consultas": [
+            {
+              "ms": 0.87,
+              "linhas": 1
+            },
+            {
+              "ms": 19.11,
+              "linhas": 30
+            }
+          ],
+          "hash": "ce5b27872889371c27b6948039a393d317082ad6d990474869520b3637c60446"
+        }
+      ]
+    },
+    {
+      "caminho": "/clientes?busca=ana&campo=nome",
+      "amostras": [
+        {
+          "ms": 22.21,
+          "bytes": 14913,
+          "consultas": [
+            {
+              "ms": 4.07,
+              "linhas": 1
+            },
+            {
+              "ms": 14.65,
+              "linhas": 30
+            }
+          ],
+          "hash": "9bbcbbc15150e45470548694536efadd0682e1b2d7897001b96b71a71c713914"
+        },
+        {
+          "ms": 21.31,
+          "bytes": 14913,
+          "consultas": [
+            {
+              "ms": 3.24,
+              "linhas": 1
+            },
+            {
+              "ms": 15.88,
+              "linhas": 30
+            }
+          ],
+          "hash": "9bbcbbc15150e45470548694536efadd0682e1b2d7897001b96b71a71c713914"
+        },
+        {
+          "ms": 20.13,
+          "bytes": 14913,
+          "consultas": [
+            {
+              "ms": 3.39,
+              "linhas": 1
+            },
+            {
+              "ms": 14.69,
+              "linhas": 30
+            }
+          ],
+          "hash": "9bbcbbc15150e45470548694536efadd0682e1b2d7897001b96b71a71c713914"
+        },
+        {
+          "ms": 21.65,
+          "bytes": 14913,
+          "consultas": [
+            {
+              "ms": 3.78,
+              "linhas": 1
+            },
+            {
+              "ms": 15.48,
+              "linhas": 30
+            }
+          ],
+          "hash": "9bbcbbc15150e45470548694536efadd0682e1b2d7897001b96b71a71c713914"
+        },
+        {
+          "ms": 23.9,
+          "bytes": 14913,
+          "consultas": [
+            {
+              "ms": 4.13,
+              "linhas": 1
+            },
+            {
+              "ms": 17.08,
+              "linhas": 30
+            }
+          ],
+          "hash": "9bbcbbc15150e45470548694536efadd0682e1b2d7897001b96b71a71c713914"
+        }
+      ]
+    },
+    {
+      "caminho": "/clientes?situacao=pendencia",
+      "amostras": [
+        {
+          "ms": 38.6,
+          "bytes": 15433,
+          "consultas": [
+            {
+              "ms": 7.27,
+              "linhas": 1
+            },
+            {
+              "ms": 29.51,
+              "linhas": 30
+            }
+          ],
+          "hash": "f9ca68c35c256edef27eeca4e7bf028857fe23e9b0acbd711a2696a6bc4d1d57"
+        },
+        {
+          "ms": 38.53,
+          "bytes": 15433,
+          "consultas": [
+            {
+              "ms": 6.01,
+              "linhas": 1
+            },
+            {
+              "ms": 27.7,
+              "linhas": 30
+            }
+          ],
+          "hash": "f9ca68c35c256edef27eeca4e7bf028857fe23e9b0acbd711a2696a6bc4d1d57"
+        },
+        {
+          "ms": 36.76,
+          "bytes": 15433,
+          "consultas": [
+            {
+              "ms": 10.19,
+              "linhas": 1
+            },
+            {
+              "ms": 25.14,
+              "linhas": 30
+            }
+          ],
+          "hash": "f9ca68c35c256edef27eeca4e7bf028857fe23e9b0acbd711a2696a6bc4d1d57"
+        },
+        {
+          "ms": 33.1,
+          "bytes": 15433,
+          "consultas": [
+            {
+              "ms": 6.41,
+              "linhas": 1
+            },
+            {
+              "ms": 22.71,
+              "linhas": 30
+            }
+          ],
+          "hash": "f9ca68c35c256edef27eeca4e7bf028857fe23e9b0acbd711a2696a6bc4d1d57"
+        },
+        {
+          "ms": 35.55,
+          "bytes": 15433,
+          "consultas": [
+            {
+              "ms": 7.03,
+              "linhas": 1
+            },
+            {
+              "ms": 26.3,
+              "linhas": 30
+            }
+          ],
+          "hash": "f9ca68c35c256edef27eeca4e7bf028857fe23e9b0acbd711a2696a6bc4d1d57"
+        }
+      ]
+    },
+    {
+      "caminho": "/clientes?ordenarPor=total_pedidos",
+      "amostras": [
+        {
+          "ms": 92.17,
+          "bytes": 14603,
+          "consultas": [
+            {
+              "ms": 1.04,
+              "linhas": 1
+            },
+            {
+              "ms": 89.1,
+              "linhas": 30
+            }
+          ],
+          "hash": "06d2365d56c57537d1c9ba3d75d1b98a09bdff1a00abcc52687889222f0c1978"
+        },
+        {
+          "ms": 104.04,
+          "bytes": 14603,
+          "consultas": [
+            {
+              "ms": 1.02,
+              "linhas": 1
+            },
+            {
+              "ms": 98.18,
+              "linhas": 30
+            }
+          ],
+          "hash": "06d2365d56c57537d1c9ba3d75d1b98a09bdff1a00abcc52687889222f0c1978"
+        },
+        {
+          "ms": 89.89,
+          "bytes": 14603,
+          "consultas": [
+            {
+              "ms": 1.06,
+              "linhas": 1
+            },
+            {
+              "ms": 85.09,
+              "linhas": 30
+            }
+          ],
+          "hash": "06d2365d56c57537d1c9ba3d75d1b98a09bdff1a00abcc52687889222f0c1978"
+        },
+        {
+          "ms": 81.46,
+          "bytes": 14603,
+          "consultas": [
+            {
+              "ms": 1,
+              "linhas": 1
+            },
+            {
+              "ms": 78.39,
+              "linhas": 30
+            }
+          ],
+          "hash": "06d2365d56c57537d1c9ba3d75d1b98a09bdff1a00abcc52687889222f0c1978"
+        },
+        {
+          "ms": 89.87,
+          "bytes": 14603,
+          "consultas": [
+            {
+              "ms": 0.87,
+              "linhas": 1
+            },
+            {
+              "ms": 86.75,
+              "linhas": 30
+            }
+          ],
+          "hash": "06d2365d56c57537d1c9ba3d75d1b98a09bdff1a00abcc52687889222f0c1978"
+        }
+      ]
+    },
+    {
+      "caminho": "/clientes?ordenarPor=ultimo_pedido",
+      "amostras": [
+        {
+          "ms": 82.74,
+          "bytes": 14750,
+          "consultas": [
+            {
+              "ms": 0.93,
+              "linhas": 1
+            },
+            {
+              "ms": 80.73,
+              "linhas": 30
+            }
+          ],
+          "hash": "8f76f56927d29d1b22789ffc781d401e4d27f398da7b039bf1d7f10898107ada"
+        },
+        {
+          "ms": 87.72,
+          "bytes": 14750,
+          "consultas": [
+            {
+              "ms": 0.81,
+              "linhas": 1
+            },
+            {
+              "ms": 84.53,
+              "linhas": 30
+            }
+          ],
+          "hash": "8f76f56927d29d1b22789ffc781d401e4d27f398da7b039bf1d7f10898107ada"
+        },
+        {
+          "ms": 88.72,
+          "bytes": 14750,
+          "consultas": [
+            {
+              "ms": 0.91,
+              "linhas": 1
+            },
+            {
+              "ms": 83.69,
+              "linhas": 30
+            }
+          ],
+          "hash": "8f76f56927d29d1b22789ffc781d401e4d27f398da7b039bf1d7f10898107ada"
+        },
+        {
+          "ms": 79.44,
+          "bytes": 14750,
+          "consultas": [
+            {
+              "ms": 0.89,
+              "linhas": 1
+            },
+            {
+              "ms": 73.98,
+              "linhas": 30
+            }
+          ],
+          "hash": "8f76f56927d29d1b22789ffc781d401e4d27f398da7b039bf1d7f10898107ada"
+        },
+        {
+          "ms": 80.11,
+          "bytes": 14750,
+          "consultas": [
+            {
+              "ms": 1.06,
+              "linhas": 1
+            },
+            {
+              "ms": 77.69,
+              "linhas": 30
+            }
+          ],
+          "hash": "8f76f56927d29d1b22789ffc781d401e4d27f398da7b039bf1d7f10898107ada"
+        }
+      ]
+    },
+    {
+      "caminho": "/clientes/possiveis-duplicatas",
+      "amostras": [
+        {
+          "ms": 76.87,
+          "bytes": 34082,
+          "consultas": [
+            {
+              "ms": 31.64,
+              "linhas": 3940
+            },
+            {
+              "ms": 2.56,
+              "linhas": 1
+            }
+          ],
+          "hash": "8b17564aaad9935ff7af29e8dc2206e0a2b5f9a56065d397881840fb7d2d93ba"
+        },
+        {
+          "ms": 74.22,
+          "bytes": 34082,
+          "consultas": [
+            {
+              "ms": 6.13,
+              "linhas": 3940
+            },
+            {
+              "ms": 0.61,
+              "linhas": 1
+            }
+          ],
+          "hash": "8b17564aaad9935ff7af29e8dc2206e0a2b5f9a56065d397881840fb7d2d93ba"
+        },
+        {
+          "ms": 55.44,
+          "bytes": 34082,
+          "consultas": [
+            {
+              "ms": 5.9,
+              "linhas": 3940
+            },
+            {
+              "ms": 0.48,
+              "linhas": 1
+            }
+          ],
+          "hash": "8b17564aaad9935ff7af29e8dc2206e0a2b5f9a56065d397881840fb7d2d93ba"
+        },
+        {
+          "ms": 45.3,
+          "bytes": 34082,
+          "consultas": [
+            {
+              "ms": 4.72,
+              "linhas": 3940
+            },
+            {
+              "ms": 0.35,
+              "linhas": 1
+            }
+          ],
+          "hash": "8b17564aaad9935ff7af29e8dc2206e0a2b5f9a56065d397881840fb7d2d93ba"
+        },
+        {
+          "ms": 48.68,
+          "bytes": 34082,
+          "consultas": [
+            {
+              "ms": 5.05,
+              "linhas": 3940
+            },
+            {
+              "ms": 0.38,
+              "linhas": 1
+            }
+          ],
+          "hash": "8b17564aaad9935ff7af29e8dc2206e0a2b5f9a56065d397881840fb7d2d93ba"
+        }
+      ]
+    }
+  ]
+}

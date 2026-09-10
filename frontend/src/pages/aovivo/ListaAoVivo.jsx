@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
@@ -117,18 +117,25 @@ export default function ListaAoVivo() {
   const porPagina = 30;
   const totalPaginas = Math.max(Math.ceil(total / porPagina), 1);
 
+  const consultaRef = useRef(null);
+  useEffect(() => () => consultaRef.current?.abort(), []);
+
   const carregar = useCallback(async (termo, pag, campo) => {
+    consultaRef.current?.abort();
+    const controle = new AbortController();
+    consultaRef.current = controle;
     setCarregando(true);
     setErro('');
     try {
-      const resposta = await api.aoVivo.listar(termo, pag, campo);
+      const resposta = await api.aoVivo.listar(termo, pag, campo, { signal: controle.signal });
+      if (controle.signal.aborted) return;
       setItens(resposta.pedidos);
       setTotal(resposta.total);
       setSelecionados(new Set());
     } catch (err) {
-      setErro(err.message);
+      if (!controle.signal.aborted) setErro(err.message);
     } finally {
-      setCarregando(false);
+      if (!controle.signal.aborted) setCarregando(false);
     }
   }, []);
 

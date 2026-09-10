@@ -28,7 +28,7 @@ function normalizarSugestoes(resposta) {
   return sugestoes;
 }
 
-export default function CampoEnderecoAutocomplete({ value, onChange, onSelecionar, className = '' }) {
+export default function CampoEnderecoAutocomplete({ value, onChange, onSelecionar, className = '', id }) {
   const listaId = useId();
   const valorSelecionado = useRef('');
   const [sugestoes, setSugestoes] = useState([]);
@@ -104,6 +104,8 @@ export default function CampoEnderecoAutocomplete({ value, onChange, onSeleciona
   return (
     <div className="endereco-autocomplete">
       <input
+        id={id}
+        aria-label={id ? undefined : 'Endereço'}
         value={value || ''}
         onChange={aoDigitar}
         onKeyDown={aoPressionarTecla}

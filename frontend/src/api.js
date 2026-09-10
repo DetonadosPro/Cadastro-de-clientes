@@ -125,8 +125,8 @@ export const api = {
 
   // ---------- Mensagem fonada (telefone) ----------
   fonada: {
-    listar: (busca = '', pagina = 1, campo = '') =>
-      chamar(`/fonadas?busca=${encodeURIComponent(busca)}&pagina=${pagina}&campo=${encodeURIComponent(campo)}`),
+    listar: (busca = '', pagina = 1, campo = '', opcoes = {}) =>
+      chamar(`/fonadas?busca=${encodeURIComponent(busca)}&pagina=${pagina}&campo=${encodeURIComponent(campo)}`, opcoes),
     hoje: () => chamar('/fonadas/hoje'),
     proximaOs: () => chamar('/fonadas/proxima-os'),
     buscar: (id) => chamar(`/fonadas/${id}`),
@@ -137,8 +137,8 @@ export const api = {
 
   // ---------- Mensagem ao vivo (carro de som) ----------
   aoVivo: {
-    listar: (busca = '', pagina = 1, campo = '') =>
-      chamar(`/ao-vivo?busca=${encodeURIComponent(busca)}&pagina=${pagina}&campo=${encodeURIComponent(campo)}`),
+    listar: (busca = '', pagina = 1, campo = '', opcoes = {}) =>
+      chamar(`/ao-vivo?busca=${encodeURIComponent(busca)}&pagina=${pagina}&campo=${encodeURIComponent(campo)}`, opcoes),
     hoje: () => chamar('/ao-vivo/hoje'),
     proximaOs: () => chamar('/ao-vivo/proxima-os'),
     buscar: (id) => chamar(`/ao-vivo/${id}`),
@@ -161,11 +161,14 @@ export const api = {
       if (extras.telefone) params.set('telefone', extras.telefone);
       if (extras.aniversario) params.set('aniversario', extras.aniversario);
       if (extras.situacao) params.set('situacao', extras.situacao);
-      return chamar(`/clientes?${params.toString()}`);
+      if (extras.modo) params.set('modo', extras.modo);
+      if (extras.porPagina) params.set('porPagina', String(extras.porPagina));
+      return chamar(`/clientes?${params.toString()}`, { signal: extras.signal });
     },
     listarLixeira: (busca = '', pagina = 1) =>
       chamar(`/clientes/lixeira?busca=${encodeURIComponent(busca)}&pagina=${pagina}`),
     buscar: (id) => chamar(`/clientes/${id}`),
+    buscarCadastro: (id) => chamar(`/clientes/${id}?historico=nao`),
     buscarResumo: (id) => chamar(`/clientes/${id}/resumo`),
     criar: (dados) => chamar('/clientes', { method: 'POST', body: JSON.stringify(dados) }),
     atualizar: (id, dados) => chamar(`/clientes/${id}`, { method: 'PUT', body: JSON.stringify(dados) }),

@@ -166,7 +166,7 @@ router.get('/', async (req, res) => {
     const aniversario = (req.query.aniversario || '').trim();
     const situacao = (req.query.situacao || '').trim();
     const pagina = Math.max(parseInt(req.query.pagina) || 1, 1);
-    const porPagina = Math.min(parseInt(req.query.porPagina) || 30, 200);
+    const porPagina = Math.max(1, Math.min(parseInt(req.query.porPagina) || 30, 200));
     const offset = (pagina - 1) * porPagina;
 
     const colunaOrdenacao = ORDENACAO_PERMITIDA[req.query.ordenarPor] || ORDENACAO_PERMITIDA.nome;
@@ -216,6 +216,16 @@ router.get('/', async (req, res) => {
       where += ` AND substring(TRIM(COALESCE(c.nascimento, '')) from 1 for 5) = $${params.length}`;
     }
 
+    // Busca global precisa apenas de contatos, sem estatísticas ou histórico.
+    if (req.query.modo === 'contatos') {
+      const resposta = await db.query(`
+        SELECT c.id, c.nome, c.nascimento, c.whatsapp, c.celular, c.fixo, c.bairro
+        FROM clientes c ${where} ORDER BY c.nome ASC, c.id ASC
+        LIMIT $${params.length + 1}
+      `, [...params, Math.min(porPagina, 30)]);
+      return res.json({ clientes: resposta.rows });
+    }
+
     const totalResultado = await db.query(`SELECT COUNT(*) as n FROM clientes c ${where}`, params);
     const total = parseInt(totalResultado.rows[0].n, 10);
 
@@ -223,6 +233,12 @@ router.get('/', async (req, res) => {
     // usados no WHERE (ex: se params tem 1 item, LIMIT é $2 e OFFSET $3).
     const idxLimit = params.length + 1;
     const idxOffset = params.length + 2;
+    const paginarAntes = colunaOrdenacao === 'c.nome';
+    // Na ordenação por nome, apenas os clientes da página precisam ter
+    // seus pedidos agregados. Ordenações por indicadores continuam globais.
+    const origemClientes = paginarAntes
+      ? `(SELECT c.* FROM clientes c ${where} ORDER BY c.nome ${direcao}, c.id ASC LIMIT $${idxLimit} OFFSET $${idxOffset}) c`
+      : 'clientes c';
     const linhasResultado = await db.query(`
       SELECT c.*,
         COALESCE(f_stats.total, 0) as total_fonada,
@@ -231,19 +247,19 @@ router.get('/', async (req, res) => {
         ultimo.data_pedido as ultimo_pedido_data,
         ultimo.data_ordenacao as ultimo_pedido_em,
         COALESCE(f_stats.valor_pendente, 0) + COALESCE(a_stats.valor_pendente, 0) as valor_pendente
-      FROM clientes c
-      LEFT JOIN (
+      FROM ${origemClientes}
+      LEFT JOIN ${paginarAntes ? 'LATERAL' : ''} (
         SELECT cliente_id, COUNT(*)::INTEGER as total,
           COALESCE(SUM(valor) FILTER (WHERE COALESCE(pagou, '') != 'SIM' AND COALESCE(cobranca, '') != ''), 0) as valor_pendente
         FROM fonadas
-        WHERE excluido_em IS NULL
+        WHERE excluido_em IS NULL ${paginarAntes ? 'AND cliente_id = c.id' : ''}
         GROUP BY cliente_id
       ) f_stats ON f_stats.cliente_id = c.id
-      LEFT JOIN (
+      LEFT JOIN ${paginarAntes ? 'LATERAL' : ''} (
         SELECT cliente_id, COUNT(*)::INTEGER as total,
           COALESCE(SUM(valor) FILTER (WHERE COALESCE(pagou, '') != 'SIM'), 0) as valor_pendente
         FROM ao_vivo
-        WHERE excluido_em IS NULL
+        WHERE excluido_em IS NULL ${paginarAntes ? 'AND cliente_id = c.id' : ''}
         GROUP BY cliente_id
       ) a_stats ON a_stats.cliente_id = c.id
       LEFT JOIN LATERAL (
@@ -278,9 +294,9 @@ router.get('/', async (req, res) => {
         ORDER BY datas.data_ordenacao DESC NULLS LAST
         LIMIT 1
       ) ultimo ON TRUE
-      ${where}
-      ORDER BY ${colunaOrdenacao} ${direcao}, c.nome ASC
-      LIMIT $${idxLimit} OFFSET $${idxOffset}
+      ${paginarAntes ? '' : where}
+      ORDER BY ${colunaOrdenacao} ${direcao}, c.nome ASC, c.id ASC
+      ${paginarAntes ? '' : `LIMIT $${idxLimit} OFFSET $${idxOffset}`}
     `, [...params, porPagina, offset]);
 
     res.json({ total, pagina, porPagina, clientes: linhasResultado.rows });
@@ -609,6 +625,8 @@ router.get('/:id', async (req, res) => {
     const clienteResultado = await db.query('SELECT * FROM clientes WHERE id = $1', [req.params.id]);
     const cliente = clienteResultado.rows[0];
     if (!cliente) return res.status(404).json({ erro: 'Cliente não encontrado.' });
+
+    if (req.query.historico === 'nao') return res.json({ cliente });
 
     const pedidosFonadaResultado = await db.query(`
       SELECT id, senha_os, data_pedido, p1_dia, p1_para, p1_fixo, p1_celular, p1_resultado, p1_passada_por,

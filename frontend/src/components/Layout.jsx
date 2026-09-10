@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { Suspense, useState, useEffect, useRef } from 'react';
+import { EstadoCarregando } from './Interface.jsx';
+import LimitePagina from './LimitePagina.jsx';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { getUsuarioLogado, getNomeExibicao, limparSessao } from '../api.js';
 import { useRascunhos } from '../RascunhosContext.jsx';
@@ -396,7 +398,7 @@ export default function Layout() {
         </div>
         <div className="layout-pagina">
           <div className="pagina-transicao" key={`${location.pathname}-${chaveConteudo}`}>
-            <Outlet />
+            <LimitePagina><Suspense fallback={<EstadoCarregando rotulo="Abrindo página…" />}><Outlet /></Suspense></LimitePagina>
           </div>
         </div>
       </main>

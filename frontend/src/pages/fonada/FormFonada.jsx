@@ -246,7 +246,7 @@ export default function FormFonada() {
         setDados(normalizado);
         setMensagemEmHaver(pedido.mensagemEmHaver || null);
         if (pedido.cliente_id) {
-          api.clientes.buscar(pedido.cliente_id).then((resp) => setCliente(resp.cliente));
+          api.clientes.buscarCadastro(pedido.cliente_id).then((resp) => setCliente(resp.cliente));
         }
         api.agenda.buscarTentativas(id).then((resp) => setTentativas(resp.tentativas)).catch(() => {});
       })
@@ -267,7 +267,7 @@ export default function FormFonada() {
         setCarregando(false);
         return;
       }
-      Promise.all([api.clientes.buscar(clienteIdUrl), api.fonada.proximaOs()])
+      Promise.all([api.clientes.buscarCadastro(clienteIdUrl), api.fonada.proximaOs()])
         .then(([respCliente, respOs]) => {
           const { data, horario } = dataHoraAtual();
           const inicial = {
@@ -300,7 +300,7 @@ export default function FormFonada() {
         setDados(normalizado);
         setMensagemEmHaver(pedido.mensagemEmHaver || null);
         if (pedido.cliente_id) {
-          api.clientes.buscar(pedido.cliente_id).then((resp) => setCliente(resp.cliente));
+          api.clientes.buscarCadastro(pedido.cliente_id).then((resp) => setCliente(resp.cliente));
         }
         api.agenda.buscarTentativas(id).then((resp) => setTentativas(resp.tentativas)).catch(() => {});
       })

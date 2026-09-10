@@ -27,16 +27,6 @@ function valorUtil(valor) {
   return texto && !/^0+$/.test(texto) && texto !== '-' && texto !== '00/00/0000' ? texto : '';
 }
 
-function nascimentoValido(valor) {
-  const texto = valorUtil(valor);
-  if (!texto) return false;
-  const partes = texto.match(/^(\d{2})\/(\d{2})(?:\/(\d{2}|\d{4}))?$/);
-  if (!partes) return false;
-  const dia = Number(partes[1]); const mes = Number(partes[2]);
-  const ano = partes[3] ? Number(partes[3].length === 2 ? `20${partes[3]}` : partes[3]) : 2000;
-  return mes >= 1 && mes <= 12 && dia >= 1 && dia <= new Date(ano, mes, 0).getDate();
-}
-
 function formatarReais(valor) {
   return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
@@ -95,7 +85,7 @@ export default function ListaClientes() {
   const telefoneUrl = searchParams.get('telefone') || '';
   const aniversarioUrl = searchParams.get('aniversario') || '';
   const situacaoUrl = searchParams.get('situacao') || '';
-  const paginaUrl = parseInt(searchParams.get('pagina') || '1', 10);
+  const paginaUrl = Math.max(1, parseInt(searchParams.get('pagina') || '1', 10) || 1);
   const ordenarPorUrl = searchParams.get('ordenarPor') || 'nome';
   const direcaoUrl = searchParams.get('direcao') || 'asc';
   const drawerUrl = searchParams.get('cliente');
@@ -116,6 +106,9 @@ export default function ListaClientes() {
   const [sugestoesDuplicata, setSugestoesDuplicata] = useState([]);
   const [descartadas, setDescartadas] = useState(() => new Set());
   const [duplicatasAbertas, setDuplicatasAbertas] = useState(false);
+  const [buscandoDuplicatas, setBuscandoDuplicatas] = useState(false);
+  const [duplicatasConsultadas, setDuplicatasConsultadas] = useState(false);
+  const [erroDuplicatas, setErroDuplicatas] = useState('');
   const [comparacaoMescla, setComparacaoMescla] = useState(null);
   const [destinoMescla, setDestinoMescla] = useState(null);
   const [fontesMescla, setFontesMescla] = useState({});
@@ -125,24 +118,32 @@ export default function ListaClientes() {
   const { mostrarToast } = useToast();
 
   const acabouDeArrastar = useRef(false);
+  const consultaRef = useRef(null);
 
   const porPagina = 30;
   const totalPaginas = Math.max(Math.ceil(total / porPagina), 1);
 
   const carregar = useCallback(async (termo, pag, ordenarPor, direcao, extras = {}) => {
+    consultaRef.current?.abort();
+    const controle = new AbortController();
+    consultaRef.current = controle;
     setCarregando(true);
     setErro('');
+    setSelecionados(new Set());
     try {
-      const resposta = await api.clientes.listar(termo, pag, 'nome', ordenarPor, direcao, extras);
+      const resposta = await api.clientes.listar(termo, pag, 'nome', ordenarPor, direcao, { ...extras, signal: controle.signal });
+      if (controle.signal.aborted) return;
       setItens(resposta.clientes);
       setTotal(resposta.total);
       setSelecionados(new Set());
     } catch (err) {
-      setErro(err.message);
+      if (!controle.signal.aborted) setErro(err.message);
     } finally {
-      setCarregando(false);
+      if (!controle.signal.aborted) setCarregando(false);
     }
   }, []);
+
+  useEffect(() => () => consultaRef.current?.abort(), []);
 
   useEffect(() => {
     setBusca(buscaUrl);
@@ -165,23 +166,26 @@ export default function ListaClientes() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busca, telefone, aniversario, situacao]);
 
-  // Busca sugestões de possíveis duplicatas uma vez ao entrar na tela
-  // — é uma varredura da base inteira, então não precisa refazer a
-  // cada busca/paginação, só quando a lista de clientes muda de fato
-  // (após uma mesclagem, por exemplo).
+  // A varredura da base é solicitada pela ação Revisar duplicatas.
+  // Depois da primeira consulta, atualiza apenas após mudanças nos cadastros.
   const buscarSugestoes = useCallback(async () => {
+    setBuscandoDuplicatas(true);
+    setErroDuplicatas('');
     try {
       const resp = await api.clientes.possiveisDuplicatas();
       setSugestoesDuplicata(resp.pares || []);
+      setDuplicatasConsultadas(true);
     } catch (err) {
-      // Sugestão é um "extra" — se falhar, a tela continua funcionando
-      // normalmente sem ela, sem precisar mostrar erro para a pessoa.
+      setErroDuplicatas('Não foi possível consultar duplicatas. Tente novamente.');
+    } finally {
+      setBuscandoDuplicatas(false);
     }
   }, []);
 
-  useEffect(() => {
-    buscarSugestoes();
-  }, [buscarSugestoes]);
+  function alternarDuplicatas() {
+    setDuplicatasAbertas((aberta) => !aberta);
+    if (!duplicatasConsultadas && !buscandoDuplicatas) buscarSugestoes();
+  }
 
   function chaveDoPar(par) {
     return [par.a.id, par.b.id].sort((x, y) => x - y).join('-');
@@ -197,8 +201,8 @@ export default function ListaClientes() {
     try {
       await api.clientes.descartarDuplicata(par.a.id, par.b.id);
     } catch (err) {
-      // Silencioso — a sugestão só volta a aparecer numa próxima
-      // visita à tela, o que não atrapalha o uso atual.
+      setDescartadas((atual) => { const proxima = new Set(atual); proxima.delete(chave); return proxima; });
+      mostrarToast('Não foi possível descartar a sugestão. Tente novamente.', 'erro');
     }
   }
 
@@ -229,7 +233,7 @@ export default function ListaClientes() {
       if (comparacaoMescla.chave) setDescartadas((antigo) => new Set(antigo).add(comparacaoMescla.chave));
       setComparacaoMescla(null);
       setDestinoMescla(null);
-      buscarSugestoes();
+      if (duplicatasConsultadas) buscarSugestoes();
       carregar(buscaUrl, paginaUrl, ordenarPorUrl, direcaoUrl, { telefone: telefoneUrl, aniversario: aniversarioUrl, situacao: situacaoUrl });
     } catch (err) {
       mostrarToast('Não foi possível mesclar. Tente novamente.', 'erro');
@@ -294,7 +298,7 @@ export default function ListaClientes() {
       mostrarToast(`${quantidade} cliente${quantidade > 1 ? 's enviados' : ' enviado'} para a Lixeira.`);
       setSelecionados(new Set());
       setConfirmacaoExclusao(false);
-      buscarSugestoes();
+      if (duplicatasConsultadas) buscarSugestoes();
       carregar(buscaUrl, paginaUrl, ordenarPorUrl, direcaoUrl, { telefone: telefoneUrl, aniversario: aniversarioUrl, situacao: situacaoUrl });
     } catch (err) {
       mostrarToast(err.message || 'Não foi possível excluir os clientes selecionados.', 'erro');
@@ -368,9 +372,13 @@ export default function ListaClientes() {
         titulo="Clientes"
         descricao="Encontre contatos, identifique pendências e abra o histórico sem perder o contexto da lista."
         meta={!carregando ? `${total} cliente${total === 1 ? '' : 's'}` : null}
+        acoes={<button type="button" className="btn secundario" onClick={alternarDuplicatas} aria-expanded={duplicatasAbertas}>Revisar duplicatas</button>}
       />
 
-      {sugestoesVisiveis.length > 0 && (
+      {duplicatasAbertas && buscandoDuplicatas && <p role="status">Consultando possíveis duplicatas…</p>}
+      {duplicatasAbertas && erroDuplicatas && <AvisoInline titulo={erroDuplicatas} acao={<button className="btn-small" onClick={buscarSugestoes}>Tentar novamente</button>} />}
+      {duplicatasAbertas && duplicatasConsultadas && !buscandoDuplicatas && !erroDuplicatas && sugestoesVisiveis.length === 0 && <AvisoInline tom="sucesso" titulo="Nenhuma sugestão de duplicata pendente" />}
+      {duplicatasAbertas && sugestoesVisiveis.length > 0 && (
         <div className="painel" style={estilos.avisoDuplicata}>
           <button
             type="button"
@@ -425,37 +433,47 @@ export default function ListaClientes() {
         </div>
       )}
 
-      <div className="painel clientes-filtros">
+      <section className="clientes-filtros" aria-label="Busca e filtros de clientes">
         <div className="filtros-cabecalho">
-          <div><strong>Localizar clientes</strong><span>Combine nome, contato, aniversário ou situação.</span></div>
+          <div><strong>Localizar clientes</strong></div>
           {(busca || telefone || aniversario || situacao) && <button type="button" className="btn-small" onClick={() => { setBusca(''); setTelefone(''); setAniversario(''); setSituacao(''); }}>Limpar tudo</button>}
         </div>
         <div className="clientes-filtros-rapidos">
           {FILTROS_RAPIDOS.map(([valor, rotulo]) => (
-            <button key={valor} type="button" className={situacao === valor ? 'ativo' : ''} onClick={() => aplicarFiltroRapido(valor)}>{rotulo}</button>
+            <button key={valor} type="button" aria-pressed={situacao === valor} className={situacao === valor ? 'ativo' : ''} onClick={() => aplicarFiltroRapido(valor)}>{rotulo}</button>
           ))}
         </div>
         <div className="clientes-campos-busca">
-          <div className="campo clientes-campo-nome"><label>Nome</label><input type="text" placeholder="Nome do cliente" value={busca} onChange={(e) => setBusca(e.target.value)} /></div>
-          <div className="campo"><label>Telefone ou WhatsApp</label><input type="text" inputMode="numeric" placeholder="(34) 9 9999-9999" value={telefone} onChange={(e) => setTelefone(formatarTelefonePesquisa(e.target.value))} /></div>
-          <div className="campo"><label>Aniversário</label><input type="text" inputMode="numeric" placeholder="dd/mm" value={aniversario} onChange={(e) => setAniversario(formatarData(e.target.value))} /></div>
+          <div className="campo clientes-campo-nome"><label htmlFor="cliente-busca">Nome</label><input id="cliente-busca" type="search" placeholder="Nome do cliente" value={busca} onChange={(e) => setBusca(e.target.value)} /></div>
+          <div className="campo"><label htmlFor="cliente-telefone">Telefone ou WhatsApp</label><input id="cliente-telefone" type="search" inputMode="tel" placeholder="DDD e número" value={telefone} onChange={(e) => setTelefone(formatarTelefonePesquisa(e.target.value))} /></div>
+          <div className="campo"><label htmlFor="cliente-aniversario">Aniversário</label><input id="cliente-aniversario" type="text" inputMode="numeric" placeholder="dd/mm" value={aniversario} onChange={(e) => setAniversario(formatarData(e.target.value))} /></div>
         </div>
+      </section>
+
+      <div className="clientes-ordenacao-mobile">
+        <label htmlFor="ordenacao-clientes">Ordenar por</label>
+        <select id="ordenacao-clientes" value={ordenarPorUrl} onChange={(evento) => setSearchParams(montarParams(busca, telefone, aniversario, situacao, 1, evento.target.value, direcaoUrl), { replace: true })}>
+          <option value="nome">Nome</option><option value="ultimo_pedido">Último pedido</option><option value="total_pedidos">Pedidos</option><option value="valor_pendente">Pendente</option>
+        </select>
+        <button type="button" className="btn secundario" aria-label={direcaoUrl === 'asc' ? 'Mudar para ordem decrescente' : 'Mudar para ordem crescente'} onClick={() => aoClicarOrdenacao(ordenarPorUrl)}>{direcaoUrl === 'asc' ? '↑' : '↓'}</button>
       </div>
 
       {selecionados.size > 0 && (
         <div className="selecao-toolbar" role="status">
           <div><span className="selecao-contagem">{selecionados.size}</span><strong>{selecionados.size === 1 ? 'cliente selecionado' : 'clientes selecionados'}</strong><small>As ações se aplicam somente à seleção atual.</small></div>
           <button type="button" className="btn-small" onClick={() => setSelecionados(new Set())}>Limpar seleção</button>
+          {selecionados.size === 2 && <button type="button" className="btn secundario" onClick={() => { const par = itens.filter((item) => selecionados.has(item.id)); abrirComparacao(par[0], par[1]); }}>Comparar e mesclar</button>}
           <button className="btn perigo" onClick={excluirClientesSelecionados} disabled={excluindoSelecionados}>Enviar para lixeira</button>
         </div>
       )}
 
-      {erro && <AvisoInline tom="erro" titulo="Não foi possível carregar os clientes">{erro}</AvisoInline>}
+      {erro && <AvisoInline tom="erro" titulo="Não foi possível atualizar os clientes" acao={<button className="btn-small" onClick={() => carregar(buscaUrl, paginaUrl, ordenarPorUrl, direcaoUrl, { telefone: telefoneUrl, aniversario: aniversarioUrl, situacao: situacaoUrl })}>Tentar novamente</button>}>{erro}</AvisoInline>}
       {mesclando && <p className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Mesclando clientes...</p>}
 
-      {carregando ? (
+      <div className="clientes-status" role="status" aria-live="polite">{carregando ? 'Atualizando clientes…' : erro ? (itens.length ? 'Os resultados anteriores foram mantidos.' : 'Tente carregar a lista novamente.') : `${total.toLocaleString('pt-BR')} clientes · página ${paginaUrl} de ${totalPaginas}`}</div>
+      {carregando && itens.length === 0 ? (
         <SkeletonClientes />
-      ) : itens.length === 0 ? (
+      ) : itens.length === 0 && !erro ? (
         <EstadoVazio
           titulo="Nenhum cliente encontrado"
           descricao={busca || telefone || aniversario || situacao ? 'Revise os filtros ou limpe a busca para ver outros cadastros.' : 'Cadastre o primeiro cliente para começar.'}
@@ -465,7 +483,7 @@ export default function ListaClientes() {
         />
       ) : (
         <>
-          <div className="painel" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className={`painel clientes-resultados ${carregando ? 'atualizando' : ''}`} aria-busy={carregando} inert={carregando ? '' : undefined} style={{ padding: 0, overflow: 'hidden' }}>
             <div style={{ overflowX: 'auto' }}>
               <table className="tabela-lista tabela-clientes">
                 <thead>
@@ -479,22 +497,12 @@ export default function ListaClientes() {
                         aria-label="Selecionar todos os clientes desta página"
                       />
                     </th>
-                    <th
-                      onClick={() => aoClicarOrdenacao('nome')}
-                      style={estilos.colunaOrdenavel}
-                    >
-                      Nome{indicadorOrdenacao('nome', ordenarPorUrl, direcaoUrl)}
-                    </th>
+                    <th aria-sort={ordenarPorUrl === 'nome' ? (direcaoUrl === 'asc' ? 'ascending' : 'descending') : 'none'}><button type="button" className="tabela-ordenar" onClick={() => aoClicarOrdenacao('nome')}>Nome{indicadorOrdenacao('nome', ordenarPorUrl, direcaoUrl)}</button></th>
                     <th>Contato</th>
                     <th>Bairro</th>
-                    <th
-                      onClick={() => aoClicarOrdenacao('ultimo_pedido')}
-                      style={estilos.colunaOrdenavel}
-                    >
-                      Último pedido{indicadorOrdenacao('ultimo_pedido', ordenarPorUrl, direcaoUrl)}
-                    </th>
-                    <th onClick={() => aoClicarOrdenacao('total_pedidos')} style={{ ...estilos.colunaOrdenavel, textAlign: 'center' }}>Pedidos{indicadorOrdenacao('total_pedidos', ordenarPorUrl, direcaoUrl)}</th>
-                    <th onClick={() => aoClicarOrdenacao('valor_pendente')} style={{ ...estilos.colunaOrdenavel, textAlign: 'right' }}>Pendente{indicadorOrdenacao('valor_pendente', ordenarPorUrl, direcaoUrl)}</th>
+                    <th aria-sort={ordenarPorUrl === 'ultimo_pedido' ? (direcaoUrl === 'asc' ? 'ascending' : 'descending') : 'none'}><button type="button" className="tabela-ordenar" onClick={() => aoClicarOrdenacao('ultimo_pedido')}>Último pedido{indicadorOrdenacao('ultimo_pedido', ordenarPorUrl, direcaoUrl)}</button></th>
+                    <th style={{textAlign:'center'}} aria-sort={ordenarPorUrl === 'total_pedidos' ? (direcaoUrl === 'asc' ? 'ascending' : 'descending') : 'none'}><button type="button" className="tabela-ordenar" onClick={() => aoClicarOrdenacao('total_pedidos')}>Pedidos{indicadorOrdenacao('total_pedidos', ordenarPorUrl, direcaoUrl)}</button></th>
+                    <th style={{textAlign:'right'}} aria-sort={ordenarPorUrl === 'valor_pendente' ? (direcaoUrl === 'asc' ? 'ascending' : 'descending') : 'none'}><button type="button" className="tabela-ordenar" onClick={() => aoClicarOrdenacao('valor_pendente')}>Pendente{indicadorOrdenacao('valor_pendente', ordenarPorUrl, direcaoUrl)}</button></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -509,7 +517,7 @@ export default function ListaClientes() {
                       onDrop={(e) => aoSoltar(e, c)}
                       onClick={() => aoClicarLinha(c)}
                       className={
-                        (arrastandoId === c.id ? 'linha-arrastando ' : '') +
+                        (selecionados.has(c.id) ? 'selecionado ' : '') + (arrastandoId === c.id ? 'linha-arrastando ' : '') +
                         (sobreId === c.id ? 'linha-soltar-aqui' : '')
                       }
                     >
@@ -523,8 +531,8 @@ export default function ListaClientes() {
                       </td>
                       <td style={{ fontWeight: 700 }} data-label="Nome">
                         <span className="alca-arrastar" title="Arraste para mesclar com outro cliente"><IconeAlca /></span>
-                        {c.nome}
-                        {(!nascimentoValido(c.nascimento) || !valorUtil(c.whatsapp || c.celular || c.fixo)) && <span className="tag aviso cliente-revisar">Revisar cadastro</span>}
+                        <button type="button" className="cliente-nome-abrir" onClick={(evento) => { evento.stopPropagation(); aoClicarLinha(c); }}>{c.nome}</button>
+                        {![c.whatsapp, c.celular, c.fixo].some(valorUtil) && <span className="cliente-contato-tipo">Contato não informado</span>}
                       </td>
                       <td data-label="Contato">
                         <strong className="cliente-contato-principal">{valorUtil(c.whatsapp) || valorUtil(c.celular) || valorUtil(c.fixo) || '—'}</strong>
@@ -544,7 +552,7 @@ export default function ListaClientes() {
             </div>
           </div>
 
-          <Paginacao pagina={paginaUrl} totalPaginas={totalPaginas} total={total} rotulo="clientes" onAnterior={() => irParaPagina(paginaUrl - 1)} onProxima={() => irParaPagina(paginaUrl + 1)} />
+          <Paginacao carregando={carregando} pagina={paginaUrl} totalPaginas={totalPaginas} total={total} rotulo="clientes" onAnterior={() => irParaPagina(paginaUrl - 1)} onProxima={() => irParaPagina(paginaUrl + 1)} />
         </>
       )}
 
@@ -568,10 +576,10 @@ export default function ListaClientes() {
             <div className="campos-mescla-clientes">
               {CAMPOS_MESCLA.map(([campo, rotulo]) => (
                 <div className="campo-mescla-cliente" key={campo}>
-                  <label>{rotulo}</label>
-                  <select value={fontesMescla[campo] || ''} onChange={(e) => setFontesMescla((atual) => ({ ...atual, [campo]: e.target.value }))}>
-                    <option value={comparacaoMescla.a.id}>{comparacaoMescla.a.nome}: {valorUtil(comparacaoMescla.a[campo]) || 'Não informado'}</option>
-                    <option value={comparacaoMescla.b.id}>{comparacaoMescla.b.nome}: {valorUtil(comparacaoMescla.b[campo]) || 'Não informado'}</option>
+                  <label htmlFor={`mescla-${campo}`}>{rotulo}</label>
+                  <select id={`mescla-${campo}`} value={fontesMescla[campo] || ''} onChange={(e) => setFontesMescla((atual) => ({ ...atual, [campo]: e.target.value }))}>
+                    <option value={comparacaoMescla.a.id}>Cadastro {comparacaoMescla.a.id}: {valorUtil(comparacaoMescla.a[campo]) || 'Não informado'}</option>
+                    <option value={comparacaoMescla.b.id}>Cadastro {comparacaoMescla.b.id}: {valorUtil(comparacaoMescla.b[campo]) || 'Não informado'}</option>
                   </select>
                 </div>
               ))}
