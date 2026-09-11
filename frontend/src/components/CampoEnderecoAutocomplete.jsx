@@ -1,5 +1,5 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { enderecoComNumero, numeroDoEnderecoDigitado, termoDeBuscaEndereco } from '../enderecoAutocomplete.js';
+import { enderecoComNumero, filtrarSugestoesPorNumero, numeroDoEnderecoDigitado, termoDeBuscaEndereco } from '../enderecoAutocomplete.js';
 
 const UF_PADRAO = 'MG';
 const CIDADE_PADRAO = 'Uberaba';
@@ -15,11 +15,12 @@ function normalizarSugestoes(resposta) {
     const logradouro = String(item?.logradouro || '').trim();
     const bairro = String(item?.bairro || '').trim();
     if (!logradouro) continue;
-    const chave = `${logradouro.toLocaleLowerCase('pt-BR')}|${bairro.toLocaleLowerCase('pt-BR')}`;
+    const cep = String(item?.cep || '').trim();
+    const complemento = String(item?.complemento || '').trim();
+    const chave = `${logradouro.toLocaleLowerCase('pt-BR')}|${bairro.toLocaleLowerCase('pt-BR')}|${cep}`;
     if (vistos.has(chave)) continue;
     vistos.add(chave);
-    sugestoes.push({ logradouro, bairro, cep: String(item?.cep || '').trim() });
-    if (sugestoes.length === LIMITE_SUGESTOES) break;
+    sugestoes.push({ logradouro, bairro, cep, complemento });
   }
 
   return sugestoes;
@@ -70,6 +71,7 @@ export default function CampoEnderecoAutocomplete({ value, numero, onChange, onS
   }, [value]);
 
   const numeroInformado = numero === undefined ? numeroDoEnderecoDigitado(value) : String(numero || '').trim();
+  const sugestoesExibidas = filtrarSugestoesPorNumero(sugestoes, numeroInformado).slice(0, LIMITE_SUGESTOES);
 
   function selecionar(sugestao) {
     const logradouroCompleto = enderecoComNumero(sugestao.logradouro, numeroInformado);
@@ -86,16 +88,16 @@ export default function CampoEnderecoAutocomplete({ value, numero, onChange, onS
   }
 
   function aoPressionarTecla(evento) {
-    if (!aberto || sugestoes.length === 0) return;
+    if (!aberto || sugestoesExibidas.length === 0) return;
     if (evento.key === 'ArrowDown') {
       evento.preventDefault();
-      setIndiceAtivo((atual) => (atual + 1) % sugestoes.length);
+      setIndiceAtivo((atual) => (atual + 1) % sugestoesExibidas.length);
     } else if (evento.key === 'ArrowUp') {
       evento.preventDefault();
-      setIndiceAtivo((atual) => (atual <= 0 ? sugestoes.length - 1 : atual - 1));
+      setIndiceAtivo((atual) => (atual <= 0 ? sugestoesExibidas.length - 1 : atual - 1));
     } else if (evento.key === 'Enter' && indiceAtivo >= 0) {
       evento.preventDefault();
-      selecionar(sugestoes[indiceAtivo]);
+      selecionar(sugestoesExibidas[indiceAtivo]);
     } else if (evento.key === 'Escape') {
       setAberto(false);
     }
@@ -123,7 +125,7 @@ export default function CampoEnderecoAutocomplete({ value, numero, onChange, onS
       {buscando && <span className="endereco-autocomplete-buscando">Buscando em Uberaba…</span>}
       {aberto && (
         <div className="endereco-autocomplete-lista" id={listaId} role="listbox">
-          {sugestoes.map((sugestao, indice) => (
+          {sugestoesExibidas.map((sugestao, indice) => (
             <button
               type="button"
               role="option"
@@ -135,7 +137,7 @@ export default function CampoEnderecoAutocomplete({ value, numero, onChange, onS
               onClick={() => selecionar(sugestao)}
             >
               <strong>{enderecoComNumero(sugestao.logradouro, numeroInformado)}</strong>
-              <small>{[sugestao.bairro, sugestao.cep].filter(Boolean).join(' · ')}</small>
+              <small>{[sugestao.bairro, sugestao.cep, sugestao.complemento].filter(Boolean).join(' · ')}</small>
             </button>
           ))}
           <span className="endereco-autocomplete-fonte">Endereços de Uberaba/MG · ViaCEP</span>
