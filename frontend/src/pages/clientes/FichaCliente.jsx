@@ -329,9 +329,9 @@ export default function FichaCliente() {
               <CampoEnderecoAutocomplete id="editar-endereco"
                 value={dadosEdicao.endereco || ''}
                 onChange={(valor) => setEdicao('endereco', valor)}
-                onSelecionar={({ logradouro, bairro }) => setDadosEdicao((atual) => ({
+                onSelecionar={({ logradouroCompleto, bairro }) => setDadosEdicao((atual) => ({
                   ...atual,
-                  endereco: logradouro,
+                  endereco: logradouroCompleto,
                   bairro: bairro || atual.bairro,
                 }))}
               />

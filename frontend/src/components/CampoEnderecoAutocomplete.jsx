@@ -1,13 +1,10 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
+import { enderecoComNumero, numeroDoEnderecoDigitado, termoDeBuscaEndereco } from '../enderecoAutocomplete.js';
 
 const UF_PADRAO = 'MG';
 const CIDADE_PADRAO = 'Uberaba';
 const MINIMO_CARACTERES = 3;
 const LIMITE_SUGESTOES = 8;
-
-function termoDeBusca(valor) {
-  return String(valor || '').split(',')[0].trim();
-}
 
 function normalizarSugestoes(resposta) {
   if (!Array.isArray(resposta)) return [];
@@ -28,7 +25,7 @@ function normalizarSugestoes(resposta) {
   return sugestoes;
 }
 
-export default function CampoEnderecoAutocomplete({ value, onChange, onSelecionar, className = '', id }) {
+export default function CampoEnderecoAutocomplete({ value, numero, onChange, onSelecionar, className = '', id }) {
   const listaId = useId();
   const valorSelecionado = useRef('');
   const [sugestoes, setSugestoes] = useState([]);
@@ -37,7 +34,7 @@ export default function CampoEnderecoAutocomplete({ value, onChange, onSeleciona
   const [indiceAtivo, setIndiceAtivo] = useState(-1);
 
   useEffect(() => {
-    const termo = termoDeBusca(value);
+    const termo = termoDeBuscaEndereco(value);
     if (termo.length < MINIMO_CARACTERES || value === valorSelecionado.current) {
       setSugestoes([]);
       setAberto(false);
@@ -72,9 +69,12 @@ export default function CampoEnderecoAutocomplete({ value, onChange, onSeleciona
     };
   }, [value]);
 
+  const numeroInformado = numero === undefined ? numeroDoEnderecoDigitado(value) : String(numero || '').trim();
+
   function selecionar(sugestao) {
-    valorSelecionado.current = sugestao.logradouro;
-    onSelecionar(sugestao);
+    const logradouroCompleto = enderecoComNumero(sugestao.logradouro, numeroInformado);
+    valorSelecionado.current = numero === undefined ? logradouroCompleto : sugestao.logradouro;
+    onSelecionar({ ...sugestao, logradouroCompleto });
     setSugestoes([]);
     setAberto(false);
     setIndiceAtivo(-1);
@@ -134,7 +134,7 @@ export default function CampoEnderecoAutocomplete({ value, onChange, onSeleciona
               onMouseDown={(evento) => evento.preventDefault()}
               onClick={() => selecionar(sugestao)}
             >
-              <strong>{sugestao.logradouro}</strong>
+              <strong>{enderecoComNumero(sugestao.logradouro, numeroInformado)}</strong>
               <small>{[sugestao.bairro, sugestao.cep].filter(Boolean).join(' · ')}</small>
             </button>
           ))}

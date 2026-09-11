@@ -206,6 +206,7 @@ export default function FormNovoCliente() {
                   <label htmlFor="novo-endereco">Endereço</label>
                   <CampoEnderecoAutocomplete id="novo-endereco"
                     value={dados.endereco}
+                    numero={dados.numero}
                     onChange={(valor) => set('endereco', valor)}
                     onSelecionar={selecionarEndereco}
                     className="campo-endereco-cliente"
