@@ -17,6 +17,7 @@ import Lixeira from './pages/clientes/Lixeira.jsx';
 import Agenda from './pages/agenda/Agenda.jsx';
 import ListaCobranca from './pages/cobranca/ListaCobranca.jsx';
 import Relatorios from './pages/relatorios/Relatorios.jsx';
+import Lembretes from './pages/Lembretes.jsx';
 
 function RotaProtegida({ children }) {
   const usuario = getUsuarioLogado();
@@ -43,6 +44,7 @@ export default function App() {
         <Route path="agenda" element={<Agenda />} />
         <Route path="cobranca" element={<ListaCobranca />} />
         <Route path="relatorios" element={<Relatorios />} />
+        <Route path="lembretes" element={<Lembretes />} />
 
         <Route path="clientes" element={<ListaClientes />} />
         <Route path="clientes/novo" element={<FormNovoCliente />} />

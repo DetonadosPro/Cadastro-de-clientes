@@ -48,6 +48,14 @@ function IconeRelatorios() {
     </svg>
   );
 }
+function IconeLembretes() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 8a6 6 0 0 0-12 0c0 5.5-2.5 7-2.5 7h17S18 13.5 18 8Z" />
+      <path d="M10.5 20a1.7 1.7 0 0 0 3 0" />
+    </svg>
+  );
+}
 function IconeFonada() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
@@ -167,6 +175,10 @@ export default function Layout() {
             }}
           >
             <IconeRelatorios /> Relatórios
+          </NavLink>
+
+          <NavLink to="/lembretes" className="nav-item-direto">
+            <IconeLembretes /> Lembretes
           </NavLink>
 
           <div className="nav-divisor" />

@@ -198,4 +198,9 @@ export const api = {
     desempenho: (inicio, fim, sistema = 'TODOS') =>
       chamar(`/relatorios/desempenho?inicio=${encodeURIComponent(inicio)}&fim=${encodeURIComponent(fim)}&sistema=${encodeURIComponent(sistema)}`),
   },
+
+  // ---------- Lembretes de aniversário recorrente ----------
+  lembretes: {
+    aniversarios: () => chamar('/lembretes/aniversarios'),
+  },
 };

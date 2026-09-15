@@ -24,4 +24,4 @@ echo As duas janelas foram abertas (Backend e Frontend).
 echo Aguarde alguns segundos e acesse o endereco mostrado na janela do Frontend.
 echo.
 echo Voce pode fechar esta janela.
-timeout /t 5
+timeout /t 1
