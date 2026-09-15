@@ -51,6 +51,10 @@ export default function Agenda() {
   const [remarcadoHorario, setRemarcadoHorario] = useState('');
   const [salvandoRemarcacao, setSalvandoRemarcacao] = useState(false);
 
+  // Item selecionado na lista compacta — chave única por tipo+id, já
+  // que fonada usa pedidoId+mensagem e ao vivo usa só id.
+  const [chaveSelecionada, setChaveSelecionada] = useState(null);
+
   const navigate = useNavigate();
   const { mostrarToast } = useToast();
   // O contexto compartilhado (mesmo que alimenta a bolinha do menu) é
@@ -202,8 +206,28 @@ export default function Agenda() {
   const fonadaExibida = ehHoje ? ordenarPendentesPrimeiro(fonada, 'horario') : fonada;
   const aoVivoExibido = ehHoje ? ordenarPendentesPrimeiro(aoVivo, 'horario_entrega') : aoVivo;
 
+  const listaAtual = aba === 'fonada' ? fonadaExibida : aoVivoExibido;
+  const chaveDoItem = (item) => (aba === 'fonada' ? `${item.pedidoId}-${item.mensagem}` : `aovivo-${item.id}`);
+
+  // Seleciona automaticamente o primeiro item da lista ao carregar, trocar
+  // de dia ou de aba — assim o painel de detalhes nunca fica vazio à toa.
+  useEffect(() => {
+    if (listaAtual.length === 0) {
+      setChaveSelecionada(null);
+      return;
+    }
+    const aindaExiste = listaAtual.some((item) => chaveDoItem(item) === chaveSelecionada);
+    if (!aindaExiste) {
+      setChaveSelecionada(chaveDoItem(listaAtual[0]));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aba, dataSelecionada, fonada, aoVivo]);
+
+  const itemSelecionado = listaAtual.find((item) => chaveDoItem(item) === chaveSelecionada) || null;
+
   return (
     <div>
+      <Relogio />
       <div style={{ marginBottom: 20 }}>
         <h1 style={{ marginBottom: 4 }}>Agenda</h1>
         <div style={estilos.navegacaoData}>
@@ -255,235 +279,101 @@ export default function Agenda() {
             </button>
           </div>
 
-          <div style={{ padding: 16 }}>
-            {aba === 'fonada' && (
-              fonadaExibida.length === 0 ? (
-                <p className="fs-sm" style={{ color: 'var(--tinta-suave)', textAlign: 'center', padding: '16px 0' }}>
-                  Nenhuma mensagem fonada marcada para {ehHoje ? 'hoje' : 'esse dia'}.
-                </p>
-              ) : (
-                <div style={{ display: 'grid', gap: 10 }}>
-                  {fonadaExibida.map((item) => {
+          <div className="grid-agenda-lista-painel" style={{ padding: 16 }}>
+            <div className="lista-agenda-compacta">
+              {aba === 'fonada' && (
+                fonadaExibida.length === 0 ? (
+                  <p className="fs-sm" style={{ color: 'var(--tinta-suave)', textAlign: 'center', padding: '16px 0' }}>
+                    Nenhuma mensagem fonada marcada para {ehHoje ? 'hoje' : 'esse dia'}.
+                  </p>
+                ) : (
+                  fonadaExibida.map((item) => {
                     const chave = `${item.pedidoId}-${item.mensagem}`;
                     const jaPassada = ehHoje && item.passada;
                     const urgencia = (ehHoje && !jaPassada) ? statusUrgenciaItem(item.horario) : null;
                     return (
-                      <div
+                      <LinhaAgenda
                         key={chave}
-                        className={`painel item-agenda ${urgencia ? `painel-urgencia ${urgencia}` : ''}`}
-                        style={{
-                          ...estilos.itemAgenda,
-                          ...(jaPassada ? estilos.itemPassado : {}),
-                        }}
-                      >
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
-                            <span className="carimbo-os carimbo-os-lista">{item.senha_os || item.pedidoId}</span>
-                            <span
-                              style={{
-                                fontFamily: 'var(--fonte-mono)',
-                                fontSize: 16,
-                                fontWeight: 700,
-                                color: 'var(--carimbo)',
-                                textDecoration: jaPassada ? 'line-through' : 'none',
-                              }}
-                            >
-                              {item.horario || '—'}
-                            </span>
-                            <span className="tag neutro">{item.mensagem}ª mensagem</span>
-                            {urgencia === 'atrasada' && <span className="tag pendente">Atrasado</span>}
-                            {urgencia === 'proxima' && <span className="tag aviso">Chegando</span>}
-                            {(!ehHoje || jaPassada) && (
-                              <span className={`tag ${item.resultado ? 'ok' : 'pendente'}`}>
-                                {item.resultado ? 'Passada' : 'Pendente'}
-                              </span>
-                            )}
-                          </div>
-                          <div className="grade grade-3">
-                            <Info label="Comprador" valor={item.nome_comprador} />
-                            <Info label="Para" valor={item.para} />
-                            <Info label="Tema" valor={item.tema} />
-                            <Info label="Celular" valor={item.celular} />
-                            <Info label="Fixo" valor={item.fixo} />
-                            {(!ehHoje || jaPassada) && item.resultado && <Info label="Resultado" valor={item.resultado} />}
-                          </div>
-                        </div>
-                        <div className="acoes-agenda">
-                          {item.cliente_id && (
-                            <button
-                              type="button"
-                              className="btn-icone"
-                              onClick={() => navigate(`/clientes/${item.cliente_id}`)}
-                            >
-                              <IconeUsuario />
-                              <span>Ver cliente</span>
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            className="btn-icone"
-                            onClick={() => navigate(`/fonada/${item.pedidoId}`)}
-                          >
-                            <IconePedido />
-                            <span>Abrir pedido</span>
-                          </button>
-                          {ehHoje && !jaPassada && (
-                            <>
-                              <button
-                                type="button"
-                                className="btn-icone perigo"
-                                onClick={() => abrirRemarcar(item)}
-                              >
-                                <IconeNaoAtendeu />
-                                <span>Não atendeu</span>
-                              </button>
-                              <button
-                                type="button"
-                                className="btn-icone principal"
-                                onClick={() => darBaixa(item)}
-                                disabled={salvandoBaixa === chave}
-                              >
-                                <IconeCheck />
-                                <span>{salvandoBaixa === chave ? 'Salvando...' : 'Marcar como passada'}</span>
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
+                        selecionada={chaveSelecionada === chave}
+                        onClick={() => setChaveSelecionada(chave)}
+                        urgencia={urgencia}
+                        jaPassada={jaPassada}
+                        horario={item.horario}
+                        titulo={item.nome_comprador}
+                        tagExtra={`${item.mensagem}ª msg`}
+                        status={(!ehHoje || jaPassada) ? (item.resultado ? 'Passada' : 'Pendente') : null}
+                        statusOk={Boolean(item.resultado)}
+                      />
                     );
-                  })}
-                </div>
-              )
-            )}
+                  })
+                )
+              )}
 
-            {aba === 'aovivo' && (
-              aoVivoExibido.length === 0 ? (
-                <p className="fs-sm" style={{ color: 'var(--tinta-suave)', textAlign: 'center', padding: '16px 0' }}>
-                  Nenhuma mensagem ao vivo marcada para {ehHoje ? 'hoje' : 'esse dia'}.
-                </p>
-              ) : (
-                <div style={{ display: 'grid', gap: 10 }}>
-                  {aoVivoExibido.map((item) => {
+              {aba === 'aovivo' && (
+                aoVivoExibido.length === 0 ? (
+                  <p className="fs-sm" style={{ color: 'var(--tinta-suave)', textAlign: 'center', padding: '16px 0' }}>
+                    Nenhuma mensagem ao vivo marcada para {ehHoje ? 'hoje' : 'esse dia'}.
+                  </p>
+                ) : (
+                  aoVivoExibido.map((item) => {
                     const chave = `aovivo-${item.id}`;
                     const jaPassada = ehHoje && item.passada;
                     const foiEntregue = Boolean(item.resultado_entrega);
-                    // Itens de cobrança (ehCobranca) não têm horário de entrega
-                    // válido para esse dia — são só um lembrete de que o prazo
-                    // de pagamento vence aqui, então não entram na lógica de
-                    // "atrasado"/"chegando" que é sobre o horário do evento.
                     const urgencia = (ehHoje && !jaPassada && !item.ehCobranca) ? statusUrgenciaItem(item.horario_entrega) : null;
+                    let status = null;
+                    let statusOk = false;
+                    if (item.ehCobranca) {
+                      status = item.pagou === 'SIM' ? 'Recebido' : 'A receber';
+                      statusOk = item.pagou === 'SIM';
+                    } else if (foiEntregue) {
+                      status = 'Entregue';
+                      statusOk = true;
+                    }
                     return (
-                      <div
-                        key={item.id}
-                        className={`painel item-agenda ${urgencia ? `painel-urgencia ${urgencia}` : ''}`}
-                        style={{
-                          ...estilos.itemAgenda,
-                          ...(jaPassada ? estilos.itemPassado : {}),
-                        }}
-                      >
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
-                            <span className="carimbo-os carimbo-os-lista">{item.numero_os || item.id}</span>
-                            {item.ehCobranca ? (
-                              <span className="tag aviso">Cobrança prevista — não é entrega</span>
-                            ) : (
-                              <span
-                                style={{
-                                  fontFamily: 'var(--fonte-mono)',
-                                  fontSize: 16,
-                                  fontWeight: 700,
-                                  color: 'var(--carimbo)',
-                                  textDecoration: jaPassada ? 'line-through' : 'none',
-                                }}
-                              >
-                                {item.horario_entrega || '—'}
-                              </span>
-                            )}
-                            {urgencia === 'atrasada' && <span className="tag pendente">Atrasado</span>}
-                            {urgencia === 'proxima' && <span className="tag aviso">Chegando</span>}
-                            {item.ehCobranca && item.pagou === 'SIM' && <span className="tag ok">Recebido</span>}
-                            {!item.ehCobranca && foiEntregue && (
-                              <>
-                                <span className="tag ok">Entregue</span>
-                                <button
-                                  type="button"
-                                  className="btn-small"
-                                  style={{ padding: '2px 8px', fontSize: 12 }}
-                                  onClick={() => desfazerBaixaAoVivo(item)}
-                                  disabled={salvandoBaixa === `aovivo-desfazer-${item.id}`}
-                                >
-                                  {salvandoBaixa === `aovivo-desfazer-${item.id}` ? 'Desfazendo...' : 'Desfazer'}
-                                </button>
-                              </>
-                            )}
-                          </div>
-                          <div className="grade grade-3">
-                            <Info label="Comprador" valor={item.comprador} />
-                            <Info label="Para" valor={item.para} />
-                            <Info label="Endereço" valor={item.endereco} />
-                            <Info label="Bairro" valor={item.bairro} />
-                            <Info label="Referência" valor={item.referencia} />
-                          </div>
-                        </div>
-                        <div className="acoes-agenda">
-                          {item.cliente_id && (
-                            <button
-                              type="button"
-                              className="btn-icone"
-                              onClick={() => navigate(`/clientes/${item.cliente_id}`)}
-                            >
-                              <IconeUsuario />
-                              <span>Ver cliente</span>
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            className="btn-icone"
-                            onClick={() => navigate(`/ao-vivo/${item.id}`)}
-                          >
-                            <IconePedido />
-                            <span>Abrir pedido</span>
-                          </button>
-                          {!item.ehCobranca && !foiEntregue && (
-                            <button
-                              type="button"
-                              className="btn-icone principal"
-                              onClick={() => darBaixaAoVivo(item, true)}
-                              disabled={salvandoBaixa === chave}
-                            >
-                              <IconeCheck />
-                              <span>{salvandoBaixa === chave ? 'Salvando...' : 'Confirmar entrega'}</span>
-                            </button>
-                          )}
-                          {item.ehCobranca && item.pagou !== 'SIM' && (
-                            <button
-                              type="button"
-                              className="btn-icone principal"
-                              onClick={() => marcarPagouAoVivo(item, 'SIM')}
-                              disabled={salvandoBaixa === `aovivo-pagou-${item.id}`}
-                            >
-                              <IconeCheck />
-                              <span>{salvandoBaixa === `aovivo-pagou-${item.id}` ? 'Salvando...' : 'Recebido'}</span>
-                            </button>
-                          )}
-                          {item.ehCobranca && item.pagou === 'SIM' && (
-                            <button
-                              type="button"
-                              className="btn-icone"
-                              onClick={() => marcarPagouAoVivo(item, null)}
-                              disabled={salvandoBaixa === `aovivo-pagou-${item.id}`}
-                            >
-                              <IconeNaoAtendeu />
-                              <span>{salvandoBaixa === `aovivo-pagou-${item.id}` ? 'Desfazendo...' : 'Desfazer'}</span>
-                            </button>
-                          )}
-                        </div>
-                      </div>
+                      <LinhaAgenda
+                        key={chave}
+                        selecionada={chaveSelecionada === chave}
+                        onClick={() => setChaveSelecionada(chave)}
+                        urgencia={urgencia}
+                        jaPassada={jaPassada}
+                        horario={item.ehCobranca ? null : item.horario_entrega}
+                        titulo={item.comprador}
+                        tagExtra={item.ehCobranca ? 'Cobrança' : null}
+                        status={status}
+                        statusOk={statusOk}
+                      />
                     );
-                  })}
-                </div>
-              )
-            )}
+                  })
+                )
+              )}
+            </div>
+
+            <div className="painel-detalhes-agenda">
+              {!itemSelecionado ? (
+                <p className="fs-sm" style={{ color: 'var(--tinta-suave)', textAlign: 'center', padding: '24px 12px' }}>
+                  Selecione um item da lista para ver os detalhes.
+                </p>
+              ) : aba === 'fonada' ? (
+                <DetalhesFonada
+                  item={itemSelecionado}
+                  ehHoje={ehHoje}
+                  salvandoBaixa={salvandoBaixa}
+                  navigate={navigate}
+                  onDarBaixa={darBaixa}
+                  onAbrirRemarcar={abrirRemarcar}
+                />
+              ) : (
+                <DetalhesAoVivo
+                  item={itemSelecionado}
+                  ehHoje={ehHoje}
+                  salvandoBaixa={salvandoBaixa}
+                  navigate={navigate}
+                  onDarBaixaAoVivo={darBaixaAoVivo}
+                  onDesfazerBaixaAoVivo={desfazerBaixaAoVivo}
+                  onMarcarPagouAoVivo={marcarPagouAoVivo}
+                />
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -572,6 +462,216 @@ function IconeCheck() {
   );
 }
 
+// Uma linha fina e clicável na lista compacta — horário, nome, tag de
+// urgência/status. Reduz cada item a uma tira baixa, para caber muitos
+// na tela sem rolar, em vez do card grande com todos os campos aberto.
+function LinhaAgenda({ selecionada, onClick, urgencia, jaPassada, horario, titulo, tagExtra, status, statusOk }) {
+  return (
+    <div
+      className={`linha-agenda ${selecionada ? 'selecionada' : ''} ${urgencia ? `urgencia-${urgencia}` : ''} ${jaPassada ? 'passada' : ''}`}
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter') onClick(); }}
+    >
+      <span className="linha-agenda-horario" style={{ textDecoration: jaPassada ? 'line-through' : 'none' }}>
+        {horario || '—'}
+      </span>
+      <span className="linha-agenda-titulo">{titulo || '—'}</span>
+      {tagExtra && <span className="tag neutro linha-agenda-tag">{tagExtra}</span>}
+      {urgencia === 'atrasada' && <span className="tag pendente linha-agenda-tag">Atrasado</span>}
+      {urgencia === 'proxima' && <span className="tag aviso linha-agenda-tag">Chegando</span>}
+      {status && <span className={`tag ${statusOk ? 'ok' : 'pendente'} linha-agenda-tag`}>{status}</span>}
+    </div>
+  );
+}
+
+// Painel de detalhes — mostra todos os campos e ações do item
+// selecionado na lista, para caber mensagens/pedidos por dia sem abrir
+// uma tela nova para cada um.
+function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onAbrirRemarcar }) {
+  const chave = `${item.pedidoId}-${item.mensagem}`;
+  const jaPassada = ehHoje && item.passada;
+  const urgencia = (ehHoje && !jaPassada) ? statusUrgenciaItem(item.horario) : null;
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+        <span className="carimbo-os carimbo-os-lista">{item.senha_os || item.pedidoId}</span>
+        <span className="tag neutro">{item.mensagem}ª mensagem</span>
+        {urgencia === 'atrasada' && <span className="tag pendente">Atrasado</span>}
+        {urgencia === 'proxima' && <span className="tag aviso">Chegando</span>}
+        {(!ehHoje || jaPassada) && (
+          <span className={`tag ${item.resultado ? 'ok' : 'pendente'}`}>
+            {item.resultado ? 'Passada' : 'Pendente'}
+          </span>
+        )}
+      </div>
+      <div className="fs-lg" style={{ fontWeight: 700, marginBottom: 2 }}>{item.nome_comprador || '—'}</div>
+      <div className="fs-sm" style={{ color: 'var(--tinta-suave)', marginBottom: 14 }}>
+        {item.horario || '—'}
+      </div>
+
+      <div className="grade grade-2" style={{ marginBottom: 12 }}>
+        <Info label="Para" valor={item.para} />
+        <Info label="Tema" valor={item.tema ? `${item.tema}${item.codigo ? ' · ' + item.codigo : ''}` : (item.codigo || null)} />
+      </div>
+
+      {(item.celular || item.fixo) && (
+        <div className="grade grade-2" style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid var(--papel-alt)' }}>
+          {item.celular && <InfoTelefone label="Celular" valor={item.celular} />}
+          {item.fixo && <Info label="Fixo" valor={item.fixo} />}
+        </div>
+      )}
+
+      {item.quemOferece && (
+        <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid var(--papel-alt)' }}>
+          <Info label="Quem oferece" valor={item.quemOferece} />
+        </div>
+      )}
+
+      {(!ehHoje || jaPassada) && item.resultado && (
+        <div style={{ marginBottom: 14 }}>
+          <Info label="Resultado" valor={item.resultado} />
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: ehHoje && !jaPassada ? 8 : 0 }}>
+        {item.cliente_id && (
+          <button type="button" className="btn-action" style={{ flex: 1 }} onClick={() => navigate(`/clientes/${item.cliente_id}`)}>
+            <IconeUsuario /> Ver cliente
+          </button>
+        )}
+        <button type="button" className="btn-action" style={{ flex: 1 }} onClick={() => navigate(`/fonada/${item.pedidoId}`)}>
+          <IconePedido /> Abrir pedido
+        </button>
+      </div>
+      {ehHoje && !jaPassada && (
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button type="button" className="btn-action perigo-acao" style={{ flex: 1 }} onClick={() => onAbrirRemarcar(item)}>
+            <IconeNaoAtendeu /> Não atendeu
+          </button>
+          <button
+            type="button"
+            className="btn-action destaque"
+            style={{ flex: 1 }}
+            onClick={() => onDarBaixa(item)}
+            disabled={salvandoBaixa === chave}
+          >
+            <IconeCheck /> {salvandoBaixa === chave ? 'Salvando...' : 'Marcar passada'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DetalhesAoVivo({ item, ehHoje, salvandoBaixa, navigate, onDarBaixaAoVivo, onDesfazerBaixaAoVivo, onMarcarPagouAoVivo }) {
+  const chave = `aovivo-${item.id}`;
+  const jaPassada = ehHoje && item.passada;
+  const foiEntregue = Boolean(item.resultado_entrega);
+  const urgencia = (ehHoje && !jaPassada && !item.ehCobranca) ? statusUrgenciaItem(item.horario_entrega) : null;
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+        <span className="carimbo-os carimbo-os-lista">{item.numero_os || item.id}</span>
+        {item.ehCobranca && <span className="tag aviso">Cobrança prevista — não é entrega</span>}
+        {urgencia === 'atrasada' && <span className="tag pendente">Atrasado</span>}
+        {urgencia === 'proxima' && <span className="tag aviso">Chegando</span>}
+        {item.ehCobranca && item.pagou === 'SIM' && <span className="tag ok">Recebido</span>}
+        {!item.ehCobranca && foiEntregue && <span className="tag ok">Entregue</span>}
+      </div>
+      <div className="fs-lg" style={{ fontWeight: 700, marginBottom: 2 }}>{item.comprador || '—'}</div>
+      <div className="fs-sm" style={{ color: 'var(--tinta-suave)', marginBottom: 14 }}>
+        {item.ehCobranca ? 'Cobrança prevista' : (item.horario_entrega || '—')}
+      </div>
+
+      <div className="grade grade-2" style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid var(--papel-alt)' }}>
+        <Info label="Para" valor={item.para} />
+        <Info label="Endereço" valor={item.endereco} />
+        <Info label="Bairro" valor={item.bairro} />
+        <Info label="Referência" valor={item.referencia} />
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+        {item.cliente_id && (
+          <button type="button" className="btn-action" style={{ flex: 1 }} onClick={() => navigate(`/clientes/${item.cliente_id}`)}>
+            <IconeUsuario /> Ver cliente
+          </button>
+        )}
+        <button type="button" className="btn-action" style={{ flex: 1 }} onClick={() => navigate(`/ao-vivo/${item.id}`)}>
+          <IconePedido /> Abrir pedido
+        </button>
+      </div>
+
+      {!item.ehCobranca && foiEntregue && (
+        <button
+          type="button"
+          className="btn-action"
+          style={{ width: '100%' }}
+          onClick={() => onDesfazerBaixaAoVivo(item)}
+          disabled={salvandoBaixa === `aovivo-desfazer-${item.id}`}
+        >
+          {salvandoBaixa === `aovivo-desfazer-${item.id}` ? 'Desfazendo...' : 'Desfazer entrega'}
+        </button>
+      )}
+      {!item.ehCobranca && !foiEntregue && (
+        <button
+          type="button"
+          className="btn-action destaque"
+          style={{ width: '100%' }}
+          onClick={() => onDarBaixaAoVivo(item, true)}
+          disabled={salvandoBaixa === chave}
+        >
+          <IconeCheck /> {salvandoBaixa === chave ? 'Salvando...' : 'Confirmar entrega'}
+        </button>
+      )}
+      {item.ehCobranca && item.pagou !== 'SIM' && (
+        <button
+          type="button"
+          className="btn-action destaque"
+          style={{ width: '100%' }}
+          onClick={() => onMarcarPagouAoVivo(item, 'SIM')}
+          disabled={salvandoBaixa === `aovivo-pagou-${item.id}`}
+        >
+          <IconeCheck /> {salvandoBaixa === `aovivo-pagou-${item.id}` ? 'Salvando...' : 'Recebido'}
+        </button>
+      )}
+      {item.ehCobranca && item.pagou === 'SIM' && (
+        <button
+          type="button"
+          className="btn-action"
+          style={{ width: '100%' }}
+          onClick={() => onMarcarPagouAoVivo(item, null)}
+          disabled={salvandoBaixa === `aovivo-pagou-${item.id}`}
+        >
+          <IconeNaoAtendeu /> {salvandoBaixa === `aovivo-pagou-${item.id}` ? 'Desfazendo...' : 'Desfazer'}
+        </button>
+      )}
+    </div>
+  );
+}
+
+// Relógio no canto superior direito da tela — só na Agenda, para
+// comparar rápido com os horários das mensagens/entregas do dia.
+// Atualiza a cada segundo (para trocar de minuto na hora certa),
+// exibindo só HH:MM.
+function Relogio() {
+  const [agora, setAgora] = useState(new Date());
+  useEffect(() => {
+    const intervalo = setInterval(() => setAgora(new Date()), 1000);
+    return () => clearInterval(intervalo);
+  }, []);
+  const hh = String(agora.getHours()).padStart(2, '0');
+  const mm = String(agora.getMinutes()).padStart(2, '0');
+  return (
+    <div className="relogio-topo nao-imprimir" aria-label={`Hora atual: ${hh}:${mm}`}>
+      {hh}:{mm}
+    </div>
+  );
+}
+
 function Info({ label, valor }) {
   return (
     <div>
@@ -579,6 +679,38 @@ function Info({ label, valor }) {
         {label}
       </div>
       <div className="fs-md">{valor || '—'}</div>
+    </div>
+  );
+}
+
+// Igual a Info, mas o valor vira link clicável para abrir a conversa no
+// WhatsApp (wa.me), usado no Celular — mesmo padrão de formatação de
+// número usado no cadastro (DDI 55 + DDD + número, só dígitos).
+function InfoTelefone({ label, valor }) {
+  const somenteDigitos = String(valor || '').replace(/\D/g, '');
+  const numeroComDDI = somenteDigitos
+    ? (somenteDigitos.startsWith('55') ? somenteDigitos : `55${somenteDigitos}`)
+    : '';
+  const linkWhatsapp = numeroComDDI.length >= 12 ? `https://wa.me/${numeroComDDI}` : null;
+
+  return (
+    <div>
+      <div className="fs-xs" style={{ textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--tinta-suave)', marginBottom: 2 }}>
+        {label}
+      </div>
+      {linkWhatsapp ? (
+        <a
+          href={linkWhatsapp}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fs-md link-whatsapp"
+          title="Abrir conversa no WhatsApp"
+        >
+          {valor}
+        </a>
+      ) : (
+        <div className="fs-md">{valor || '—'}</div>
+      )}
     </div>
   );
 }
