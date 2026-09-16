@@ -38,21 +38,23 @@ export function buildRecallWhatsAppMessage({
   usuario,
   generoAniversariante,
   generoUsuario,
+  numeroOs,
 }) {
   const nomeContato = normalizarNome(contato) || 'Cliente';
   const nomeAniversariante = normalizarNome(aniversariante) || 'Cliente';
   const nomeUsuario = normalizarNome(usuario) || 'Usuário';
   const generoAniversario = generoDoAniversariante(nomeAniversariante, generoAniversariante);
   const artigoUsuarioAtual = artigoDoUsuario(nomeUsuario, generoUsuario);
+  const rodapeOs = String(numeroOs ?? '').trim() ? `\n\nO.S.: ${String(numeroOs).trim()}` : '';
   // Escape Unicode evita que o emoji seja corrompido ao passar por
   // editores/ambientes Windows com codificações de arquivo diferentes.
   const emojiFesta = '\u{1F973}';
 
   if (modoFila === 'ANIVERSARIO') {
-    return `Oi ${nomeContato}, é ${artigoUsuarioAtual} ${nomeUsuario} do Pombo Correio Mensagens. Vimos em nosso cadastro que amanhã é aniversário ${generoAniversario.contracao} ${nomeAniversariante}${emojiFesta}. Você gostaria de passar uma mensagem de aniversário pra ${generoAniversario.pronome}?`;
+    return `Oi ${nomeContato}, é ${artigoUsuarioAtual} ${nomeUsuario} do Pombo Correio Mensagens. Vimos em nosso cadastro que amanhã é aniversário ${generoAniversario.contracao} ${nomeAniversariante}${emojiFesta}. Você gostaria de passar uma mensagem de aniversário pra ${generoAniversario.pronome}?${rodapeOs}`;
   }
 
-  return `Oi ${nomeContato}, é ${artigoUsuarioAtual} ${nomeUsuario} do Pombo Correio. Amanhã é aniversário ${generoAniversario.contracao} ${nomeAniversariante}${emojiFesta}. Você gostaria de passar uma mensagem pra ${generoAniversario.pronome}?`;
+  return `Oi ${nomeContato}, é ${artigoUsuarioAtual} ${nomeUsuario} do Pombo Correio. Amanhã é aniversário ${generoAniversario.contracao} ${nomeAniversariante}${emojiFesta}. Você gostaria de passar uma mensagem pra ${generoAniversario.pronome}?${rodapeOs}`;
 }
 
 export function buildRecallWhatsAppUrl(telefone, dadosMensagem, criarLinkTelefone) {

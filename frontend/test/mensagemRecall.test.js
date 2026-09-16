@@ -55,3 +55,10 @@ test('URL preserva acentos, pontuação, espaços e emoji', () => {
 test('telefone inválido não cria URL', () => {
   assert.equal(buildRecallWhatsAppUrl('', base, () => null), null);
 });
+
+test('adiciona a O.S. do último pedido após duas quebras nas duas pesquisas', () => {
+  for (const modoFila of ['DIA_MENSAGEM', 'ANIVERSARIO']) {
+    const mensagem = buildRecallWhatsAppMessage({ ...base, modoFila, numeroOs: '12345' });
+    assert.match(mensagem, /\?\n\nO\.S\.: 12345$/);
+  }
+});
