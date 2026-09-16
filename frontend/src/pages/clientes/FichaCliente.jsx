@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useSmartBack } from '../../hooks/useSmartBack.js';
 import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
@@ -68,13 +68,14 @@ function linkWhatsApp(numero) {
 export default function FichaCliente() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const voltarHistorico = useSmartBack('/clientes');
   const { mostrarToast } = useToast();
 
   const [cliente, setCliente] = useState(null);
   const [pedidosFonada, setPedidosFonada] = useState([]);
   const [pedidosAoVivo, setPedidosAoVivo] = useState([]);
-  const [aba, setAba] = useState('fonada');
+  const [aba, setAba] = useState(() => searchParams.get('aba') === 'aovivo' ? 'aovivo' : 'fonada');
   const [editando, setEditando] = useState(false);
   const [dadosEdicao, setDadosEdicao] = useState(null);
   const [carregando, setCarregando] = useState(true);
@@ -83,7 +84,8 @@ export default function FichaCliente() {
   const [mostrandoBloqueio, setMostrandoBloqueio] = useState(false);
   const [motivoBloqueio, setMotivoBloqueio] = useState('');
   const [salvandoBloqueio, setSalvandoBloqueio] = useState(false);
-  const [mesMensagens, setMesMensagens] = useState('');
+  const [mesMensagens, setMesMensagens] = useState(() => searchParams.get('mes') || '');
+  const [pedidoSelecionado, setPedidoSelecionado] = useState(() => searchParams.get('pedido') || '');
   const pedidosFonadaFiltrados = filtrarPedidosPorMesDaMensagem(pedidosFonada, mesMensagens);
   const listaFonada = useListaIncremental(pedidosFonadaFiltrados, `${id}:fonada:${mesMensagens}`);
   const listaAoVivo = useListaIncremental(pedidosAoVivo, `${id}:aovivo`);
@@ -105,6 +107,35 @@ export default function FichaCliente() {
     carregar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  useEffect(() => {
+    if (carregando || !pedidoSelecionado) return undefined;
+    const pedidosDaAba = aba === 'aovivo' ? pedidosAoVivo : pedidosFonadaFiltrados;
+    const listaDaAba = aba === 'aovivo' ? listaAoVivo : listaFonada;
+    const indice = pedidosDaAba.findIndex((pedido) => String(pedido.id) === String(pedidoSelecionado));
+    if (indice >= listaDaAba.itensVisiveis.length) {
+      listaDaAba.mostrarAte(indice + 1);
+      return undefined;
+    }
+    const quadro = requestAnimationFrame(() => {
+      document.querySelector(`[data-pedido-id="${pedidoSelecionado}"]`)?.scrollIntoView({ block: 'center' });
+    });
+    return () => cancelAnimationFrame(quadro);
+  }, [carregando, pedidoSelecionado, aba, listaFonada.itensVisiveis.length, listaAoVivo.itensVisiveis.length]);
+
+  function abrirPedido(tipo, pedidoId) {
+    const parametros = new URLSearchParams();
+    parametros.set('aba', tipo);
+    parametros.set('pedido', String(pedidoId));
+    if (tipo === 'fonada' && mesMensagens) parametros.set('mes', mesMensagens);
+    const retorno = `/clientes/${id}?${parametros.toString()}`;
+
+    // Atualiza a entrada atual antes de abrir o pedido. Assim, tanto o
+    // botão Voltar da tela quanto o voltar do navegador restauram o mesmo
+    // contexto da ficha, inclusive a linha que originou a navegação.
+    navigate(retorno, { replace: true });
+    navigate(`/${tipo === 'fonada' ? 'fonada' : 'ao-vivo'}/${pedidoId}`, { state: { returnTo: retorno } });
+  }
 
   function iniciarEdicao() {
     setDadosEdicao({ ...cliente });
@@ -377,14 +408,14 @@ export default function FichaCliente() {
           <button
             type="button"
             className={`aba-cliente-botao ${aba === 'fonada' ? 'ativa' : ''}`}
-            onClick={() => setAba('fonada')}
+            onClick={() => { setAba('fonada'); setPedidoSelecionado(''); }}
           >
             Fonada <span className="aba-contagem">{pedidosFonada.length}</span>
           </button>
           <button
             type="button"
             className={`aba-cliente-botao ${aba === 'aovivo' ? 'ativa' : ''}`}
-            onClick={() => setAba('aovivo')}
+            onClick={() => { setAba('aovivo'); setPedidoSelecionado(''); }}
           >
             Ao vivo <span className="aba-contagem">{pedidosAoVivo.length}</span>
           </button>
@@ -400,7 +431,7 @@ export default function FichaCliente() {
                     <select
                       id="filtro-mes-mensagem"
                       value={mesMensagens}
-                      onChange={(evento) => setMesMensagens(evento.target.value)}
+                      onChange={(evento) => { setMesMensagens(evento.target.value); setPedidoSelecionado(''); }}
                     >
                       <option value="">Todos os meses</option>
                       {MESES.map((mes, indice) => <option key={mes} value={indice + 1}>{mes}</option>)}
@@ -447,7 +478,12 @@ export default function FichaCliente() {
                       {listaFonada.itensVisiveis.map((p) => {
                         const mensagensNoMes = mensagensDoPedidoNoMes(p, mesMensagens);
                         return (
-                        <tr key={p.id} className={mesMensagens ? 'historico-pedido-filtrado' : ''} onClick={() => navigate(`/fonada/${p.id}`, { state: { returnTo: `/clientes/${id}` } })}>
+                        <tr
+                          key={p.id}
+                          data-pedido-id={p.id}
+                          className={`${mesMensagens ? 'historico-pedido-filtrado ' : ''}${String(pedidoSelecionado) === String(p.id) ? 'historico-pedido-selecionado' : ''}`.trim()}
+                          onClick={() => abrirPedido('fonada', p.id)}
+                        >
                           <td><span className="carimbo-os carimbo-os-lista">{p.senha_os || p.id}</span></td>
                           <td>{p.data_pedido || '—'}</td>
                           <td>
@@ -495,7 +531,12 @@ export default function FichaCliente() {
                     </thead>
                     <tbody>
                       {listaAoVivo.itensVisiveis.map((p) => (
-                        <tr key={p.id} onClick={() => navigate(`/ao-vivo/${p.id}`, { state: { returnTo: `/clientes/${id}` } })}>
+                        <tr
+                          key={p.id}
+                          data-pedido-id={p.id}
+                          className={String(pedidoSelecionado) === String(p.id) ? 'historico-pedido-selecionado' : ''}
+                          onClick={() => abrirPedido('aovivo', p.id)}
+                        >
                           <td><span className="carimbo-os carimbo-os-lista">{p.numero_os || p.id}</span></td>
                           <td>{p.data_pedido || '—'}</td>
                           <td>{p.dia_entrega || '—'}</td>

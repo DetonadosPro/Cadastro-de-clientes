@@ -13,6 +13,7 @@ export function useListaIncremental(itens = [], chave = '') {
     temMais: itens.length > limite,
     restantes: Math.max(itens.length - limite, 0),
     mostrarMais: () => setLimite((atual) => atual + PASSO_LISTA),
+    mostrarAte: (quantidade) => setLimite((atual) => Math.max(atual, quantidade)),
   };
 }
 

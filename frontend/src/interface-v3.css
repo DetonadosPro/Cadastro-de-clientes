@@ -812,6 +812,11 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--carimbo); }
 .historico-filtro-mes-resultado button { margin-left: 5px; padding: 0; border: 0; background: transparent; color: var(--azul); font: inherit; font-weight: 680; cursor: pointer; }
 .historico-filtro-mes-resultado button:hover { text-decoration: underline; }
 .historico-pedido-filtrado { background: #fbfdff; }
+.tabela-lista tbody tr.historico-pedido-selecionado,
+.tabela-lista tbody tr.historico-pedido-selecionado:hover {
+  background: #e8f1ff;
+  box-shadow: inset 4px 0 0 var(--azul);
+}
 .historico-destinatario.no-mes { color: #173f78; font-weight: 680; }
 .historico-seta-mes { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; margin-left: 2px; border-radius: 50%; background: #e5f0ff; color: #1e62b5; font-size: 12px; font-weight: 800; line-height: 1; vertical-align: -1px; }
 .historico-filtro-vazio { display: grid; justify-items: center; gap: 6px; padding: 30px 16px; color: var(--tinta-suave); text-align: center; }
