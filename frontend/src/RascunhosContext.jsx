@@ -1,34 +1,60 @@
-// src/RascunhosContext.jsx
-//
-// Guarda o "rascunho" (formulário ainda não salvo) de cada sistema
-// (fonada e ao vivo) num estado que vive acima das telas — assim,
-// se você está preenchendo um pedido de fonada, troca pra tela de
-// ao vivo pra atender outro cliente, e depois volta pra fonada, o
-// que você tinha digitado continua lá, exatamente como deixou.
-//
-// Cada tela de formulário só lê/escreve nesse estado compartilhado
-// em vez de guardar tudo sozinha com useState local.
-
 import React, { createContext, useContext, useState, useCallback } from 'react';
 
 const RascunhosContext = createContext(null);
 
 export function RascunhosProvider({ children }) {
-  // Guarda até um rascunho por sistema, indexado por "novo" ou pelo id do registro em edição.
-  const [rascunhoFonada, setRascunhoFonada] = useState(null);
-  const [rascunhoAoVivo, setRascunhoAoVivo] = useState(null);
+  const [rascunhosFonada, setRascunhosFonada] = useState({});
+  const [rascunhosAoVivo, setRascunhosAoVivo] = useState({});
 
-  const limparRascunhoFonada = useCallback(() => setRascunhoFonada(null), []);
-  const limparRascunhoAoVivo = useCallback(() => setRascunhoAoVivo(null), []);
+  const salvarRascunhoFonada = useCallback((chave, dados, cliente, busca) => {
+    setRascunhosFonada((atuais) => ({
+      ...atuais,
+      [chave]: { chave, dados, cliente, criadoEm: atuais[chave]?.criadoEm || Date.now(), busca: busca ?? atuais[chave]?.busca ?? '' },
+    }));
+  }, []);
+  const salvarRascunhoAoVivo = useCallback((chave, dados, cliente, busca) => {
+    setRascunhosAoVivo((atuais) => ({
+      ...atuais,
+      [chave]: { chave, dados, cliente, criadoEm: atuais[chave]?.criadoEm || Date.now(), busca: busca ?? atuais[chave]?.busca ?? '' },
+    }));
+  }, []);
+  const atualizarClienteRascunhoFonada = useCallback((chave, cliente) => {
+    setRascunhosFonada((atuais) => atuais[chave]
+      ? { ...atuais, [chave]: { ...atuais[chave], cliente } }
+      : atuais);
+  }, []);
+  const atualizarClienteRascunhoAoVivo = useCallback((chave, cliente) => {
+    setRascunhosAoVivo((atuais) => atuais[chave]
+      ? { ...atuais, [chave]: { ...atuais[chave], cliente } }
+      : atuais);
+  }, []);
+  const limparRascunhoFonada = useCallback((chave) => {
+    setRascunhosFonada((atuais) => {
+      if (!atuais[chave]) return atuais;
+      const proximos = { ...atuais };
+      delete proximos[chave];
+      return proximos;
+    });
+  }, []);
+  const limparRascunhoAoVivo = useCallback((chave) => {
+    setRascunhosAoVivo((atuais) => {
+      if (!atuais[chave]) return atuais;
+      const proximos = { ...atuais };
+      delete proximos[chave];
+      return proximos;
+    });
+  }, []);
 
   return (
     <RascunhosContext.Provider
       value={{
-        rascunhoFonada,
-        setRascunhoFonada,
+        rascunhosFonada,
+        salvarRascunhoFonada,
+        atualizarClienteRascunhoFonada,
         limparRascunhoFonada,
-        rascunhoAoVivo,
-        setRascunhoAoVivo,
+        rascunhosAoVivo,
+        salvarRascunhoAoVivo,
+        atualizarClienteRascunhoAoVivo,
         limparRascunhoAoVivo,
       }}
     >

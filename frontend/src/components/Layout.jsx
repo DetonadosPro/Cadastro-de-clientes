@@ -9,11 +9,20 @@ import CommandPalette from './CommandPalette.jsx';
 import { useAtualizacaoTempoReal } from '../TempoRealContext.jsx';
 import { useToast } from '../ToastContext.jsx';
 
-// Converte a chave do rascunho ("novo" ou "editar-123") na rota do formulário correspondente.
-function rotaDoRascunho(prefixoRota, chave) {
-  if (chave === 'novo') return `${prefixoRota}/novo`;
-  const id = chave.replace('editar-', '');
-  return `${prefixoRota}/${id}`;
+function rotaDoRascunho(prefixoRota, rascunho) {
+  if (rascunho.chave.startsWith('novo-')) {
+    const params = new URLSearchParams(rascunho.busca);
+    params.set('clienteId', String(rascunho.dados.cliente_id));
+    params.set('rascunho', rascunho.chave.slice(5));
+    return `${prefixoRota}/novo?${params}`;
+  }
+  return `${prefixoRota}/${rascunho.chave.slice(7)}`;
+}
+
+function nomeDoRascunho(rascunho) {
+  const cliente = rascunho.cliente?.nome || 'Cliente';
+  if (rascunho.chave.startsWith('editar-')) return `${cliente} · pedido ${rascunho.dados.senha_os || rascunho.dados.numero_os || rascunho.chave.slice(7)}`;
+  return `${cliente} · ${new Date(rascunho.criadoEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
 }
 
 // Ícones do menu — traço fino (1.6px), 18x18, sem preenchimento sólido,
@@ -141,7 +150,7 @@ export default function Layout() {
   const conteudoRef = useRef(null);
   const temporizadorAtualizacaoRef = useRef(null);
   const atualizacaoPendenteRef = useRef(false);
-  const { rascunhoFonada, rascunhoAoVivo } = useRascunhos();
+  const { rascunhosFonada, rascunhosAoVivo } = useRascunhos();
   const { mostrarToast } = useToast();
   // A cor da bolinha vem do contexto compartilhado — assim ela e as
   // bordas de urgência na tela Agenda ficam sempre sincronizadas, já
@@ -349,20 +358,20 @@ export default function Layout() {
           <NavLink to="/fonada" className="nav-item-direto" end aria-label="Fonada" title="Fonada" onClick={(e) => aoClicarLinkSecao(e, '/fonada')}>
             <IconeFonada /> <span className="nav-label">Fonada</span>
           </NavLink>
-          {rascunhoFonada && (
-            <NavLink to={rotaDoRascunho('/fonada', rascunhoFonada.chave)} className="nav-continuar">
-              <span className="nav-label">↻ Continuar pedido fonada</span>
+          {Object.values(rascunhosFonada).map((rascunho) => (
+            <NavLink key={rascunho.chave} to={rotaDoRascunho('/fonada', rascunho)} className="nav-continuar" title={`Continuar Fonada: ${nomeDoRascunho(rascunho)}`}>
+              <span className="nav-label">↻ {nomeDoRascunho(rascunho)}</span>
             </NavLink>
-          )}
+          ))}
 
           <NavLink to="/ao-vivo" className="nav-item-direto" end aria-label="Ao vivo" title="Ao vivo" onClick={(e) => aoClicarLinkSecao(e, '/ao-vivo')}>
             <IconeAoVivo /> <span className="nav-label">Ao vivo</span>
           </NavLink>
-          {rascunhoAoVivo && (
-            <NavLink to={rotaDoRascunho('/ao-vivo', rascunhoAoVivo.chave)} className="nav-continuar">
-              <span className="nav-label">↻ Continuar pedido ao vivo</span>
+          {Object.values(rascunhosAoVivo).map((rascunho) => (
+            <NavLink key={rascunho.chave} to={rotaDoRascunho('/ao-vivo', rascunho)} className="nav-continuar" title={`Continuar Ao vivo: ${nomeDoRascunho(rascunho)}`}>
+              <span className="nav-label">↻ {nomeDoRascunho(rascunho)}</span>
             </NavLink>
-          )}
+          ))}
         </nav>
 
         <div className="layout-sidebar-fixo">

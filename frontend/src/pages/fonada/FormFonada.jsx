@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useSmartBack } from '../../hooks/useSmartBack.js';
 import { api } from '../../api.js';
 import { useRascunhos } from '../../RascunhosContext.jsx';
@@ -130,13 +130,15 @@ export default function FormFonada() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const clienteIdUrl = searchParams.get('clienteId');
+  const rascunhoIdUrl = searchParams.get('rascunho');
   const recallParaUrl = searchParams.get('recallPara');
   const recallDataUrl = searchParams.get('recallData');
   const recallRelacaoUrl = searchParams.get('recallRelacao');
   const editando = Boolean(id);
+  const location = useLocation();
   const navigate = useNavigate();
   const voltarHistorico = useSmartBack('/fonada');
-  const { rascunhoFonada, setRascunhoFonada, limparRascunhoFonada } = useRascunhos();
+  const { rascunhosFonada, salvarRascunhoFonada, atualizarClienteRascunhoFonada, limparRascunhoFonada } = useRascunhos();
   const { mostrarToast } = useToast();
 
   // Navegação entre resultados da busca (Anterior/Próximo), sem
@@ -214,7 +216,9 @@ export default function FormFonada() {
     }
   }
 
-  const chaveRascunho = editando ? `editar-${id}` : 'novo';
+  const novoRascunhoId = useMemo(() => crypto.randomUUID(), [location.key]);
+  const chaveRascunho = editando ? `editar-${id}` : `novo-${rascunhoIdUrl || novoRascunhoId}`;
+  const rascunhoFonada = rascunhosFonada[chaveRascunho];
 
   const [dados, setDados] = useState(VAZIO);
   const [mensagemEmHaver, setMensagemEmHaver] = useState(null);
@@ -254,12 +258,40 @@ export default function FormFonada() {
   }
 
   useEffect(() => {
-    if (rascunhoFonada && rascunhoFonada.chave === chaveRascunho) {
-      setDados(rascunhoFonada.dados);
-      if (rascunhoFonada.cliente) setCliente(rascunhoFonada.cliente);
-      setCarregando(false);
+    let ativo = true;
+    setCarregando(true);
+    setErro('');
+    setMensagemEmHaver(null);
+    setTentativas([]);
+    if (!editando && !rascunhoIdUrl) {
+      const params = new URLSearchParams(searchParams);
+      params.set('rascunho', novoRascunhoId);
+      navigate(`${location.pathname}?${params}`, { replace: true, state: location.state });
       return;
     }
+    if (rascunhoFonada) {
+      setDados(rascunhoFonada.dados);
+      setCliente(rascunhoFonada.cliente || null);
+      if (editando) {
+        api.fonada.buscar(id)
+          .then((pedido) => { if (ativo) setMensagemEmHaver(pedido.mensagemEmHaver || null); })
+          .catch(() => {});
+        api.agenda.buscarTentativas(id)
+          .then((resp) => { if (ativo) setTentativas(resp.tentativas); })
+          .catch(() => {});
+      }
+      if (!rascunhoFonada.cliente && rascunhoFonada.dados.cliente_id) {
+        api.clientes.buscarCadastro(rascunhoFonada.dados.cliente_id)
+          .then((resp) => { if (ativo) {
+            setCliente(resp.cliente);
+            atualizarClienteRascunhoFonada(chaveRascunho, resp.cliente);
+          } })
+          .catch(() => {});
+      }
+      setCarregando(false);
+      return () => { ativo = false; };
+    }
+    setCliente(null);
 
     if (!editando) {
       if (!clienteIdUrl) {
@@ -269,6 +301,7 @@ export default function FormFonada() {
       }
       Promise.all([api.clientes.buscarCadastro(clienteIdUrl), api.fonada.proximaOs()])
         .then(([respCliente, respOs]) => {
+          if (!ativo) return;
           const { data, horario } = dataHoraAtual();
           const inicial = {
             ...VAZIO,
@@ -285,29 +318,36 @@ export default function FormFonada() {
           };
           setDados(inicial);
           setCliente(respCliente.cliente);
-          setRascunhoFonada({ chave: chaveRascunho, dados: inicial, cliente: respCliente.cliente });
+          salvarRascunhoFonada(chaveRascunho, inicial, respCliente.cliente, location.search);
         })
-        .catch((err) => setErro(err.message))
-        .finally(() => setCarregando(false));
-      return;
+        .catch((err) => { if (ativo) setErro(err.message); })
+        .finally(() => { if (ativo) setCarregando(false); });
+      return () => { ativo = false; };
     }
 
     api.fonada.buscar(id)
       .then((pedido) => {
+        if (!ativo) return;
         const normalizado = { ...VAZIO };
         Object.keys(VAZIO).forEach((campo) => { normalizado[campo] = pedido[campo] ?? ''; });
         normalizado.valor = numeroParaValorMonetario(pedido.valor);
         setDados(normalizado);
         setMensagemEmHaver(pedido.mensagemEmHaver || null);
         if (pedido.cliente_id) {
-          api.clientes.buscarCadastro(pedido.cliente_id).then((resp) => setCliente(resp.cliente));
+          api.clientes.buscarCadastro(pedido.cliente_id).then((resp) => { if (ativo) {
+            setCliente(resp.cliente);
+            atualizarClienteRascunhoFonada(chaveRascunho, resp.cliente);
+          } });
         }
-        api.agenda.buscarTentativas(id).then((resp) => setTentativas(resp.tentativas)).catch(() => {});
+        api.agenda.buscarTentativas(id).then((resp) => { if (ativo) setTentativas(resp.tentativas); }).catch(() => {});
       })
-      .catch((err) => setErro(err.message))
-      .finally(() => setCarregando(false));
+      .catch((err) => { if (ativo) setErro(err.message); })
+      .finally(() => { if (ativo) setCarregando(false); });
+    // O rascunho é consultado apenas ao abrir este pedido; mudanças de campo
+    // não devem reinicializar o formulário durante a digitação.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, editando, clienteIdUrl]);
+    return () => { ativo = false; };
+  }, [chaveRascunho, clienteIdUrl, rascunhoIdUrl]);
 
   async function darBaixaMensagem(mensagem) {
     setSalvandoBaixa(mensagem);
@@ -315,6 +355,7 @@ export default function FormFonada() {
       await api.agenda.darBaixaFonada(id, mensagem);
       mostrarToast('BAIXA DADA COM SUCESSO');
       await carregarPedido();
+      limparRascunhoFonada(chaveRascunho);
     } catch (err) {
       mostrarToast(err.message || 'Não foi possível registrar a baixa.', 'erro');
     } finally {
@@ -359,6 +400,7 @@ export default function FormFonada() {
       mostrarToast('Tentativa registrada e mensagem remarcada.');
       setRemarcarAberto(null);
       await carregarPedido();
+      limparRascunhoFonada(chaveRascunho);
     } catch (err) {
       mostrarToast(err.message || 'Não foi possível registrar.', 'erro');
     } finally {
@@ -369,9 +411,7 @@ export default function FormFonada() {
   function set(campo, valor) {
     const novo = { ...dados, [campo]: valor };
     setDados(novo);
-    // O atalho "Continuar pedido" representa somente um pedido novo ainda
-    // não salvo. Editar um pedido existente não pode substituir esse rascunho.
-    if (!editando) setRascunhoFonada({ chave: chaveRascunho, dados: novo, cliente });
+    salvarRascunhoFonada(chaveRascunho, novo, cliente);
   }
 
   function setComMascara(campo, valorBruto, tipoMascara) {
@@ -405,13 +445,13 @@ export default function FormFonada() {
       novo[`${destinoPrefixo}_${nomeCampo}`] = dados[`${origemPrefixo}_${nomeCampo}`];
     }
     setDados(novo);
-    if (!editando) setRascunhoFonada({ chave: chaveRascunho, dados: novo, cliente });
+    salvarRascunhoFonada(chaveRascunho, novo, cliente);
   }
 
   function limpar() {
     const preservado = { ...VAZIO, cliente_id: dados.cliente_id, senha_os: dados.senha_os };
     setDados(preservado);
-    if (!editando) setRascunhoFonada({ chave: chaveRascunho, dados: preservado, cliente });
+    salvarRascunhoFonada(chaveRascunho, preservado, cliente);
   }
 
   async function salvar() {
@@ -464,6 +504,7 @@ export default function FormFonada() {
       const payload = { ...dados, valor: valorMonetarioParaNumero(dados.valor) };
       if (editando) {
         await api.fonada.atualizar(id, payload);
+        limparRascunhoFonada(chaveRascunho);
         mostrarToast('Pedido salvo com sucesso.');
       } else {
         const novo = await api.fonada.criar(payload);
@@ -477,7 +518,7 @@ export default function FormFonada() {
             recallAtualizado = false;
           }
         }
-        limparRascunhoFonada();
+        limparRascunhoFonada(chaveRascunho);
         mostrarToast(recallAtualizado ? 'Pedido salvo com sucesso.' : 'Pedido salvo. O status do Recall precisa ser conferido.', recallAtualizado ? 'sucesso' : 'aviso');
         navigate(`/fonada/${novo.id}`, { replace: true, state: recallRelacaoUrl ? { returnTo: `/recall?data=${recallDataUrl}` } : undefined });
       }
@@ -501,9 +542,9 @@ export default function FormFonada() {
   }
 
   function fechar() {
-    // Só "Fechar" um pedido novo descarta o rascunho. Em pedidos já salvos,
-    // esta ação é apenas "Voltar" e preserva o pedido pendente da lateral.
-    if (!editando) limparRascunhoFonada();
+    // Fechar descarta apenas este pedido novo. Voltar de um pedido existente
+    // mantém as alterações pendentes para continuar depois.
+    if (!editando) limparRascunhoFonada(chaveRascunho);
     voltarHistorico();
   }
 
@@ -658,7 +699,7 @@ export default function FormFonada() {
                       recall_codigo: novoValor === 'SIM' ? dados.recall_codigo : '',
                     };
                     setDados(novo);
-                    if (!editando) setRascunhoFonada({ chave: chaveRascunho, dados: novo, cliente });
+                    salvarRascunhoFonada(chaveRascunho, novo, cliente);
                   }}
                   style={{ maxWidth: 90 }}
                 >

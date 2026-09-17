@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useSmartBack } from '../../hooks/useSmartBack.js';
 import { api } from '../../api.js';
 import { useRascunhos } from '../../RascunhosContext.jsx';
@@ -148,13 +148,17 @@ export default function FormAoVivo() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const clienteIdUrl = searchParams.get('clienteId');
+  const rascunhoIdUrl = searchParams.get('rascunho');
   const editando = Boolean(id);
+  const location = useLocation();
   const navigate = useNavigate();
   const voltarHistorico = useSmartBack('/ao-vivo');
-  const { rascunhoAoVivo, setRascunhoAoVivo, limparRascunhoAoVivo } = useRascunhos();
+  const { rascunhosAoVivo, salvarRascunhoAoVivo, atualizarClienteRascunhoAoVivo, limparRascunhoAoVivo } = useRascunhos();
   const { mostrarToast } = useToast();
 
-  const chaveRascunho = editando ? `editar-${id}` : 'novo';
+  const novoRascunhoId = useMemo(() => crypto.randomUUID(), [location.key]);
+  const chaveRascunho = editando ? `editar-${id}` : `novo-${rascunhoIdUrl || novoRascunhoId}`;
+  const rascunhoAoVivo = rascunhosAoVivo[chaveRascunho];
 
   const [dados, setDados] = useState(VAZIO);
   const [cliente, setCliente] = useState(null);
@@ -188,14 +192,32 @@ export default function FormAoVivo() {
   }
 
   useEffect(() => {
-    if (rascunhoAoVivo && rascunhoAoVivo.chave === chaveRascunho) {
+    let ativo = true;
+    setCarregando(true);
+    setErro('');
+    if (!editando && !rascunhoIdUrl) {
+      const params = new URLSearchParams(searchParams);
+      params.set('rascunho', novoRascunhoId);
+      navigate(`${location.pathname}?${params}`, { replace: true, state: location.state });
+      return;
+    }
+    if (rascunhoAoVivo) {
       setDados(rascunhoAoVivo.dados);
-      if (rascunhoAoVivo.cliente) setCliente(rascunhoAoVivo.cliente);
+      setCliente(rascunhoAoVivo.cliente || null);
+      if (!rascunhoAoVivo.cliente && rascunhoAoVivo.dados.cliente_id) {
+        api.clientes.buscarCadastro(rascunhoAoVivo.dados.cliente_id)
+          .then((resp) => { if (ativo) {
+            setCliente(resp.cliente);
+            atualizarClienteRascunhoAoVivo(chaveRascunho, resp.cliente);
+          } })
+          .catch(() => {});
+      }
       setQtdMensagens(contarMensagensPreenchidas(rascunhoAoVivo.dados));
       setQtdMusicas(contarPreenchidos(rascunhoAoVivo.dados, 'musica', MIN_MUSICAS, MAX_MUSICAS));
       setCarregando(false);
-      return;
+      return () => { ativo = false; };
     }
+    setCliente(null);
 
     if (!editando) {
       if (!clienteIdUrl) {
@@ -205,6 +227,7 @@ export default function FormAoVivo() {
       }
       Promise.all([api.clientes.buscarCadastro(clienteIdUrl), api.aoVivo.proximaOs()])
         .then(([respCliente, respOs]) => {
+          if (!ativo) return;
           const { data, horario } = dataHoraAtual();
           const inicial = {
             ...VAZIO,
@@ -217,15 +240,16 @@ export default function FormAoVivo() {
           setCliente(respCliente.cliente);
           setQtdMensagens(MIN_MENSAGENS);
           setQtdMusicas(MIN_MUSICAS);
-          setRascunhoAoVivo({ chave: chaveRascunho, dados: inicial, cliente: respCliente.cliente });
+          salvarRascunhoAoVivo(chaveRascunho, inicial, respCliente.cliente, location.search);
         })
-        .catch((err) => setErro(err.message))
-        .finally(() => setCarregando(false));
-      return;
+        .catch((err) => { if (ativo) setErro(err.message); })
+        .finally(() => { if (ativo) setCarregando(false); });
+      return () => { ativo = false; };
     }
 
     api.aoVivo.buscar(id)
       .then((pedido) => {
+        if (!ativo) return;
         const normalizado = { ...VAZIO };
         Object.keys(VAZIO).forEach((campo) => { normalizado[campo] = pedido[campo] ?? ''; });
         normalizado.valor = numeroParaValorMonetario(pedido.valor);
@@ -233,20 +257,23 @@ export default function FormAoVivo() {
         setQtdMensagens(contarMensagensPreenchidas(normalizado));
         setQtdMusicas(contarPreenchidos(normalizado, 'musica', MIN_MUSICAS, MAX_MUSICAS));
         if (pedido.cliente_id) {
-          return api.clientes.buscarCadastro(pedido.cliente_id).then((resp) => setCliente(resp.cliente));
+          return api.clientes.buscarCadastro(pedido.cliente_id).then((resp) => { if (ativo) {
+            setCliente(resp.cliente);
+            atualizarClienteRascunhoAoVivo(chaveRascunho, resp.cliente);
+          } });
         }
       })
-      .catch((err) => setErro(err.message))
-      .finally(() => setCarregando(false));
+      .catch((err) => { if (ativo) setErro(err.message); })
+      .finally(() => { if (ativo) setCarregando(false); });
+    // O rascunho é consultado apenas ao abrir este pedido.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, editando, clienteIdUrl]);
+    return () => { ativo = false; };
+  }, [chaveRascunho, clienteIdUrl, rascunhoIdUrl]);
 
   function set(campo, valor) {
     const novo = { ...dados, [campo]: valor };
     setDados(novo);
-    // O atalho "Continuar pedido" representa somente um pedido novo ainda
-    // não salvo. Editar um pedido existente não pode substituir esse rascunho.
-    if (!editando) setRascunhoAoVivo({ chave: chaveRascunho, dados: novo, cliente });
+    salvarRascunhoAoVivo(chaveRascunho, novo, cliente);
   }
 
   function setComMascara(campo, valorBruto, tipoMascara) {
@@ -282,7 +309,7 @@ export default function FormAoVivo() {
     setDados(preservado);
     setQtdMensagens(MIN_MENSAGENS);
     setQtdMusicas(MIN_MUSICAS);
-    if (!editando) setRascunhoAoVivo({ chave: chaveRascunho, dados: preservado, cliente });
+    salvarRascunhoAoVivo(chaveRascunho, preservado, cliente);
   }
 
   async function salvar() {
@@ -310,10 +337,11 @@ export default function FormAoVivo() {
       const payload = { ...dados, valor: valorMonetarioParaNumero(dados.valor) };
       if (editando) {
         await api.aoVivo.atualizar(id, payload);
+        limparRascunhoAoVivo(chaveRascunho);
         mostrarToast('Pedido salvo com sucesso.');
       } else {
         const novo = await api.aoVivo.criar(payload);
-        limparRascunhoAoVivo();
+        limparRascunhoAoVivo(chaveRascunho);
         mostrarToast('Pedido salvo com sucesso.');
         navigate(`/ao-vivo/${novo.id}`, { replace: true });
       }
@@ -337,9 +365,7 @@ export default function FormAoVivo() {
   }
 
   function fechar() {
-    // Só "Fechar" um pedido novo descarta o rascunho. Em pedidos já salvos,
-    // esta ação é apenas "Voltar" e preserva o pedido pendente da lateral.
-    if (!editando) limparRascunhoAoVivo();
+    if (!editando) limparRascunhoAoVivo(chaveRascunho);
     voltarHistorico();
   }
 
@@ -378,14 +404,16 @@ export default function FormAoVivo() {
         valorRecebido: Number(String(valorRecebimento).replace(',', '.')),
         formaRecebimento,
       });
-      setDados((atual) => ({
-        ...atual,
+      const atualizado = {
+        ...dados,
         pagou: 'SIM',
         data_pagou: resposta.dataPagamento,
         valor_recebido: resposta.valorRecebido,
         forma_recebimento: resposta.formaRecebimento,
         pagamento_recebido_por: resposta.recebidoPor,
-      }));
+      };
+      setDados(atualizado);
+      if (rascunhoAoVivo) salvarRascunhoAoVivo(chaveRascunho, atualizado, cliente);
       setModalPagamento(false);
       mostrarToast('PAGAMENTO RECEBIDO');
     } catch (err) {
@@ -399,7 +427,9 @@ export default function FormAoVivo() {
     if (!confirm('Deseja desfazer a baixa financeira deste pedido?')) return;
     try {
       await api.cobranca.desfazerBaixaAoVivo(id);
-      setDados((atual) => ({ ...atual, pagou: '', data_pagou: '', valor_recebido: '', forma_recebimento: '', pagamento_recebido_por: '' }));
+      const atualizado = { ...dados, pagou: '', data_pagou: '', valor_recebido: '', forma_recebimento: '', pagamento_recebido_por: '' };
+      setDados(atualizado);
+      if (rascunhoAoVivo) salvarRascunhoAoVivo(chaveRascunho, atualizado, cliente);
       mostrarToast('Baixa financeira desfeita.');
     } catch (err) {
       mostrarToast(err.message || 'Não foi possível desfazer a baixa.', 'erro');
