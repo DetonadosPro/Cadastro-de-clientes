@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api, getNomeExibicao } from '../../api.js';
 import {
   mensagemConfirmacao as mensagemConfirmacaoAgenda,
+  mensagemContatoDestinatario,
   mensagemRegistrarERemarcar,
 } from '../../utils/mensagemAgenda.js';
 import { useToast } from '../../ToastContext.jsx';
@@ -1064,7 +1065,14 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onD
         <Info className="agenda-destinatario-principal" label="Destinatário" valor={item.para} />
         {(item.celular || item.fixo) && (
           <div className="agenda-contatos-destinatario">
-            {item.celular && <InfoTelefone className="agenda-destinatario-celular" label="Celular" valor={item.celular} />}
+            {item.celular && (
+              <InfoTelefone
+                className="agenda-destinatario-celular"
+                label="Celular"
+                valor={item.celular}
+                mensagem={mensagemContatoDestinatario(item.para, getNomeExibicao())}
+              />
+            )}
             {item.fixo && <Info className="agenda-destinatario-fixo" label="Fixo" valor={item.fixo} />}
           </div>
         )}
