@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { enderecoComNumero, faixaCompativelComNumero, filtrarSugestoesPorNumero, numeroDoEnderecoDigitado, termoDeBuscaEndereco } from '../src/enderecoAutocomplete.js';
+import { enderecoComNumero, faixaCompativelComNumero, filtrarSugestoesPorNumero, numeroDoEnderecoDigitado, separarEnderecoNumero, termoDeBuscaEndereco } from '../src/enderecoAutocomplete.js';
 
 test('consulta o ViaCEP somente com o logradouro', () => {
   assert.equal(termoDeBuscaEndereco('Rua Artur Machado, 321'), 'Rua Artur Machado');
@@ -19,6 +19,17 @@ test('recupera o número já digitado no endereço da edição', () => {
 test('mostra e preserva o número ao completar o logradouro', () => {
   assert.equal(enderecoComNumero('Rua Artur Machado', '321'), 'Rua Artur Machado, 321');
   assert.equal(enderecoComNumero('Rua Artur Machado', ''), 'Rua Artur Machado');
+});
+
+test('separa o número de um endereço antigo para edição', () => {
+  assert.deepEqual(separarEnderecoNumero('Rua Artur Machado, 321 A'), {
+    logradouro: 'Rua Artur Machado',
+    numero: '321 A',
+  });
+  assert.deepEqual(separarEnderecoNumero('Avenida sem número'), {
+    logradouro: 'Avenida sem número',
+    numero: '',
+  });
 });
 
 test('interpreta faixas e lados informados pelo ViaCEP', () => {

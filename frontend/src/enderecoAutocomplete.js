@@ -16,6 +16,17 @@ export function enderecoComNumero(logradouro, numero) {
   return `${rua}${rua ? ', ' : ''}${numeroInformado}`;
 }
 
+export function separarEnderecoNumero(endereco) {
+  const texto = String(endereco || '').trim();
+  const ultimaVirgula = texto.lastIndexOf(',');
+  if (ultimaVirgula < 0) return { logradouro: texto, numero: '' };
+
+  const logradouro = texto.slice(0, ultimaVirgula).trim();
+  const numero = texto.slice(ultimaVirgula + 1).trim();
+  if (!logradouro || !numero) return { logradouro: texto, numero: '' };
+  return { logradouro, numero };
+}
+
 function semAcentos(valor) {
   return String(valor || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }

@@ -8,13 +8,15 @@ import { formatarCelular, formatarFixo, formatarData, formatarHorario, formatarV
 import CampoData from '../../components/CampoData.jsx';
 import CampoComSugestoes from '../../components/CampoComSugestoes.jsx';
 import CampoSelecao from '../../components/CampoSelecao.jsx';
+import CampoEnderecoAutocomplete from '../../components/CampoEnderecoAutocomplete.jsx';
+import { enderecoComNumero, separarEnderecoNumero } from '../../enderecoAutocomplete.js';
 import PaginaImpressaoAoVivo from './PaginaImpressaoAoVivo.jsx';
 import { AvisoInline, CabecalhoPagina, Dialogo, EstadoCarregando } from '../../components/Interface.jsx';
 
 const VAZIO = {
   numero_os: '', cliente_id: null, data_pedido: '', horario_pedido: '', dia_entrega: '', horario_entrega: '',
   para: '', oferecimento: '',
-  endereco: '', bairro: '', referencia: '',
+  endereco: '', numero: '', bairro: '', referencia: '',
   fixo_local: '', celular_local: '',
   tema_1: '', mensagem_codigo_1: '', tema_2: '', mensagem_codigo_2: '',
   tema_3: '', mensagem_codigo_3: '', tema_4: '', mensagem_codigo_4: '',
@@ -252,6 +254,9 @@ export default function FormAoVivo() {
         if (!ativo) return;
         const normalizado = { ...VAZIO };
         Object.keys(VAZIO).forEach((campo) => { normalizado[campo] = pedido[campo] ?? ''; });
+        const enderecoSeparado = separarEnderecoNumero(pedido.endereco);
+        normalizado.endereco = enderecoSeparado.logradouro;
+        normalizado.numero = enderecoSeparado.numero;
         normalizado.valor = numeroParaValorMonetario(pedido.valor);
         setDados(normalizado);
         setQtdMensagens(contarMensagensPreenchidas(normalizado));
@@ -334,7 +339,12 @@ export default function FormAoVivo() {
     }
     setSalvando(true);
     try {
-      const payload = { ...dados, valor: valorMonetarioParaNumero(dados.valor) };
+      const { numero, ...dadosPersistidos } = dados;
+      const payload = {
+        ...dadosPersistidos,
+        endereco: enderecoComNumero(dados.endereco, numero),
+        valor: valorMonetarioParaNumero(dados.valor),
+      };
       if (editando) {
         await api.aoVivo.atualizar(id, payload);
         limparRascunhoAoVivo(chaveRascunho);
@@ -527,9 +537,22 @@ export default function FormAoVivo() {
                   style={{ resize: 'vertical', flex: '1 1 auto', minWidth: 0 }}
                 />
               </div>
-              <div className="form-row">
+              <div className="form-row" style={{ alignItems: 'flex-end' }}>
                 <label>End.:</label>
-                <input value={dados.endereco} onChange={(e) => set('endereco', e.target.value)} style={{ flex: '1 1 auto', minWidth: 0 }} />
+                <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+                  <CampoEnderecoAutocomplete
+                    value={dados.endereco}
+                    numero={dados.numero}
+                    onChange={(valor) => set('endereco', valor)}
+                    onSelecionar={({ logradouro, bairro }) => {
+                      const novo = { ...dados, endereco: logradouro, bairro: bairro || dados.bairro };
+                      setDados(novo);
+                      salvarRascunhoAoVivo(chaveRascunho, novo, cliente);
+                    }}
+                  />
+                </div>
+                <label style={{ minWidth: 'auto' }}>Nº:</label>
+                <input value={dados.numero} onChange={(e) => set('numero', e.target.value)} placeholder="Nº / S/N" style={{ flex: '0 0 96px', width: 96 }} />
               </div>
               <div className="form-row">
                 <label>Bairro:</label>

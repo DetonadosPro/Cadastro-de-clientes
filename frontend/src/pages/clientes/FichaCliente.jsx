@@ -5,6 +5,7 @@ import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
 import CampoEnderecoAutocomplete from '../../components/CampoEnderecoAutocomplete.jsx';
+import { enderecoComNumero, separarEnderecoNumero } from '../../enderecoAutocomplete.js';
 import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
 import { AvisoInline, CabecalhoPagina, Dialogo, EstadoCarregando } from '../../components/Interface.jsx';
 import { filtrarPedidosPorMesDaMensagem, MESES, mensagensDoPedidoNoMes } from '../../utils/filtroMesMensagens.js';
@@ -138,7 +139,12 @@ export default function FichaCliente() {
   }
 
   function iniciarEdicao() {
-    setDadosEdicao({ ...cliente });
+    const enderecoSeparado = separarEnderecoNumero(cliente.endereco);
+    setDadosEdicao({
+      ...cliente,
+      endereco: enderecoSeparado.logradouro,
+      numero: enderecoSeparado.numero,
+    });
     setEditando(true);
   }
 
@@ -154,7 +160,11 @@ export default function FichaCliente() {
   async function salvarEdicao() {
     setSalvando(true);
     try {
-      const atualizado = await api.clientes.atualizar(id, dadosEdicao);
+      const { numero, ...dadosPersistidos } = dadosEdicao;
+      const atualizado = await api.clientes.atualizar(id, {
+        ...dadosPersistidos,
+        endereco: enderecoComNumero(dadosEdicao.endereco, numero),
+      });
       setCliente(atualizado);
       setEditando(false);
       mostrarToast('Dados do cliente atualizados.');
@@ -355,17 +365,24 @@ export default function FichaCliente() {
                 <input id="editar-celular" inputMode="tel" autoComplete="tel" value={dadosEdicao.celular || ''} onChange={(e) => setEdicaoComMascara('celular', e.target.value, 'celular')} />
               </div>
             </div>
-            <div className="campo">
-              <label htmlFor="editar-endereco">Endereço</label>
-              <CampoEnderecoAutocomplete id="editar-endereco"
-                value={dadosEdicao.endereco || ''}
-                onChange={(valor) => setEdicao('endereco', valor)}
-                onSelecionar={({ logradouroCompleto, bairro }) => setDadosEdicao((atual) => ({
-                  ...atual,
-                  endereco: logradouroCompleto,
-                  bairro: bairro || atual.bairro,
-                }))}
-              />
+            <div className="linha-form-cliente endereco-numero-cliente" style={{ display: 'flex', gap: 12, alignItems: 'end', marginBottom: 18 }}>
+              <div className="campo" style={{ flex: '1 1 auto', minWidth: 0, marginBottom: 0 }}>
+                <label htmlFor="editar-endereco">Endereço</label>
+                <CampoEnderecoAutocomplete id="editar-endereco"
+                  value={dadosEdicao.endereco || ''}
+                  numero={dadosEdicao.numero || ''}
+                  onChange={(valor) => setEdicao('endereco', valor)}
+                  onSelecionar={({ logradouro, bairro }) => setDadosEdicao((atual) => ({
+                    ...atual,
+                    endereco: logradouro,
+                    bairro: bairro || atual.bairro,
+                  }))}
+                />
+              </div>
+              <div className="campo campo-numero-cliente" style={{ flex: '0 0 96px', width: 96, marginBottom: 0 }}>
+                <label htmlFor="editar-numero">Nº</label>
+                <input id="editar-numero" value={dadosEdicao.numero || ''} onChange={(e) => setEdicao('numero', e.target.value)} placeholder="Nº / S/N" />
+              </div>
             </div>
             <div className="grade grade-3">
               <div className="campo">
