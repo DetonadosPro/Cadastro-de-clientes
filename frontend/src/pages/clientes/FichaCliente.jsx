@@ -59,23 +59,28 @@ function dataBrParaNumero(valor) {
   return Date.UTC(ano, Number(partes[2]) - 1, Number(partes[1]));
 }
 
-function SituacaoMensagemFonada({ numero, dia, resultado, situacao }) {
+function DataMensagemFonada({ numero, dia, resultado, situacao }) {
+  let texto = '';
+  if (resultado) texto = `passada em ${dia || 'data não informada'}`;
+  else if (dia) texto = `agendada para ${dia}`;
+  else if (numero === 2 && situacao?.status === 'DISPONIVEL') texto = `em haver até ${situacao.dataExpiracao || 'data não informada'}`;
+  else if (numero === 2 && situacao?.status === 'EXPIRADA') texto = `em haver expirou em ${situacao.dataExpiracao || 'data não informada'}`;
+  else if (numero === 2 && situacao?.status === 'INDETERMINADA') texto = 'em haver · verificar data';
+  return texto ? <small className="historico-mensagem-data-inline"> · {texto}</small> : null;
+}
+
+function StatusMensagemFonada({ numero, dia, resultado, situacao }) {
+  let texto = 'Sem data';
+  let transmitida = false;
   if (resultado) {
-    return <small className="historico-cliente-secundario">Passada em {dia || 'data não informada'}</small>;
-  }
-  if (dia) {
-    return <small className="historico-cliente-secundario">Agendada para {dia}</small>;
-  }
-  if (numero === 2 && situacao?.status === 'DISPONIVEL') {
-    return <small className="historico-cliente-secundario">Em haver até {situacao.dataExpiracao || 'data não informada'}</small>;
-  }
-  if (numero === 2 && situacao?.status === 'EXPIRADA') {
-    return <small className="historico-cliente-secundario">Em haver expirou em {situacao.dataExpiracao || 'data não informada'}</small>;
-  }
-  if (numero === 2 && situacao?.status === 'INDETERMINADA') {
-    return <small className="historico-cliente-secundario">Em haver · verificar data da compra</small>;
-  }
-  return null;
+    texto = 'Transmitida';
+    transmitida = true;
+  } else if (dia) texto = 'Agendada';
+  else if (numero === 2 && situacao?.status === 'DISPONIVEL') texto = 'Em haver';
+  else if (numero === 2 && situacao?.status === 'EXPIRADA') texto = 'Expirada';
+  else if (numero === 2 && situacao?.status === 'INDETERMINADA') texto = 'Em haver';
+  else if (numero === 2 && situacao?.status === 'NAO_CONCEDIDA') texto = 'Não disponível';
+  return <span className={`historico-situacao ${transmitida ? 'transmitida' : ''}`}><strong>{numero}ª:</strong> {texto}</span>;
 }
 
 function linkWhatsApp(numero) {
@@ -525,14 +530,17 @@ export default function FichaCliente() {
                           <td>
                             <span className={`historico-destinatario ${mensagensNoMes.includes(1) ? 'no-mes' : ''}`}>
                               <strong>1ª:</strong> {mensagensNoMes.includes(1) && <span className="historico-seta-mes" aria-label={`Primeira mensagem em ${MESES[Number(mesMensagens) - 1]}`}>→</span>} {valorUtil(p.p1_para) || '—'}
-                              <SituacaoMensagemFonada numero={1} dia={p.p1_dia} resultado={p.p1_resultado} />
+                              <DataMensagemFonada numero={1} dia={p.p1_dia} resultado={p.p1_resultado} />
                             </span>
                             {(valorUtil(p.p2_para) || p.mensagemEmHaver?.concedida) && <span className={`historico-destinatario ${mensagensNoMes.includes(2) ? 'no-mes' : ''}`}>
                               <strong>2ª:</strong> {mensagensNoMes.includes(2) && <span className="historico-seta-mes" aria-label={`Segunda mensagem em ${MESES[Number(mesMensagens) - 1]}`}>→</span>} {valorUtil(p.p2_para) || 'Ainda não utilizada'}
-                              <SituacaoMensagemFonada numero={2} dia={p.p2_dia} resultado={p.p2_resultado} situacao={p.mensagemEmHaver} />
+                              <DataMensagemFonada numero={2} dia={p.p2_dia} resultado={p.p2_resultado} situacao={p.mensagemEmHaver} />
                             </span>}
                           </td>
-                          <td><span className={`historico-situacao ${p.p1_passada_por || p.p2_passada_por || p.p1_resultado || p.p2_resultado ? 'transmitida' : ''}`}>{p.p1_passada_por || p.p2_passada_por || p.p1_resultado || p.p2_resultado ? 'Transmitida' : 'Agendada'}</span></td>
+                          <td>
+                            <StatusMensagemFonada numero={1} dia={p.p1_dia} resultado={p.p1_resultado} />
+                            {(valorUtil(p.p2_para) || p.mensagemEmHaver?.concedida) && <StatusMensagemFonada numero={2} dia={p.p2_dia} resultado={p.p2_resultado} situacao={p.mensagemEmHaver} />}
+                          </td>
                           <td><span className={`tag ${p.pagou === 'SIM' ? 'ok' : 'pendente'}`}>{p.pagou === 'SIM' ? 'Recebido' : 'Pendente'}</span><span className="historico-cliente-secundario">{p.periodo || 'Presencial'}</span></td>
                           <td>{p.cobranca_reagendada || p.cobranca || '—'}</td>
                           <td style={{ textAlign: 'right' }}>{p.valor != null ? formatarReais(p.valor) : '—'}</td>

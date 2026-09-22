@@ -2855,9 +2855,11 @@ tr:hover .alca-arrastar {
 .btn-small.perigo { border-color:rgba(173,54,47,.3); color:var(--selo); }
 .resumo-operacional-cliente { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; }
 .historico-cliente-secundario { display:block; margin-top:3px; color:var(--tinta-suave); font-size:9.5px; font-weight:500; }
+.historico-mensagem-data-inline { color:var(--tinta-suave); font-size:9.5px; font-weight:500; white-space:nowrap; }
 .historico-destinatario { display:block; line-height:1.45; }
 .historico-destinatario + .historico-destinatario { margin-top:2px; }
-.historico-situacao { display:inline-block; color:var(--tinta-suave); font-size:10.5px; font-weight:700; }
+.historico-situacao { display:block; color:var(--tinta-suave); font-size:10.5px; font-weight:700; }
+.historico-situacao + .historico-situacao { margin-top:3px; }
 .historico-situacao.transmitida { color:var(--ok); }
 
 @media (max-width:1100px) {
