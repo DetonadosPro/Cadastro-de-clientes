@@ -41,7 +41,7 @@ test('troca de pesquisa e contato não conserva dados antigos', () => {
   const segunda = buildRecallWhatsAppMessage({ ...base, modoFila: 'ANIVERSARIO', contato: 'MARIA DE FÁTIMA', aniversariante: 'ÉRICA ALVES' });
   assert.match(primeira, /^Oi Bruna,.*Pombo Correio\./);
   assert.match(segunda, /^Oi Maria,.*Pombo Correio Mensagens\./);
-  assert.match(segunda, /aniversário da Érica🥳/);
+  assert.match(segunda, /aniversário de Érica🥳/);
   assert.doesNotMatch(segunda, /Bruna|Claudean/);
 });
 
@@ -60,5 +60,14 @@ test('adiciona a O.S. do último pedido após duas quebras nas duas pesquisas', 
   for (const modoFila of ['DIA_MENSAGEM', 'ANIVERSARIO']) {
     const mensagem = buildRecallWhatsAppMessage({ ...base, modoFila, numeroOs: '12345' });
     assert.match(mensagem, /\?\n\nO\.S\.: 12345$/);
+  }
+});
+
+test('nomes ambíguos usam texto neutro nas duas pesquisas', () => {
+  for (const modoFila of ['DIA_MENSAGEM', 'ANIVERSARIO']) {
+    const mensagem = buildRecallWhatsAppMessage({ ...base, modoFila, usuario: 'KETLYN', aniversariante: 'CATIUSSE' });
+    assert.match(mensagem, /aqui é Ketlyn/);
+    assert.match(mensagem, /aniversário de Catiusse/);
+    assert.doesNotMatch(mensagem, /\b(?:do|da) Catiusse\b|pra (?:ele|ela)/);
   }
 });
