@@ -1,6 +1,6 @@
 import React, { lazy, Suspense } from 'react';
 import { EstadoCarregando } from './components/Interface.jsx';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Link } from 'react-router-dom';
 import { getUsuarioLogado } from './api.js';
 const Login = lazy(() => import('./pages/Login.jsx'));
 const GerenciarUsuarios = lazy(() => import('./pages/GerenciarUsuarios.jsx'));
@@ -24,6 +24,14 @@ function RotaProtegida({ children }) {
   const usuario = getUsuarioLogado();
   if (!usuario) return <Navigate to="/login" replace />;
   return children;
+}
+
+function PaginaNaoEncontrada() {
+  return <div className="estado-vazio painel" role="status">
+    <h1>Página não encontrada</h1>
+    <p>Confira o endereço ou volte para a Agenda.</p>
+    <Link className="btn" to="/agenda">Ir para a Agenda</Link>
+  </div>;
 }
 
 export default function App() {
@@ -61,6 +69,7 @@ export default function App() {
         <Route path="ao-vivo/novo" element={<FormAoVivo />} />
         <Route path="ao-vivo/hoje" element={<HojeAoVivo />} />
         <Route path="ao-vivo/:id" element={<FormAoVivo />} />
+        <Route path="*" element={<PaginaNaoEncontrada />} />
       </Route>
     </Routes></Suspense>
   );

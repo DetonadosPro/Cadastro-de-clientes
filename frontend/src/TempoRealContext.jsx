@@ -46,6 +46,22 @@ export function TempoRealProvider({ children }) {
   }, []);
 
   useEffect(() => {
+    function sincronizarOutraAba(evento) {
+      if (evento.storageArea !== localStorage || evento.key !== 'pombo_token') return;
+      // O evento storage chega às outras abas; recarregar limpa formulários,
+      // consultas e SSE associados à sessão anterior.
+      if (!evento.newValue) {
+        if (!window.location.pathname.startsWith('/login')) window.location.replace('/login');
+        return;
+      }
+      if (window.location.pathname.startsWith('/login')) window.location.replace('/agenda');
+      else window.location.reload();
+    }
+    window.addEventListener('storage', sincronizarOutraAba);
+    return () => window.removeEventListener('storage', sincronizarOutraAba);
+  }, []);
+
+  useEffect(() => {
     let encerrado = false;
     let controle;
     let temporizadorReconexao;

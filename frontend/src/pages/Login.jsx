@@ -27,7 +27,7 @@ export default function Login() {
   return (
     <div className="login-pagina">
       <div className="login-decoracao" aria-hidden="true" />
-      <div className="login-cartao">
+      <main className="login-cartao">
         <div className="login-marca">
           <div className="login-carimbo">PC</div>
           <div>
@@ -70,7 +70,7 @@ export default function Login() {
         <Link to="/gerenciar-usuarios" className="login-link-discreto">
           Gerenciar usuários
         </Link>
-      </div>
+      </main>
     </div>
   );
 }

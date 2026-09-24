@@ -29,7 +29,7 @@ export default function GerenciarUsuarios() {
     return (
       <div className="login-pagina">
         <div className="login-decoracao" aria-hidden="true" />
-        <div className="login-cartao usuario-acesso-cartao">
+        <main className="login-cartao usuario-acesso-cartao">
           <div className="usuario-acesso-icone">⌁</div>
           <h1>Área restrita</h1>
           <p className="login-subtitulo">
@@ -59,7 +59,7 @@ export default function GerenciarUsuarios() {
           <Link to="/login" className="login-link-discreto">
             ← Voltar ao login
           </Link>
-        </div>
+        </main>
       </div>
     );
   }
@@ -155,22 +155,22 @@ function PainelUsuarios({ senhaMestra }) {
             <div className="section-title">Dados do novo usuário</div>
             <div className="grade grade-2">
               <div className="campo">
-                <label>Nome completo</label>
-                <input value={novoNome} onChange={(e) => setNovoNome(e.target.value)} placeholder="Nome da pessoa" />
+                <label htmlFor="usuario-nome">Nome completo</label>
+                <input id="usuario-nome" value={novoNome} onChange={(e) => setNovoNome(e.target.value)} placeholder="Nome da pessoa" />
               </div>
               <div className="campo">
-                <label>Data de nascimento</label>
-                <CampoData placeholder="dd/mm/aa" value={novaDataNascimento} onChange={(valor) => setNovaDataNascimento(formatarData(valor))} />
+                <label htmlFor="usuario-nascimento">Data de nascimento</label>
+                <CampoData id="usuario-nascimento" placeholder="dd/mm/aa" value={novaDataNascimento} onChange={(valor) => setNovaDataNascimento(formatarData(valor))} />
               </div>
             </div>
             <div className="grade grade-2">
               <div className="campo">
-                <label>Usuário (login) *</label>
-                <input value={novoUsuario} onChange={(e) => setNovoUsuario(e.target.value)} placeholder="nome de usuário" />
+                <label htmlFor="usuario-login">Usuário (login) *</label>
+                <input id="usuario-login" value={novoUsuario} onChange={(e) => setNovoUsuario(e.target.value)} placeholder="nome de usuário" />
               </div>
               <div className="campo">
-                <label>Senha *</label>
-                <input type="password" value={novaSenha} onChange={(e) => setNovaSenha(e.target.value)} placeholder="mínimo 3 caracteres" />
+                <label htmlFor="usuario-senha">Senha *</label>
+                <input id="usuario-senha" type="password" minLength={12} value={novaSenha} onChange={(e) => setNovaSenha(e.target.value)} placeholder="mínimo 12 caracteres" />
               </div>
             </div>
             {erroForm && <AvisoInline tom="erro" titulo="Revise os dados do usuário">{erroForm}</AvisoInline>}
@@ -186,7 +186,7 @@ function PainelUsuarios({ senhaMestra }) {
 
         {carregando ? (
           <EstadoCarregando rotulo="Carregando usuários…" linhas={4} />
-        ) : usuarios.length === 0 ? (
+        ) : usuarios === null ? null : usuarios.length === 0 ? (
           <EstadoVazio icone="＋" titulo="Nenhum usuário cadastrado" descricao="Crie a primeira conta para liberar o acesso da equipe ao sistema." acao={<button type="button" className="btn" onClick={() => setMostrandoForm(true)}>Criar usuário</button>} />
         ) : (
           <div className="painel usuarios-tabela-painel">

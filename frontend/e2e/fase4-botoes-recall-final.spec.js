@@ -1,0 +1,83 @@
+import { test, expect } from '@playwright/test';
+import { entrar, isolado } from './apoio.js';
+import { registrar } from './fase4-modal-helper.js';
+
+test('BTN-235/238/239/240/241/242/243/244/247/248: fila Recall e destinos', async ({ page, request }) => {
+  test.setTimeout(90000);
+  test.skip(!isolado, 'Exige banco QA isolado.');
+  await entrar(page);
+  const headers = { Authorization: `Bearer ${await page.evaluate(() => localStorage.getItem('pombo_token'))}` };
+  const sufixo = String(Date.now()).replace(/\d/g, (d) => 'ABCDEFGHIJ'[Number(d)]);
+  const nome = `CONTATO QA RECALL ${sufixo}`;
+  const dataIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const [ano, mes, dia] = dataIso.split('-');
+  const diaBr = `${dia}/${mes}/${ano.slice(-2)}`;
+  const anterior = `${dia}/${mes}/${String(Number(ano) - 1).slice(-2)}`;
+  const resp = await request.post('/api/clientes', { headers, data: { nome, whatsapp: '34999999999' } });
+  expect(resp.status()).toBe(201);
+  const cliente = await resp.json();
+  let pedido;
+  try {
+    const criado = await request.post('/api/fonadas', { headers, data: { cliente_id: cliente.id, valor: 15, cobranca: diaBr, periodo: 'MANHÃ', p1_dia: anterior, p1_para: 'QA ANIVERSARIANTE', p1_tema: 'ANIV QA', p1_celular: '34999999999' } });
+    expect(criado.status()).toBe(201); pedido = await criado.json();
+    const filaResp = await request.get(`/api/recall/fila?data=${dataIso}`, { headers });
+    expect(filaResp.status()).toBe(200);
+    const filaReal = await filaResp.json();
+    const original = filaReal.porDiaMensagem.find((item) => item.clienteId === cliente.id);
+    expect(original).toBeTruthy();
+    const bloqueado = { ...original, relacaoChave: `${original.relacaoChave}-BLOQUEADO`, clienteNome: 'CONTATO QA BLOQUEADO', clienteBloqueado: true };
+    const semCadastro = { ...original, relacaoChave: `${original.relacaoChave}-SEM-CADASTRO`, clienteNome: 'CONTATO QA SEM CADASTRO', clienteId: null, clienteBloqueado: false };
+    const respostaFila = { ...filaReal, porDiaMensagem: [original, bloqueado, semCadastro], porAniversario: [] };
+    let falhar = true;
+    await page.route('**/api/recall/fila*', (rota) => falhar
+      ? rota.fulfill({ status: 503, contentType: 'application/json', body: '{"erro":"Falha QA"}' })
+      : rota.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(respostaFila) }));
+    await page.goto(`/recall?data=${dataIso}`);
+    await expect(page.getByRole('button', { name: 'Tentar novamente' })).toBeVisible();
+    falhar = false;
+    await page.getByRole('button', { name: 'Tentar novamente' }).click();
+    await expect(page.locator('.recall-linha')).toHaveCount(3);
+    registrar('BTN-238', page, 'button:has-text("Tentar novamente")', 'recarregar fila', 'três relações exibidas');
+    await page.locator('.recall-dias button').nth(1).click();
+    await expect(page).toHaveURL(/data=/);
+    registrar('BTN-235', page, '.recall-dias button:nth-child(2)', 'mudar dia', 'dia ativo atualizado');
+    await page.locator('.recall-dias button').first().click();
+    await expect(page.locator('.recall-linha')).toHaveCount(3);
+    await page.locator('.recall-linha').nth(1).click();
+    await expect(page.locator('.recall-relacao-titulo')).toContainText('CONTATO QA BLOQUEADO');
+    registrar('BTN-239', page, '.recall-linha:nth-child(2)', 'selecionar relação', 'detalhes do segundo contato exibidos');
+    await expect(page.getByRole('button', { name: 'Cliente bloqueado — novo pedido indisponível' })).toBeDisabled();
+    await page.getByRole('button', { name: 'Registro anterior' }).click();
+    await expect(page.locator('.recall-relacao-titulo')).toContainText(nome);
+    registrar('BTN-240', page, 'button[aria-label="Registro anterior"]', 'navegar anterior', 'primeiro contato selecionado');
+    await page.getByRole('button', { name: 'Próximo registro' }).click();
+    await expect(page.locator('.recall-relacao-titulo')).toContainText('CONTATO QA BLOQUEADO');
+    registrar('BTN-241', page, 'button[aria-label="Próximo registro"]', 'navegar próximo', 'segundo contato selecionado');
+    await page.locator('.recall-linha').first().click();
+    await page.getByRole('button', { name: `Abrir cadastro de ${nome}` }).click();
+    await expect(page).toHaveURL(new RegExp(`/clientes/${cliente.id}$`));
+    registrar('BTN-242', page, 'button[aria-label^="Abrir cadastro de"]', 'abrir cadastro', 'ficha correta aberta');
+    await page.goto(`/recall?data=${dataIso}`);
+    await page.getByRole('button', { name: 'Abrir este pedido' }).click();
+    await expect(page).toHaveURL(new RegExp(`/fonada/${pedido.id}$`));
+    registrar('BTN-243', page, 'button:has-text("Abrir este pedido")', 'abrir pedido', 'pedido Fonada correto aberto');
+    await page.goto(`/recall?data=${dataIso}`);
+    await page.locator('.recall-historico-relacao summary').click();
+    await page.locator('.recall-historico-itens button').first().click();
+    await expect(page).toHaveURL(new RegExp(`/fonada/${pedido.id}$`));
+    registrar('BTN-244', page, '.recall-historico-itens button', 'abrir histórico', 'pedido histórico correto aberto');
+    await page.goto(`/recall?data=${dataIso}`);
+    await page.getByRole('button', { name: /Criar novo pedido/ }).click();
+    await expect(page).toHaveURL((url) => url.pathname === '/fonada/novo' && url.searchParams.get('clienteId') === String(cliente.id));
+    registrar('BTN-247', page, 'button:has-text("Criar novo pedido")', 'criar pedido', 'formulário com cliente vinculado aberto');
+    await page.goto(`/recall?data=${dataIso}`);
+    await page.locator('.recall-linha').nth(2).click();
+    await page.getByRole('button', { name: /Cadastrar novo cliente/ }).click();
+    await expect(page).toHaveURL(/\/clientes\/novo$/);
+    registrar('BTN-248', page, 'button:has-text("Cadastrar novo cliente")', 'cadastrar contato sem ficha', 'cadastro aberto');
+  } finally {
+    if (pedido) await request.delete(`/api/fonadas/${pedido.id}`, { headers });
+    await request.delete(`/api/clientes/${cliente.id}`, { headers });
+    await request.delete(`/api/clientes/${cliente.id}/definitivo`, { headers });
+  }
+});

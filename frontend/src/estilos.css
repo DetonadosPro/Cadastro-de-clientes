@@ -3907,14 +3907,18 @@ tr:hover .alca-arrastar {
   color: #202c3c;
 }
 .impresso-aovivo .impresso-campo-mensagem .impresso-campo {
-  /* Mantém a altura original e amplia somente o comprimento em 20%
-     (de 40% para 48% da linha). */
-  height: 23px;
+  height: auto;
   min-height: 23px;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  padding-top: 3px;
+  padding-bottom: 3px;
 }
 .impresso-aovivo .impresso-campo-mensagem {
-  flex: 0 0 48% !important;
-  max-width: 48% !important;
+  flex: 1 1 100% !important;
+  max-width: 100% !important;
 }
 .impresso-aovivo .impresso-caixa-dedicatoria {
   border-color: #b8c9db;
@@ -4018,6 +4022,19 @@ tr:hover .alca-arrastar {
 }
 
 @media print {
+  .folha-a4-aovivo {
+    height: auto;
+    min-height: 297mm;
+    overflow: visible;
+  }
+  .impresso-aovivo .impresso-campo {
+    height: auto;
+    min-height: 23px;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+  }
   .recibo,
   .impresso-aovivo,
   .impresso-resumo-financeiro {

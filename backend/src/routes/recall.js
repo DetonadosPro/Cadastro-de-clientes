@@ -1,6 +1,7 @@
 const express = require('express');
 const { db } = require('../db/database');
 const { normalizarTexto, ehTemaAniversario, chavePessoa, nomePessoaValido, dataBrParaIso } = require('../utils/recall');
+const { hojeIsoBrasilia } = require('../utils/dataHora');
 
 const router = express.Router();
 const STATUS = new Set(['PENDENTE', 'NAO_ATENDEU', 'RETORNAR', 'SEM_INTERESSE', 'INTERESSADO', 'PEDIDO_CRIADO']);
@@ -128,7 +129,7 @@ async function anexarStatus(grupos, dataReferencia) {
 
 router.get('/fila', async (req, res) => {
   try {
-    const data = /^\d{4}-\d{2}-\d{2}$/.test(req.query.data || '') ? req.query.data : new Date().toISOString().slice(0, 10);
+    const data = /^\d{4}-\d{2}-\d{2}$/.test(req.query.data || '') ? req.query.data : hojeIsoBrasilia();
     const [ano, mes, dia] = data.split('-');
     const dm = `${dia}/${mes}`;
     const [porDiaMensagem, porNascimento] = await Promise.all([
@@ -201,8 +202,32 @@ router.put('/status', async (req, res) => {
 });
 
 router.put('/pedido-criado', async (req,res) => {
-  try { const { dataReferencia,relacaoChave,pedidoId }=req.body; const r=await db.query("UPDATE recall_registros SET status='PEDIDO_CRIADO',pedido_novo_id=$1,atualizado_em=NOW() WHERE data_referencia=$2 AND relacao_chave=$3 RETURNING *",[pedidoId,dataReferencia,relacaoChave]); res.json({registro:r.rows[0]||null}); }
-  catch(erro){ res.status(500).json({erro:'Pedido salvo, mas não foi possível atualizar o Recall.'}); }
+  try {
+    const { dataReferencia, relacaoChave, pedidoId } = req.body;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dataReferencia || '') || !relacaoChave || !Number.isInteger(Number(pedidoId))) {
+      return res.status(400).json({ erro: 'Dados de vínculo do Recall inválidos.' });
+    }
+    const pedido = await db.query(`
+      SELECT f.id, f.cliente_id, COALESCE(c.nome, f.nome_comprador) AS cliente_nome,
+             COALESCE(NULLIF(f.p1_para, ''), NULLIF(f.p2_para, ''), 'Não informado') AS aniversariante_nome
+      FROM fonadas f LEFT JOIN clientes c ON c.id = f.cliente_id WHERE f.id = $1 AND f.excluido_em IS NULL
+    `, [pedidoId]);
+    if (!pedido.rows.length) return res.status(404).json({ erro: 'Pedido de Recall não encontrado.' });
+    const dados = pedido.rows[0];
+    const r = await db.query(`
+      INSERT INTO recall_registros
+        (data_referencia, relacao_chave, cliente_id, cliente_nome, aniversariante_nome, status, pedido_novo_id, atualizado_por)
+      VALUES ($1, $2, $3, $4, $5, 'PEDIDO_CRIADO', $6, $7)
+      ON CONFLICT (data_referencia, relacao_chave) DO UPDATE
+        SET status = 'PEDIDO_CRIADO', pedido_novo_id = EXCLUDED.pedido_novo_id,
+            atualizado_por = EXCLUDED.atualizado_por, atualizado_em = NOW()
+      RETURNING *
+    `, [dataReferencia, relacaoChave, dados.cliente_id, dados.cliente_nome, dados.aniversariante_nome, dados.id, req.usuario?.usuario || null]);
+    res.json({ registro: r.rows[0] });
+  } catch (erro) {
+    console.error('Erro ao vincular pedido ao Recall:', erro);
+    res.status(500).json({ erro: 'Pedido salvo, mas não foi possível atualizar o Recall.' });
+  }
 });
 
 module.exports = router;

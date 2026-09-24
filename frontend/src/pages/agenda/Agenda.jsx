@@ -13,6 +13,7 @@ import { formatarData, formatarHorario } from '../../mascaras.js';
 import CampoData from '../../components/CampoData.jsx';
 import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
 import { AvisoInline, CabecalhoPagina, Dialogo } from '../../components/Interface.jsx';
+import { numeroWhatsAppBrasil } from '../../utils/telefoneWhatsApp.js';
 
 // Data de hoje no mesmo formato usado nos campos do sistema (dd/mm/aa).
 function hojeFormatado() {
@@ -377,8 +378,7 @@ export default function Agenda() {
     const chave = `${item.pedidoId}-${item.mensagem}`;
     setSalvandoBaixa(chave);
     try {
-      await api.agenda.darBaixaFonada(item.pedidoId, item.mensagem);
-      if (par) await api.agenda.darBaixaFonada(par.pedidoId, par.mensagem);
+      await api.agenda.darBaixaFonada(item.pedidoId, item.mensagem, item.versao, par ? [item.mensagem, par.mensagem] : undefined);
       mostrarToast('BAIXA DADA COM SUCESSO');
       abrirWhatsappSeExistir(item.whatsapp, mensagemConfirmacaoAgenda(item.nome_comprador, item.para, getNomeExibicao()));
       carregar();
@@ -393,12 +393,11 @@ export default function Agenda() {
     const chave = `desfazer-${item.pedidoId}-${item.mensagem}`;
     setSalvandoBaixa(chave);
     try {
-      await api.agenda.desfazerBaixaFonada(item.pedidoId, item.mensagem);
-      if (par) await api.agenda.desfazerBaixaFonada(par.pedidoId, par.mensagem);
+      await api.agenda.desfazerBaixaFonada(item.pedidoId, item.mensagem, item.versao, par ? [item.mensagem, par.mensagem] : undefined);
       mostrarToast(par ? 'Baixa desfeita nas 2 mensagens.' : 'Baixa desfeita.');
       carregar();
     } catch (err) {
-      mostrarToast('Não foi possível desfazer. Tente novamente.', 'erro');
+      mostrarToast(err.message || 'Não foi possível desfazer.', 'erro');
     } finally {
       setSalvandoBaixa(null);
     }
@@ -408,7 +407,7 @@ export default function Agenda() {
     const mensagens = item.agrupada ? [item.mensagem, item.agrupada.mensagem] : [item.mensagem];
     setItemRemarcarAberto({
       pedidoId: item.pedidoId, mensagem: item.mensagem, nome: item.nome_comprador,
-      mensagens, whatsapp: item.whatsapp, para: item.para,
+      mensagens, versao: item.versao, whatsapp: item.whatsapp, para: item.para,
     });
     setObservacao('');
     setRemarcadoDia(hojeFormatado());
@@ -437,7 +436,8 @@ export default function Agenda() {
         observacao.trim() || null,
         remarcadoDia.trim(),
         remarcadoHorario.trim(),
-        itemRemarcarAberto.mensagens
+        itemRemarcarAberto.mensagens,
+        itemRemarcarAberto.versao
       );
       mostrarToast(itemRemarcarAberto.mensagens.length > 1
         ? 'Tentativa registrada e as 2 mensagens foram remarcadas.'
@@ -877,22 +877,22 @@ export default function Agenda() {
       {lembreteAberto && (
         <Dialogo titulo={lembreteAberto.novo ? 'Novo lembrete' : 'Editar lembrete'} descricao="Organize uma tarefa avulsa junto à agenda operacional." onClose={() => setLembreteAberto(null)} className="modal-lembrete">
             <div className="campo">
-              <label>Título *</label>
-              <input autoFocus maxLength={160} value={formLembrete.titulo} onChange={(e) => setFormLembrete((atual) => ({ ...atual, titulo: e.target.value }))} placeholder="Ex: Ligar para fornecedor" />
+              <label htmlFor="lembrete-titulo">Título *</label>
+              <input id="lembrete-titulo" autoFocus maxLength={160} value={formLembrete.titulo} onChange={(e) => setFormLembrete((atual) => ({ ...atual, titulo: e.target.value }))} placeholder="Ex: Ligar para fornecedor" />
             </div>
             <div className="grade grade-2">
               <div className="campo">
-                <label>Data *</label>
-                <CampoData placeholder="dd/mm/aa" value={dataIsoParaBr(formLembrete.data) || formLembrete.data} onChange={(v) => { const formatada = formatarData(v); setFormLembrete((atual) => ({ ...atual, data: dataBrParaIso(formatada) || formatada })); }} />
+                <label htmlFor="lembrete-data">Data *</label>
+                <CampoData id="lembrete-data" placeholder="dd/mm/aa" value={dataIsoParaBr(formLembrete.data) || formLembrete.data} onChange={(v) => { const formatada = formatarData(v); setFormLembrete((atual) => ({ ...atual, data: dataBrParaIso(formatada) || formatada })); }} />
               </div>
               <div className="campo">
-                <label>Horário (opcional)</label>
-                <input type="time" value={formLembrete.horario} onChange={(e) => setFormLembrete((atual) => ({ ...atual, horario: e.target.value }))} />
+                <label htmlFor="lembrete-horario">Horário (opcional)</label>
+                <input id="lembrete-horario" type="time" value={formLembrete.horario} onChange={(e) => setFormLembrete((atual) => ({ ...atual, horario: e.target.value }))} />
               </div>
             </div>
             <div className="campo">
-              <label>Observação (opcional)</label>
-              <textarea rows={4} value={formLembrete.observacao} onChange={(e) => setFormLembrete((atual) => ({ ...atual, observacao: e.target.value }))} placeholder="Informações úteis para lembrar" />
+              <label htmlFor="lembrete-observacao">Observação (opcional)</label>
+              <textarea id="lembrete-observacao" rows={4} value={formLembrete.observacao} onChange={(e) => setFormLembrete((atual) => ({ ...atual, observacao: e.target.value }))} placeholder="Informações úteis para lembrar" />
             </div>
             <div className="modal-lembrete-acoes">
               <button type="button" className="btn secundario" onClick={() => setLembreteAberto(null)}>Cancelar</button>
@@ -1416,10 +1416,8 @@ function Relogio() {
 // funcionando certinho no celular; api.whatsapp.com costuma ser mais
 // consistente entre plataformas.
 function linkWhatsappDe(valor, mensagem) {
-  const somenteDigitos = String(valor || '').replace(/\D/g, '');
-  if (!somenteDigitos) return null;
-  const numeroComDDI = somenteDigitos.startsWith('55') ? somenteDigitos : `55${somenteDigitos}`;
-  if (numeroComDDI.length < 12) return null;
+  const numeroComDDI = numeroWhatsAppBrasil(valor);
+  if (!numeroComDDI) return null;
   const base = `https://api.whatsapp.com/send?phone=${numeroComDDI}`;
   return mensagem ? `${base}&text=${encodeURIComponent(mensagem)}` : base;
 }

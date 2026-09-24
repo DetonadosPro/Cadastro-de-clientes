@@ -139,7 +139,15 @@ export default function Lixeira() {
                           onClick={() => alternarExpandido(c)}
                           style={{ cursor: 'pointer' }}
                         >
-                          <td className="lixeira-expansor">{aberto ? '▾' : '▸'}</td>
+                          <td className="lixeira-expansor">
+                            <button
+                              type="button"
+                              className="lixeira-expandir"
+                              aria-label={`${aberto ? 'Ocultar' : 'Mostrar'} pedidos de ${c.nome}`}
+                              aria-expanded={aberto}
+                              onClick={(evento) => { evento.stopPropagation(); alternarExpandido(c); }}
+                            >{aberto ? '▾' : '▸'}</button>
+                          </td>
                           <td style={{ fontWeight: 700 }}>{c.nome}</td>
                           <td>{c.nascimento || '—'}</td>
                           <td>{c.celular || c.fixo || '—'}</td>

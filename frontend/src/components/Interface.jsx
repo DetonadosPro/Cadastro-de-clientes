@@ -32,6 +32,9 @@ export function Dialogo({ titulo, descricao, onClose, children, className = '' }
   const descricaoId = useId();
   const painelRef = useRef(null);
   const fecharRef = useRef(onClose);
+  // Guarda o foco antes de montar os campos do diálogo: um input com
+  // autoFocus pode recebê-lo antes da execução do efeito.
+  const focoAnteriorRef = useRef(typeof document !== 'undefined' ? document.activeElement : null);
   fecharRef.current = onClose;
 
   useEffect(() => {
@@ -58,13 +61,14 @@ export function Dialogo({ titulo, descricao, onClose, children, className = '' }
     }
     document.body.classList.add('sobreposicao-aberta');
     document.addEventListener('keydown', aoTeclar);
-    const focoAnterior = document.activeElement;
     const quadroFoco = requestAnimationFrame(() => painelRef.current?.focus());
     return () => {
       cancelAnimationFrame(quadroFoco);
       document.removeEventListener('keydown', aoTeclar);
       document.body.classList.remove('sobreposicao-aberta');
-      focoAnterior?.focus?.();
+      // No fechamento pelo backdrop, o clique ainda pode mover o foco depois
+      // do cleanup. Devolva-o no próximo quadro, após o evento terminar.
+      requestAnimationFrame(() => focoAnteriorRef.current?.isConnected && focoAnteriorRef.current.focus());
     };
   }, []);
 

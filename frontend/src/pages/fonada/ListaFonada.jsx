@@ -196,6 +196,7 @@ export default function ListaFonada() {
 
       <div className="lista-fonada-busca">
         <select
+          aria-label="Campo de busca de Fonada"
           value={campoFiltro}
           onChange={(e) => aoMudarFiltro(e.target.value)}
           className="busca-select"

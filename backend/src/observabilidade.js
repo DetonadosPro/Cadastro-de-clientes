@@ -12,6 +12,7 @@ const requestsRecentes = [];
 const queriesRecentes = [];
 const operacoesRecentes = [];
 const estatisticasRotas = new Map();
+const handlersQa = new Map();
 const atrasoEventLoop = { atualMs: 0, maximoMs: 0, somaMs: 0, amostras: 0 };
 
 function guardar(lista, item) {
@@ -88,6 +89,11 @@ function instrumentarRequests(req, res, next) {
     if (ehSse) return;
     const duracaoMs = performance.now() - inicio;
     const chave = `${metodo} ${rota}`;
+    if (process.env.NODE_ENV === 'test' && req.route) {
+      const atualQa = handlersQa.get(chave) || { rota: chave, status: {} };
+      atualQa.status[res.statusCode] = (atualQa.status[res.statusCode] || 0) + 1;
+      handlersQa.set(chave, atualQa);
+    }
     const atual = estatisticasRotas.get(chave) || { rota: chave, chamadas: 0, totalMs: 0, maximoMs: 0, lentas: 0 };
     atual.chamadas += 1;
     atual.totalMs += duracaoMs;
@@ -130,7 +136,7 @@ medidorEventLoop.unref?.();
 
 function diagnostico({ pool, tempoReal }) {
   const memoria = process.memoryUsage();
-  return {
+  const dados = {
     coletadoEm: new Date().toISOString(),
     processo: {
       uptimeSegundos: Math.round((Date.now() - inicioProcesso) / 1000),
@@ -166,6 +172,8 @@ function diagnostico({ pool, tempoReal }) {
     queriesLentas: [...queriesRecentes].reverse(),
     operacoes: [...operacoesRecentes].reverse(),
   };
+  if (process.env.NODE_ENV === 'test') dados.handlersQa = [...handlersQa.values()];
+  return dados;
 }
 
 module.exports = {

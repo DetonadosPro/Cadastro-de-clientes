@@ -78,8 +78,17 @@ async function iniciar() {
     res.json({ ok: true, sistema: 'Pombo-Correio', hora: new Date().toISOString() });
   });
   app.get('/api/eventos', autenticar, tempoReal.conectar);
-  app.get('/api/diagnostico/performance', autenticar, (req, res) => {
-    res.json(diagnostico({ pool, tempoReal }));
+  app.get('/api/diagnostico/performance', autenticar, async (req, res) => {
+    try {
+      const dados = diagnostico({ pool, tempoReal });
+      if (process.env.NODE_ENV === 'test') {
+        const banco = await pool.query('SELECT current_database() AS nome');
+        dados.auditoriaQa = { ambiente: 'test', banco: banco.rows[0].nome };
+      }
+      res.json(dados);
+    } catch (erro) {
+      res.status(503).json({ erro: 'Diagnóstico temporariamente indisponível.' });
+    }
   });
   app.use('/api', tempoReal.observarAlteracoes);
 
@@ -88,13 +97,13 @@ async function iniciar() {
   // igual o resto do sistema.
   app.post('/api/tarefas/backup-agora', autenticar, async (req, res) => {
     const { rodarBackupSemanal } = require('./tarefas/backupSemanal');
-    await rodarBackupSemanal();
-    res.json({ ok: true, mensagem: 'Backup disparado — confira o email em alguns instantes.' });
+    const resultado = await rodarBackupSemanal();
+    res.status(resultado.ok ? 200 : 503).json(resultado);
   });
   app.post('/api/tarefas/resumo-agora', autenticar, async (req, res) => {
     const { rodarResumoDiario } = require('./tarefas/resumoDiario');
-    await rodarResumoDiario();
-    res.json({ ok: true, mensagem: 'Resumo disparado — confira o email em alguns instantes.' });
+    const resultado = await rodarResumoDiario();
+    res.status(resultado.ok ? 200 : 503).json(resultado);
   });
 
   app.use('/api/auth', authRouter);

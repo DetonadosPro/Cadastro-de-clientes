@@ -18,6 +18,11 @@ function agoraFormatadoTexto() {
 }
 
 const router = express.Router();
+const { dataCurtaValida } = require('../utils/validarDataCurta');
+router.param('id', (req, res, next, id) => {
+  if (!/^[1-9]\d*$/.test(id)) return res.status(400).json({ erro: 'ID de pedido inválido.' });
+  next();
+});
 
 const CAMPOS = [
   'numero_os', 'cliente_id', 'data_pedido', 'horario_pedido', 'dia_entrega', 'horario_entrega',
@@ -77,7 +82,7 @@ router.get('/', async (req, res) => {
     const busca = (req.query.busca || '').trim();
     const campo = (req.query.campo || '').trim();
     const pagina = Math.max(parseInt(req.query.pagina) || 1, 1);
-    const porPagina = Math.min(parseInt(req.query.porPagina) || 30, 200);
+    const porPagina = Math.max(1, Math.min(parseInt(req.query.porPagina) || 30, 200));
     const offset = (pagina - 1) * porPagina;
 
     let where = 'WHERE excluido_em IS NULL';
@@ -146,6 +151,9 @@ router.get('/imprimir', async (req, res) => {
   try {
     const idsBrutos = (req.query.ids || '').split(',').map((s) => s.trim()).filter(Boolean);
     if (idsBrutos.length === 0) return res.status(400).json({ erro: 'Informe ao menos um id.' });
+    if (idsBrutos.some((id) => !/^[1-9]\d*$/.test(id) || Number(id) > 2147483647)) {
+      return res.status(400).json({ erro: 'Informe apenas ids válidos.' });
+    }
 
     const placeholders = idsBrutos.map((_, i) => `$${i + 1}`).join(', ');
     const pedidosResultado = await db.query(
@@ -220,9 +228,12 @@ router.get('/imprimir', async (req, res) => {
 // POST /api/ao-vivo/:id/baixa  { entregue: true|false }
 router.post('/:id/baixa', async (req, res) => {
   try {
-    const { entregue } = req.body;
+    const { entregue, versao } = req.body;
     if (typeof entregue !== 'boolean') {
       return res.status(400).json({ erro: 'Informe se foi entregue (true ou false).' });
+    }
+    if (!Number.isSafeInteger(versao) || versao < 1) {
+      return res.status(400).json({ erro: 'A versão do pedido é obrigatória.' });
     }
 
     const existenteResultado = await db.query('SELECT id, cliente_id FROM ao_vivo WHERE id = $1', [req.params.id]);
@@ -249,12 +260,12 @@ router.post('/:id/baixa', async (req, res) => {
 
     const resultado = `${entregue ? 'ENTREGUE' : 'NÃO ENTREGUE'}, ${dd}/${mm}/${aa} às ${hh}:${min} por ${nomeExibicao}`;
 
-    await db.query(
-      'UPDATE ao_vivo SET resultado_entrega = $1, entregue_por = $2, atualizado_em = NOW() WHERE id = $3',
-      [resultado, nomeExibicao, req.params.id]
+    const atualizado = await db.query(
+      'UPDATE ao_vivo SET resultado_entrega = $1, entregue_por = $2, atualizado_em = NOW(), versao = versao + 1 WHERE id = $3 AND versao = $4 AND excluido_em IS NULL RETURNING versao',
+      [resultado, nomeExibicao, req.params.id, versao]
     );
-
-    res.json({ ok: true, resultado });
+    if (!atualizado.rowCount) return res.status(409).json({ erro: 'Pedido alterado por outra pessoa. Recarregue antes de registrar a entrega.' });
+    res.json({ ok: true, resultado, versao: atualizado.rows[0].versao, entreguePor: nomeExibicao });
   } catch (erro) {
     console.error('Erro ao dar baixa no ao vivo:', erro);
     res.status(500).json({ erro: 'Erro ao dar baixa.' });
@@ -264,15 +275,17 @@ router.post('/:id/baixa', async (req, res) => {
 // POST /api/ao-vivo/:id/desfazer-baixa
 router.post('/:id/desfazer-baixa', async (req, res) => {
   try {
+    const { versao } = req.body;
+    if (!Number.isSafeInteger(versao) || versao < 1) return res.status(400).json({ erro: 'A versão do pedido é obrigatória.' });
     const existenteResultado = await db.query('SELECT id FROM ao_vivo WHERE id = $1', [req.params.id]);
     if (existenteResultado.rows.length === 0) return res.status(404).json({ erro: 'Pedido não encontrado.' });
 
-    await db.query(
-      'UPDATE ao_vivo SET resultado_entrega = NULL, atualizado_em = NOW() WHERE id = $1',
-      [req.params.id]
+    const atualizado = await db.query(
+      'UPDATE ao_vivo SET resultado_entrega = NULL, entregue_por = NULL, atualizado_em = NOW(), versao = versao + 1 WHERE id = $1 AND versao = $2 AND excluido_em IS NULL RETURNING versao',
+      [req.params.id, versao]
     );
-
-    res.json({ ok: true });
+    if (!atualizado.rowCount) return res.status(409).json({ erro: 'Pedido alterado por outra pessoa. Recarregue antes de desfazer a entrega.' });
+    res.json({ ok: true, versao: atualizado.rows[0].versao });
   } catch (erro) {
     console.error('Erro ao desfazer baixa do ao vivo:', erro);
     res.status(500).json({ erro: 'Erro ao desfazer.' });
@@ -289,10 +302,11 @@ router.post('/:id/desfazer-baixa', async (req, res) => {
 // diferentes (entregar o evento x receber o pagamento).
 router.post('/:id/pagou', async (req, res) => {
   try {
-    const { pagou } = req.body;
+    const { pagou, versao } = req.body;
     if (pagou !== 'SIM' && pagou !== 'NÃO' && pagou !== null) {
       return res.status(400).json({ erro: 'Informe pagou como "SIM", "NÃO" ou null.' });
     }
+    if (!Number.isSafeInteger(versao) || versao < 1) return res.status(400).json({ erro: 'A versão do pedido é obrigatória.' });
 
     const existenteResultado = await db.query('SELECT id, cliente_id FROM ao_vivo WHERE id = $1', [req.params.id]);
     if (existenteResultado.rows.length === 0) return res.status(404).json({ erro: 'Pedido não encontrado.' });
@@ -307,12 +321,12 @@ router.post('/:id/pagou', async (req, res) => {
 
     const dataPagou = pagou === 'SIM' ? formatarDataBrasilia() : null;
 
-    await db.query(
-      'UPDATE ao_vivo SET pagou = $1, data_pagou = $2, atualizado_em = NOW() WHERE id = $3',
-      [pagou, dataPagou, req.params.id]
+    const atualizado = await db.query(
+      'UPDATE ao_vivo SET pagou = $1, data_pagou = $2, atualizado_em = NOW(), versao = versao + 1 WHERE id = $3 AND versao = $4 AND excluido_em IS NULL RETURNING versao',
+      [pagou, dataPagou, req.params.id, versao]
     );
-
-    res.json({ ok: true, pagou, dataPagou });
+    if (!atualizado.rowCount) return res.status(409).json({ erro: 'Pedido alterado por outra pessoa. Recarregue antes de alterar o pagamento.' });
+    res.json({ ok: true, pagou, dataPagou, versao: atualizado.rows[0].versao });
   } catch (erro) {
     console.error('Erro ao marcar pagamento do ao vivo:', erro);
     res.status(500).json({ erro: 'Erro ao marcar pagamento.' });
@@ -336,10 +350,16 @@ router.post('/', async (req, res) => {
     const dados = { ...req.body };
 
     if (dados.cliente_id) {
+      if (!/^[1-9]\d*$/.test(String(dados.cliente_id)) || Number(dados.cliente_id) > 2147483647) {
+        return res.status(400).json({ erro: 'ID de cliente inválido.' });
+      }
       const clienteResultado = await db.query('SELECT * FROM clientes WHERE id = $1', [dados.cliente_id]);
       const cliente = clienteResultado.rows[0];
       if (!cliente) {
         return res.status(400).json({ erro: 'Cliente não encontrado.' });
+      }
+      if (cliente.excluido_em) {
+        return res.status(409).json({ erro: 'Cliente enviado à lixeira. Recarregue a página antes de criar o pedido.' });
       }
       if (cliente.bloqueado) {
         return res.status(403).json({ erro: 'Este cliente está bloqueado. Não é possível criar novos pedidos para ele.' });
@@ -353,19 +373,48 @@ router.post('/', async (req, res) => {
     if (!dados.comprador || !dados.comprador.trim()) {
       return res.status(400).json({ erro: 'O nome do comprador é obrigatório.' });
     }
+    if (dados.valor === undefined || dados.valor === null || !Number.isFinite(Number(dados.valor)) || Number(dados.valor) < 0) {
+      return res.status(400).json({ erro: 'Informe um valor válido.' });
+    }
+    if (dados.dia_entrega && !dataCurtaValida(dados.dia_entrega)) {
+      return res.status(400).json({ erro: 'Dia do evento inválido.' });
+    }
 
     dados.vendedor_usuario = req.usuario.usuario;
+    if (!String(dados.numero_os || '').trim()) {
+      dados.numero_os = String(await reservarProximaOs(pool, 'ao_vivo'));
+    }
 
-    const campos = CAMPOS.filter((c) => dados[c] !== undefined);
-    const placeholders = campos.map((_, i) => `$${i + 1}`).join(', ');
-    const valores = campos.map((c) => dados[c]);
-
-    const resultado = await db.query(`
-      INSERT INTO ao_vivo (${campos.join(', ')}) VALUES (${placeholders})
-      RETURNING *
-    `, valores);
-
-    res.status(201).json(resultado.rows[0]);
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      if (dados.cliente_id) {
+        const atual = (await client.query('SELECT * FROM clientes WHERE id = $1 FOR UPDATE', [dados.cliente_id])).rows[0];
+        if (!atual || atual.excluido_em || atual.bloqueado) {
+          await client.query('ROLLBACK');
+          return res.status(atual?.bloqueado ? 403 : 409).json({ erro: atual?.bloqueado
+            ? 'Este cliente está bloqueado. Não é possível criar novos pedidos para ele.'
+            : 'Cliente enviado à lixeira ou removido. Recarregue a página antes de criar o pedido.' });
+        }
+        dados.comprador = atual.nome;
+        dados.celular = atual.celular;
+        dados.whatsapp = atual.whatsapp;
+        dados.aniversario = atual.nascimento;
+      }
+      const campos = CAMPOS.filter((c) => dados[c] !== undefined);
+      const placeholders = campos.map((_, i) => `$${i + 1}`).join(', ');
+      const valores = campos.map((c) => dados[c]);
+      const resultado = await client.query(
+        `INSERT INTO ao_vivo (${campos.join(', ')}) VALUES (${placeholders}) RETURNING *`, valores
+      );
+      await client.query('COMMIT');
+      res.status(201).json(resultado.rows[0]);
+    } catch (erro) {
+      await client.query('ROLLBACK');
+      throw erro;
+    } finally {
+      client.release();
+    }
   } catch (erro) {
     console.error('Erro ao criar ao vivo:', erro);
     res.status(500).json({ erro: 'Erro ao criar registro.' });
@@ -386,20 +435,28 @@ router.put('/:id', async (req, res) => {
     }
 
     const dados = req.body;
+    if (dados.dia_entrega && !dataCurtaValida(dados.dia_entrega)) {
+      return res.status(400).json({ erro: 'Dia do evento inválido.' });
+    }
     const campos = CAMPOS.filter((c) => dados[c] !== undefined);
     if (campos.length === 0) return res.status(400).json({ erro: 'Nenhum campo para atualizar.' });
+    if (!Number.isSafeInteger(dados.versao) || dados.versao < 1) {
+      return res.status(400).json({ erro: 'A versão do pedido é obrigatória para salvar.' });
+    }
 
     const setClause = campos.map((c, i) => `${c} = $${i + 1}`).join(', ');
     const valores = campos.map((c) => dados[c]);
     const idxId = campos.length + 1;
 
-    await db.query(
-      `UPDATE ao_vivo SET ${setClause}, atualizado_em = NOW() WHERE id = $${idxId}`,
-      [...valores, req.params.id]
+    const resultado = await db.query(
+      `UPDATE ao_vivo SET ${setClause}, atualizado_em = NOW(), versao = versao + 1
+       WHERE id = $${idxId} AND versao = $${idxId + 1} AND excluido_em IS NULL RETURNING *`,
+      [...valores, req.params.id, dados.versao]
     );
-
-    const atualizado = await db.query('SELECT * FROM ao_vivo WHERE id = $1', [req.params.id]);
-    res.json(atualizado.rows[0]);
+    if (resultado.rows.length === 0) {
+      return res.status(409).json({ erro: 'Pedido alterado por outra pessoa. Recarregue a página antes de salvar novamente.' });
+    }
+    res.json(resultado.rows[0]);
   } catch (erro) {
     console.error('Erro ao atualizar ao vivo:', erro);
     res.status(500).json({ erro: 'Erro ao atualizar registro.' });
@@ -443,28 +500,51 @@ router.delete('/:id', async (req, res) => {
 // (formato "PRAZO - DIA dd/mm/aa - MP - ..."), então a remarcação
 // troca só essa parte, preservando o resto do texto (forma do MP etc).
 router.post('/:id/nao-recebeu', async (req, res) => {
-  const { observacao, remarcadoDia } = req.body;
+  const { observacao, remarcadoDia, versao } = req.body;
+  if (!Number.isSafeInteger(versao) || versao < 1) return res.status(400).json({ erro: 'A versão do pedido é obrigatória.' });
 
   if (!remarcadoDia) {
     return res.status(400).json({ erro: 'Informe o novo dia para remarcar o prazo.' });
   }
+  if (!dataCurtaValida(remarcadoDia)) {
+    return res.status(400).json({ erro: 'Informe uma data válida para remarcar o prazo.' });
+  }
+  const [diaNovo, mesNovo, anoNovo] = remarcadoDia.split('/');
+  const [diaHoje, mesHoje, anoHoje] = formatarDataBrasilia().split('/');
+  const chaveNova = `${anoNovo.length === 2 ? `20${anoNovo}` : anoNovo}${mesNovo}${diaNovo}`;
+  const chaveHoje = `20${anoHoje}${mesHoje}${diaHoje}`;
+  if (chaveNova < chaveHoje) {
+    return res.status(400).json({ erro: 'Não é possível remarcar o prazo para o passado.' });
+  }
 
   const client = await pool.connect();
   try {
-    const pedidoResultado = await client.query('SELECT id, cliente_id, pagamento FROM ao_vivo WHERE id = $1', [req.params.id]);
+    await client.query('BEGIN');
+    const pedidoResultado = await client.query('SELECT id, cliente_id, pagamento, pagou, versao FROM ao_vivo WHERE id = $1 AND excluido_em IS NULL FOR UPDATE', [req.params.id]);
     if (pedidoResultado.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ erro: 'Pedido não encontrado.' });
     }
 
     const pedido = pedidoResultado.rows[0];
+    if (pedido.versao !== versao) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ erro: 'Pedido alterado por outra pessoa. Recarregue antes de remarcar o prazo.' });
+    }
     if (!String(pedido.pagamento || '').startsWith('PRAZO')) {
+      await client.query('ROLLBACK');
       return res.status(400).json({ erro: 'Este pedido não está com pagamento a prazo.' });
+    }
+    if (pedido.pagou === 'SIM') {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ erro: 'Este pedido já foi pago. Desfaça o recebimento antes de registrar nova tentativa.' });
     }
 
     const clienteId = pedido.cliente_id;
     if (clienteId) {
       const clienteResultado = await client.query('SELECT bloqueado FROM clientes WHERE id = $1', [clienteId]);
       if (clienteResultado.rows[0]?.bloqueado) {
+        await client.query('ROLLBACK');
         return res.status(403).json({ erro: 'Este cliente está bloqueado. Não é possível registrar tentativas para ele.' });
       }
     }
@@ -480,19 +560,17 @@ router.post('/:id/nao-recebeu', async (req, res) => {
       novoPagamento = novoPagamento.replace(/^PRAZO/, `PRAZO - DIA ${remarcadoDia}`);
     }
 
-    await client.query('BEGIN');
-
     await client.query(`
       INSERT INTO tentativas_prazo_ao_vivo (pedido_id, data_hora_tentativa, observacao, remarcado_dia)
       VALUES ($1, $2, $3, $4)
     `, [req.params.id, texto, observacao || null, remarcadoDia]);
 
-    await client.query(`
-      UPDATE ao_vivo SET pagamento = $1, atualizado_em = NOW() WHERE id = $2
+    const atualizado = await client.query(`
+      UPDATE ao_vivo SET pagamento = $1, atualizado_em = NOW(), versao = versao + 1 WHERE id = $2 RETURNING versao
     `, [novoPagamento, req.params.id]);
 
     await client.query('COMMIT');
-    res.json({ ok: true, pagamento: novoPagamento });
+    res.json({ ok: true, pagamento: novoPagamento, versao: atualizado.rows[0].versao });
   } catch (erro) {
     await client.query('ROLLBACK');
     console.error('Erro ao registrar tentativa de prazo:', erro);

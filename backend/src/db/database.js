@@ -93,6 +93,7 @@ async function iniciarBanco() {
       referencia TEXT,
       bloqueado BOOLEAN DEFAULT FALSE,
       bloqueio_motivo TEXT,
+      versao INTEGER NOT NULL DEFAULT 1,
       excluido_em TIMESTAMP,
       criado_em TIMESTAMP DEFAULT NOW(),
       atualizado_em TIMESTAMP DEFAULT NOW()
@@ -104,6 +105,7 @@ async function iniciarBanco() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS fonadas (
       id SERIAL PRIMARY KEY,
+      versao INTEGER NOT NULL DEFAULT 1,
       senha_os TEXT,
       cliente_id INTEGER REFERENCES clientes(id),
       nome_comprador TEXT NOT NULL,
@@ -169,6 +171,7 @@ async function iniciarBanco() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS ao_vivo (
       id SERIAL PRIMARY KEY,
+      versao INTEGER NOT NULL DEFAULT 1,
       numero_os TEXT,
       cliente_id INTEGER REFERENCES clientes(id),
       data_pedido TEXT,
@@ -347,6 +350,9 @@ async function iniciarBanco() {
     { tabela: 'fonadas', coluna: 'cliente_id', tipo: 'INTEGER REFERENCES clientes(id)' },
     { tabela: 'ao_vivo', coluna: 'cliente_id', tipo: 'INTEGER REFERENCES clientes(id)' },
     { tabela: 'clientes', coluna: 'excluido_em', tipo: 'TIMESTAMP' },
+    { tabela: 'clientes', coluna: 'versao', tipo: 'INTEGER NOT NULL DEFAULT 1' },
+    { tabela: 'fonadas', coluna: 'versao', tipo: 'INTEGER NOT NULL DEFAULT 1' },
+    { tabela: 'ao_vivo', coluna: 'versao', tipo: 'INTEGER NOT NULL DEFAULT 1' },
     { tabela: 'fonadas', coluna: 'excluido_em', tipo: 'TIMESTAMP' },
     { tabela: 'ao_vivo', coluna: 'excluido_em', tipo: 'TIMESTAMP' },
     { tabela: 'fonadas', coluna: 'data_pagamento', tipo: 'TEXT' },

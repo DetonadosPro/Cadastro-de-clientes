@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
@@ -46,6 +46,7 @@ export default function FormNovoCliente() {
   const [erro, setErro] = useState('');
   const [duplicados, setDuplicados] = useState(null);
   const [enderecoAberto, setEnderecoAberto] = useState(false);
+  const submissaoEmAndamento = useRef(false);
 
   function set(campo, valor) {
     setDados((d) => ({ ...d, [campo]: valor }));
@@ -66,7 +67,7 @@ export default function FormNovoCliente() {
     setDuplicados(null);
   }
 
-  async function salvarDeVerdade() {
+  async function persistirCliente() {
     setSalvando(true);
     try {
       // O banco atual mantém logradouro e número juntos em `endereco`.
@@ -87,31 +88,46 @@ export default function FormNovoCliente() {
     }
   }
 
+  async function salvarDeVerdade() {
+    if (submissaoEmAndamento.current) return;
+    submissaoEmAndamento.current = true;
+    try {
+      await persistirCliente();
+    } finally {
+      submissaoEmAndamento.current = false;
+    }
+  }
+
   async function salvar() {
-    if (salvando) return;
+    if (submissaoEmAndamento.current) return;
     setErro('');
     if (!dados.nome.trim()) {
       setErro('O nome é obrigatório.');
       return;
     }
 
-    if (duplicados === null && dados.nascimento.trim()) {
-      setSalvando(true);
-      try {
-        const resp = await api.clientes.verificarDuplicidade(dados.nome, dados.nascimento);
-        setSalvando(false);
-        if (resp.possiveisDuplicados.length > 0) {
-          setDuplicados(resp.possiveisDuplicados);
+    submissaoEmAndamento.current = true;
+    try {
+      if (duplicados === null && dados.nascimento.trim()) {
+        setSalvando(true);
+        try {
+          const resp = await api.clientes.verificarDuplicidade(dados.nome, dados.nascimento);
+          setSalvando(false);
+          if (resp.possiveisDuplicados.length > 0) {
+            setDuplicados(resp.possiveisDuplicados);
+            return;
+          }
+        } catch (err) {
+          setSalvando(false);
+          setErro('Não foi possível verificar duplicidades. Tente salvar novamente.');
           return;
         }
-      } catch (err) {
-        setSalvando(false);
-        setErro('Não foi possível verificar duplicidades. Tente salvar novamente.');
-        return;
       }
-    }
 
-    await salvarDeVerdade();
+      await persistirCliente();
+    } finally {
+      submissaoEmAndamento.current = false;
+    }
   }
 
   function cancelar() {

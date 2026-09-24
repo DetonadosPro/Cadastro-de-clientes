@@ -179,6 +179,7 @@ export default function CobrancaAoVivo({ mostrarCabecalho = true }) {
         dataPagamento,
         valorRecebido: Number(String(valorRecebido).replace(',', '.')),
         formaRecebimento,
+        versao: baixa.versao,
       });
       mostrarToast('PAGAMENTO AO VIVO RECEBIDO');
       setBaixa(null);
@@ -193,7 +194,7 @@ export default function CobrancaAoVivo({ mostrarCabecalho = true }) {
   async function desfazer(pedido) {
     if (!window.confirm(`Desfazer a baixa da O.S. ${pedido.numero_os || pedido.id}?`)) return;
     try {
-      await api.cobranca.desfazerBaixaAoVivo(pedido.id);
+      await api.cobranca.desfazerBaixaAoVivo(pedido.id, pedido.versao);
       mostrarToast('Baixa financeira desfeita.');
       await carregar();
     } catch (e) {
@@ -212,7 +213,7 @@ export default function CobrancaAoVivo({ mostrarCabecalho = true }) {
     }
     setSalvando(true);
     try {
-      await api.cobranca.reagendarAoVivo(reagendar.id, novaData);
+      await api.cobranca.reagendarAoVivo(reagendar.id, novaData, reagendar.versao);
       mostrarToast('COBRANÇA AO VIVO REAGENDADA');
       setReagendar(null);
       await carregar();

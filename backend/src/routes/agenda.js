@@ -13,18 +13,16 @@ const express = require('express');
 const { db, pool } = require('../db/database');
 const { agoraBrasilia } = require('../utils/dataHora');
 const { situacaoSegundaMensagem, validarDataUsoSegundaMensagem } = require('../utils/mensagemEmHaver');
+const { dataCurtaValida } = require('../utils/validarDataCurta');
 
 const router = express.Router();
+router.param('id', (req, res, next, id) => {
+  if (!/^[1-9]\d*$/.test(id)) return res.status(400).json({ erro: 'ID inválido.' });
+  next();
+});
 
 function dataCompleta(valor) {
-  if (!valor) return false;
-  const m = String(valor).trim().match(/^(\d{2})\/(\d{2})\/(\d{2}|\d{4})$/);
-  if (!m) return false;
-  const dia = parseInt(m[1], 10);
-  const mes = parseInt(m[2], 10);
-  if (dia < 1 || dia > 31) return false;
-  if (mes < 1 || mes > 12) return false;
-  return true;
+  return dataCurtaValida(valor);
 }
 
 function hojeEmAmbosFormatos() {
@@ -161,7 +159,7 @@ router.get('/hoje', async (req, res) => {
     const consultandoHoje = !dataConsultada || curto === curtoHoje || curto === longoHoje || longo === curtoHoje || longo === longoHoje;
 
     const fonadasResultado = await db.query(`
-      SELECT f.id, f.senha_os, f.nome_comprador, f.cliente_id, f.data_pedido, c.whatsapp AS cliente_whatsapp,
+      SELECT f.id, f.versao, f.senha_os, f.nome_comprador, f.cliente_id, f.data_pedido, c.whatsapp AS cliente_whatsapp,
              f.p1_dia, f.p1_para, f.p1_tema, f.p1_mensagem, f.p1_horario, f.p1_celular, f.p1_fixo, f.p1_quem_oferece, f.p1_resultado,
              f.p2_dia, f.p2_para, f.p2_tema, f.p2_mensagem, f.p2_horario, f.p2_celular, f.p2_fixo, f.p2_quem_oferece, f.p2_resultado
       FROM fonadas f
@@ -174,7 +172,7 @@ router.get('/hoje', async (req, res) => {
       const situacaoP2 = situacaoSegundaMensagem(f);
       if ((f.p1_dia === curto || f.p1_dia === longo) && dataCompleta(f.p1_dia)) {
         itensFonada.push({
-          pedidoId: f.id, mensagem: 1, senha_os: f.senha_os, nome_comprador: f.nome_comprador,
+          pedidoId: f.id, versao: f.versao, mensagem: 1, senha_os: f.senha_os, nome_comprador: f.nome_comprador,
           cliente_id: f.cliente_id, whatsapp: f.cliente_whatsapp, para: f.p1_para, tema: f.p1_tema, codigo: f.p1_mensagem, dia: f.p1_dia, horario: f.p1_horario,
           celular: f.p1_celular, fixo: f.p1_fixo, quemOferece: f.p1_quem_oferece, resultado: f.p1_resultado,
           passada: Boolean(f.p1_resultado),
@@ -182,7 +180,7 @@ router.get('/hoje', async (req, res) => {
       }
       if ((f.p2_dia === curto || f.p2_dia === longo) && dataCompleta(f.p2_dia)) {
         itensFonada.push({
-          pedidoId: f.id, mensagem: 2, senha_os: f.senha_os, nome_comprador: f.nome_comprador,
+          pedidoId: f.id, versao: f.versao, mensagem: 2, senha_os: f.senha_os, nome_comprador: f.nome_comprador,
           cliente_id: f.cliente_id, whatsapp: f.cliente_whatsapp, para: f.p2_para, tema: f.p2_tema, codigo: f.p2_mensagem, dia: f.p2_dia, horario: f.p2_horario,
           celular: f.p2_celular, fixo: f.p2_fixo, quemOferece: f.p2_quem_oferece, resultado: f.p2_resultado,
           passada: Boolean(f.p2_resultado),
@@ -235,10 +233,12 @@ router.get('/hoje', async (req, res) => {
 // POST /api/agenda/fonada/:id/baixa
 router.post('/fonada/:id/baixa', async (req, res) => {
   try {
-    const { mensagem } = req.body;
-    if (mensagem !== 1 && mensagem !== 2) {
+    const { mensagem, versao } = req.body;
+    const mensagens = Array.isArray(req.body.mensagens) ? [...new Set(req.body.mensagens)] : [mensagem];
+    if (mensagens.length === 0 || mensagens.some((numero) => numero !== 1 && numero !== 2)) {
       return res.status(400).json({ erro: 'Informe qual mensagem (1 ou 2).' });
     }
+    if (!Number.isSafeInteger(versao) || versao < 1) return res.status(400).json({ erro: 'A versão do pedido é obrigatória.' });
 
     const existenteResultado = await db.query('SELECT * FROM fonadas WHERE id = $1', [req.params.id]);
     if (existenteResultado.rows.length === 0) return res.status(404).json({ erro: 'Pedido não encontrado.' });
@@ -251,7 +251,7 @@ router.post('/fonada/:id/baixa', async (req, res) => {
       }
     }
 
-    if (mensagem === 2) {
+    if (mensagens.includes(2)) {
       const validacao = validarDataUsoSegundaMensagem(existenteResultado.rows[0]);
       if (!validacao.ok) return res.status(409).json({ erro: validacao.erro });
     }
@@ -264,14 +264,18 @@ router.post('/fonada/:id/baixa', async (req, res) => {
 
     const resultado = `OK ${nomeExibicao} ${data} ${horario}`;
 
-    const coluna = mensagem === 1 ? 'p1_resultado' : 'p2_resultado';
-    const colunaPassadaPor = mensagem === 1 ? 'p1_passada_por' : 'p2_passada_por';
-    await db.query(
-      `UPDATE fonadas SET ${coluna} = $1, ${colunaPassadaPor} = $2, atualizado_em = NOW() WHERE id = $3`,
-      [resultado, nomeExibicao, req.params.id]
+    const atualizado = await db.query(
+      `UPDATE fonadas SET
+         p1_resultado = CASE WHEN $1 THEN $3 ELSE p1_resultado END,
+         p1_passada_por = CASE WHEN $1 THEN $4 ELSE p1_passada_por END,
+         p2_resultado = CASE WHEN $2 THEN $3 ELSE p2_resultado END,
+         p2_passada_por = CASE WHEN $2 THEN $4 ELSE p2_passada_por END,
+         atualizado_em = NOW(), versao = versao + 1
+       WHERE id = $5 AND versao = $6 AND excluido_em IS NULL RETURNING versao`,
+      [mensagens.includes(1), mensagens.includes(2), resultado, nomeExibicao, req.params.id, versao]
     );
-
-    res.json({ ok: true, resultado });
+    if (!atualizado.rowCount) return res.status(409).json({ erro: 'Pedido alterado por outra pessoa. Recarregue antes de registrar a baixa.' });
+    res.json({ ok: true, resultado, versao: atualizado.rows[0].versao });
   } catch (erro) {
     console.error('Erro ao dar baixa na agenda:', erro);
     res.status(500).json({ erro: 'Erro ao dar baixa.' });
@@ -281,21 +285,28 @@ router.post('/fonada/:id/baixa', async (req, res) => {
 // POST /api/agenda/fonada/:id/desfazer-baixa
 router.post('/fonada/:id/desfazer-baixa', async (req, res) => {
   try {
-    const { mensagem } = req.body;
-    if (mensagem !== 1 && mensagem !== 2) {
+    const { mensagem, versao } = req.body;
+    const mensagens = Array.isArray(req.body.mensagens) ? [...new Set(req.body.mensagens)] : [mensagem];
+    if (mensagens.length === 0 || mensagens.some((numero) => numero !== 1 && numero !== 2)) {
       return res.status(400).json({ erro: 'Informe qual mensagem (1 ou 2).' });
     }
+    if (!Number.isSafeInteger(versao) || versao < 1) return res.status(400).json({ erro: 'A versão do pedido é obrigatória.' });
 
     const existenteResultado = await db.query('SELECT id FROM fonadas WHERE id = $1', [req.params.id]);
     if (existenteResultado.rows.length === 0) return res.status(404).json({ erro: 'Pedido não encontrado.' });
 
-    const coluna = mensagem === 1 ? 'p1_resultado' : 'p2_resultado';
-    await db.query(
-      `UPDATE fonadas SET ${coluna} = NULL, atualizado_em = NOW() WHERE id = $1`,
-      [req.params.id]
+    const atualizado = await db.query(
+      `UPDATE fonadas SET
+         p1_resultado = CASE WHEN $1 THEN NULL ELSE p1_resultado END,
+         p1_passada_por = CASE WHEN $1 THEN NULL ELSE p1_passada_por END,
+         p2_resultado = CASE WHEN $2 THEN NULL ELSE p2_resultado END,
+         p2_passada_por = CASE WHEN $2 THEN NULL ELSE p2_passada_por END,
+         atualizado_em = NOW(), versao = versao + 1
+       WHERE id = $3 AND versao = $4 AND excluido_em IS NULL RETURNING versao`,
+      [mensagens.includes(1), mensagens.includes(2), req.params.id, versao]
     );
-
-    res.json({ ok: true });
+    if (!atualizado.rowCount) return res.status(409).json({ erro: 'Pedido alterado por outra pessoa. Recarregue antes de desfazer a baixa.' });
+    res.json({ ok: true, versao: atualizado.rows[0].versao });
   } catch (erro) {
     console.error('Erro ao desfazer baixa da fonada:', erro);
     res.status(500).json({ erro: 'Erro ao desfazer.' });
@@ -304,7 +315,8 @@ router.post('/fonada/:id/desfazer-baixa', async (req, res) => {
 
 // POST /api/agenda/fonada/:id/nao-atendeu
 router.post('/fonada/:id/nao-atendeu', async (req, res) => {
-  const { mensagem, mensagens, observacao, remarcadoDia, remarcadoHorario } = req.body;
+  const { mensagem, mensagens, observacao, remarcadoDia, remarcadoHorario, versao } = req.body;
+  if (!Number.isSafeInteger(versao) || versao < 1) return res.status(400).json({ erro: 'A versão do pedido é obrigatória.' });
   const mensagensInformadas = Array.isArray(mensagens) ? mensagens : [mensagem];
   const mensagensSelecionadas = [...new Set(mensagensInformadas)].sort();
 
@@ -331,15 +343,23 @@ router.post('/fonada/:id/nao-atendeu', async (req, res) => {
 
   const client = await pool.connect();
   try {
-    const pedidoResultado = await client.query('SELECT * FROM fonadas WHERE id = $1', [req.params.id]);
+    await client.query('BEGIN');
+    const pedidoResultado = await client.query('SELECT * FROM fonadas WHERE id = $1 AND excluido_em IS NULL FOR UPDATE', [req.params.id]);
     if (pedidoResultado.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ erro: 'Pedido não encontrado.' });
+    }
+
+    if (pedidoResultado.rows[0].versao !== versao) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ erro: 'Pedido alterado por outra pessoa. Recarregue antes de remarcar.' });
     }
 
     const clienteId = pedidoResultado.rows[0].cliente_id;
     if (clienteId) {
       const clienteResultado = await client.query('SELECT bloqueado FROM clientes WHERE id = $1', [clienteId]);
       if (clienteResultado.rows[0]?.bloqueado) {
+        await client.query('ROLLBACK');
         return res.status(403).json({ erro: 'Este cliente está bloqueado. Não é possível registrar tentativas para ele.' });
       }
     }
@@ -347,13 +367,12 @@ router.post('/fonada/:id/nao-atendeu', async (req, res) => {
     if (mensagensSelecionadas.includes(2)) {
       const validacao = validarDataUsoSegundaMensagem(pedidoResultado.rows[0], remarcadoDia);
       if (!validacao.ok) {
+        await client.query('ROLLBACK');
         return res.status(409).json({ erro: validacao.erro });
       }
     }
 
     const { texto } = agoraFormatado();
-    await client.query('BEGIN');
-
     for (const numeroMensagem of mensagensSelecionadas) {
       await client.query(`
         INSERT INTO tentativas_contato (pedido_id, mensagem, data_hora_tentativa, observacao, remarcado_dia, remarcado_horario)
@@ -363,18 +382,18 @@ router.post('/fonada/:id/nao-atendeu', async (req, res) => {
 
     const atualizarPrimeira = mensagensSelecionadas.includes(1);
     const atualizarSegunda = mensagensSelecionadas.includes(2);
-    await client.query(`
+    const atualizado = await client.query(`
       UPDATE fonadas SET
         p1_dia = CASE WHEN $1 THEN $3 ELSE p1_dia END,
         p1_horario = CASE WHEN $1 THEN $4 ELSE p1_horario END,
         p2_dia = CASE WHEN $2 THEN $3 ELSE p2_dia END,
         p2_horario = CASE WHEN $2 THEN $4 ELSE p2_horario END,
-        atualizado_em = NOW()
-      WHERE id = $5
+        atualizado_em = NOW(), versao = versao + 1
+      WHERE id = $5 RETURNING versao
     `, [atualizarPrimeira, atualizarSegunda, remarcadoDia, remarcadoHorario, req.params.id]);
 
     await client.query('COMMIT');
-    res.json({ ok: true });
+    res.json({ ok: true, versao: atualizado.rows[0].versao });
   } catch (erro) {
     await client.query('ROLLBACK');
     console.error('Erro ao registrar tentativa:', erro);

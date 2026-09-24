@@ -33,7 +33,7 @@ export default function ClienteDrawer({ clienteId, onFechar, onNavegar }) {
     document.addEventListener('keydown', aoTeclar);
     const focoAnterior = document.activeElement;
     const quadro = requestAnimationFrame(() => fecharRef.current?.focus());
-    return () => { ativo = false; cancelAnimationFrame(quadro); document.body.classList.remove('sobreposicao-aberta'); document.removeEventListener('keydown', aoTeclar); focoAnterior?.focus?.(); };
+    return () => { ativo = false; cancelAnimationFrame(quadro); document.body.classList.remove('sobreposicao-aberta'); document.removeEventListener('keydown', aoTeclar); requestAnimationFrame(() => focoAnterior?.isConnected && focoAnterior.focus()); };
   }, [clienteId]);
 
   if (!clienteId) return null;

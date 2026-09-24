@@ -13,13 +13,23 @@ backend/data/*.db-*
 # Backups de dados reais de clientes gerados por scripts — nunca deve
 # ir pro GitHub
 backend/scripts/backups/
+backend/scripts/cadastro.XLSM
 
 # Build do frontend (gerado automaticamente no deploy)
 frontend/dist/
+frontend/test-results/
+frontend/playwright-report/
 
 # Arquivos de sistema/editor
 .DS_Store
 Thumbs.db
 *.log
-frontend/package-lock.json
 iniciar.bat
+
+# Evidências locais e cópias com dados: nunca incluir em releases.
+_database_backup/
+_git_backup/
+.codex-recall-release/
+docs/auditoria/evidencias/backup-qa/
+*.dump
+*-audit-predeploy.json

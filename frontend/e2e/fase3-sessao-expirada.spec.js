@@ -1,0 +1,33 @@
+import { registrarAuditoriaControles } from './instrumentar-controles.js';
+registrarAuditoriaControles();
+import { test, expect } from '@playwright/test';
+import path from 'node:path';
+import { readFile } from 'node:fs/promises';
+import { createHmac } from 'node:crypto';
+import { entrar, isolado } from './apoio.js';
+
+test('token JWT realmente vencido impede salvar formulário preenchido e exige novo login', async ({ page, request }) => {
+  test.skip(!isolado, 'Exige banco QA isolado.');
+  await entrar(page);
+  const tokenValido = await page.evaluate(() => localStorage.getItem('pombo_token'));
+  const [cabecalho, corpo] = tokenValido.split('.');
+  const payload = JSON.parse(Buffer.from(corpo, 'base64url').toString('utf8'));
+  const env = await readFile(path.resolve('../backend/.env'), 'utf8');
+  const linha = env.split(/\r?\n/).find((item) => /^JWT_SECRET=/.test(item));
+  expect(linha).toBeTruthy();
+  const segredo = linha.slice('JWT_SECRET='.length).trim().replace(/^['"]|['"]$/g, '');
+  const corpoVencido = Buffer.from(JSON.stringify({ ...payload, exp: Math.floor(Date.now() / 1000) - 60 })).toString('base64url');
+  const assinatura = createHmac('sha256', segredo).update(`${cabecalho}.${corpoVencido}`).digest('base64url');
+  await page.goto('/clientes/novo');
+  const nome = `TESTE_QA_SESSAO_VENCIDA_${Date.now()}`;
+  await page.getByLabel('Nome *').fill(nome);
+  await page.evaluate((token) => localStorage.setItem('pombo_token', token), `${cabecalho}.${corpoVencido}.${assinatura}`);
+  const resposta = page.waitForResponse((r) => r.url().endsWith('/api/clientes') && r.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Salvar cliente' }).click();
+  expect((await resposta).status()).toBe(401);
+  await page.waitForURL('**/login');
+  await expect(page.getByRole('button', { name: 'Entrar', exact: true })).toBeVisible();
+  const busca = await request.get(`/api/clientes?busca=${encodeURIComponent(nome)}`, { headers: { Authorization: `Bearer ${tokenValido}` } });
+  expect(busca.status()).toBe(200);
+  expect((await busca.json()).clientes?.some((cliente) => cliente.nome === nome)).toBeFalsy();
+});

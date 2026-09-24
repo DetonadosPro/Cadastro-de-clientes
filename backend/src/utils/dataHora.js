@@ -13,6 +13,15 @@
 
 const FUSO_BRASILIA = 'America/Sao_Paulo';
 
+function hojeIsoBrasilia(instante = new Date()) {
+  const partes = new Intl.DateTimeFormat('en-US', {
+    timeZone: FUSO_BRASILIA,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(instante);
+  const parte = (tipo) => partes.find((item) => item.type === tipo).value;
+  return `${parte('year')}-${parte('month')}-${parte('day')}`;
+}
+
 // Devolve um objeto Date cujos componentes (getDate/getHours/etc.),
 // quando lidos, já refletem o horário de Brasília — feito reconstruindo
 // a data a partir das partes formatadas nesse fuso (truque comum, já
@@ -51,4 +60,4 @@ function formatarDataBrasilia() {
   return `${dd}/${mm}/${aa}`;
 }
 
-module.exports = { agoraBrasilia, formatarDataBrasilia };
+module.exports = { agoraBrasilia, formatarDataBrasilia, hojeIsoBrasilia };

@@ -166,6 +166,15 @@ async function rodarResumoDiario() {
   const inicio = performance.now();
   try {
     const resumo = await montarResumoDoDia();
+    const pastaQa = await require('./qaArtefatos').pastaArtefatosQa();
+    if (pastaQa) {
+      const fs = require('node:fs/promises');
+      const path = require('node:path');
+      const arquivo = `resumo-${resumo.dia.replace(/\W/g, '-')}.json`;
+      await fs.writeFile(path.join(pastaQa, arquivo), JSON.stringify(resumo, null, 2), 'utf8');
+      registrarOperacao('resumo-diario', performance.now() - inicio, true, { modo: 'qa' });
+      return { ok: true, modo: 'qa', arquivo };
+    }
 
     if (telegramDisponivel()) {
       const mensagens = montarMensagensTelegram(resumo);
@@ -175,13 +184,13 @@ async function rodarResumoDiario() {
         if (!resultado.enviado) {
           registrarOperacao('resumo-diario', performance.now() - inicio, false);
           console.warn(`⚠️  Resumo gerado, mas não enviado por Telegram: ${resultado.motivo}`);
-          return;
+          return { ok: false, motivo: resultado.motivo };
         }
         mensagensEnviadas += resultado.mensagens || 1;
       }
       registrarOperacao('resumo-diario', performance.now() - inicio, true, { canal: 'telegram' });
       console.log(`✅ Resumo diário enviado por Telegram com sucesso (${mensagensEnviadas} mensagem(ns)).`);
-      return;
+      return { ok: true, canal: 'telegram' };
     }
 
     const resultado = await enviarEmail({
@@ -195,9 +204,11 @@ async function rodarResumoDiario() {
       console.warn(`⚠️  Resumo gerado, mas não enviado: ${resultado.motivo}`);
     }
     registrarOperacao('resumo-diario', performance.now() - inicio, resultado.enviado, { canal: 'email' });
+    return { ok: resultado.enviado, motivo: resultado.motivo || null };
   } catch (erro) {
     registrarOperacao('resumo-diario', performance.now() - inicio, false);
     console.error('❌ Erro ao gerar resumo diário:', erro);
+    return { ok: false, motivo: erro.message };
   }
 }
 

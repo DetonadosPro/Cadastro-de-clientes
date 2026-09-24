@@ -16,6 +16,10 @@ const { formatarDataBrasilia } = require('../utils/dataHora');
 const { situacaoSegundaMensagem } = require('../utils/mensagemEmHaver');
 
 const router = express.Router();
+router.param('id', (req, res, next, id) => {
+  if (!/^[1-9]\d*$/.test(id)) return res.status(400).json({ erro: 'ID de cliente inválido.' });
+  next();
+});
 
 const CAMPOS = ['nome', 'nascimento', 'fixo', 'whatsapp', 'celular', 'endereco', 'complemento', 'bairro', 'referencia'];
 
@@ -311,7 +315,7 @@ router.get('/lixeira', async (req, res) => {
   try {
     const busca = (req.query.busca || '').trim();
     const pagina = Math.max(parseInt(req.query.pagina) || 1, 1);
-    const porPagina = Math.min(parseInt(req.query.porPagina) || 30, 200);
+    const porPagina = Math.max(1, Math.min(parseInt(req.query.porPagina) || 30, 200));
     const offset = (pagina - 1) * porPagina;
 
     let where = 'WHERE c.excluido_em IS NOT NULL';
@@ -449,9 +453,14 @@ router.post('/descartar-duplicata', async (req, res) => {
   if (!clienteAId || !clienteBId) {
     return res.status(400).json({ erro: 'Informe clienteAId e clienteBId.' });
   }
+  if ([clienteAId, clienteBId].some((id) => !/^[1-9]\d*$/.test(String(id)) || Number(id) > 2147483647) || String(clienteAId) === String(clienteBId)) {
+    return res.status(400).json({ erro: 'Informe dois clientes diferentes e válidos.' });
+  }
   try {
     const menor = Math.min(clienteAId, clienteBId);
     const maior = Math.max(clienteAId, clienteBId);
+    const existentes = await db.query('SELECT id FROM clientes WHERE id IN ($1, $2) AND excluido_em IS NULL', [menor, maior]);
+    if (existentes.rows.length !== 2) return res.status(404).json({ erro: 'Um dos clientes não foi encontrado.' });
     await db.query(
       `INSERT INTO duplicatas_descartadas (cliente_menor_id, cliente_maior_id)
        VALUES ($1, $2) ON CONFLICT DO NOTHING`,
@@ -503,8 +512,8 @@ router.post('/mesclar-automatico', async (req, res) => {
     const perdedor = aVence ? clienteB : clienteA;
 
     await client.query('BEGIN');
-    await client.query('UPDATE fonadas SET cliente_id = $1 WHERE cliente_id = $2', [vencedor.id, perdedor.id]);
-    await client.query('UPDATE ao_vivo SET cliente_id = $1 WHERE cliente_id = $2', [vencedor.id, perdedor.id]);
+    await client.query('UPDATE fonadas SET cliente_id = $1, versao = versao + 1 WHERE cliente_id = $2', [vencedor.id, perdedor.id]);
+    await client.query('UPDATE ao_vivo SET cliente_id = $1, versao = versao + 1 WHERE cliente_id = $2', [vencedor.id, perdedor.id]);
 
     // Diferente da mesclagem manual: aqui os dados do VENCEDOR (dono
     // do pedido mais recente) prevalecem — mas só nos campos que ele
@@ -516,18 +525,18 @@ router.post('/mesclar-automatico', async (req, res) => {
     const valoresFinais = campos.map((c) => vencedor[c] || perdedor[c]);
     const setClause = campos.map((c, i) => `${c} = $${i + 1}`).join(', ');
     await client.query(
-      `UPDATE clientes SET ${setClause}, atualizado_em = NOW() WHERE id = $${campos.length + 1}`,
+      `UPDATE clientes SET ${setClause}, atualizado_em = NOW(), versao = versao + 1 WHERE id = $${campos.length + 1}`,
       [...valoresFinais, vencedor.id]
     );
-    await client.query('UPDATE clientes SET excluido_em = NOW() WHERE id = $1', [perdedor.id]);
+    await client.query('UPDATE clientes SET excluido_em = NOW(), versao = versao + 1 WHERE id = $1', [perdedor.id]);
 
     // Sincroniza a cópia do nome em todos os pedidos que agora
     // pertencem ao vencedor (tanto os que já eram dele quanto os que
     // acabaram de ser transferidos do perdedor), para a busca de
     // pedidos continuar batendo com o nome final do cliente mesclado.
     const nomeFinal = valoresFinais[0];
-    await client.query('UPDATE fonadas SET nome_comprador = $1 WHERE cliente_id = $2 AND excluido_em IS NULL', [nomeFinal, vencedor.id]);
-    await client.query('UPDATE ao_vivo SET comprador = $1 WHERE cliente_id = $2 AND excluido_em IS NULL', [nomeFinal, vencedor.id]);
+    await client.query('UPDATE fonadas SET nome_comprador = $1, versao = versao + 1 WHERE cliente_id = $2 AND excluido_em IS NULL', [nomeFinal, vencedor.id]);
+    await client.query('UPDATE ao_vivo SET comprador = $1, versao = versao + 1 WHERE cliente_id = $2 AND excluido_em IS NULL', [nomeFinal, vencedor.id]);
 
     await client.query('COMMIT');
 
@@ -660,9 +669,10 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const dados = req.body;
-    if (!dados.nome || !dados.nome.trim()) {
+    if (typeof dados.nome !== 'string' || !dados.nome.trim()) {
       return res.status(400).json({ erro: 'O nome é obrigatório.' });
     }
+    dados.nome = dados.nome.trim();
     if (!nascimentoValido(dados.nascimento)) {
       return res.status(400).json({ erro: 'Informe uma data de nascimento válida.' });
     }
@@ -698,7 +708,7 @@ router.put('/:id/bloqueio', async (req, res) => {
 
     await db.query(`
       UPDATE clientes
-      SET bloqueado = $1, bloqueio_motivo = $2, atualizado_em = NOW()
+      SET bloqueado = $1, bloqueio_motivo = $2, atualizado_em = NOW(), versao = versao + 1
       WHERE id = $3
     `, [bloqueado, bloqueado ? (motivo || null) : null, req.params.id]);
     // Ao desbloquear, o motivo é limpo — evita ficar um motivo antigo
@@ -716,47 +726,61 @@ router.put('/:id/bloqueio', async (req, res) => {
 // PUT /api/clientes/:id
 router.put('/:id', async (req, res) => {
   try {
-    const existente = await db.query('SELECT id FROM clientes WHERE id = $1', [req.params.id]);
+    const existente = await db.query('SELECT id, nome FROM clientes WHERE id = $1', [req.params.id]);
     if (existente.rows.length === 0) return res.status(404).json({ erro: 'Cliente não encontrado.' });
 
     const dados = req.body;
+    if (dados.nome !== undefined) {
+      if (typeof dados.nome !== 'string' || !dados.nome.trim()) {
+        return res.status(400).json({ erro: 'O nome é obrigatório.' });
+      }
+      dados.nome = dados.nome.trim();
+    }
     if (dados.nascimento !== undefined && !nascimentoValido(dados.nascimento)) {
       return res.status(400).json({ erro: 'Informe uma data de nascimento válida.' });
     }
     const campos = CAMPOS.filter((c) => dados[c] !== undefined);
     if (campos.length === 0) return res.status(400).json({ erro: 'Nenhum campo para atualizar.' });
+    if (!Number.isSafeInteger(dados.versao) || dados.versao < 1) {
+      return res.status(400).json({ erro: 'A versão do cadastro é obrigatória para salvar.' });
+    }
 
     const setClause = campos.map((c, i) => `${c} = $${i + 1}`).join(', ');
     const valores = campos.map((c) => dados[c]);
     const idxId = campos.length + 1;
 
-    await db.query(
-      `UPDATE clientes SET ${setClause}, atualizado_em = NOW() WHERE id = $${idxId}`,
-      [...valores, req.params.id]
-    );
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const resultado = await client.query(
+        `UPDATE clientes SET ${setClause}, atualizado_em = NOW(), versao = versao + 1
+         WHERE id = $${idxId} AND versao = $${idxId + 1} AND excluido_em IS NULL RETURNING *`,
+        [...valores, req.params.id, dados.versao]
+      );
+      if (resultado.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ erro: 'Cadastro alterado em outra aba. Recarregue a página antes de salvar novamente.' });
+      }
 
-    // O nome do cliente fica copiado ("congelado") em cada pedido no
-    // momento da criação — nome_comprador em fonadas, comprador em
-    // ao_vivo — porque o pedido precisa manter esse dado mesmo se o
-    // cliente for excluído depois. Mas isso significa que editar o
-    // nome aqui, sem propagar, deixa a busca de pedidos (que usa essa
-    // cópia) desatualizada mesmo que a tela do pedido mostre o nome
-    // certo (ela busca o cliente à parte, ao vivo). Sincroniza as
-    // cópias sempre que o nome mudar, para a busca continuar batendo
-    // com o nome atual do cliente.
-    if (dados.nome !== undefined) {
-      await db.query(
-        `UPDATE fonadas SET nome_comprador = $1 WHERE cliente_id = $2 AND excluido_em IS NULL`,
-        [dados.nome, req.params.id]
-      );
-      await db.query(
-        `UPDATE ao_vivo SET comprador = $1 WHERE cliente_id = $2 AND excluido_em IS NULL`,
-        [dados.nome, req.params.id]
-      );
+      // Mantém as cópias do nome nos pedidos sincronizadas com a ficha.
+      if (dados.nome !== undefined && dados.nome !== existente.rows[0].nome) {
+        await client.query(
+          'UPDATE fonadas SET nome_comprador = $1, versao = versao + 1 WHERE cliente_id = $2 AND excluido_em IS NULL',
+          [dados.nome, req.params.id]
+        );
+        await client.query(
+          'UPDATE ao_vivo SET comprador = $1, versao = versao + 1 WHERE cliente_id = $2 AND excluido_em IS NULL',
+          [dados.nome, req.params.id]
+        );
+      }
+      await client.query('COMMIT');
+      res.json(resultado.rows[0]);
+    } catch (erro) {
+      await client.query('ROLLBACK');
+      throw erro;
+    } finally {
+      client.release();
     }
-
-    const atualizado = await db.query('SELECT * FROM clientes WHERE id = $1', [req.params.id]);
-    res.json(atualizado.rows[0]);
   } catch (erro) {
     console.error('Erro ao atualizar cliente:', erro);
     res.status(500).json({ erro: 'Erro ao atualizar cliente.' });
@@ -805,9 +829,9 @@ router.delete('/:id', async (req, res) => {
     }
 
     await client.query('BEGIN');
-    await client.query('UPDATE clientes SET excluido_em = NOW() WHERE id = $1', [req.params.id]);
-    await client.query('UPDATE fonadas SET excluido_em = NOW() WHERE cliente_id = $1', [req.params.id]);
-    await client.query('UPDATE ao_vivo SET excluido_em = NOW() WHERE cliente_id = $1', [req.params.id]);
+    await client.query('UPDATE clientes SET excluido_em = NOW(), versao = versao + 1 WHERE id = $1', [req.params.id]);
+    await client.query('UPDATE fonadas SET excluido_em = NOW(), versao = versao + 1 WHERE cliente_id = $1', [req.params.id]);
+    await client.query('UPDATE ao_vivo SET excluido_em = NOW(), versao = versao + 1 WHERE cliente_id = $1', [req.params.id]);
     await client.query('COMMIT');
 
     res.json({ ok: true });
@@ -830,9 +854,9 @@ router.post('/:id/restaurar', async (req, res) => {
     }
 
     await client.query('BEGIN');
-    await client.query('UPDATE clientes SET excluido_em = NULL WHERE id = $1', [req.params.id]);
-    await client.query('UPDATE fonadas SET excluido_em = NULL WHERE cliente_id = $1', [req.params.id]);
-    await client.query('UPDATE ao_vivo SET excluido_em = NULL WHERE cliente_id = $1', [req.params.id]);
+    await client.query('UPDATE clientes SET excluido_em = NULL, versao = versao + 1 WHERE id = $1', [req.params.id]);
+    await client.query('UPDATE fonadas SET excluido_em = NULL, versao = versao + 1 WHERE cliente_id = $1', [req.params.id]);
+    await client.query('UPDATE ao_vivo SET excluido_em = NULL, versao = versao + 1 WHERE cliente_id = $1', [req.params.id]);
     await client.query('COMMIT');
 
     const atualizado = await client.query('SELECT * FROM clientes WHERE id = $1', [req.params.id]);
@@ -888,22 +912,29 @@ router.post('/:id/mesclar', async (req, res) => {
 
   const client = await pool.connect();
   try {
-    const destinoResultado = await client.query(
-      'SELECT * FROM clientes WHERE id = $1 AND excluido_em IS NULL', [destinoId]
+    await client.query('BEGIN');
+    // A seleção de dados do diálogo pode ficar obsoleta enquanto outro
+    // operador edita um dos cadastros. Trave ambos em ordem estável.
+    const bloqueados = await client.query(
+      'SELECT * FROM clientes WHERE id IN ($1, $2) AND excluido_em IS NULL ORDER BY id FOR UPDATE',
+      [destinoId, origemId]
     );
-    const origemResultado = await client.query(
-      'SELECT * FROM clientes WHERE id = $1 AND excluido_em IS NULL', [origemId]
-    );
-    const destino = destinoResultado.rows[0];
-    const origem = origemResultado.rows[0];
+    const destino = bloqueados.rows.find((item) => String(item.id) === String(destinoId));
+    const origem = bloqueados.rows.find((item) => String(item.id) === String(origemId));
     if (!destino) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ erro: 'Cliente de destino não encontrado.' });
     }
     if (!origem) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ erro: 'Cliente de origem não encontrado.' });
     }
+    if ((req.body.versaoDestino !== undefined && Number(req.body.versaoDestino) !== destino.versao) ||
+        (req.body.versaoOrigem !== undefined && Number(req.body.versaoOrigem) !== origem.versao)) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ erro: 'Um dos clientes foi alterado por outra pessoa. Atualize a lista antes de mesclar.' });
+    }
 
-    await client.query('BEGIN');
     const camposFinais = CAMPOS.filter((campo) => dadosFinais[campo] !== undefined);
     if (camposFinais.length > 0) {
       if (dadosFinais.nome !== undefined && !String(dadosFinais.nome || '').trim()) {
@@ -916,12 +947,12 @@ router.post('/:id/mesclar', async (req, res) => {
       }
       const setDados = camposFinais.map((campo, indice) => `${campo} = $${indice + 1}`).join(', ');
       await client.query(
-        `UPDATE clientes SET ${setDados}, atualizado_em = NOW() WHERE id = $${camposFinais.length + 1}`,
+        `UPDATE clientes SET ${setDados}, atualizado_em = NOW(), versao = versao + 1 WHERE id = $${camposFinais.length + 1}`,
         [...camposFinais.map((campo) => dadosFinais[campo] || null), destinoId]
       );
     }
-    await client.query('UPDATE fonadas SET cliente_id = $1 WHERE cliente_id = $2', [destinoId, origemId]);
-    await client.query('UPDATE ao_vivo SET cliente_id = $1 WHERE cliente_id = $2', [destinoId, origemId]);
+    await client.query('UPDATE fonadas SET cliente_id = $1, versao = versao + 1 WHERE cliente_id = $2', [destinoId, origemId]);
+    await client.query('UPDATE ao_vivo SET cliente_id = $1, versao = versao + 1 WHERE cliente_id = $2', [destinoId, origemId]);
 
     // Mesclagem manual (arrastar-e-soltar na lista): o card de DESTINO
     // (onde o outro foi solto em cima) vence — mantém seus próprios
@@ -929,14 +960,14 @@ router.post('/:id/mesclar', async (req, res) => {
     // alteração. Só os pedidos da origem são migrados para o destino;
     // o registro de origem é arquivado (soft delete) sem que seus
     // dados de cadastro sejam copiados para lugar nenhum.
-    await client.query('UPDATE clientes SET excluido_em = NOW() WHERE id = $1', [origemId]);
+    await client.query('UPDATE clientes SET excluido_em = NOW(), versao = versao + 1 WHERE id = $1', [origemId]);
 
     // Os pedidos migrados da origem ainda carregam a cópia do nome
     // antigo (nome_comprador / comprador) — sincroniza com o nome do
     // destino, que é quem prevalece nessa mesclagem manual.
     const nomeFinal = dadosFinais.nome || destino.nome;
-    await client.query('UPDATE fonadas SET nome_comprador = $1 WHERE cliente_id = $2 AND excluido_em IS NULL', [nomeFinal, destinoId]);
-    await client.query('UPDATE ao_vivo SET comprador = $1 WHERE cliente_id = $2 AND excluido_em IS NULL', [nomeFinal, destinoId]);
+    await client.query('UPDATE fonadas SET nome_comprador = $1, versao = versao + 1 WHERE cliente_id = $2 AND excluido_em IS NULL', [nomeFinal, destinoId]);
+    await client.query('UPDATE ao_vivo SET comprador = $1, versao = versao + 1 WHERE cliente_id = $2 AND excluido_em IS NULL', [nomeFinal, destinoId]);
 
     await client.query('COMMIT');
 

@@ -44,6 +44,15 @@ export function getNomeExibicao() {
   return localStorage.getItem('pombo_nome') || getUsuarioLogado();
 }
 
+async function buscarComMensagem(url, opcoes) {
+  try {
+    return await fetch(url, opcoes);
+  } catch (erro) {
+    if (erro?.name === 'AbortError') throw erro;
+    throw new Error('Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.');
+  }
+}
+
 async function chamar(caminho, opcoes = {}) {
   const token = getToken();
   const cabecalhos = {
@@ -55,7 +64,7 @@ async function chamar(caminho, opcoes = {}) {
     cabecalhos.Authorization = `Bearer ${token}`;
   }
 
-  const resposta = await fetch(`${API_BASE}${caminho}`, {
+  const resposta = await buscarComMensagem(`${API_BASE}${caminho}`, {
     ...opcoes,
     headers: cabecalhos,
   });
@@ -77,7 +86,9 @@ async function chamar(caminho, opcoes = {}) {
         window.location.href = '/login';
       }
     }
-    throw new Error(dados.erro || 'Erro ao comunicar com o servidor.');
+    const erro = new Error(dados.erro || 'Erro ao comunicar com o servidor.');
+    erro.status = resposta.status;
+    throw erro;
   }
 
   return dados;
@@ -93,7 +104,7 @@ async function chamarComSenhaMestra(caminho, senhaMestra, opcoes = {}) {
     ...(opcoes.headers || {}),
   };
 
-  const resposta = await fetch(`${API_BASE}${caminho}`, {
+  const resposta = await buscarComMensagem(`${API_BASE}${caminho}`, {
     ...opcoes,
     headers: cabecalhos,
   });
@@ -146,11 +157,11 @@ export const api = {
     atualizar: (id, dados) => chamar(`/ao-vivo/${id}`, { method: 'PUT', body: JSON.stringify(dados) }),
     apagar: (id) => chamar(`/ao-vivo/${id}`, { method: 'DELETE' }),
     buscarParaImpressao: (ids) => chamar(`/ao-vivo/imprimir?ids=${ids.join(',')}`),
-    darBaixa: (id, entregue) => chamar(`/ao-vivo/${id}/baixa`, { method: 'POST', body: JSON.stringify({ entregue }) }),
-    desfazerBaixa: (id) => chamar(`/ao-vivo/${id}/desfazer-baixa`, { method: 'POST' }),
-    marcarPagou: (id, pagou) => chamar(`/ao-vivo/${id}/pagou`, { method: 'POST', body: JSON.stringify({ pagou }) }),
-    naoRecebeu: (id, observacao, remarcadoDia) =>
-      chamar(`/ao-vivo/${id}/nao-recebeu`, { method: 'POST', body: JSON.stringify({ observacao, remarcadoDia }) }),
+    darBaixa: (id, entregue, versao) => chamar(`/ao-vivo/${id}/baixa`, { method: 'POST', body: JSON.stringify({ entregue, versao }) }),
+    desfazerBaixa: (id, versao) => chamar(`/ao-vivo/${id}/desfazer-baixa`, { method: 'POST', body: JSON.stringify({ versao }) }),
+    marcarPagou: (id, pagou, versao) => chamar(`/ao-vivo/${id}/pagou`, { method: 'POST', body: JSON.stringify({ pagou, versao }) }),
+    naoRecebeu: (id, observacao, remarcadoDia, versao) =>
+      chamar(`/ao-vivo/${id}/nao-recebeu`, { method: 'POST', body: JSON.stringify({ observacao, remarcadoDia, versao }) }),
     buscarTentativasPrazo: (id) => chamar(`/ao-vivo/${id}/tentativas-prazo`),
   },
 
@@ -176,8 +187,8 @@ export const api = {
     restaurar: (id) => chamar(`/clientes/${id}/restaurar`, { method: 'POST' }),
     pedidosLixeira: (id) => chamar(`/clientes/${id}/pedidos-lixeira`),
     apagarDefinitivo: (id) => chamar(`/clientes/${id}/definitivo`, { method: 'DELETE' }),
-    mesclar: (destinoId, origemId, dadosFinais) =>
-      chamar(`/clientes/${destinoId}/mesclar`, { method: 'POST', body: JSON.stringify({ origemId, dadosFinais }) }),
+    mesclar: (destinoId, origemId, dadosFinais, versaoDestino, versaoOrigem) =>
+      chamar(`/clientes/${destinoId}/mesclar`, { method: 'POST', body: JSON.stringify({ origemId, dadosFinais, versaoDestino, versaoOrigem }) }),
     verificarDuplicidade: (nome, nascimento) =>
       chamar(`/clientes/verificar-duplicidade?nome=${encodeURIComponent(nome)}&nascimento=${encodeURIComponent(nascimento)}`),
     possiveisDuplicatas: () => chamar('/clientes/possiveis-duplicatas'),
@@ -193,14 +204,14 @@ export const api = {
   agenda: {
     hoje: (data) => chamar(`/agenda/hoje${data ? `?data=${encodeURIComponent(data)}` : ''}`),
     contagens: (datas) => chamar(`/agenda/contagens?datas=${encodeURIComponent(datas.join(','))}`),
-    darBaixaFonada: (pedidoId, mensagem) =>
-      chamar(`/agenda/fonada/${pedidoId}/baixa`, { method: 'POST', body: JSON.stringify({ mensagem }) }),
-    desfazerBaixaFonada: (pedidoId, mensagem) =>
-      chamar(`/agenda/fonada/${pedidoId}/desfazer-baixa`, { method: 'POST', body: JSON.stringify({ mensagem }) }),
-    naoAtendeuFonada: (pedidoId, mensagem, observacao, remarcadoDia, remarcadoHorario, mensagens) =>
+    darBaixaFonada: (pedidoId, mensagem, versao, mensagens) =>
+      chamar(`/agenda/fonada/${pedidoId}/baixa`, { method: 'POST', body: JSON.stringify({ mensagem, versao, mensagens }) }),
+    desfazerBaixaFonada: (pedidoId, mensagem, versao, mensagens) =>
+      chamar(`/agenda/fonada/${pedidoId}/desfazer-baixa`, { method: 'POST', body: JSON.stringify({ mensagem, versao, mensagens }) }),
+    naoAtendeuFonada: (pedidoId, mensagem, observacao, remarcadoDia, remarcadoHorario, mensagens, versao) =>
       chamar(`/agenda/fonada/${pedidoId}/nao-atendeu`, {
         method: 'POST',
-        body: JSON.stringify({ mensagem, mensagens, observacao, remarcadoDia, remarcadoHorario }),
+        body: JSON.stringify({ mensagem, mensagens, observacao, remarcadoDia, remarcadoHorario, versao }),
       }),
     buscarTentativas: (pedidoId) => chamar(`/agenda/fonada/${pedidoId}/tentativas`),
     criarLembrete: (dados) => chamar('/agenda/lembretes', { method: 'POST', body: JSON.stringify(dados) }),
@@ -220,12 +231,12 @@ export const api = {
       if (extras.recebidasFim) params.set('recebidasFim', extras.recebidasFim);
       return chamar(`/cobranca?${params.toString()}`);
     },
-    darBaixa: (pedidoId, pagou, recebi, dataPagamento) =>
-      chamar(`/cobranca/${pedidoId}/baixa`, { method: 'PUT', body: JSON.stringify({ pagou, recebi, dataPagamento }) }),
-    darBaixaEmLote: (ids, recebi, dataPagamento) =>
-      chamar('/cobranca/acoes/baixa-lote', { method: 'PUT', body: JSON.stringify({ ids, recebi, dataPagamento }) }),
-    reagendarEmLote: (ids, cobrarDia) =>
-      chamar('/cobranca/acoes/reagendar-lote', { method: 'PUT', body: JSON.stringify({ ids, cobrarDia }) }),
+    darBaixa: (pedidoId, pagou, recebi, dataPagamento, versao) =>
+      chamar(`/cobranca/${pedidoId}/baixa`, { method: 'PUT', body: JSON.stringify({ pagou, recebi, dataPagamento, versao }) }),
+    darBaixaEmLote: (ids, recebi, dataPagamento, versoes) =>
+      chamar('/cobranca/acoes/baixa-lote', { method: 'PUT', body: JSON.stringify({ ids, recebi, dataPagamento, versoes }) }),
+    reagendarEmLote: (ids, cobrarDia, versoes) =>
+      chamar('/cobranca/acoes/reagendar-lote', { method: 'PUT', body: JSON.stringify({ ids, cobrarDia, versoes }) }),
     marcarImpressos: (ids) =>
       chamar('/cobranca/acoes/marcar-impressos', { method: 'PUT', body: JSON.stringify({ ids }) }),
     buscarAoVivo: (pagou = 'NAO', nome = '', os = '', extras = {}) => {
@@ -238,10 +249,10 @@ export const api = {
     },
     darBaixaAoVivo: (pedidoId, dados) =>
       chamar(`/cobranca/ao-vivo/${pedidoId}/baixa`, { method: 'PUT', body: JSON.stringify(dados) }),
-    desfazerBaixaAoVivo: (pedidoId) =>
-      chamar(`/cobranca/ao-vivo/${pedidoId}/desfazer-baixa`, { method: 'PUT' }),
-    reagendarAoVivo: (pedidoId, dataCobranca) =>
-      chamar(`/cobranca/ao-vivo/${pedidoId}/reagendar`, { method: 'PUT', body: JSON.stringify({ dataCobranca }) }),
+    desfazerBaixaAoVivo: (pedidoId, versao) =>
+      chamar(`/cobranca/ao-vivo/${pedidoId}/desfazer-baixa`, { method: 'PUT', body: JSON.stringify({ versao }) }),
+    reagendarAoVivo: (pedidoId, dataCobranca, versao) =>
+      chamar(`/cobranca/ao-vivo/${pedidoId}/reagendar`, { method: 'PUT', body: JSON.stringify({ dataCobranca, versao }) }),
   },
 
   // ---------- Relatórios financeiros por período ----------

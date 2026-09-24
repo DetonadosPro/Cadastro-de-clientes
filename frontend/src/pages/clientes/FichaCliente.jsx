@@ -9,6 +9,7 @@ import { enderecoComNumero, separarEnderecoNumero } from '../../enderecoAutocomp
 import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
 import { AvisoInline, CabecalhoPagina, Dialogo, EstadoCarregando } from '../../components/Interface.jsx';
 import { filtrarPedidosPorMesDaMensagem, MESES, mensagensDoPedidoNoMes } from '../../utils/filtroMesMensagens.js';
+import { numeroWhatsAppBrasil } from '../../utils/telefoneWhatsApp.js';
 
 function IconeVoltar() {
   return (
@@ -84,9 +85,8 @@ function StatusMensagemFonada({ numero, dia, resultado, situacao }) {
 }
 
 function linkWhatsApp(numero) {
-  let digitos = String(numero || '').replace(/\D/g, '');
-  if (digitos.length < 10) return null;
-  if (digitos.length <= 11) digitos = `55${digitos}`;
+  const digitos = numeroWhatsAppBrasil(numero);
+  if (!digitos) return null;
   return `https://api.whatsapp.com/send?phone=${digitos}`;
 }
 
@@ -182,11 +182,18 @@ export default function FichaCliente() {
   }
 
   async function salvarEdicao() {
+    if (!String(dadosEdicao.nome || '').trim()) {
+      mostrarToast('O nome é obrigatório.', 'erro');
+      document.getElementById('editar-nome')?.focus();
+      return;
+    }
     setSalvando(true);
     try {
       const { numero, ...dadosPersistidos } = dadosEdicao;
       const atualizado = await api.clientes.atualizar(id, {
         ...dadosPersistidos,
+        versao: cliente.versao,
+        nome: dadosEdicao.nome.trim(),
         endereco: enderecoComNumero(dadosEdicao.endereco, numero),
       });
       setCliente(atualizado);
@@ -350,13 +357,13 @@ export default function FichaCliente() {
 
         {!editando ? (
           <div className="ficha-informacoes-grupos">
-            <section><h3>Identificação e contato</h3><div className="grade grade-2">
+            <section><h2>Identificação e contato</h2><div className="grade grade-2">
             <Info label="Nascimento" valor={nascimentoValido(cliente.nascimento) ? cliente.nascimento : ''} />
             <Info label="Telefone fixo" valor={valorUtil(cliente.fixo)} />
             <Info label="WhatsApp" valor={valorUtil(cliente.whatsapp)} />
             <Info label="Celular" valor={valorUtil(cliente.celular)} />
             </div></section>
-            <section><h3>Endereço e referência</h3><div className="grade grade-2">
+            <section><h2>Endereço e referência</h2><div className="grade grade-2">
             <Info label="Endereço" valor={valorUtil(cliente.endereco)} />
             <Info label="Complemento" valor={valorUtil(cliente.complemento)} />
             <Info label="Bairro" valor={valorUtil(cliente.bairro)} />
@@ -368,7 +375,7 @@ export default function FichaCliente() {
             <div className="grade grade-2">
               <div className="campo">
                 <label htmlFor="editar-nome">Nome</label>
-                <input id="editar-nome" value={dadosEdicao.nome} onChange={(e) => setEdicao('nome', e.target.value)} />
+                <input id="editar-nome" required value={dadosEdicao.nome} onChange={(e) => setEdicao('nome', e.target.value)} />
               </div>
               <div className="campo">
                 <label htmlFor="editar-nascimento">Nascimento</label>

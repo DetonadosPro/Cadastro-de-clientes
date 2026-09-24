@@ -68,7 +68,7 @@ export default function Relatorios() {
             Desempenho
           </button>
           <div className="filtro-sistema-relatorio">
-            <select value={sistema} onChange={(e) => mudarSistema(e.target.value)}>
+            <select aria-label="Filtrar relatórios por sistema" value={sistema} onChange={(e) => mudarSistema(e.target.value)}>
               <option value="TODOS">Todos</option>
               <option value="FONADA">Fonada</option>
               <option value="AOVIVO">Ao vivo</option>

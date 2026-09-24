@@ -14,6 +14,11 @@ const { agoraBrasilia } = require('../utils/dataHora');
 const { situacaoSegundaMensagem, validarDataUsoSegundaMensagem, houveAlteracaoP2 } = require('../utils/mensagemEmHaver');
 
 const router = express.Router();
+const { dataCurtaValida } = require('../utils/validarDataCurta');
+router.param('id', (req, res, next, id) => {
+  if (!/^[1-9]\d*$/.test(id)) return res.status(400).json({ erro: 'ID de pedido inválido.' });
+  next();
+});
 
 const CAMPOS = [
   'senha_os', 'cliente_id', 'nome_comprador', 'data_pedido', 'horario_pedido', 'nascimento', 'tipo', 'recall', 'recall_codigo',
@@ -80,7 +85,7 @@ router.get('/', async (req, res) => {
     const busca = (req.query.busca || '').trim();
     const campo = (req.query.campo || '').trim();
     const pagina = Math.max(parseInt(req.query.pagina) || 1, 1);
-    const porPagina = Math.min(parseInt(req.query.porPagina) || 30, 200);
+    const porPagina = Math.max(1, Math.min(parseInt(req.query.porPagina) || 30, 200));
     const offset = (pagina - 1) * porPagina;
 
     let where = 'WHERE excluido_em IS NULL';
@@ -170,10 +175,16 @@ router.post('/', async (req, res) => {
     const dados = { ...req.body };
 
     if (dados.cliente_id) {
+      if (!/^[1-9]\d*$/.test(String(dados.cliente_id)) || Number(dados.cliente_id) > 2147483647) {
+        return res.status(400).json({ erro: 'ID de cliente inválido.' });
+      }
       const clienteResultado = await db.query('SELECT * FROM clientes WHERE id = $1', [dados.cliente_id]);
       const cliente = clienteResultado.rows[0];
       if (!cliente) {
         return res.status(400).json({ erro: 'Cliente não encontrado.' });
+      }
+      if (cliente.excluido_em) {
+        return res.status(409).json({ erro: 'Cliente enviado à lixeira. Recarregue a página antes de criar o pedido.' });
       }
       if (cliente.bloqueado) {
         return res.status(403).json({ erro: 'Este cliente está bloqueado. Não é possível criar novos pedidos para ele.' });
@@ -191,6 +202,14 @@ router.post('/', async (req, res) => {
     if (!dados.nome_comprador || !dados.nome_comprador.trim()) {
       return res.status(400).json({ erro: 'O nome do comprador é obrigatório.' });
     }
+    if (dados.valor === undefined || dados.valor === null || !Number.isFinite(Number(dados.valor)) || Number(dados.valor) < 0 || !String(dados.cobranca || '').trim() || !String(dados.periodo || '').trim()) {
+      return res.status(400).json({ erro: 'Informe valor, dia de cobrança e período válidos.' });
+    }
+    for (const campo of ['p1_dia', 'p2_dia', 'cobranca']) {
+      if (dados[campo] && !dataCurtaValida(dados[campo])) {
+        return res.status(400).json({ erro: `Data inválida no campo ${campo}.` });
+      }
+    }
 
     if (String(dados.p2_dia || '').trim() || String(dados.p2_resultado || '').trim()) {
       const validacaoP2 = validarDataUsoSegundaMensagem({ ...dados, p2_resultado: '' }, dados.p2_dia);
@@ -201,17 +220,46 @@ router.post('/', async (req, res) => {
     // não é um campo escolhido manualmente, para não depender de a
     // pessoa lembrar de preencher certo.
     dados.vendedor_usuario = req.usuario.usuario;
+    if (!String(dados.senha_os || '').trim()) {
+      dados.senha_os = String(await reservarProximaOs(pool, 'fonada'));
+    }
 
-    const campos = CAMPOS.filter((c) => dados[c] !== undefined);
-    const placeholders = campos.map((_, i) => `$${i + 1}`).join(', ');
-    const valores = campos.map((c) => dados[c]);
-
-    const resultado = await db.query(`
-      INSERT INTO fonadas (${campos.join(', ')}) VALUES (${placeholders})
-      RETURNING *
-    `, valores);
-
-    res.status(201).json(resultado.rows[0]);
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      if (dados.cliente_id) {
+        // A exclusão em lote usa a mesma linha. A trava impede que um
+        // pedido nasça após a exclusão, mesmo com duas gravações em corrida.
+        const atual = (await client.query('SELECT * FROM clientes WHERE id = $1 FOR UPDATE', [dados.cliente_id])).rows[0];
+        if (!atual || atual.excluido_em || atual.bloqueado) {
+          await client.query('ROLLBACK');
+          return res.status(atual?.bloqueado ? 403 : 409).json({ erro: atual?.bloqueado
+            ? 'Este cliente está bloqueado. Não é possível criar novos pedidos para ele.'
+            : 'Cliente enviado à lixeira ou removido. Recarregue a página antes de criar o pedido.' });
+        }
+        dados.nome_comprador = atual.nome;
+        dados.comprador_fixo = atual.fixo;
+        dados.comprador_whatsapp = atual.whatsapp;
+        dados.comprador_celular = atual.celular;
+        dados.comprador_endereco = atual.endereco;
+        dados.comprador_complemento = atual.complemento;
+        dados.comprador_bairro = atual.bairro;
+        dados.comprador_referencia = atual.referencia;
+      }
+      const campos = CAMPOS.filter((c) => dados[c] !== undefined);
+      const placeholders = campos.map((_, i) => `$${i + 1}`).join(', ');
+      const valores = campos.map((c) => dados[c]);
+      const resultado = await client.query(
+        `INSERT INTO fonadas (${campos.join(', ')}) VALUES (${placeholders}) RETURNING *`, valores
+      );
+      await client.query('COMMIT');
+      res.status(201).json(resultado.rows[0]);
+    } catch (erro) {
+      await client.query('ROLLBACK');
+      throw erro;
+    } finally {
+      client.release();
+    }
   } catch (erro) {
     console.error('Erro ao criar fonada:', erro);
     res.status(500).json({ erro: 'Erro ao criar registro.' });
@@ -233,6 +281,11 @@ router.put('/:id', async (req, res) => {
     }
 
     const dados = req.body;
+    for (const campo of ['p1_dia', 'p2_dia', 'cobranca']) {
+      if (dados[campo] && !dataCurtaValida(dados[campo])) {
+        return res.status(400).json({ erro: `Data inválida no campo ${campo}.` });
+      }
+    }
     if (houveAlteracaoP2(existente, dados)) {
       const pedidoFinal = { ...existente, ...dados };
       // Correções textuais de uma mensagem já utilizada continuam
@@ -247,18 +300,23 @@ router.put('/:id', async (req, res) => {
     }
     const campos = CAMPOS.filter((c) => dados[c] !== undefined);
     if (campos.length === 0) return res.status(400).json({ erro: 'Nenhum campo para atualizar.' });
+    if (!Number.isSafeInteger(dados.versao) || dados.versao < 1) {
+      return res.status(400).json({ erro: 'A versão do pedido é obrigatória para salvar.' });
+    }
 
     const setClause = campos.map((c, i) => `${c} = $${i + 1}`).join(', ');
     const valores = campos.map((c) => dados[c]);
     const idxId = campos.length + 1;
 
-    await db.query(
-      `UPDATE fonadas SET ${setClause}, atualizado_em = NOW() WHERE id = $${idxId}`,
-      [...valores, req.params.id]
+    const resultado = await db.query(
+      `UPDATE fonadas SET ${setClause}, atualizado_em = NOW(), versao = versao + 1
+       WHERE id = $${idxId} AND versao = $${idxId + 1} AND excluido_em IS NULL RETURNING *`,
+      [...valores, req.params.id, dados.versao]
     );
-
-    const atualizado = await db.query('SELECT * FROM fonadas WHERE id = $1', [req.params.id]);
-    res.json({ ...atualizado.rows[0], mensagemEmHaver: situacaoSegundaMensagem(atualizado.rows[0]) });
+    if (resultado.rows.length === 0) {
+      return res.status(409).json({ erro: 'Pedido alterado por outra pessoa. Recarregue a página antes de salvar novamente.' });
+    }
+    res.json({ ...resultado.rows[0], mensagemEmHaver: situacaoSegundaMensagem(resultado.rows[0]) });
   } catch (erro) {
     console.error('Erro ao atualizar fonada:', erro);
     res.status(500).json({ erro: 'Erro ao atualizar registro.' });

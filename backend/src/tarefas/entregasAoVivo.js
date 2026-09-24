@@ -64,7 +64,8 @@ async function marcarEntregasAoVivoAutomaticas() {
     UPDATE ao_vivo
     SET resultado_entrega = $1,
         entregue_por = 'SISTEMA',
-        atualizado_em = NOW()
+        atualizado_em = NOW(),
+        versao = versao + 1
     WHERE id = ANY($2::int[])
       AND excluido_em IS NULL
       AND NULLIF(BTRIM(COALESCE(resultado_entrega, '')), '') IS NULL

@@ -198,6 +198,8 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
   const [statusBaixa, setStatusBaixa] = useState('');
   const [salvandoBaixa, setSalvandoBaixa] = useState(false);
   const [pedidosReagendar, setPedidosReagendar] = useState([]);
+  const [pedidoDesfazer, setPedidoDesfazer] = useState(null);
+  const [salvandoDesfazer, setSalvandoDesfazer] = useState(false);
   const [novaData, setNovaData] = useState('');
   const [salvandoReagendamento, setSalvandoReagendamento] = useState(false);
   const ultimaBusca = useRef(0);
@@ -336,7 +338,7 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
   async function confirmarBaixa() {
     setSalvandoBaixa(true);
     try {
-      await api.cobranca.darBaixaEmLote(pedidosBaixa.map((p) => p.id), statusBaixa, dataBaixa);
+      await api.cobranca.darBaixaEmLote(pedidosBaixa.map((p) => p.id), statusBaixa, dataBaixa, Object.fromEntries(pedidosBaixa.map((p) => [p.id, p.versao])));
       mostrarToast('BAIXA DADA COM SUCESSO'); setPedidosBaixa([]); await buscar();
     } catch (err) { mostrarToast(err.message || 'Não foi possível salvar.', 'erro'); } finally { setSalvandoBaixa(false); }
   }
@@ -351,9 +353,24 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
     if (diferenca < 0) return mostrarToast('A cobrança não pode ser reagendada para o passado.', 'erro');
     setSalvandoReagendamento(true);
     try {
-      await api.cobranca.reagendarEmLote(pedidosReagendar.map((p) => p.id), novaData);
+      await api.cobranca.reagendarEmLote(pedidosReagendar.map((p) => p.id), novaData, Object.fromEntries(pedidosReagendar.map((p) => [p.id, p.versao])));
       mostrarToast('COBRANÇA REAGENDADA COM SUCESSO'); setPedidosReagendar([]); await buscar();
     } catch (err) { mostrarToast(err.message || 'Não foi possível reagendar.', 'erro'); } finally { setSalvandoReagendamento(false); }
+  }
+
+  async function confirmarDesfazer() {
+    if (!pedidoDesfazer) return;
+    setSalvandoDesfazer(true);
+    try {
+      await api.cobranca.darBaixa(pedidoDesfazer.id, 'NÃO', null, null, pedidoDesfazer.versao);
+      mostrarToast('BAIXA DESFEITA COM SUCESSO');
+      setPedidoDesfazer(null);
+      await buscar();
+    } catch (err) {
+      mostrarToast(err.message || 'Não foi possível desfazer a baixa.', 'erro');
+    } finally {
+      setSalvandoDesfazer(false);
+    }
   }
 
   return (
@@ -424,7 +441,7 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
         : carregando ? <EstadoCarregando className="nao-imprimir" rotulo="Atualizando cobranças…" linhas={4} />
           : grupos.length === 0 ? <EstadoVazio className="nao-imprimir cobranca-estado-vazio" icone="R$" titulo="Nenhuma cobrança neste grupo" descricao="Altere o período, a situação ou os dados de busca para consultar outros recebimentos." />
             : <>
-              <ListaGrupos grupos={grupos} pedidosVisiveis={pedidosVisiveis} expandidos={expandidos} selecionados={selecionados} alternarGrupo={alternarGrupo} alternarSelecao={alternarSelecao} imprimir={imprimir} abrirBaixa={abrirBaixa} abrirReagendamento={abrirReagendamento} navigate={navigate} />
+              <ListaGrupos grupos={grupos} pedidosVisiveis={pedidosVisiveis} expandidos={expandidos} selecionados={selecionados} alternarGrupo={alternarGrupo} alternarSelecao={alternarSelecao} imprimir={imprimir} abrirBaixa={abrirBaixa} abrirReagendamento={abrirReagendamento} abrirDesfazer={setPedidoDesfazer} navigate={navigate} />
               <BotaoMostrarMais temMais={lista.temMais} restantes={lista.restantes} onClick={lista.mostrarMais} />
             </>}
 
@@ -443,6 +460,12 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
           <AcoesModal onCancelar={() => setPedidosReagendar([])} onConfirmar={confirmarReagendamento} salvando={salvandoReagendamento} rotulo="Reagendar" />
         </Modal>
       )}
+      {pedidoDesfazer && (
+        <Modal titulo={`Desfazer baixa — O.S. ${pedidoDesfazer.senha_os || pedidoDesfazer.id}`} onClose={() => setPedidoDesfazer(null)}>
+          <p className="fs-sm texto-suave">O pedido voltará para as cobranças pendentes. A data e a observação do recebimento serão removidas.</p>
+          <AcoesModal onCancelar={() => setPedidoDesfazer(null)} onConfirmar={confirmarDesfazer} salvando={salvandoDesfazer} rotulo="Confirmar desfazer" />
+        </Modal>
+      )}
       {confirmacaoImpressao.length > 0 && (
         <Modal titulo="A impressão foi concluída?" onClose={cancelarConfirmacaoImpressao}>
           <p className="fs-sm texto-suave">Confirme somente se o recibo realmente foi impresso. Se você cancelou a janela de impressão, escolha “Não, cancelei”.</p>
@@ -458,7 +481,7 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
   );
 }
 
-function ListaGrupos({ grupos, pedidosVisiveis, expandidos, selecionados, alternarGrupo, alternarSelecao, imprimir, abrirBaixa, abrirReagendamento, navigate }) {
+function ListaGrupos({ grupos, pedidosVisiveis, expandidos, selecionados, alternarGrupo, alternarSelecao, imprimir, abrirBaixa, abrirReagendamento, abrirDesfazer, navigate }) {
   return (
     <div className="lista-grupos-cobranca nao-imprimir">
       <div className="lista-grupos-meta"><strong>{grupos.length} cliente(s)</strong><span>{pedidosVisiveis.length} pedido(s) · {formatarReais(somarPedidos(pedidosVisiveis))}</span></div>
@@ -494,9 +517,10 @@ function ListaGrupos({ grupos, pedidosVisiveis, expandidos, selecionados, altern
                 </button>
                 {primeiro.pagou !== 'SIM' && <button type="button" className="btn-small" onClick={() => abrirReagendamento(grupo.pedidos)}>Reagendar</button>}
                 {primeiro.pagou !== 'SIM' && <button type="button" className="btn-small primario" onClick={() => abrirBaixa(grupo.pedidos)}>Dar baixa {grupo.pedidos.length > 1 ? 'em todos' : ''}</button>}
+                {primeiro.pagou === 'SIM' && grupo.pedidos.length === 1 && <button type="button" className="btn-small" onClick={() => abrirDesfazer(primeiro)}>Desfazer baixa</button>}
               </div>
             </div>
-            {aberto && <DetalhesGrupo grupo={grupo} selecionados={selecionados} alternarSelecao={alternarSelecao} imprimir={imprimir} abrirBaixa={abrirBaixa} navigate={navigate} />}
+            {aberto && <DetalhesGrupo grupo={grupo} selecionados={selecionados} alternarSelecao={alternarSelecao} imprimir={imprimir} abrirBaixa={abrirBaixa} abrirDesfazer={abrirDesfazer} navigate={navigate} />}
           </div>
         );
       })}
@@ -504,7 +528,7 @@ function ListaGrupos({ grupos, pedidosVisiveis, expandidos, selecionados, altern
   );
 }
 
-function DetalhesGrupo({ grupo, selecionados, alternarSelecao, imprimir, abrirBaixa, navigate }) {
+function DetalhesGrupo({ grupo, selecionados, alternarSelecao, imprimir, abrirBaixa, abrirDesfazer, navigate }) {
   return (
     <div className="grupo-cobranca-detalhes">
       <div className="grupo-cobranca-endereco">
@@ -525,6 +549,7 @@ function DetalhesGrupo({ grupo, selecionados, alternarSelecao, imprimir, abrirBa
               <button type="button" className="btn-small" onClick={() => navigate(`/fonada/${pedido.id}`)}><IconeAbrir /> Abrir pedido</button>
               <button type="button" className="btn-small" onClick={() => imprimir([pedido])}>Imprimir</button>
               {pedido.pagou !== 'SIM' && <button type="button" className="btn-small primario" onClick={() => abrirBaixa([pedido])}>Dar baixa</button>}
+              {pedido.pagou === 'SIM' && <button type="button" className="btn-small" onClick={() => abrirDesfazer(pedido)}>Desfazer baixa</button>}
             </div>
           </div>
         ))}

@@ -10,12 +10,13 @@ const { db } = require('../db/database');
 
 const router = express.Router();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'pombo-correio-chave-local-troque-isso';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) throw new Error('Configure JWT_SECRET antes de iniciar o servidor.');
 
 // Senha mestra que protege a tela de gerenciamento de usuários — não é
 // senha de login de ninguém, é um segredo à parte que só quem administra
 // o sistema conhece. Fica fora do fluxo normal de autenticação (JWT).
-const SENHA_MESTRA = '96374558Aa';
+const SENHA_MESTRA = process.env.SENHA_MESTRA || '';
 
 // POST /api/auth/login
 router.post('/login', (req, res) => {
@@ -48,6 +49,7 @@ router.post('/login', (req, res) => {
 // a senha precisa ser enviada em toda chamada, de propósito (conforme
 // definido: nunca "lembrar" entre visitas).
 function exigirSenhaMestra(req, res, next) {
+  if (!SENHA_MESTRA) return res.status(503).json({ erro: 'Senha mestra não configurada.' });
   const senha = req.headers['x-senha-mestra'];
   if (senha !== SENHA_MESTRA) {
     return res.status(401).json({ erro: 'Senha incorreta.' });
@@ -59,6 +61,7 @@ function exigirSenhaMestra(req, res, next) {
 // Só confirma se a senha está certa, sem retornar nada sensível — usado
 // pela tela de login para decidir se libera o acesso à área protegida.
 router.post('/verificar-senha-mestra', (req, res) => {
+  if (!SENHA_MESTRA) return res.status(503).json({ erro: 'Senha mestra não configurada.' });
   const { senha } = req.body;
   if (senha !== SENHA_MESTRA) {
     return res.status(401).json({ erro: 'Senha incorreta.' });

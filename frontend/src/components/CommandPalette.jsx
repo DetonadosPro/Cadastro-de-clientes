@@ -8,6 +8,9 @@ const ACOES = [
   { id: 'novo-cliente', titulo: 'Novo cliente', detalhe: 'Iniciar um novo cadastro', rota: '/clientes/novo', grupo: 'Ações rápidas', termos: 'cadastrar adicionar novo cliente' },
   { id: 'cobranca', titulo: 'Abrir Cobrança', detalhe: 'Pendências e recebimentos', rota: '/cobranca', grupo: 'Navegação', termos: 'financeiro cobrar recebimentos' },
   { id: 'relatorios', titulo: 'Abrir Relatórios', detalhe: 'Vendas, recebimentos e desempenho', rota: '/relatorios', grupo: 'Navegação', termos: 'relatorios vendas desempenho' },
+  { id: 'recall', titulo: 'Abrir Recall', detalhe: 'Retornos e pesquisas', rota: '/recall', grupo: 'Navegação', termos: 'recall retornos pesquisas' },
+  { id: 'fonada', titulo: 'Abrir Fonada', detalhe: 'Pedidos de mensagens', rota: '/fonada', grupo: 'Navegação', termos: 'fonada pedidos mensagens' },
+  { id: 'ao-vivo', titulo: 'Abrir Ao vivo', detalhe: 'Pedidos de entrega', rota: '/ao-vivo', grupo: 'Navegação', termos: 'ao vivo pedidos entrega' },
 ];
 
 function IconeBusca() {
@@ -47,6 +50,12 @@ export default function CommandPalette({ aberta, onFechar, onNavegar }) {
   const paletteRef = useRef(null);
   const buscaPorTelefone = ehTermoDeTelefone(termo);
   const telefoneBuscado = buscaPorTelefone ? somenteDigitos(termo) : '';
+
+  useEffect(() => {
+    if (!aberta) return undefined;
+    const focoAnterior = document.activeElement;
+    return () => requestAnimationFrame(() => focoAnterior?.isConnected && focoAnterior.focus());
+  }, [aberta]);
 
   const acoesFiltradas = useMemo(() => {
     const normalizado = termo.trim().toLocaleLowerCase('pt-BR');

@@ -7,6 +7,7 @@ import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData, formatarHorario, formatarCodigoNumerico, formatarValorMonetario, valorMonetarioParaNumero, numeroParaValorMonetario } from '../../mascaras.js';
 import CampoData from '../../components/CampoData.jsx';
 import { AvisoInline, CabecalhoPagina, Dialogo, EstadoCarregando } from '../../components/Interface.jsx';
+import { numeroWhatsAppBrasil } from '../../utils/telefoneWhatsApp.js';
 
 const VAZIO = {
   senha_os: '', cliente_id: null, data_pedido: '', horario_pedido: '', nascimento: '', tipo: '', recall: 'NÃO', recall_codigo: '',
@@ -226,6 +227,7 @@ export default function FormFonada() {
   const [tentativas, setTentativas] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
+  const salvandoRef = useRef(false);
   const [erro, setErro] = useState('');
   // Nome do campo (valor/cobranca/periodo) que está faltando ao tentar
   // salvar — usado para destacar visualmente qual precisa ser
@@ -247,6 +249,7 @@ export default function FormFonada() {
         const normalizado = { ...VAZIO };
         Object.keys(VAZIO).forEach((campo) => { normalizado[campo] = pedido[campo] ?? ''; });
         normalizado.valor = numeroParaValorMonetario(pedido.valor);
+        normalizado.versao = pedido.versao;
         setDados(normalizado);
         setMensagemEmHaver(pedido.mensagemEmHaver || null);
         if (pedido.cliente_id) {
@@ -331,6 +334,7 @@ export default function FormFonada() {
         const normalizado = { ...VAZIO };
         Object.keys(VAZIO).forEach((campo) => { normalizado[campo] = pedido[campo] ?? ''; });
         normalizado.valor = numeroParaValorMonetario(pedido.valor);
+        normalizado.versao = pedido.versao;
         setDados(normalizado);
         setMensagemEmHaver(pedido.mensagemEmHaver || null);
         if (pedido.cliente_id) {
@@ -352,7 +356,7 @@ export default function FormFonada() {
   async function darBaixaMensagem(mensagem) {
     setSalvandoBaixa(mensagem);
     try {
-      await api.agenda.darBaixaFonada(id, mensagem);
+      await api.agenda.darBaixaFonada(id, mensagem, dados.versao);
       mostrarToast('BAIXA DADA COM SUCESSO');
       await carregarPedido();
       limparRascunhoFonada(chaveRascunho);
@@ -395,7 +399,9 @@ export default function FormFonada() {
         remarcarAberto,
         observacaoRemarcar.trim() || null,
         remarcadoDia.trim(),
-        remarcadoHorario.trim()
+        remarcadoHorario.trim(),
+        undefined,
+        dados.versao
       );
       mostrarToast('Tentativa registrada e mensagem remarcada.');
       setRemarcarAberto(null);
@@ -455,6 +461,7 @@ export default function FormFonada() {
   }
 
   async function salvar() {
+    if (salvandoRef.current) return;
     setErro('');
     setCampoObrigatorioFaltando(null);
     if (!dados.cliente_id) {
@@ -484,6 +491,17 @@ export default function FormFonada() {
       }
     }
 
+    for (const { campo, rotulo } of [
+      { campo: 'p1_dia', rotulo: 'Dia da 1ª mensagem' },
+      { campo: 'p2_dia', rotulo: 'Dia da 2ª mensagem' },
+      { campo: 'cobranca', rotulo: 'Dia de cobrança' },
+    ]) {
+      if (String(dados[campo] || '').trim() && !textoParaData(dados[campo])) {
+        setErro(`${rotulo} precisa ser uma data válida.`);
+        return;
+      }
+    }
+
     if (!editando) {
       const hoje = hojeSemHora();
       const camposData = [
@@ -499,11 +517,13 @@ export default function FormFonada() {
         }
       }
     }
+    salvandoRef.current = true;
     setSalvando(true);
     try {
       const payload = { ...dados, valor: valorMonetarioParaNumero(dados.valor) };
       if (editando) {
-        await api.fonada.atualizar(id, payload);
+        const atualizado = await api.fonada.atualizar(id, payload);
+        setDados((anterior) => ({ ...anterior, versao: atualizado.versao }));
         limparRascunhoFonada(chaveRascunho);
         mostrarToast('Pedido salvo com sucesso.');
       } else {
@@ -526,6 +546,7 @@ export default function FormFonada() {
       setErro(err.message);
       mostrarToast('Não foi possível salvar. Tente novamente.', 'erro');
     } finally {
+      salvandoRef.current = false;
       setSalvando(false);
     }
   }
@@ -637,6 +658,7 @@ export default function FormFonada() {
               <div className="form-row">
                 <label>Valor R$:</label>
                 <input
+                  aria-label="Valor do pedido Fonada"
                   ref={refValor}
                   type="text"
                   inputMode="numeric"
@@ -653,6 +675,7 @@ export default function FormFonada() {
               <div className="form-row">
                 <label style={{ minWidth: 'auto' }}>Cob. dia:</label>
                 <CampoData
+                  aria-label="Dia da cobrança Fonada"
                   className="campo-cobranca-fonada"
                   placeholder="dd/mm/aa"
                   value={dados.cobranca}
@@ -672,6 +695,7 @@ export default function FormFonada() {
               <div className="form-row">
                 <label>Período:</label>
                 <input
+                  aria-label="Período de cobrança Fonada"
                   ref={refPeriodo}
                   value={dados.periodo}
                   onChange={(e) => { set('periodo', e.target.value); setCampoObrigatorioFaltando(null); }}
@@ -684,6 +708,7 @@ export default function FormFonada() {
               <div className="form-row" style={{ marginBottom: 0 }}>
                 <label style={{ minWidth: 'auto' }}>Recall:</label>
                 <select
+                  aria-label="Recall do pedido Fonada"
                   value={dados.recall}
                   onChange={(e) => {
                     const novoValor = e.target.value;
@@ -707,6 +732,7 @@ export default function FormFonada() {
                   <option value="NÃO">Não</option>
                 </select>
                 <input
+                  aria-label="Código de Recall do pedido Fonada"
                   placeholder="00000"
                   value={dados.recall_codigo}
                   disabled={dados.recall !== 'SIM'}
@@ -939,12 +965,14 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
       <div className="form-row linha-tema-numero-fonada">
         <label>Tema:</label>
         <input
+          aria-label={`Tema da ${numero}ª mensagem`}
           value={dados[`${p}_tema`]}
           onChange={(e) => set(`${p}_tema`, e.target.value)}
           disabled={bloqueada}
         />
         <label style={{ minWidth: 'auto', marginLeft: 6 }}>Nº:</label>
         <input
+          aria-label={`Número da ${numero}ª mensagem`}
           value={dados[`${p}_mensagem`]}
           onChange={(e) => set(`${p}_mensagem`, e.target.value)}
           disabled={bloqueada}
@@ -961,9 +989,9 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
       <CampoComP label="Para" nomeCampo="para" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} copiarBloqueado={copiarBloqueado} classeExtra="campo-para-fonada" />
       <div className="form-row linha-fixo-celular">
         <label>Fixo:</label>
-        <input value={dados[`${p}_fixo`]} onChange={(e) => setComMascara(`${p}_fixo`, e.target.value, 'fixo')} disabled={bloqueada} className="campo-fixo-fonada" style={{ flex: '1 1 100px', minWidth: 90 }} />
+        <input aria-label={`Telefone fixo da ${numero}ª mensagem`} value={dados[`${p}_fixo`]} onChange={(e) => setComMascara(`${p}_fixo`, e.target.value, 'fixo')} disabled={bloqueada} className="campo-fixo-fonada" style={{ flex: '1 1 100px', minWidth: 90 }} />
         <label style={{ minWidth: 'auto', marginLeft: 4 }} className="label-cel-fonada">Cel.:</label>
-        <input value={dados[`${p}_celular`]} onChange={(e) => setComMascara(`${p}_celular`, e.target.value, 'celular')} disabled={bloqueada} className="campo-celular-fonada" style={{ flex: '1 1 110px', minWidth: 100 }} />
+        <input aria-label={`Celular da ${numero}ª mensagem`} value={dados[`${p}_celular`]} onChange={(e) => setComMascara(`${p}_celular`, e.target.value, 'celular')} disabled={bloqueada} className="campo-celular-fonada" style={{ flex: '1 1 110px', minWidth: 100 }} />
         {mostrarBotaoP && (
           <BotaoP
             onClick={() => onCopiar(['fixo', 'celular'], numero)}
@@ -975,6 +1003,7 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
       <div className="form-row linha-dia-horario-fonada">
         <label>Dia:</label>
         <CampoData
+          aria-label={`Dia da ${numero}ª mensagem`}
           placeholder="dd/mm/aa"
           value={dados[`${p}_dia`]}
           onChange={(v) => setComMascara(`${p}_dia`, v, 'data')}
@@ -984,6 +1013,7 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
         />
         <label style={{ minWidth: 'auto', marginLeft: 6 }}>Horário:</label>
         <input
+          aria-label={`Horário da ${numero}ª mensagem`}
           placeholder="hh:mm"
           value={dados[`${p}_horario`]}
           onChange={(e) => setComMascara(`${p}_horario`, e.target.value, 'horario')}
@@ -1050,6 +1080,7 @@ function CampoComP({ label, nomeCampo, prefixo, numero, dados, set, onCopiar, mo
       <label>{label}:</label>
       {multilinha ? (
         <textarea
+          aria-label={`${label} da ${numero}ª mensagem`}
           value={valor}
           onChange={(e) => set(`${prefixo}_${nomeCampo}`, e.target.value)}
           disabled={desabilitado}
@@ -1058,6 +1089,7 @@ function CampoComP({ label, nomeCampo, prefixo, numero, dados, set, onCopiar, mo
         />
       ) : (
         <input
+          aria-label={`${label} da ${numero}ª mensagem`}
           value={valor}
           onChange={(e) => set(`${prefixo}_${nomeCampo}`, e.target.value)}
           disabled={desabilitado}
@@ -1098,14 +1130,8 @@ function InfoLinha({ label, valor }) {
 
 function InfoGrupo({ label, valor }) {
   const ehWhatsapp = label === 'WhatsApp';
-  const somenteDigitos = String(valor || '').replace(/\D/g, '');
-  // wa.me exige o número com DDI (Brasil = 55) + DDD + número, só
-  // dígitos. Números salvos aqui já vêm com DDD (ex: "34 9 9648-3060"),
-  // então só falta o "55" na frente quando ainda não tiver.
-  const numeroComDDI = somenteDigitos
-    ? (somenteDigitos.startsWith('55') ? somenteDigitos : `55${somenteDigitos}`)
-    : '';
-  const linkWhatsapp = ehWhatsapp && numeroComDDI.length >= 12 ? `https://wa.me/${numeroComDDI}` : null;
+  const numeroComDDI = numeroWhatsAppBrasil(valor);
+  const linkWhatsapp = ehWhatsapp && numeroComDDI ? `https://wa.me/${numeroComDDI}` : null;
 
   return (
     <div>

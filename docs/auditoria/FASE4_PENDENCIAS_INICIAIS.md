@@ -1,0 +1,447 @@
+# Fase 4 — pendências iniciais
+
+Gerado diretamente das matrizes da Fase 3 em 2026-09-23 15:00:14 -03:00.
+
+| Categoria | Total | IDs pendentes | Células pendentes |
+| --- | ---: | ---: | ---: |
+| Ações BTN | 265 | 156 | 312 |
+| Campos FIELD | 93 | 38 | 76 |
+| Modais MODAL | 23 | 23 | 138 |
+| Handlers API | 72 | 60 | 93 |
+
+## Ações BTN incompletas
+
+- BTN-001
+- BTN-006
+- BTN-007
+- BTN-009
+- BTN-013
+- BTN-015
+- BTN-017
+- BTN-018
+- BTN-019
+- BTN-020
+- BTN-021
+- BTN-032
+- BTN-035
+- BTN-036
+- BTN-037
+- BTN-038
+- BTN-039
+- BTN-040
+- BTN-046
+- BTN-052
+- BTN-054
+- BTN-055
+- BTN-056
+- BTN-057
+- BTN-058
+- BTN-066
+- BTN-067
+- BTN-068
+- BTN-069
+- BTN-070
+- BTN-071
+- BTN-072
+- BTN-073
+- BTN-074
+- BTN-075
+- BTN-080
+- BTN-082
+- BTN-083
+- BTN-086
+- BTN-088
+- BTN-089
+- BTN-091
+- BTN-092
+- BTN-096
+- BTN-098
+- BTN-099
+- BTN-100
+- BTN-101
+- BTN-102
+- BTN-103
+- BTN-104
+- BTN-105
+- BTN-106
+- BTN-107
+- BTN-113
+- BTN-115
+- BTN-116
+- BTN-117
+- BTN-118
+- BTN-119
+- BTN-120
+- BTN-121
+- BTN-122
+- BTN-123
+- BTN-124
+- BTN-125
+- BTN-129
+- BTN-130
+- BTN-132
+- BTN-133
+- BTN-134
+- BTN-135
+- BTN-137
+- BTN-139
+- BTN-143
+- BTN-144
+- BTN-149
+- BTN-150
+- BTN-152
+- BTN-157
+- BTN-159
+- BTN-162
+- BTN-163
+- BTN-164
+- BTN-165
+- BTN-166
+- BTN-167
+- BTN-168
+- BTN-170
+- BTN-171
+- BTN-175
+- BTN-176
+- BTN-179
+- BTN-180
+- BTN-182
+- BTN-183
+- BTN-184
+- BTN-185
+- BTN-186
+- BTN-187
+- BTN-188
+- BTN-189
+- BTN-190
+- BTN-192
+- BTN-193
+- BTN-194
+- BTN-196
+- BTN-199
+- BTN-200
+- BTN-201
+- BTN-202
+- BTN-203
+- BTN-206
+- BTN-207
+- BTN-208
+- BTN-209
+- BTN-211
+- BTN-212
+- BTN-214
+- BTN-216
+- BTN-217
+- BTN-218
+- BTN-221
+- BTN-222
+- BTN-224
+- BTN-225
+- BTN-226
+- BTN-227
+- BTN-231
+- BTN-232
+- BTN-235
+- BTN-238
+- BTN-239
+- BTN-240
+- BTN-241
+- BTN-242
+- BTN-243
+- BTN-244
+- BTN-246
+- BTN-247
+- BTN-248
+- BTN-249
+- BTN-250
+- BTN-251
+- BTN-254
+- BTN-255
+- BTN-256
+- BTN-257
+- BTN-258
+- BTN-259
+- BTN-260
+- BTN-261
+- BTN-262
+- BTN-263
+- BTN-264
+- BTN-265
+
+## Campos FIELD incompletos
+
+- FIELD-001
+- FIELD-004
+- FIELD-006
+- FIELD-007
+- FIELD-009
+- FIELD-010
+- FIELD-012
+- FIELD-018
+- FIELD-021
+- FIELD-022
+- FIELD-024
+- FIELD-026
+- FIELD-027
+- FIELD-028
+- FIELD-030
+- FIELD-031
+- FIELD-033
+- FIELD-034
+- FIELD-035
+- FIELD-036
+- FIELD-037
+- FIELD-038
+- FIELD-051
+- FIELD-057
+- FIELD-059
+- FIELD-060
+- FIELD-061
+- FIELD-062
+- FIELD-063
+- FIELD-065
+- FIELD-066
+- FIELD-078
+- FIELD-080
+- FIELD-081
+- FIELD-088
+- FIELD-090
+- FIELD-092
+- FIELD-093
+
+## Células MODAL incompletas
+
+- MODAL-001 — Abrir
+- MODAL-001 — Confirmar
+- MODAL-001 — Cancelar/X/Escape
+- MODAL-001 — Tab/Shift+Tab/foco
+- MODAL-001 — Zoom/mobile
+- MODAL-001 — Resultado
+- MODAL-002 — Abrir
+- MODAL-002 — Confirmar
+- MODAL-002 — Cancelar/X/Escape
+- MODAL-002 — Tab/Shift+Tab/foco
+- MODAL-002 — Zoom/mobile
+- MODAL-002 — Resultado
+- MODAL-003 — Abrir
+- MODAL-003 — Confirmar
+- MODAL-003 — Cancelar/X/Escape
+- MODAL-003 — Tab/Shift+Tab/foco
+- MODAL-003 — Zoom/mobile
+- MODAL-003 — Resultado
+- MODAL-004 — Abrir
+- MODAL-004 — Confirmar
+- MODAL-004 — Cancelar/X/Escape
+- MODAL-004 — Tab/Shift+Tab/foco
+- MODAL-004 — Zoom/mobile
+- MODAL-004 — Resultado
+- MODAL-005 — Abrir
+- MODAL-005 — Confirmar
+- MODAL-005 — Cancelar/X/Escape
+- MODAL-005 — Tab/Shift+Tab/foco
+- MODAL-005 — Zoom/mobile
+- MODAL-005 — Resultado
+- MODAL-006 — Abrir
+- MODAL-006 — Confirmar
+- MODAL-006 — Cancelar/X/Escape
+- MODAL-006 — Tab/Shift+Tab/foco
+- MODAL-006 — Zoom/mobile
+- MODAL-006 — Resultado
+- MODAL-007 — Abrir
+- MODAL-007 — Confirmar
+- MODAL-007 — Cancelar/X/Escape
+- MODAL-007 — Tab/Shift+Tab/foco
+- MODAL-007 — Zoom/mobile
+- MODAL-007 — Resultado
+- MODAL-008 — Abrir
+- MODAL-008 — Confirmar
+- MODAL-008 — Cancelar/X/Escape
+- MODAL-008 — Tab/Shift+Tab/foco
+- MODAL-008 — Zoom/mobile
+- MODAL-008 — Resultado
+- MODAL-009 — Abrir
+- MODAL-009 — Confirmar
+- MODAL-009 — Cancelar/X/Escape
+- MODAL-009 — Tab/Shift+Tab/foco
+- MODAL-009 — Zoom/mobile
+- MODAL-009 — Resultado
+- MODAL-010 — Abrir
+- MODAL-010 — Confirmar
+- MODAL-010 — Cancelar/X/Escape
+- MODAL-010 — Tab/Shift+Tab/foco
+- MODAL-010 — Zoom/mobile
+- MODAL-010 — Resultado
+- MODAL-011 — Abrir
+- MODAL-011 — Confirmar
+- MODAL-011 — Cancelar/X/Escape
+- MODAL-011 — Tab/Shift+Tab/foco
+- MODAL-011 — Zoom/mobile
+- MODAL-011 — Resultado
+- MODAL-012 — Abrir
+- MODAL-012 — Confirmar
+- MODAL-012 — Cancelar/X/Escape
+- MODAL-012 — Tab/Shift+Tab/foco
+- MODAL-012 — Zoom/mobile
+- MODAL-012 — Resultado
+- MODAL-013 — Abrir
+- MODAL-013 — Confirmar
+- MODAL-013 — Cancelar/X/Escape
+- MODAL-013 — Tab/Shift+Tab/foco
+- MODAL-013 — Zoom/mobile
+- MODAL-013 — Resultado
+- MODAL-014 — Abrir
+- MODAL-014 — Confirmar
+- MODAL-014 — Cancelar/X/Escape
+- MODAL-014 — Tab/Shift+Tab/foco
+- MODAL-014 — Zoom/mobile
+- MODAL-014 — Resultado
+- MODAL-015 — Abrir
+- MODAL-015 — Confirmar
+- MODAL-015 — Cancelar/X/Escape
+- MODAL-015 — Tab/Shift+Tab/foco
+- MODAL-015 — Zoom/mobile
+- MODAL-015 — Resultado
+- MODAL-016 — Abrir
+- MODAL-016 — Confirmar
+- MODAL-016 — Cancelar/X/Escape
+- MODAL-016 — Tab/Shift+Tab/foco
+- MODAL-016 — Zoom/mobile
+- MODAL-016 — Resultado
+- MODAL-017 — Abrir
+- MODAL-017 — Confirmar
+- MODAL-017 — Cancelar/X/Escape
+- MODAL-017 — Tab/Shift+Tab/foco
+- MODAL-017 — Zoom/mobile
+- MODAL-017 — Resultado
+- MODAL-018 — Abrir
+- MODAL-018 — Confirmar
+- MODAL-018 — Cancelar/X/Escape
+- MODAL-018 — Tab/Shift+Tab/foco
+- MODAL-018 — Zoom/mobile
+- MODAL-018 — Resultado
+- MODAL-019 — Abrir
+- MODAL-019 — Confirmar
+- MODAL-019 — Cancelar/X/Escape
+- MODAL-019 — Tab/Shift+Tab/foco
+- MODAL-019 — Zoom/mobile
+- MODAL-019 — Resultado
+- MODAL-020 — Abrir
+- MODAL-020 — Confirmar
+- MODAL-020 — Cancelar/X/Escape
+- MODAL-020 — Tab/Shift+Tab/foco
+- MODAL-020 — Zoom/mobile
+- MODAL-020 — Resultado
+- MODAL-021 — Abrir
+- MODAL-021 — Confirmar
+- MODAL-021 — Cancelar/X/Escape
+- MODAL-021 — Tab/Shift+Tab/foco
+- MODAL-021 — Zoom/mobile
+- MODAL-021 — Resultado
+- MODAL-022 — Abrir
+- MODAL-022 — Confirmar
+- MODAL-022 — Cancelar/X/Escape
+- MODAL-022 — Tab/Shift+Tab/foco
+- MODAL-022 — Zoom/mobile
+- MODAL-022 — Resultado
+- MODAL-023 — Abrir
+- MODAL-023 — Confirmar
+- MODAL-023 — Cancelar/X/Escape
+- MODAL-023 — Tab/Shift+Tab/foco
+- MODAL-023 — Zoom/mobile
+- MODAL-023 — Resultado
+
+## Células HTTP `A EXECUTAR`
+
+- API-001 — Entrada inválida
+- API-001 — Recurso inexistente
+- API-001 — Conflito
+- API-002 — Entrada inválida
+- API-002 — Recurso inexistente
+- API-002 — Conflito
+- API-003 — Entrada inválida
+- API-004 — Recurso inexistente
+- API-004 — Conflito
+- API-005 — Entrada inválida
+- API-005 — Recurso inexistente
+- API-005 — Conflito
+- API-006 — Entrada inválida
+- API-007 — Entrada inválida
+- API-008 — Entrada inválida
+- API-009 — Entrada inválida
+- API-010 — Entrada inválida
+- API-010 — Recurso inexistente
+- API-010 — Conflito
+- API-011 — Entrada inválida
+- API-011 — Recurso inexistente
+- API-011 — Conflito
+- API-014 — Recurso inexistente
+- API-014 — Conflito
+- API-015 — Conflito
+- API-017 — Recurso inexistente
+- API-018 — Conflito
+- API-019 — Conflito
+- API-020 — Conflito
+- API-021 — Recurso inexistente
+- API-022 — Entrada inválida
+- API-022 — Recurso inexistente
+- API-022 — Conflito
+- API-023 — Entrada inválida
+- API-024 — Entrada inválida
+- API-026 — Entrada inválida
+- API-026 — Recurso inexistente
+- API-028 — Conflito
+- API-029 — Entrada inválida
+- API-029 — Recurso inexistente
+- API-029 — Conflito
+- API-030 — Entrada inválida
+- API-031 — Entrada inválida
+- API-032 — Entrada inválida
+- API-032 — Recurso inexistente
+- API-033 — Recurso inexistente
+- API-034 — Recurso inexistente
+- API-035 — Recurso inexistente
+- API-035 — Conflito
+- API-037 — Entrada inválida
+- API-037 — Recurso inexistente
+- API-039 — Conflito
+- API-040 — Recurso inexistente
+- API-041 — Recurso inexistente
+- API-042 — Entrada inválida
+- API-043 — Entrada inválida
+- API-044 — Recurso inexistente
+- API-045 — Recurso inexistente
+- API-046 — Recurso inexistente
+- API-047 — Recurso inexistente
+- API-048 — Entrada inválida
+- API-048 — Recurso inexistente
+- API-048 — Conflito
+- API-049 — Conflito
+- API-050 — Conflito
+- API-051 — Entrada inválida
+- API-054 — Recurso inexistente
+- API-054 — Conflito
+- API-055 — Entrada inválida
+- API-056 — Recurso inexistente
+- API-057 — Entrada inválida
+- API-057 — Recurso inexistente
+- API-057 — Conflito
+- API-058 — Recurso inexistente
+- API-059 — Recurso inexistente
+- API-060 — Entrada inválida
+- API-061 — Entrada inválida
+- API-062 — Entrada inválida
+- API-063 — Entrada inválida
+- API-063 — Recurso inexistente
+- API-063 — Conflito
+- API-064 — Entrada inválida
+- API-064 — Recurso inexistente
+- API-064 — Conflito
+- API-065 — Entrada inválida
+- API-066 — Entrada inválida
+- API-067 — Entrada inválida
+- API-071 — Entrada inválida
+- API-071 — Recurso inexistente
+- API-071 — Conflito
+- API-072 — Entrada inválida
+- API-072 — Recurso inexistente
+- API-072 — Conflito

@@ -11,15 +11,23 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { db } = require('../db/database');
+const { dataCurtaValida } = require('../utils/validarDataCurta');
 
 const router = express.Router();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'pombo-correio-chave-local-troque-isso';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) throw new Error('JWT_SECRET precisa ser configurado no servidor.');
 
 // Senha mestra que protege a tela de gerenciamento de usuários — não é
 // senha de login de ninguém, é um segredo à parte que só quem administra
 // o sistema conhece. Fica fora do fluxo normal de autenticação (JWT).
-const SENHA_MESTRA = '96374558Aa';
+const SENHA_MESTRA = process.env.SENHA_MESTRA || '';
+
+function senhaMestraDisponivel(res) {
+  if (SENHA_MESTRA) return true;
+  res.status(503).json({ erro: 'Gerenciamento de usuários indisponível. Configure a senha mestra no servidor.' });
+  return false;
+}
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
@@ -58,6 +66,7 @@ router.post('/login', async (req, res) => {
 // a senha precisa ser enviada em toda chamada, de propósito (conforme
 // definido: nunca "lembrar" entre visitas).
 function exigirSenhaMestra(req, res, next) {
+  if (!senhaMestraDisponivel(res)) return;
   const senha = req.headers['x-senha-mestra'];
   if (senha !== SENHA_MESTRA) {
     return res.status(401).json({ erro: 'Senha incorreta.' });
@@ -67,6 +76,7 @@ function exigirSenhaMestra(req, res, next) {
 
 // POST /api/auth/verificar-senha-mestra
 router.post('/verificar-senha-mestra', (req, res) => {
+  if (!senhaMestraDisponivel(res)) return;
   const { senha } = req.body;
   if (senha !== SENHA_MESTRA) {
     return res.status(401).json({ erro: 'Senha incorreta.' });
@@ -95,8 +105,11 @@ router.post('/usuarios', exigirSenhaMestra, async (req, res) => {
     if (!usuario || !senha) {
       return res.status(400).json({ erro: 'Informe usuário e senha.' });
     }
-    if (senha.length < 3) {
-      return res.status(400).json({ erro: 'A senha deve ter pelo menos 3 caracteres.' });
+    if (senha.length < 12) {
+      return res.status(400).json({ erro: 'A senha deve ter pelo menos 12 caracteres.' });
+    }
+    if (data_nascimento && !dataCurtaValida(data_nascimento)) {
+      return res.status(400).json({ erro: 'Informe uma data de nascimento válida.' });
     }
 
     const existente = await db.query('SELECT id FROM usuarios WHERE usuario ILIKE $1', [usuario]);
@@ -120,6 +133,9 @@ router.post('/usuarios', exigirSenhaMestra, async (req, res) => {
 // DELETE /api/auth/usuarios/:id — remove um usuário de login
 router.delete('/usuarios/:id', exigirSenhaMestra, async (req, res) => {
   try {
+    if (!/^[1-9]\d*$/.test(req.params.id) || Number(req.params.id) > 2147483647) {
+      return res.status(400).json({ erro: 'ID de usuário inválido.' });
+    }
     const existente = await db.query('SELECT id FROM usuarios WHERE id = $1', [req.params.id]);
     if (existente.rows.length === 0) {
       return res.status(404).json({ erro: 'Usuário não encontrado.' });

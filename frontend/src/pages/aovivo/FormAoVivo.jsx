@@ -12,6 +12,7 @@ import CampoEnderecoAutocomplete from '../../components/CampoEnderecoAutocomplet
 import { enderecoComNumero, separarEnderecoNumero } from '../../enderecoAutocomplete.js';
 import PaginaImpressaoAoVivo from './PaginaImpressaoAoVivo.jsx';
 import { AvisoInline, CabecalhoPagina, Dialogo, EstadoCarregando } from '../../components/Interface.jsx';
+import { numeroWhatsAppBrasil } from '../../utils/telefoneWhatsApp.js';
 
 const VAZIO = {
   numero_os: '', cliente_id: null, data_pedido: '', horario_pedido: '', dia_entrega: '', horario_entrega: '',
@@ -23,6 +24,7 @@ const VAZIO = {
   musica_1: '', musica_2: '', musica_3: '', musica_4: '', musica_5: '', musica_6: '',
   valor: '', pagamento: '', brinde: '', observacoes: '', pagou: '', data_pagou: '',
   data_cobranca: '', valor_recebido: '', forma_recebimento: '', pagamento_recebido_por: '',
+  resultado_entrega: '', entregue_por: '',
 };
 
 const MIN_MENSAGENS = 1;
@@ -168,6 +170,7 @@ export default function FormAoVivo() {
   const [qtdMusicas, setQtdMusicas] = useState(MIN_MUSICAS);
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
+  const salvandoRef = useRef(false);
   const [erro, setErro] = useState('');
   const [campoObrigatorioFaltando, setCampoObrigatorioFaltando] = useState(null);
   const [pedidosImpressao, setPedidosImpressao] = useState(null);
@@ -176,6 +179,12 @@ export default function FormAoVivo() {
   const [valorRecebimento, setValorRecebimento] = useState('');
   const [formaRecebimento, setFormaRecebimento] = useState('PIX');
   const [salvandoPagamento, setSalvandoPagamento] = useState(false);
+  const [salvandoEntrega, setSalvandoEntrega] = useState(false);
+  const [modalPrazo, setModalPrazo] = useState(false);
+  const [novoDiaPrazo, setNovoDiaPrazo] = useState('');
+  const [observacaoPrazo, setObservacaoPrazo] = useState('');
+  const [salvandoPrazo, setSalvandoPrazo] = useState(false);
+  const [tentativasPrazo, setTentativasPrazo] = useState([]);
   const refValor = useRef(null);
 
   function contarPreenchidos(d, prefixo, minimo, maximo) {
@@ -258,6 +267,7 @@ export default function FormAoVivo() {
         normalizado.endereco = enderecoSeparado.logradouro;
         normalizado.numero = enderecoSeparado.numero;
         normalizado.valor = numeroParaValorMonetario(pedido.valor);
+        normalizado.versao = pedido.versao;
         setDados(normalizado);
         setQtdMensagens(contarMensagensPreenchidas(normalizado));
         setQtdMusicas(contarPreenchidos(normalizado, 'musica', MIN_MUSICAS, MAX_MUSICAS));
@@ -318,6 +328,7 @@ export default function FormAoVivo() {
   }
 
   async function salvar() {
+    if (salvandoRef.current) return;
     setErro('');
     setCampoObrigatorioFaltando(null);
     if (!dados.cliente_id) {
@@ -330,6 +341,10 @@ export default function FormAoVivo() {
       refValor.current?.focus();
       return;
     }
+    if (String(dados.dia_entrega || '').trim() && !textoParaData(dados.dia_entrega)) {
+      setErro('O dia do evento precisa ser uma data válida.');
+      return;
+    }
     if (!editando) {
       const diaEvento = textoParaData(dados.dia_entrega);
       if (diaEvento && diaEvento.getTime() < hojeSemHora().getTime()) {
@@ -337,6 +352,7 @@ export default function FormAoVivo() {
         return;
       }
     }
+    salvandoRef.current = true;
     setSalvando(true);
     try {
       const { numero, ...dadosPersistidos } = dados;
@@ -346,7 +362,8 @@ export default function FormAoVivo() {
         valor: valorMonetarioParaNumero(dados.valor),
       };
       if (editando) {
-        await api.aoVivo.atualizar(id, payload);
+        const atualizado = await api.aoVivo.atualizar(id, payload);
+        setDados((anterior) => ({ ...anterior, versao: atualizado.versao }));
         limparRascunhoAoVivo(chaveRascunho);
         mostrarToast('Pedido salvo com sucesso.');
       } else {
@@ -359,6 +376,7 @@ export default function FormAoVivo() {
       setErro(err.message);
       mostrarToast('Não foi possível salvar. Tente novamente.', 'erro');
     } finally {
+      salvandoRef.current = false;
       setSalvando(false);
     }
   }
@@ -413,6 +431,7 @@ export default function FormAoVivo() {
         dataPagamento: dataRecebimento,
         valorRecebido: Number(String(valorRecebimento).replace(',', '.')),
         formaRecebimento,
+        versao: dados.versao,
       });
       const atualizado = {
         ...dados,
@@ -421,6 +440,7 @@ export default function FormAoVivo() {
         valor_recebido: resposta.valorRecebido,
         forma_recebimento: resposta.formaRecebimento,
         pagamento_recebido_por: resposta.recebidoPor,
+        versao: resposta.versao,
       };
       setDados(atualizado);
       if (rascunhoAoVivo) salvarRascunhoAoVivo(chaveRascunho, atualizado, cliente);
@@ -436,13 +456,75 @@ export default function FormAoVivo() {
   async function desfazerPagamento() {
     if (!confirm('Deseja desfazer a baixa financeira deste pedido?')) return;
     try {
-      await api.cobranca.desfazerBaixaAoVivo(id);
-      const atualizado = { ...dados, pagou: '', data_pagou: '', valor_recebido: '', forma_recebimento: '', pagamento_recebido_por: '' };
+      const resposta = await api.cobranca.desfazerBaixaAoVivo(id, dados.versao);
+      const atualizado = { ...dados, pagou: '', data_pagou: '', valor_recebido: '', forma_recebimento: '', pagamento_recebido_por: '', versao: resposta.versao };
       setDados(atualizado);
       if (rascunhoAoVivo) salvarRascunhoAoVivo(chaveRascunho, atualizado, cliente);
       mostrarToast('Baixa financeira desfeita.');
     } catch (err) {
       mostrarToast(err.message || 'Não foi possível desfazer a baixa.', 'erro');
+    }
+  }
+
+  async function registrarEntrega(entregue) {
+    if (!confirm(`Confirmar que o pedido foi ${entregue ? 'entregue' : 'não entregue'}?`)) return;
+    setSalvandoEntrega(true);
+    try {
+      const resposta = await api.aoVivo.darBaixa(id, entregue, dados.versao);
+      const atualizado = { ...dados, resultado_entrega: resposta.resultado, entregue_por: resposta.entreguePor, versao: resposta.versao };
+      setDados(atualizado);
+      if (rascunhoAoVivo) salvarRascunhoAoVivo(chaveRascunho, atualizado, cliente);
+      mostrarToast('Entrega registrada.');
+    } catch (err) {
+      setErro(err.message);
+      mostrarToast(err.message, 'erro');
+    } finally {
+      setSalvandoEntrega(false);
+    }
+  }
+
+  async function desfazerEntrega() {
+    if (!confirm('Deseja desfazer o registro da entrega?')) return;
+    setSalvandoEntrega(true);
+    try {
+      const resposta = await api.aoVivo.desfazerBaixa(id, dados.versao);
+      const atualizado = { ...dados, resultado_entrega: '', entregue_por: '', versao: resposta.versao };
+      setDados(atualizado);
+      if (rascunhoAoVivo) salvarRascunhoAoVivo(chaveRascunho, atualizado, cliente);
+      mostrarToast('Registro de entrega desfeito.');
+    } catch (err) {
+      setErro(err.message);
+      mostrarToast(err.message, 'erro');
+    } finally {
+      setSalvandoEntrega(false);
+    }
+  }
+
+  async function abrirPrazo() {
+    setNovoDiaPrazo('');
+    setObservacaoPrazo('');
+    try {
+      const resposta = await api.aoVivo.buscarTentativasPrazo(id);
+      setTentativasPrazo(resposta.tentativas || []);
+      setModalPrazo(true);
+    } catch (err) {
+      mostrarToast(err.message, 'erro');
+    }
+  }
+
+  async function confirmarPrazo() {
+    setSalvandoPrazo(true);
+    try {
+      const resposta = await api.aoVivo.naoRecebeu(id, observacaoPrazo, novoDiaPrazo, dados.versao);
+      const atualizado = { ...dados, pagamento: resposta.pagamento, versao: resposta.versao };
+      setDados(atualizado);
+      if (rascunhoAoVivo) salvarRascunhoAoVivo(chaveRascunho, atualizado, cliente);
+      setModalPrazo(false);
+      mostrarToast('Prazo de pagamento remarcado.');
+    } catch (err) {
+      mostrarToast(err.message, 'erro');
+    } finally {
+      setSalvandoPrazo(false);
     }
   }
 
@@ -504,9 +586,10 @@ export default function FormAoVivo() {
               <div className="section-title">Homenageado</div>
               <div className="form-row linha-para-dia-aovivo">
                 <label>Para:</label>
-                <input value={dados.para} onChange={(e) => set('para', e.target.value)} className="campo-para-aovivo" style={{ flex: '1 1 auto', minWidth: 0 }} />
+                <input aria-label="Destinatário do Ao Vivo" value={dados.para} onChange={(e) => set('para', e.target.value)} className="campo-para-aovivo" style={{ flex: '1 1 auto', minWidth: 0 }} />
                 <label style={{ minWidth: 'auto', marginLeft: 4 }} className="label-dia-aovivo">Dia Evento:</label>
                 <CampoData
+                  aria-label="Dia do evento Ao Vivo"
                   placeholder="dd/mm/aa"
                   value={dados.dia_entrega}
                   onChange={(v) => setComMascara('dia_entrega', v, 'data')}
@@ -516,6 +599,7 @@ export default function FormAoVivo() {
                 />
                 <label style={{ minWidth: 'auto', marginLeft: 4 }} className="label-horario-aovivo">Horário:</label>
                 <input
+                  aria-label="Horário da entrega Ao Vivo"
                   placeholder="hh:mm"
                   value={dados.horario_entrega}
                   onChange={(e) => setComMascara('horario_entrega', e.target.value, 'horario')}
@@ -531,6 +615,7 @@ export default function FormAoVivo() {
               <div className="form-row">
                 <label>Oferecimento:</label>
                 <textarea
+                  aria-label="Oferecimento do Ao Vivo"
                   value={dados.oferecimento}
                   onChange={(e) => set('oferecimento', e.target.value)}
                   rows={4}
@@ -552,15 +637,15 @@ export default function FormAoVivo() {
                   />
                 </div>
                 <label style={{ minWidth: 'auto' }}>Nº:</label>
-                <input value={dados.numero} onChange={(e) => set('numero', e.target.value)} placeholder="Nº / S/N" style={{ flex: '0 0 96px', width: 96 }} />
+                <input aria-label="Número do endereço de entrega" value={dados.numero} onChange={(e) => set('numero', e.target.value)} placeholder="Nº / S/N" style={{ flex: '0 0 96px', width: 96 }} />
               </div>
               <div className="form-row">
                 <label>Bairro:</label>
-                <input value={dados.bairro} onChange={(e) => set('bairro', e.target.value)} style={{ flex: '1 1 auto', minWidth: 0 }} />
+                <input aria-label="Bairro da entrega" value={dados.bairro} onChange={(e) => set('bairro', e.target.value)} style={{ flex: '1 1 auto', minWidth: 0 }} />
               </div>
               <div className="form-row">
                 <label style={{ minWidth: 'auto' }}>Ref.:</label>
-                <input value={dados.referencia} onChange={(e) => set('referencia', e.target.value)} style={{ flex: '1 1 auto', minWidth: 0 }} />
+                <input aria-label="Referência da entrega" value={dados.referencia} onChange={(e) => set('referencia', e.target.value)} style={{ flex: '1 1 auto', minWidth: 0 }} />
               </div>
             </div>
 
@@ -571,6 +656,7 @@ export default function FormAoVivo() {
                 <div className="form-row linha-tema-codigo-aovivo" key={n}>
                   <label>{qtdMensagens > 1 ? `Tema ${n}:` : 'Tema:'}</label>
                   <input
+                    aria-label={`Tema ${n} do Ao Vivo`}
                     value={dados[`tema_${n}`]}
                     onChange={(e) => set(`tema_${n}`, e.target.value)}
                     className="campo-tema-aovivo"
@@ -578,6 +664,7 @@ export default function FormAoVivo() {
                   />
                   <label style={{ minWidth: 'auto', marginLeft: 6 }} className="label-codigo-aovivo">Código:</label>
                   <input
+                    aria-label={`Código da mensagem ${n} do Ao Vivo`}
                     value={dados[`mensagem_codigo_${n}`]}
                     onChange={(e) => set(`mensagem_codigo_${n}`, e.target.value)}
                     className="campo-codigo-aovivo"
@@ -603,6 +690,7 @@ export default function FormAoVivo() {
                 <div className="form-row" key={n}>
                   <label>Música {n}:</label>
                   <input
+                    aria-label={`Música ${n} do Ao Vivo`}
                     value={dados[`musica_${n}`]}
                     onChange={(e) => set(`musica_${n}`, e.target.value)}
                     className="campo-musica-aovivo"
@@ -630,6 +718,7 @@ export default function FormAoVivo() {
                 <div className="form-row">
                   <label>Valor:</label>
                   <input
+                    aria-label="Valor do pedido Ao Vivo"
                     ref={refValor}
                     type="text"
                     inputMode="numeric"
@@ -769,6 +858,18 @@ export default function FormAoVivo() {
           </div>
 
           {editando && (
+            <div className="section-box">
+              <div className="section-title">Entrega</div>
+              <div className="info-linha"><span className="info-label">Situação</span><span className="info-valor">{dados.resultado_entrega || 'Pendente'}</span></div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                <button type="button" className="btn-small" disabled={salvandoEntrega} onClick={() => registrarEntrega(true)}>Marcar entregue</button>
+                <button type="button" className="btn-small" disabled={salvandoEntrega} onClick={() => registrarEntrega(false)}>Marcar não entregue</button>
+                {dados.resultado_entrega && <button type="button" className="btn-small" disabled={salvandoEntrega} onClick={desfazerEntrega}>Desfazer entrega</button>}
+              </div>
+            </div>
+          )}
+
+          {editando && (
             <div className={`section-box pagamento-aovivo-card ${dados.pagou === 'SIM' ? 'pago' : 'pendente'}`}>
               <div className="section-title">Pagamento</div>
               <div className="info-linha">
@@ -791,6 +892,9 @@ export default function FormAoVivo() {
               {dados.pagou === 'SIM'
                 ? <button type="button" className="btn-small" style={{ width: '100%', marginTop: 8 }} onClick={desfazerPagamento}>Desfazer baixa</button>
                 : <button type="button" className="btn-action destaque" style={{ width: '100%', marginTop: 8 }} onClick={abrirPagamento}>Dar baixa no pagamento</button>}
+              {String(dados.pagamento || '').startsWith('PRAZO') && dados.pagou !== 'SIM' && (
+                <button type="button" className="btn-small" style={{ width: '100%', marginTop: 8 }} onClick={abrirPrazo}>Não recebeu — remarcar prazo</button>
+              )}
             </div>
           )}
 
@@ -827,20 +931,22 @@ export default function FormAoVivo() {
             <div className="acoes-modal-cobranca"><button type="button" className="btn secundario" onClick={() => setModalPagamento(false)}>Cancelar</button><button type="button" className="btn" onClick={confirmarPagamento} disabled={salvandoPagamento}>{salvandoPagamento ? 'Salvando...' : 'Confirmar pagamento'}</button></div>
         </Dialogo>
       )}
+      {modalPrazo && (
+        <Dialogo titulo="Não recebeu o pagamento" descricao="Registre a tentativa e escolha a nova data do prazo." onClose={() => setModalPrazo(false)}>
+          <div className="campo"><label>Novo dia do prazo</label><CampoData aria-label="Novo dia do prazo" value={novoDiaPrazo} onChange={(v) => setNovoDiaPrazo(formatarData(v))} /></div>
+          <div className="campo"><label>Observação</label><textarea aria-label="Observação da tentativa de pagamento" value={observacaoPrazo} onChange={(e) => setObservacaoPrazo(e.target.value)} /></div>
+          {tentativasPrazo.length > 0 && <div><strong>Tentativas anteriores</strong>{tentativasPrazo.map((t) => <div key={t.id}>{t.data_hora_tentativa} — {t.remarcado_dia} — {t.observacao || 'Sem observação'}</div>)}</div>}
+          <div className="acoes-modal-cobranca"><button type="button" className="btn secundario" onClick={() => setModalPrazo(false)}>Cancelar</button><button type="button" className="btn" disabled={salvandoPrazo || !textoParaData(novoDiaPrazo)} onClick={confirmarPrazo}>Confirmar remarcação</button></div>
+        </Dialogo>
+      )}
     </div>
   );
 }
 
 function InfoGrupo({ label, valor }) {
   const ehWhatsapp = label === 'WhatsApp';
-  const somenteDigitos = String(valor || '').replace(/\D/g, '');
-  // wa.me exige o número com DDI (Brasil = 55) + DDD + número, só
-  // dígitos. Números salvos aqui já vêm com DDD (ex: "34 9 9648-3060"),
-  // então só falta o "55" na frente quando ainda não tiver.
-  const numeroComDDI = somenteDigitos
-    ? (somenteDigitos.startsWith('55') ? somenteDigitos : `55${somenteDigitos}`)
-    : '';
-  const linkWhatsapp = ehWhatsapp && numeroComDDI.length >= 12 ? `https://wa.me/${numeroComDDI}` : null;
+  const numeroComDDI = numeroWhatsAppBrasil(valor);
+  const linkWhatsapp = ehWhatsapp && numeroComDDI ? `https://wa.me/${numeroComDDI}` : null;
 
   return (
     <div>

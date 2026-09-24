@@ -278,6 +278,7 @@ export default function ListaAoVivo() {
 
       <div className="nao-imprimir lista-aovivo-busca">
         <select
+          aria-label="Campo de busca de Ao Vivo"
           value={campoFiltro}
           onChange={(e) => aoMudarFiltro(e.target.value)}
           className="busca-select"
@@ -320,6 +321,7 @@ export default function ListaAoVivo() {
                   <th style={{ width: 36 }}>
                     <input
                       type="checkbox"
+                      aria-label="Selecionar todos os pedidos Ao Vivo"
                       checked={selecionados.size === itens.length}
                       onChange={alternarSelecionarTodos}
                       title="Selecionar todos"
@@ -346,6 +348,7 @@ export default function ListaAoVivo() {
                     <td data-label="Selecionar" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
+                        aria-label={`Selecionar pedido Ao Vivo O.S. ${p.numero_os || p.id}`}
                         checked={selecionados.has(p.id)}
                         onChange={(e) => alternarSelecao(p.id, e)}
                       />

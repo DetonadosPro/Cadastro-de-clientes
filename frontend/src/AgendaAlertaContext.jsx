@@ -17,7 +17,7 @@
 //   de cor é instantânea — sem a pequena espera de uma requisição.
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { api } from './api.js';
+import { api, getToken } from './api.js';
 import { useAtualizacaoTempoReal } from './TempoRealContext.jsx';
 import { useToast } from './ToastContext.jsx';
 
@@ -151,6 +151,7 @@ export function AgendaAlertaProvider({ children }) {
   const temporizadorTempoRealRef = useRef(null);
 
   const buscarAgenda = useCallback((repetirSeOcupada = true) => {
+    if (!getToken()) return Promise.resolve(null);
     if (buscaEmAndamentoRef.current) {
       if (repetirSeOcupada) buscaPendenteRef.current = true;
       return promessaBuscaRef.current;
@@ -190,6 +191,13 @@ export function AgendaAlertaProvider({ children }) {
   // Busca os dados no servidor periodicamente (rede).
   useEffect(() => {
     function buscar() {
+      if (!getToken()) {
+        setFonadaHoje([]);
+        setAoVivoHoje([]);
+        setLembretesHoje([]);
+        setAgendaHojeCarregada(false);
+        return;
+      }
       if (document.visibilityState === 'visible' && navigator.onLine) buscarAgenda();
     }
 
@@ -197,11 +205,13 @@ export function AgendaAlertaProvider({ children }) {
     const intervalo = setInterval(buscar, INTERVALO_BUSCA_MS);
     document.addEventListener('visibilitychange', buscar);
     window.addEventListener('online', buscar);
+    window.addEventListener('pombo:sessao-alterada', buscar);
     return () => {
       clearInterval(intervalo);
       clearTimeout(temporizadorTempoRealRef.current);
       document.removeEventListener('visibilitychange', buscar);
       window.removeEventListener('online', buscar);
+      window.removeEventListener('pombo:sessao-alterada', buscar);
     };
   }, [buscarAgenda]);
 

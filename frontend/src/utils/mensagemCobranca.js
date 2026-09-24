@@ -1,4 +1,5 @@
 import { normalizarNome } from './mensagemAgenda.js';
+import { numeroWhatsAppBrasil } from './telefoneWhatsApp.js';
 
 export function mensagemCobrancaPix(nome, valor) {
   const cliente = normalizarNome(nome) || 'cliente';
@@ -11,8 +12,7 @@ export function mensagemCobrancaPix(nome, valor) {
 }
 
 export function linkWhatsAppCobranca(numero, nome, valor) {
-  let digitos = String(numero || '').replace(/\D/g, '');
-  if (digitos.length < 10) return null;
-  if (digitos.length <= 11) digitos = `55${digitos}`;
+  const digitos = numeroWhatsAppBrasil(numero);
+  if (!digitos) return null;
   return `https://api.whatsapp.com/send?phone=${digitos}&text=${encodeURIComponent(mensagemCobrancaPix(nome, valor))}`;
 }

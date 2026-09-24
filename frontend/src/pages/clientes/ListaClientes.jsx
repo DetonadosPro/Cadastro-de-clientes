@@ -27,6 +27,15 @@ function valorUtil(valor) {
   return texto && !/^0+$/.test(texto) && texto !== '-' && texto !== '00/00/0000' ? texto : '';
 }
 
+function nascimentoValido(valor) {
+  const partes = String(valor || '').match(/^(\d{2})\/(\d{2})(?:\/(\d{2}|\d{4}))?$/);
+  if (!partes) return false;
+  const dia = Number(partes[1]);
+  const mes = Number(partes[2]);
+  const ano = partes[3] ? Number(partes[3].length === 2 ? `20${partes[3]}` : partes[3]) : 2000;
+  return mes >= 1 && mes <= 12 && dia >= 1 && dia <= new Date(ano, mes, 0).getDate();
+}
+
 function formatarReais(valor) {
   return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
@@ -228,7 +237,7 @@ export default function ListaClientes() {
         const valor = valorUtil(fonte[campo]);
         return [campo, campo === 'nascimento' && valor && !nascimentoValido(valor) ? '' : valor];
       }));
-      await api.clientes.mesclar(destino.id, origem.id, dadosFinais);
+      await api.clientes.mesclar(destino.id, origem.id, dadosFinais, destino.versao, origem.versao);
       mostrarToast(`Clientes mesclados. Cadastro mantido: "${destino.nome}".`);
       if (comparacaoMescla.chave) setDescartadas((antigo) => new Set(antigo).add(comparacaoMescla.chave));
       setComparacaoMescla(null);
@@ -236,7 +245,7 @@ export default function ListaClientes() {
       if (duplicatasConsultadas) buscarSugestoes();
       carregar(buscaUrl, paginaUrl, ordenarPorUrl, direcaoUrl, { telefone: telefoneUrl, aniversario: aniversarioUrl, situacao: situacaoUrl });
     } catch (err) {
-      mostrarToast('Não foi possível mesclar. Tente novamente.', 'erro');
+      mostrarToast(err.status === 409 ? 'Um cliente mudou em outra sessão. Feche a comparação, atualize a lista e tente novamente.' : 'Não foi possível mesclar. Tente novamente.', 'erro');
     } finally {
       setMesclando(false);
     }
@@ -291,11 +300,18 @@ export default function ListaClientes() {
 
   async function confirmarExclusaoSelecionados() {
     if (selecionados.size === 0) return;
-    const quantidade = selecionados.size;
     setExcluindoSelecionados(true);
     try {
-      await Promise.all([...selecionados].map((clienteId) => api.clientes.excluir(clienteId)));
-      mostrarToast(`${quantidade} cliente${quantidade > 1 ? 's enviados' : ' enviado'} para a Lixeira.`);
+      const resultados = await Promise.allSettled([...selecionados].map((clienteId) => api.clientes.excluir(clienteId)));
+      const excluidos = resultados.filter((resultado) => resultado.status === 'fulfilled').length;
+      const falhas = resultados.length - excluidos;
+      if (falhas) {
+        mostrarToast(excluidos
+          ? `${excluidos} cliente${excluidos > 1 ? 's enviados' : ' enviado'} para a Lixeira; ${falhas} ${falhas > 1 ? 'não puderam ser excluídos' : 'não pôde ser excluído'}. Lista atualizada.`
+          : 'Nenhum cliente pôde ser excluído. Lista atualizada.', 'erro');
+      } else {
+        mostrarToast(`${excluidos} cliente${excluidos > 1 ? 's enviados' : ' enviado'} para a Lixeira.`);
+      }
       setSelecionados(new Set());
       setConfirmacaoExclusao(false);
       if (duplicatasConsultadas) buscarSugestoes();
@@ -531,7 +547,7 @@ export default function ListaClientes() {
                       </td>
                       <td style={{ fontWeight: 700 }} data-label="Nome">
                         <span className="alca-arrastar" title="Arraste para mesclar com outro cliente"><IconeAlca /></span>
-                        <button type="button" className="cliente-nome-abrir" onClick={(evento) => { evento.stopPropagation(); aoClicarLinha(c); }}>{c.nome}</button>
+                        <button type="button" className="cliente-nome-abrir" onClick={(evento) => { evento.stopPropagation(); aoClicarLinha(c); }}>{c.nome?.trim() || `Cliente sem nome (ID ${c.id})`}</button>
                         {![c.whatsapp, c.celular, c.fixo].some(valorUtil) && <span className="cliente-contato-tipo">Contato não informado</span>}
                       </td>
                       <td data-label="Contato">
