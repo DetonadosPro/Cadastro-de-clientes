@@ -17,8 +17,8 @@ test('monta a mensagem ao destinatário no masculino para Victor', () => {
   );
 });
 
-test('evita artigos e pronomes presumidos em nomes sem gênero cadastrado', () => {
-  assert.match(mensagemContatoDestinatario('KETLYN', 'CATIUSSE'), /Aqui é Catiusse/);
-  assert.match(mensagemConfirmacao('ANA', 'KETLYN', 'CATIUSSE'), /aqui é Catiusse\. Acabei de passar a mensagem para Ketlyn\. A pessoa gostou/);
-  assert.match(mensagemRegistrarERemarcar('ANA', 'CATIUSSE', 'KETLYN'), /aqui é Ketlyn\. Ainda não consegui passar a mensagem para Catiusse\./);
+test('usa artigos e pronomes femininos para Ketlyn e Catiusse', () => {
+  assert.match(mensagemContatoDestinatario('KETLYN', 'CATIUSSE'), /É a Catiusse/);
+  assert.match(mensagemConfirmacao('ANA', 'KETLYN', 'CATIUSSE'), /é a Catiusse\. Acabei de passar a mensagem para a Ketlyn, ela gostou/);
+  assert.match(mensagemRegistrarERemarcar('ANA', 'CATIUSSE', 'KETLYN'), /é a Ketlyn\. Ainda não consegui passar a mensagem para a Catiusse\./);
 });

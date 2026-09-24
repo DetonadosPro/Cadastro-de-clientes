@@ -4,44 +4,45 @@ export function normalizarNome(nome) {
   return primeiro.charAt(0).toUpperCase() + primeiro.slice(1).toLowerCase();
 }
 
+// Exceções e terminações comuns em nomes brasileiros que a regra a/o não cobre.
+const nomesFemininos = new Set([
+  'alice', 'beatriz', 'carmen', 'catiusse', 'enimar', 'ellen', 'ester',
+  'isabel', 'ketlyn', 'kethlyn', 'kelly', 'marian', 'miriam', 'raquel',
+  'simone', 'sueli', 'yasmim',
+]);
+const nomesMasculinos = new Set(['claudean', 'luca', 'noah', 'victor']);
+
 export function generoPorNome(nome) {
   const primeiro = normalizarNome(nome);
-  const final = primeiro.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  if (final === 'enimar') return { artigo: 'a', pronome: 'ela' };
-  if (final === 'victor') return { artigo: 'o', pronome: 'ele' };
-  return null;
+  const chave = primeiro.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const feminino = nomesFemininos.has(chave) || (!nomesMasculinos.has(chave) && (
+    chave.endsWith('a') || /(?:lyn|lyne|line|lene|elle|ette|isse|ice|ine)$/.test(chave)
+  ));
+  return feminino ? { artigo: 'a', pronome: 'ela' } : { artigo: 'o', pronome: 'ele' };
 }
 
 export function artigoUsuario(nome) {
-  const primeiro = normalizarNome(nome);
-  const chave = primeiro.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  if (chave === 'enimar') return 'a';
-  if (chave === 'victor') return 'o';
-  return generoPorNome(primeiro)?.artigo || null;
-}
-
-function apresentacaoUsuario(nome) {
-  const artigo = artigoUsuario(nome);
-  return artigo ? `é ${artigo} ${nome}` : `aqui é ${nome}`;
+  return generoPorNome(nome).artigo;
 }
 
 export function mensagemContatoDestinatario(destinatario, usuario) {
   const nomeDestinatario = normalizarNome(destinatario) || 'cliente';
   const nomeUsuario = normalizarNome(usuario) || 'usuário';
-  const apresentacao = apresentacaoUsuario(nomeUsuario);
-  return `Oi ${nomeDestinatario}, tudo bem?\n${apresentacao.charAt(0).toUpperCase()}${apresentacao.slice(1)} do Pombo-Correio Mensagens\nNós temos uma mensagem pra você.\nAssim que estiver disponível, você pode avisar?`;
+  return `Oi ${nomeDestinatario}, tudo bem?\nÉ ${artigoUsuario(nomeUsuario)} ${nomeUsuario} do Pombo-Correio Mensagens\nNós temos uma mensagem pra você.\nAssim que estiver disponível, você pode avisar?`;
 }
 
 export function mensagemConfirmacao(comprador, destinatario, usuario) {
   const cliente = normalizarNome(comprador) || 'cliente';
   const nomeDestinatario = normalizarNome(destinatario) || 'cliente';
+  const generoDestinatario = generoPorNome(nomeDestinatario);
   const nomeUsuario = normalizarNome(usuario) || 'usuário';
-  return `Olá ${cliente}, ${apresentacaoUsuario(nomeUsuario)}. Acabei de passar a mensagem para ${nomeDestinatario}. A pessoa gostou muito😍`;
+  return `Olá ${cliente}, é ${artigoUsuario(nomeUsuario)} ${nomeUsuario}. Acabei de passar a mensagem para ${generoDestinatario.artigo} ${nomeDestinatario}, ${generoDestinatario.pronome} gostou muito😍`;
 }
 
 export function mensagemRegistrarERemarcar(comprador, destinatario, usuario) {
   const cliente = normalizarNome(comprador) || 'cliente';
   const nomeDestinatario = normalizarNome(destinatario) || 'cliente';
+  const generoDestinatario = generoPorNome(nomeDestinatario);
   const nomeUsuario = normalizarNome(usuario) || 'usuário';
-  return `Oi ${cliente}, ${apresentacaoUsuario(nomeUsuario)}. Ainda não consegui passar a mensagem para ${nomeDestinatario}. Assim que der certo te aviso😉😊`;
+  return `Oi ${cliente}, é ${artigoUsuario(nomeUsuario)} ${nomeUsuario}. Ainda não consegui passar a mensagem para ${generoDestinatario.artigo} ${nomeDestinatario}. Assim que der certo te aviso😉😊`;
 }
