@@ -58,9 +58,9 @@ export async function exercitarFechamentos(page, id, abrir, titulo, confirmar, s
   registrar(id, page, 'keyboard=Escape', 'Escape', 'nenhuma alteração persistida');
 
   dialogo = await abrir();
-  // Um artefato somente para impressão pode cobrir o backdrop no hit testing;
-  // o clique real na coordenada externa verifica o comportamento da página.
-  await page.mouse.click(2, 2);
+  // O clique no próprio backdrop evita depender da posição da janela durante
+  // mudanças de viewport e ainda verifica o fechamento por clique externo.
+  await page.locator('.dialogo-fundo').click({ position: { x: 2, y: 2 } });
   await expect(dialogo).toHaveCount(0);
   await semEfeito();
   registrar(id, page, '.dialogo-fundo', 'clique externo', 'nenhuma alteração persistida');

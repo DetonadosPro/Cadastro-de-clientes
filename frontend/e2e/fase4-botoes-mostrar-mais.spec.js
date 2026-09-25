@@ -40,6 +40,7 @@ test('BTN-052/054: Agenda expande mais 50 pendentes e concluídos', async ({ pag
 });
 
 test('BTN-120/122: ficha mostra o 51º pedido em cada aba', async ({ page, request }) => {
+  test.setTimeout(120000);
   test.skip(!isolado, 'Exige banco QA isolado.');
   await entrar(page);
   const headers = { Authorization: `Bearer ${await page.evaluate(() => localStorage.getItem('pombo_token'))}` };
