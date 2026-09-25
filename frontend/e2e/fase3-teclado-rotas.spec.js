@@ -77,6 +77,7 @@ test('controles do conteúdo são alcançáveis e têm foco visível em todas as
           continue;
         }
       }
+      await expect.poll(async () => page.locator(seletor).count()).toBeGreaterThan(0);
       const passos = await tabAte(page, seletor, 120);
       const primeiro = await page.evaluate(() => ({ tag: document.activeElement?.tagName, texto: document.activeElement?.getAttribute('aria-label') || document.activeElement?.textContent?.trim().slice(0, 80) || '' }));
       expect(await page.evaluate(() => document.activeElement?.matches(':focus-visible'))).toBe(true);

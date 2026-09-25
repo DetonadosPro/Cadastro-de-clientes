@@ -414,7 +414,7 @@ router.put('/:id/desfazer-baixa', async (req, res) => {
     if (!Number.isInteger(versao) || versao < 1) return res.status(400).json({ erro: 'Versão do pedido inválida.' });
     const resultado = await db.query(`
       UPDATE fonadas
-      SET pagou = NULL, recebi = NULL, data_pagamento = NULL, atualizado_em = NOW(), versao = versao + 1
+      SET pagou = 'NÃO', recebi = NULL, data_pagamento = NULL, atualizado_em = NOW(), versao = versao + 1
       WHERE id = $1 AND excluido_em IS NULL AND pagou = 'SIM' AND versao = $2
       RETURNING id, versao
     `, [req.params.id, versao]);

@@ -39,3 +39,6 @@ qa/
 institucional/
 *.dump
 *-audit-predeploy.json
+
+# Arquivo legado com segredo; cópia privada fora do projeto
+backend/src/routes/auth.sqlite.bak.js

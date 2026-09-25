@@ -11,7 +11,7 @@ test('desfaz somente a baixa de uma Fonada recebida', async () => {
     const pedido = pedidos.get(Number(valores[0]));
     if (sql.includes('UPDATE fonadas')) {
       if (!pedido || pedido.pagou !== 'SIM' || pedido.versao !== valores[1]) return { rows: [] };
-      pedido.pagou = null;
+      pedido.pagou = 'NÃO';
       pedido.recebi = null;
       pedido.data_pagamento = null;
       pedido.versao += 1;
@@ -28,7 +28,7 @@ test('desfaz somente a baixa de uma Fonada recebida', async () => {
     const opcoes = (versao) => ({ method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ versao }) });
     const pago = await fetch(`${base}/10/desfazer-baixa`, opcoes(1));
     assert.equal(pago.status, 200);
-    assert.deepEqual(pedidos.get(10), { pagou: null, recebi: null, data_pagamento: null, versao: 2 });
+    assert.deepEqual(pedidos.get(10), { pagou: 'NÃO', recebi: null, data_pagamento: null, versao: 2 });
 
     const repetido = await fetch(`${base}/10/desfazer-baixa`, opcoes(2));
     assert.equal(repetido.status, 409);
