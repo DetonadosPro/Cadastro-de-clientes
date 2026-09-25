@@ -31,5 +31,11 @@ _database_backup/
 _git_backup/
 .codex-recall-release/
 docs/auditoria/evidencias/backup-qa/
+docs/auditoria/evidencias/
+docs/auditoria/atualizar-matriz-http-observada.mjs
+docs/auditoria/gerar-matrizes-fase3.mjs
+frontend/scripts/
+qa/
+institucional/
 *.dump
 *-audit-predeploy.json
