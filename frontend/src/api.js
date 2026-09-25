@@ -222,6 +222,8 @@ export const api = {
     },
     darBaixa: (pedidoId, pagou, recebi, dataPagamento) =>
       chamar(`/cobranca/${pedidoId}/baixa`, { method: 'PUT', body: JSON.stringify({ pagou, recebi, dataPagamento }) }),
+    desfazerBaixa: (pedidoId) =>
+      chamar(`/cobranca/${pedidoId}/desfazer-baixa`, { method: 'PUT' }),
     darBaixaEmLote: (ids, recebi, dataPagamento) =>
       chamar('/cobranca/acoes/baixa-lote', { method: 'PUT', body: JSON.stringify({ ids, recebi, dataPagamento }) }),
     reagendarEmLote: (ids, cobrarDia) =>

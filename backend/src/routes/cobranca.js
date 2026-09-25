@@ -380,6 +380,29 @@ router.put('/:id/baixa', async (req, res) => {
   }
 });
 
+// Reverte apenas uma baixa existente; preserva os dados do pedido e da cobrança.
+router.put('/:id/desfazer-baixa', async (req, res) => {
+  try {
+    if (!/^\d+$/.test(req.params.id) || Number(req.params.id) < 1) {
+      return res.status(400).json({ erro: 'Pedido inválido.' });
+    }
+    const resultado = await db.query(`
+      UPDATE fonadas
+      SET pagou = NULL, recebi = NULL, data_pagamento = NULL, atualizado_em = NOW()
+      WHERE id = $1 AND excluido_em IS NULL AND pagou = 'SIM'
+      RETURNING id
+    `, [req.params.id]);
+    if (resultado.rows.length) return res.json({ ok: true });
+
+    const pedido = await db.query('SELECT pagou FROM fonadas WHERE id = $1 AND excluido_em IS NULL', [req.params.id]);
+    if (!pedido.rows.length) return res.status(404).json({ erro: 'Pedido não encontrado.' });
+    return res.status(409).json({ erro: 'Este pedido já não está marcado como recebido.' });
+  } catch (erro) {
+    console.error('Erro ao desfazer baixa Fonada:', erro);
+    return res.status(500).json({ erro: 'Não foi possível desfazer a baixa.' });
+  }
+});
+
 function idsValidos(corpo) {
   if (!Array.isArray(corpo)) return [];
   return [...new Set(corpo.map(Number).filter((id) => Number.isInteger(id) && id > 0))];
