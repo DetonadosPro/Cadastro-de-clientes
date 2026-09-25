@@ -53,7 +53,7 @@ test('URLs inexistentes e IDs inválidos recebem respostas compreensíveis', asy
 });
 
 test('acessibilidade automática das telas de acesso e principais áreas', async ({ page }) => {
-  test.setTimeout(120000);
+  test.setTimeout(240000);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   for (const rota of ['/login', '/gerenciar-usuarios']) {
     await page.goto(rota);

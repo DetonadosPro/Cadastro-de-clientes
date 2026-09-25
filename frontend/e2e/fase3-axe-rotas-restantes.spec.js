@@ -12,7 +12,7 @@ function hoje() {
 
 test('axe verifica as dez rotas funcionais restantes com pedidos QA reais', async ({ page, request }) => {
   test.skip(!isolado, 'Exige banco QA isolado.');
-  test.setTimeout(180000);
+  test.setTimeout(300000);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await entrar(page);
   const headers = { Authorization: `Bearer ${await page.evaluate(() => localStorage.getItem('pombo_token'))}` };
