@@ -362,7 +362,7 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
     if (!pedidoDesfazer) return;
     setSalvandoDesfazer(true);
     try {
-      await api.cobranca.darBaixa(pedidoDesfazer.id, 'NÃO', null, null, pedidoDesfazer.versao);
+      await api.cobranca.desfazerBaixa(pedidoDesfazer.id, pedidoDesfazer.versao);
       mostrarToast('BAIXA DESFEITA COM SUCESSO');
       setPedidoDesfazer(null);
       await buscar();
@@ -461,8 +461,9 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
         </Modal>
       )}
       {pedidoDesfazer && (
-        <Modal titulo={`Desfazer baixa — O.S. ${pedidoDesfazer.senha_os || pedidoDesfazer.id}`} onClose={() => setPedidoDesfazer(null)}>
-          <p className="fs-sm texto-suave">O pedido voltará para as cobranças pendentes. A data e a observação do recebimento serão removidas.</p>
+        <Modal titulo={`Desfazer baixa — O.S. ${pedidoDesfazer.senha_os || pedidoDesfazer.id}`} onClose={() => !salvandoDesfazer && setPedidoDesfazer(null)}>
+          <p className="fs-sm texto-suave">O pagamento de {pedidoDesfazer.nome || 'este cliente'} será removido e o pedido voltará para as cobranças pendentes.</p>
+          <div className="resumo-modal-cobranca"><strong>O.S. {pedidoDesfazer.senha_os || pedidoDesfazer.id}</strong><strong>{formatarReais(pedidoDesfazer.valor)}</strong></div>
           <AcoesModal onCancelar={() => setPedidoDesfazer(null)} onConfirmar={confirmarDesfazer} salvando={salvandoDesfazer} rotulo="Confirmar desfazer" />
         </Modal>
       )}

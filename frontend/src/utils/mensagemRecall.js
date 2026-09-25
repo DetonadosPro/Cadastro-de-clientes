@@ -16,9 +16,6 @@ function generoDoAniversariante(nome, genero) {
   const estruturado = generoEstruturado(genero);
   if (estruturado) return estruturado;
 
-  // O cadastro histórico guarda o destinatário como texto livre e ainda
-  // não possui sexo/gênero estruturado. Mantemos aqui, em um único lugar,
-  // o mesmo fallback gramatical já usado nas mensagens da Agenda.
   const legado = generoPorNome(nome);
   return {
     artigo: legado.artigo,

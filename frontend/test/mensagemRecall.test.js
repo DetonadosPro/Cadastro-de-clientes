@@ -62,3 +62,12 @@ test('adiciona a O.S. do último pedido após duas quebras nas duas pesquisas', 
     assert.match(mensagem, /\?\n\nO\.S\.: 12345$/);
   }
 });
+
+test('Ketlyn e Catiusse recebem artigos e pronomes femininos nas duas pesquisas', () => {
+  for (const modoFila of ['DIA_MENSAGEM', 'ANIVERSARIO']) {
+    const mensagem = buildRecallWhatsAppMessage({ ...base, modoFila, usuario: 'KETLYN', aniversariante: 'CATIUSSE' });
+    assert.match(mensagem, /é a Ketlyn/);
+    assert.match(mensagem, /aniversário da Catiusse/);
+    assert.match(mensagem, /pra ela/);
+  }
+});

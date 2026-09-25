@@ -4,20 +4,25 @@ export function normalizarNome(nome) {
   return primeiro.charAt(0).toUpperCase() + primeiro.slice(1).toLowerCase();
 }
 
+// Exceções e terminações comuns em nomes brasileiros que a regra a/o não cobre.
+const nomesFemininos = new Set([
+  'alice', 'beatriz', 'carmen', 'catiusse', 'enimar', 'ellen', 'ester',
+  'isabel', 'ketlyn', 'kethlyn', 'kelly', 'marian', 'miriam', 'raquel',
+  'simone', 'sueli', 'yasmim',
+]);
+const nomesMasculinos = new Set(['claudean', 'luca', 'noah', 'victor']);
+
 export function generoPorNome(nome) {
   const primeiro = normalizarNome(nome);
-  const final = primeiro.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  if (final.endsWith('a')) return { artigo: 'a', pronome: 'ela' };
-  if (final.endsWith('o')) return { artigo: 'o', pronome: 'ele' };
-  return { artigo: 'o', pronome: 'ele' };
+  const chave = primeiro.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const feminino = nomesFemininos.has(chave) || (!nomesMasculinos.has(chave) && (
+    chave.endsWith('a') || /(?:lyn|lyne|line|lene|elle|ette|isse|ice|ine)$/.test(chave)
+  ));
+  return feminino ? { artigo: 'a', pronome: 'ela' } : { artigo: 'o', pronome: 'ele' };
 }
 
 export function artigoUsuario(nome) {
-  const primeiro = normalizarNome(nome);
-  const chave = primeiro.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  if (chave === 'enimar') return 'a';
-  if (chave === 'victor') return 'o';
-  return generoPorNome(primeiro).artigo;
+  return generoPorNome(nome).artigo;
 }
 
 export function mensagemContatoDestinatario(destinatario, usuario) {
