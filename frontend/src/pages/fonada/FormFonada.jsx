@@ -597,16 +597,6 @@ export default function FormFonada() {
   const segundaLiberada = segundaMensagemLiberada(dados);
   const segundaExpirada = editando && mensagemEmHaver?.status === 'EXPIRADA';
 
-  // Datas passadas são permitidas, mas ficam visíveis antes da confirmação ao salvar.
-  const hoje = hojeSemHora();
-  function dataNoPassado(texto) {
-    const data = textoParaData(texto);
-    return data && data.getTime() < hoje.getTime();
-  }
-  const p1DiaNoPassado = dataNoPassado(dados.p1_dia);
-  const p2DiaNoPassado = dataNoPassado(dados.p2_dia);
-  const cobrancaNoPassado = dataNoPassado(dados.cobranca);
-
   return (
     <div className="form-pagina pagina-fonada-ampliada">
       <CabecalhoPagina
@@ -631,12 +621,12 @@ export default function FormFonada() {
               <ColunaMensagem
                 numero={1} dados={dados} set={set} setComMascara={setComMascara} onCopiar={copiarEntreMensagens}
                 copiarBloqueado={!segundaLiberada}
-                editando={editando} dataNoPassado={p1DiaNoPassado}
+                editando={editando}
                 salvandoBaixa={salvandoBaixa} onDarBaixa={darBaixaMensagem} onNaoAtendeu={abrirRemarcarMensagem}
               />
               <ColunaMensagem
                 numero={2} dados={dados} set={set} setComMascara={setComMascara} onCopiar={copiarEntreMensagens}
-                bloqueada={!segundaLiberada || segundaExpirada} editando={editando} dataNoPassado={p2DiaNoPassado}
+                bloqueada={!segundaLiberada || segundaExpirada} editando={editando}
                 situacaoMensagem={mensagemEmHaver}
                 salvandoBaixa={salvandoBaixa} onDarBaixa={darBaixaMensagem} onNaoAtendeu={abrirRemarcarMensagem}
               />
@@ -676,11 +666,6 @@ export default function FormFonada() {
                   }}
                 />
               </div>
-              {cobrancaNoPassado && (
-                <p className="fs-xs" style={{ color: 'var(--selo)', marginTop: -4, marginBottom: 8 }}>
-                  Data passada: será solicitada confirmação ao salvar.
-                </p>
-              )}
               <div className="form-row">
                 <label>Período:</label>
                 <input
@@ -935,7 +920,7 @@ export default function FormFonada() {
 // a 1ª e copiar dali para a 2ª, não o contrário. Reúne o que antes
 // eram duas seções separadas ("Ordem de serviço" e "Transmissão") —
 // na prática é a mesma ordem de serviço, só com campos diferentes.
-function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada, copiarBloqueado, editando, dataNoPassado, salvandoBaixa, onDarBaixa, onNaoAtendeu, situacaoMensagem }) {
+function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada, copiarBloqueado, editando, salvandoBaixa, onDarBaixa, onNaoAtendeu, situacaoMensagem }) {
   const p = numero === 1 ? 'p1' : 'p2';
   const mostrarBotaoP = numero === 1;
   const diaPreenchido = Boolean(dados[`${p}_dia`]);
@@ -1016,11 +1001,6 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
           />
         )}
       </div>
-      {dataNoPassado && (
-        <p className="fs-xs" style={{ color: 'var(--selo)', marginTop: -4, marginBottom: 6 }}>
-          Data passada: será solicitada confirmação ao salvar.
-        </p>
-      )}
       <CampoComP label="Quem oferece" nomeCampo="quem_oferece" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} copiarBloqueado={copiarBloqueado} classeExtra="campo-quem-oferece" multilinha />
       <CampoComP label="Resultado" nomeCampo="resultado" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} copiarBloqueado={copiarBloqueado} negrito cor="var(--selo)" classeExtra="campo-resultado" />
 
