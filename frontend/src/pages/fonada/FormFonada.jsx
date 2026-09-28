@@ -502,21 +502,16 @@ export default function FormFonada() {
       }
     }
 
-    if (!editando) {
-      const hoje = hojeSemHora();
-      const camposData = [
-        { campo: 'p1_dia', rotulo: 'Dia da 1ª mensagem' },
-        { campo: 'p2_dia', rotulo: 'Dia da 2ª mensagem' },
-        { campo: 'cobranca', rotulo: 'Dia de cobrança' },
-      ];
-      for (const { campo, rotulo } of camposData) {
-        const data = textoParaData(dados[campo]);
-        if (data && data.getTime() < hoje.getTime()) {
-          setErro(`${rotulo} não pode ser uma data anterior a hoje.`);
-          return;
-        }
-      }
-    }
+    const hoje = hojeSemHora();
+    const datasPassadas = [
+      { campo: 'p1_dia', rotulo: '1ª mensagem' },
+      { campo: 'p2_dia', rotulo: '2ª mensagem' },
+      { campo: 'cobranca', rotulo: 'cobrança' },
+    ].filter(({ campo }) => {
+      const data = textoParaData(dados[campo]);
+      return data && data.getTime() < hoje.getTime();
+    });
+    if (datasPassadas.length && !confirm(`A data de ${datasPassadas.map(({ rotulo, campo }) => `${rotulo} (${dados[campo]})`).join(', ')} já passou. Tem certeza de que deseja salvar o pedido com essa data?`)) return;
     salvandoRef.current = true;
     setSalvando(true);
     try {
@@ -602,20 +597,15 @@ export default function FormFonada() {
   const segundaLiberada = segundaMensagemLiberada(dados);
   const segundaExpirada = editando && mensagemEmHaver?.status === 'EXPIRADA';
 
-  // Validação em tempo real (não só ao salvar): se a data ficar
-  // completa e for anterior a hoje, o aviso aparece na hora, sem
-  // precisar clicar em Salvar para descobrir. Só se aplica ao criar um
-  // pedido novo — editar um pedido existente com data passada é normal.
+  // Datas passadas são permitidas, mas ficam visíveis antes da confirmação ao salvar.
   const hoje = hojeSemHora();
   function dataNoPassado(texto) {
-    if (editando) return false;
     const data = textoParaData(texto);
     return data && data.getTime() < hoje.getTime();
   }
   const p1DiaNoPassado = dataNoPassado(dados.p1_dia);
   const p2DiaNoPassado = dataNoPassado(dados.p2_dia);
   const cobrancaNoPassado = dataNoPassado(dados.cobranca);
-  const algumaDataNoPassado = p1DiaNoPassado || p2DiaNoPassado || cobrancaNoPassado;
 
   return (
     <div className="form-pagina pagina-fonada-ampliada">
@@ -680,7 +670,6 @@ export default function FormFonada() {
                   placeholder="dd/mm/aa"
                   value={dados.cobranca}
                   onChange={(v) => { setComMascara('cobranca', v, 'data'); setCampoObrigatorioFaltando(null); }}
-                  minimo={!editando ? hojeSemHora() : undefined}
                   style={{
                     maxWidth: 118, flex: '0 0 auto',
                     borderColor: campoObrigatorioFaltando === 'cobranca' ? 'var(--selo)' : undefined,
@@ -689,7 +678,7 @@ export default function FormFonada() {
               </div>
               {cobrancaNoPassado && (
                 <p className="fs-xs" style={{ color: 'var(--selo)', marginTop: -4, marginBottom: 8 }}>
-                  O dia de cobrança não pode ser anterior a hoje.
+                  Data passada: será solicitada confirmação ao salvar.
                 </p>
               )}
               <div className="form-row">
@@ -852,7 +841,7 @@ export default function FormFonada() {
           {erro && <AvisoInline tom="erro" titulo="Revise o pedido antes de salvar">{erro}</AvisoInline>}
 
           <div className="section-box actions-grid">
-            <button type="button" className="btn-action destaque" onClick={salvar} disabled={salvando || algumaDataNoPassado}>
+            <button type="button" className="btn-action destaque" onClick={salvar} disabled={salvando}>
               <IconeSalvar /> {salvando ? 'Salvando...' : 'Salvar'}
             </button>
             <div className="acoes-secundarias-mobile">
@@ -1009,7 +998,6 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
           onChange={(v) => setComMascara(`${p}_dia`, v, 'data')}
           disabled={bloqueada}
           style={{ flex: '0 0 auto', width: 112, minWidth: 0 }}
-          minimo={!editando ? hojeSemHora() : undefined}
         />
         <label style={{ minWidth: 'auto', marginLeft: 6 }}>Horário:</label>
         <input
@@ -1030,7 +1018,7 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
       </div>
       {dataNoPassado && (
         <p className="fs-xs" style={{ color: 'var(--selo)', marginTop: -4, marginBottom: 6 }}>
-          O dia não pode ser anterior a hoje.
+          Data passada: será solicitada confirmação ao salvar.
         </p>
       )}
       <CampoComP label="Quem oferece" nomeCampo="quem_oferece" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} copiarBloqueado={copiarBloqueado} classeExtra="campo-quem-oferece" multilinha />
