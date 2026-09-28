@@ -43,7 +43,7 @@ function localizarArquivoEnv() {
 dotenv.config({ path: localizarArquivoEnv() });
 
 const express = require('express');
-const cors = require('cors');
+const { criarCorsRestrito } = require('./middleware/corsRestrito');
 const { iniciarBanco, pool } = require('./db/database');
 const { router: authRouter } = require('./routes/auth');
 const fonadasRouter = require('./routes/fonadas');
@@ -60,6 +60,7 @@ const { diagnostico, instrumentarRequests } = require('./observabilidade');
 
 
 async function iniciar() {
+  const politicaCors = criarCorsRestrito();
   try {
     await iniciarBanco();
     console.log('✅ Banco de dados conectado e tabelas verificadas.');
@@ -70,7 +71,7 @@ async function iniciar() {
   }
 
   const app = express();
-  app.use(cors());
+  app.use(politicaCors);
   app.use(express.json({ limit: '5mb' }));
   app.use(instrumentarRequests);
 
