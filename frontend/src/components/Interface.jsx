@@ -27,7 +27,7 @@ export function BotaoIcone({ rotulo, children, className = '', ...props }) {
   );
 }
 
-export function Dialogo({ titulo, descricao, onClose, children, className = '' }) {
+export function Dialogo({ titulo, descricao, onClose, children, className = '', centralizado = false }) {
   const tituloId = useId();
   const descricaoId = useId();
   const painelRef = useRef(null);
@@ -73,7 +73,7 @@ export function Dialogo({ titulo, descricao, onClose, children, className = '' }
   }, []);
 
   return createPortal(
-    <div className="modal-fundo dialogo-fundo nao-imprimir" onMouseDown={onClose}>
+    <div className={`modal-fundo dialogo-fundo nao-imprimir ${centralizado ? 'dialogo-centralizado' : ''}`} onMouseDown={onClose}>
       <section
         ref={painelRef}
         className={`modal-caixa dialogo-caixa ${className}`.trim()}

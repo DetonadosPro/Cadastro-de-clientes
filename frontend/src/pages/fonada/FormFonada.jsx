@@ -227,6 +227,7 @@ export default function FormFonada() {
   const [tentativas, setTentativas] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
+  const [confirmacaoDatasPassadas, setConfirmacaoDatasPassadas] = useState(null);
   const salvandoRef = useRef(false);
   const [erro, setErro] = useState('');
   // Nome do campo (valor/cobranca/periodo) que está faltando ao tentar
@@ -460,7 +461,7 @@ export default function FormFonada() {
     salvarRascunhoFonada(chaveRascunho, preservado, cliente);
   }
 
-  async function salvar() {
+  async function salvar(datasConfirmadas = false) {
     if (salvandoRef.current) return;
     setErro('');
     setCampoObrigatorioFaltando(null);
@@ -514,13 +515,16 @@ export default function FormFonada() {
         const data = textoParaData(dados[campo]);
         return data && data.getTime() < hoje.getTime();
       });
-      if (editando && datasPassadas.length) {
+      if (!datasConfirmadas && editando && datasPassadas.length) {
         const pedidoSalvo = await api.fonada.buscar(id);
         datasPassadas = datasPassadas.filter(({ campo }) =>
           String(dados[campo] || '').trim() !== String(pedidoSalvo[campo] || '').trim()
         );
       }
-      if (datasPassadas.length && !confirm(`A data de ${datasPassadas.map(({ rotulo, campo }) => `${rotulo} (${dados[campo]})`).join(', ')} já passou. Tem certeza de que deseja salvar o pedido com essa data?`)) return;
+      if (datasPassadas.length && !datasConfirmadas) {
+        setConfirmacaoDatasPassadas(datasPassadas.map(({ rotulo, campo }) => ({ rotulo, data: dados[campo] })));
+        return;
+      }
       const payload = { ...dados, valor: valorMonetarioParaNumero(dados.valor) };
       if (editando) {
         const atualizado = await api.fonada.atualizar(id, payload);
@@ -832,7 +836,7 @@ export default function FormFonada() {
           {erro && <AvisoInline tom="erro" titulo="Revise o pedido antes de salvar">{erro}</AvisoInline>}
 
           <div className="section-box actions-grid">
-            <button type="button" className="btn-action destaque" onClick={salvar} disabled={salvando}>
+            <button type="button" className="btn-action destaque" onClick={() => salvar()} disabled={salvando}>
               <IconeSalvar /> {salvando ? 'Salvando...' : 'Salvar'}
             </button>
             <div className="acoes-secundarias-mobile">
@@ -913,6 +917,24 @@ export default function FormFonada() {
                 {salvandoRemarcacao ? 'Salvando...' : 'Registrar e remarcar'}
               </button>
             </div>
+        </Dialogo>
+      )}
+      {confirmacaoDatasPassadas && (
+        <Dialogo
+          titulo="Confirmar data passada"
+          descricao="Confira as datas antes de salvar este pedido."
+          onClose={() => setConfirmacaoDatasPassadas(null)}
+          className="confirmacao-contextual confirmacao-data-passada"
+          centralizado
+        >
+          <p>Você quer salvar o pedido com {confirmacaoDatasPassadas.length === 1 ? 'esta data anterior a hoje' : 'estas datas anteriores a hoje'}?</p>
+          <ul className="confirmacao-data-lista">
+            {confirmacaoDatasPassadas.map(({ rotulo, data }) => <li key={rotulo}><span>{rotulo}</span><strong>{data}</strong></li>)}
+          </ul>
+          <div className="confirmacao-acoes">
+            <button type="button" className="btn secundario" onClick={() => setConfirmacaoDatasPassadas(null)}>Voltar e revisar</button>
+            <button type="button" className="btn" onClick={() => { setConfirmacaoDatasPassadas(null); salvar(true); }} disabled={salvando}>Confirmar e salvar</button>
+          </div>
         </Dialogo>
       )}
     </div>
