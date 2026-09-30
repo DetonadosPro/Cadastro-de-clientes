@@ -2,7 +2,7 @@ import React, { Suspense, useState, useEffect, useRef } from 'react';
 import { EstadoCarregando } from './Interface.jsx';
 import LimitePagina from './LimitePagina.jsx';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { getUsuarioLogado, getNomeExibicao, limparSessao } from '../api.js';
+import { getIdTela, getUsuarioLogado, getNomeExibicao, limparSessao } from '../api.js';
 import { useRascunhos } from '../RascunhosContext.jsx';
 import { useAgendaAlerta } from '../AgendaAlertaContext.jsx';
 import CommandPalette from './CommandPalette.jsx';
@@ -197,7 +197,7 @@ export default function Layout() {
         const detalhe = caminho.match(/^\/(clientes|fonada|ao-vivo)\/(\d+)$/);
         const topicoDaTela = detalhe?.[1] === 'fonada' ? 'fonadas' : detalhe?.[1];
         const idAlterado = evento.recurso?.match(/^\/api\/(?:clientes|fonadas|ao-vivo)\/(\d+)(?:\/|$)/)?.[1];
-        if (detalhe && evento.topico === topicoDaTela && idAlterado === detalhe[2]) {
+        if (detalhe && evento.topico === topicoDaTela && idAlterado === detalhe[2] && evento.origem !== getIdTela()) {
           mostrarToast('Este registro foi alterado em outra tela. Seu formulário foi preservado.', 'aviso');
         }
       }
