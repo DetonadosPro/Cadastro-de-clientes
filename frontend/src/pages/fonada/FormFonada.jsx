@@ -502,19 +502,25 @@ export default function FormFonada() {
       }
     }
 
-    const hoje = hojeSemHora();
-    const datasPassadas = [
-      { campo: 'p1_dia', rotulo: '1ª mensagem' },
-      { campo: 'p2_dia', rotulo: '2ª mensagem' },
-      { campo: 'cobranca', rotulo: 'cobrança' },
-    ].filter(({ campo }) => {
-      const data = textoParaData(dados[campo]);
-      return data && data.getTime() < hoje.getTime();
-    });
-    if (datasPassadas.length && !confirm(`A data de ${datasPassadas.map(({ rotulo, campo }) => `${rotulo} (${dados[campo]})`).join(', ')} já passou. Tem certeza de que deseja salvar o pedido com essa data?`)) return;
     salvandoRef.current = true;
     setSalvando(true);
     try {
+      const hoje = hojeSemHora();
+      let datasPassadas = [
+        { campo: 'p1_dia', rotulo: '1ª mensagem' },
+        { campo: 'p2_dia', rotulo: '2ª mensagem' },
+        { campo: 'cobranca', rotulo: 'cobrança' },
+      ].filter(({ campo }) => {
+        const data = textoParaData(dados[campo]);
+        return data && data.getTime() < hoje.getTime();
+      });
+      if (editando && datasPassadas.length) {
+        const pedidoSalvo = await api.fonada.buscar(id);
+        datasPassadas = datasPassadas.filter(({ campo }) =>
+          String(dados[campo] || '').trim() !== String(pedidoSalvo[campo] || '').trim()
+        );
+      }
+      if (datasPassadas.length && !confirm(`A data de ${datasPassadas.map(({ rotulo, campo }) => `${rotulo} (${dados[campo]})`).join(', ')} já passou. Tem certeza de que deseja salvar o pedido com essa data?`)) return;
       const payload = { ...dados, valor: valorMonetarioParaNumero(dados.valor) };
       if (editando) {
         const atualizado = await api.fonada.atualizar(id, payload);
