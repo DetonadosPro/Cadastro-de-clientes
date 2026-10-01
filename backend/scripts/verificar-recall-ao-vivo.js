@@ -30,6 +30,8 @@ async function executar() {
     await client.query(`INSERT INTO clientes (id,nome,whatsapp) VALUES (2,'KÁTIA EMILLY','34999999999')`);
     assert.equal((await fila('2026-10-06')).itens[0].clienteId, null);
     await client.query('DELETE FROM clientes WHERE id=2');
+    await client.query(`INSERT INTO ao_vivo (id,numero_os,cliente_id,comprador,para,dia_entrega,tema_1) VALUES (6,'128',1,'katia','ANA - 90 ANOS','07/10/25','ANIV GERAL')`);
+    assert.equal((await fila('2026-10-07')).itens[0].aniversariante, 'ANA - 90 ANOS');
     if (process.argv.includes('--interface')) {
       const { chromium } = require('../../frontend/node_modules/@playwright/test');
       browser = await chromium.launch({ channel: 'msedge' });

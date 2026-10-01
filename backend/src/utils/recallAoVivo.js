@@ -1,4 +1,4 @@
-const { normalizarTexto, chavePessoa, nomePessoaValido, dataBrParaIso } = require('./recall');
+const { normalizarTexto, chavePessoa, dataBrParaIso } = require('./recall');
 const { formatarNome } = require('./textoPessoa');
 const { dataBrParaDate } = require('./mensagemEmHaver');
 
@@ -50,7 +50,9 @@ function agruparAoVivo(linhas, referencia) {
     if (prevista !== referencia) continue;
     const comprador = formatarNome(p.cliente_nome || p.comprador);
     const para = formatarNome(p.para);
-    if (!nomePessoaValido(comprador) || !nomePessoaValido(para)) continue;
+    // Ao Vivo antigo guarda idade, telefone e observações junto do nome.
+    // A presença de números não invalida uma pessoa; nomes só numéricos continuam fora.
+    if (!/[A-Z]/.test(normalizarTexto(comprador)) || !/[A-Z]/.test(normalizarTexto(para))) continue;
     const telefone = telefoneDoComprador(p);
     const identidade = p.cliente_id ? `ID:${p.cliente_id}` : `NOME:${chavePessoa(comprador)}:${String(telefone).replace(/\D/g, '')}`;
     const chave = `AOVIVO:${identidade}|PARA:${chavePessoa(para)}|TEMA:${ocasiao}`;

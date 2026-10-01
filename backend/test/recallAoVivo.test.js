@@ -40,3 +40,15 @@ test('registros incompletos e datas impossíveis não viram oportunidades', () =
   assert.equal(agruparAoVivo([{ ...base, cliente_id: null, cliente_whatsapp: null, celular: '34988888888' }], '2026-10-05')[0].telefone, '34988888888');
   assert.equal(agruparAoVivo([{ ...base, cliente_whatsapp: '0', cliente_celular: '34988888888' }], '2026-10-05')[0].telefone, '34988888888');
 });
+
+test('nomes antigos com idade, telefone e observações não são descartados', () => {
+  const linhas = [
+    { ...base, id: 1, cliente_nome: 'COMPRADOR - ZAP 999999999', para: 'HOMENAGEADA - 90 ANOS' },
+    { ...base, id: 2, cliente_nome: 'COMPRADOR 2', para: 'HOMENAGEADO 12 ANOS (OBSERVAÇÃO)' },
+    { ...base, id: 3, cliente_nome: '00000', comprador: '00000' },
+    { ...base, id: 4, para: '123456' },
+  ];
+  const grupos = agruparAoVivo(linhas, '2026-10-05');
+  assert.equal(grupos.length, 2);
+  assert.deepEqual(grupos.map((g) => g.ultimoPedido.pedidoId).sort(), [1, 2]);
+});
