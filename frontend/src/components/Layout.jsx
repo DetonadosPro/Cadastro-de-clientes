@@ -57,9 +57,10 @@ function IconeCobranca() {
 }
 function IconeRecall() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 11.5a8.5 8.5 0 1 1-2.5-6" /><path d="M21 4v7h-7" />
-      <path d="M9.5 8.5c.7 2.5 2.5 4.3 5 5" />
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="7.5" cy="7" r="2.5" />
+      <path d="M2.5 18v-1.2c0-2.8 2-4.6 5-4.6 1.5 0 2.8.5 3.7 1.5" />
+      <path d="M13.5 5.3c0-.6.5-1.1 1.1-1.1h1.2c.5 0 .9.3 1.1.8l.5 1.5c.1.4 0 .8-.3 1.1l-.8.8c.7 1.5 1.8 2.6 3.3 3.3l.8-.8c.3-.3.7-.4 1.1-.3l1.5.5c.5.2.8.6.8 1.1v1.2c0 .6-.5 1.1-1.1 1.1-5.1 0-9.2-4.1-9.2-9.2Z" transform="translate(-1 0)" />
     </svg>
   );
 }
