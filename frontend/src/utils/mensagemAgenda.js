@@ -25,10 +25,12 @@ export function artigoUsuario(nome) {
   return generoPorNome(nome).artigo;
 }
 
-export function mensagemContatoDestinatario(destinatario, usuario) {
+export function mensagemContatoDestinatario(destinatario, usuario, numeroOs) {
   const nomeDestinatario = normalizarNome(destinatario) || 'cliente';
   const nomeUsuario = normalizarNome(usuario) || 'usuário';
-  return `Oi ${nomeDestinatario}, tudo bem?\nÉ ${artigoUsuario(nomeUsuario)} ${nomeUsuario} do Pombo-Correio Mensagens\nNós temos uma mensagem pra você.\nAssim que estiver disponível, você pode avisar?`;
+  const mensagem = `Oi ${nomeDestinatario}, tudo bem?\nÉ ${artigoUsuario(nomeUsuario)} ${nomeUsuario} do Pombo-Correio Mensagens\nNós temos uma mensagem pra você.\nAssim que estiver disponível, você pode avisar?`;
+  const os = String(numeroOs ?? '').trim();
+  return os ? `${mensagem}\n\nO.S: ${os}` : mensagem;
 }
 
 export function mensagemConfirmacao(comprador, destinatario, usuario) {

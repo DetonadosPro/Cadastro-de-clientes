@@ -1070,7 +1070,7 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onD
                 className="agenda-destinatario-celular"
                 label="Celular"
                 valor={item.celular}
-                mensagem={mensagemContatoDestinatario(item.para, getNomeExibicao())}
+                mensagem={mensagemContatoDestinatario(item.para, getNomeExibicao(), item.senha_os || item.pedidoId)}
               />
             )}
             {item.fixo && <Info className="agenda-destinatario-fixo" label="Fixo" valor={item.fixo} />}

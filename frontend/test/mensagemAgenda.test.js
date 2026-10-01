@@ -22,3 +22,10 @@ test('usa artigos e pronomes femininos para Ketlyn e Catiusse', () => {
   assert.match(mensagemConfirmacao('ANA', 'KETLYN', 'CATIUSSE'), /é a Catiusse\. Acabei de passar a mensagem para a Ketlyn, ela gostou/);
   assert.match(mensagemRegistrarERemarcar('ANA', 'CATIUSSE', 'KETLYN'), /é a Ketlyn\. Ainda não consegui passar a mensagem para a Catiusse\./);
 });
+
+test('inclui a O.S. após duas quebras de linha no contato da Agenda', () => {
+  assert.equal(
+    mensagemContatoDestinatario('MARIA', 'ENIMAR', '00123'),
+    `${mensagemContatoDestinatario('MARIA', 'ENIMAR')}\n\nO.S: 00123`,
+  );
+});
