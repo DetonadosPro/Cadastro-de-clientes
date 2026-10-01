@@ -4,27 +4,18 @@ import { api, getNomeExibicao } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { useAtualizacaoTempoReal } from '../../TempoRealContext.jsx';
 import { buildRecallAoVivoMessage, buildRecallAoVivoUrl } from '../../utils/mensagemRecall.js';
-import CampoData from '../../components/CampoData.jsx';
-import { formatarData } from '../../mascaras.js';
+import NavegacaoDatasRecall from '../../components/NavegacaoDatasRecall.jsx';
 import { dadosPedidoAoVivoRecall } from '../../utils/pedidoRecall.js';
 import { AvisoInline, EstadoCarregando } from '../../components/Interface.jsx';
 
 const normalizar = (v) => String(v || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
 const hoje = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
-const textoData = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(2, 4)}`;
-const dataIso = (texto) => {
-  if (!/^\d{2}\/\d{2}\/\d{2}$/.test(texto)) return null;
-  const iso = `20${texto.slice(6)}-${texto.slice(3, 5)}-${texto.slice(0, 2)}`;
-  const d = new Date(`${iso}T12:00:00`);
-  return !Number.isNaN(d.getTime()) && d.getDate() === Number(texto.slice(0, 2)) ? iso : null;
-};
 
 export default function RecallAoVivo() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const { mostrarToast } = useToast();
   const [data, setData] = useState(params.get('data') || hoje());
-  const [campoData, setCampoData] = useState(textoData(data));
   const [busca, setBusca] = useState(params.get('busca') || '');
   const [itens, setItens] = useState([]);
   const [chave, setChave] = useState(params.get('relacao'));
@@ -59,7 +50,7 @@ export default function RecallAoVivo() {
     finally { setCriando(false); }
   }
   return <>
-    <div className="painel recall-aovivo-filtros"><div className="campo"><label htmlFor="recall-aovivo-data">Data da homenagem</label><CampoData id="recall-aovivo-data" value={campoData} onChange={(valor) => { const texto = formatarData(valor); setCampoData(texto); const iso = dataIso(texto); if (iso) setData(iso); }} /></div><p>Compradores que homenagearam esta pessoa em anos anteriores. Dia das Mães e Dia dos Pais acompanham o calendário do ano selecionado.</p></div>
+    <NavegacaoDatasRecall data={data} onChange={setData} />
     {erro ? <AvisoInline tom="erro" titulo="Não foi possível montar a fila" acao={<button className="btn secundario" onClick={carregar}>Tentar novamente</button>}>{erro}</AvisoInline> : carregando ? <EstadoCarregando rotulo="Montando o Recall de Ao Vivo…" /> : <>
       <div className="recall-aovivo-resumo"><strong>{itens.length} oportunidade{itens.length !== 1 ? 's' : ''}</strong><span>Comprador → pessoa homenageada</span></div>
       <div className="recall-workspace"><div className="recall-lista-coluna"><label className="recall-pesquisa-nome"><input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar nome, tema ou O.S." aria-label="Buscar no Recall de Ao Vivo" /></label><section className="recall-lista">{filtrados.map((i) => <button key={i.relacaoChave} className={`recall-linha ${i === selecionado ? 'selecionada' : ''}`} onClick={() => setChave(i.relacaoChave)}><span className="recall-avatar">{i.clienteNome[0]}</span><span><strong className="recall-lista-relacao"><span>{i.clienteNome}</span><b>→</b><span>{i.aniversariante}</span></strong><small className="recall-aovivo-tema">{i.ultimoPedido.tema || 'Homenagem especial'}</small></span></button>)}{!filtrados.length && <div className="recall-lista-sem-resultado">{itens.length ? 'Nenhum resultado para esta busca.' : 'Nenhuma homenagem de anos anteriores para este dia.'}</div>}</section></div>

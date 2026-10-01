@@ -64,8 +64,12 @@ async function executar() {
       const mensagem = new URL(await page.getByLabel('Abrir WhatsApp com a homenagem pronta').getAttribute('href')).searchParams.get('text');
       assert.match(mensagem, /aniversário de MÁRCIA/); assert.match(mensagem, /05\/10/);
       await page.screenshot({ path: '../frontend/test-results/recall-ao-vivo-desktop.png', fullPage: true });
-      await Promise.all([page.waitForResponse((r) => r.url().includes('ao-vivo/fila?data=2026-05-10')), page.getByLabel('Data da homenagem').fill('100526')]);
-      await page.getByLabel('Buscar no Recall de Ao Vivo').fill('');
+      await Promise.all([page.waitForResponse((r) => r.url().includes('ao-vivo/fila?data=2026-10-06')), page.getByRole('button', { name: 'Selecionar 06/10/2026', exact: true }).click()]);
+      assert.equal(await page.getByRole('button', { name: 'Selecionar 06/10/2026', exact: true }).getAttribute('aria-pressed'), 'true');
+      await page.getByLabel('Mostrar dias anteriores').click();
+      assert.equal(await page.getByLabel('Mostrar dias seguintes').isEnabled(), true);
+      await page.getByLabel('Mostrar dias seguintes').click();
+      await page.goto('http://127.0.0.1:5189/recall?sistema=AOVIVO&data=2026-05-10');
       await page.getByRole('button', { name: '＋ Criar novo pedido Ao Vivo', exact: true }).waitFor();
       assert.match(new URL(await page.getByLabel('Abrir WhatsApp com a homenagem pronta').getAttribute('href')).searchParams.get('text'), /Dia das Mães/);
       await page.goto('http://127.0.0.1:5189/recall?sistema=AOVIVO&data=2026-10-05');

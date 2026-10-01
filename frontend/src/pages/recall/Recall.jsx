@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api, getNomeExibicao } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
@@ -7,10 +7,9 @@ import { numeroWhatsAppBrasil } from '../../utils/telefoneWhatsApp.js';
 import { dadosMensagemRecall } from '../../utils/pedidoRecall.js';
 import { AvisoInline, CabecalhoPagina, EstadoCarregando } from '../../components/Interface.jsx';
 import RecallAoVivo from './RecallAoVivo.jsx';
+import NavegacaoDatasRecall from '../../components/NavegacaoDatasRecall.jsx';
 
 function isoLocal(data = new Date()) { return `${data.getFullYear()}-${String(data.getMonth()+1).padStart(2,'0')}-${String(data.getDate()).padStart(2,'0')}`; }
-function somarDias(iso, dias) { const d=new Date(`${iso}T12:00:00`); d.setDate(d.getDate()+dias); return isoLocal(d); }
-function dataLegivel(iso) { return new Date(`${iso}T12:00:00`).toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'}).replace('.',''); }
 function nomeCurto(nome) { return String(nome||'').trim().split(/\s+/).filter(Boolean).slice(0,2).join(' '); }
 function nomePessoaValido(nome) { const texto=String(nome||'').normalize('NFD').replace(/[\u0300-\u036f]/g,''); return /[A-Za-z]/.test(texto)&&!/^.*\d.*$/.test(texto); }
 function linkWhatsapp(telefone) {
@@ -37,7 +36,6 @@ function RecallFonada() {
   const navigate=useNavigate(); const [params,setParams]=useSearchParams();
   const { mostrarToast } = useToast();
   const [data,setData]=useState(params.get('data')||isoLocal());
-  const [inicioDias,setInicioDias]=useState(()=>Math.max(-7,Math.min(0,Math.round((new Date(`${params.get('data')}T12:00:00`)-new Date(`${isoLocal()}T12:00:00`))/86400000)||0)));
   const [modoFila,setModoFila]=useState(params.get('modo')==='aniversario'?'ANIVERSARIO':'DIA_MENSAGEM');
   const [dados,setDados]=useState(null); const [selecionado,setSelecionado]=useState(null); const [carregando,setCarregando]=useState(false); const [erro,setErro]=useState(''); const [buscaNome,setBuscaNome]=useState(params.get('busca')||'');
   const listaRef=useRef(null);
@@ -64,7 +62,6 @@ function RecallFonada() {
     } catch(e) { mostrarToast(e.message||'Não foi possível preparar o novo pedido.','erro'); }
     finally { setCriandoPedido(false); }
   }
-  const dias=useMemo(()=>Array.from({length:7},(_,i)=>somarDias(isoLocal(),inicioDias+i)),[inicioDias]);
   const itensAtivos=listaDoModo();
   const termoBusca=normalizarBusca(buscaNome);
   const outroModo=modoFila==='ANIVERSARIO'?'DIA_MENSAGEM':'ANIVERSARIO';
@@ -97,7 +94,7 @@ function RecallFonada() {
 
   return <div className="recall-page">
     <>
-      <div className="recall-dias-navegacao"><button type="button" className="recall-dias-seta" onClick={()=>setInicioDias((atual)=>Math.max(-7,atual-1))} disabled={inicioDias<=-7} aria-label="Mostrar dias anteriores" title="Mostrar dias anteriores">←</button><div className="recall-dias">{dias.map((d)=><button key={d} type="button" className={d===data?'ativo':''} onClick={()=>setData(d)}><small>{d===isoLocal()?'Hoje':d===somarDias(isoLocal(),1)?'Amanhã':dataLegivel(d).split(' ')[0]}</small><strong>{dataLegivel(d).split(' ').slice(-1)}</strong></button>)}</div><button type="button" className="recall-dias-seta" onClick={()=>setInicioDias((atual)=>Math.min(0,atual+1))} disabled={inicioDias>=0} aria-label="Mostrar dias seguintes" title="Mostrar dias seguintes">→</button></div>
+      <NavegacaoDatasRecall data={data} onChange={setData} />
       {dados&&<div className="recall-fontes recall-seletor-pesquisas" role="tablist" aria-label="Tipo de pesquisa"><button type="button" role="tab" aria-selected={modoFila==='DIA_MENSAGEM'} className={modoFila==='DIA_MENSAGEM'?'ativo':''} onClick={()=>setModoFila('DIA_MENSAGEM')}><span className="recall-pesquisa-texto"><small>Pesquisa 1</small><strong>Por dia da mensagem</strong></span><em aria-label={`${listaDoModo(dados,'DIA_MENSAGEM').length} pessoas`}>{listaDoModo(dados,'DIA_MENSAGEM').length}</em></button><button type="button" role="tab" aria-selected={modoFila==='ANIVERSARIO'} className={modoFila==='ANIVERSARIO'?'ativo':''} onClick={()=>setModoFila('ANIVERSARIO')}><span className="recall-pesquisa-texto"><small>Pesquisa 2</small><strong>Aniversário do cliente</strong></span><em aria-label={`${listaDoModo(dados,'ANIVERSARIO').length} pessoas`}>{listaDoModo(dados,'ANIVERSARIO').length}</em></button></div>}
       {erro?<AvisoInline tom="erro" titulo="Não foi possível montar a fila" acao={<button type="button" className="btn secundario" onClick={()=>carregarFila()}>Tentar novamente</button>}>{erro}</AvisoInline>:carregando?<EstadoCarregando className="recall-estado-carregando" rotulo="Montando a fila de relacionamento…" linhas={3}/>:!itensAtivos.length?<div className="painel recall-vazio"><strong>Fila livre para este dia</strong><span>Nenhuma relação foi encontrada nesta pesquisa.</span></div>:<div className="recall-workspace">
         <div className="recall-lista-coluna"><label className="recall-pesquisa-nome"><IconeBusca/><input type="search" value={buscaNome} onChange={(e)=>setBuscaNome(e.target.value)} placeholder="Buscar por nome ou senha..." aria-label="Buscar nas duas pesquisas por nome ou senha"/></label><section className="recall-lista" ref={listaRef} onScroll={guardarScrollLista}>{itensFiltrados.length?itensFiltrados.map(i=><button key={i.relacaoChave} className={`recall-linha ${selecionado?.relacaoChave===i.relacaoChave?'selecionada':''}`} onClick={()=>setSelecionado(i)}><span className="recall-avatar">{i.clienteNome?.charAt(0)}</span><span><strong className="recall-lista-relacao"><span title={i.clienteNome}>{nomeCurto(i.clienteNome)}{i.clienteBloqueado&&<em className="recall-bloqueado">Bloqueado</em>}</span>{!i.clienteBloqueado&&<><b>→</b><span title={i.aniversariante}>{nomeCurto(i.aniversariante)}{i.aniversarianteBloqueado&&<em className="recall-bloqueado">Bloqueado</em>}</span></>}</strong>{i.mensagensEmHaver?.length>0&&<TagMensagemEmHaver mensagens={i.mensagensEmHaver}/>}</span></button>):<div className="recall-lista-sem-resultado">Nenhum nome ou senha encontrado.</div>}</section></div>
