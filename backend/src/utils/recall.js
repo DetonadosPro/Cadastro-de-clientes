@@ -1,16 +1,4 @@
-function formatarNome(valor) {
-  return String(valor || '').normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleUpperCase('pt-BR');
-}
-
-function normalizarBusca(valor) {
-  return formatarNome(valor).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-}
-
-// Independe de extensões do PostgreSQL: cobre os acentos dos nomes em português
-// e também nomes salvos com caracteres Unicode decompostos.
-function sqlBuscaNome(coluna) {
-  return `translate(upper(regexp_replace(normalize(COALESCE(${coluna}, ''), NFD), U&'[\\0300-\\036f]', '', 'g')), 'ÁÀÂÃÄÉÈÊËÍÌÎÏÓÒÔÕÖÚÙÛÜÇÑ', 'AAAAAEEEEIIIIOOOOOUUUUCN') LIKE $1`;
-}
+const { formatarNome, normalizarBusca, sqlBuscaNome } = require('./textoPessoa');
 
 function normalizarTexto(valor) {
   return String(valor || '').trim().toUpperCase().normalize('NFD')

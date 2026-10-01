@@ -9,6 +9,7 @@ const express = require('express');
 const { db, pool } = require('../db/database');
 const { agoraBrasilia } = require('../utils/dataHora');
 const { dataCurtaValida } = require('../utils/validarDataCurta');
+const { formatarNome, normalizarBusca, sqlBuscaNome } = require('../utils/textoPessoa');
 
 const router = express.Router();
 router.param('id', (req, res, next, id) => {
@@ -98,8 +99,8 @@ router.get('/ao-vivo', async (req, res) => {
       inicio: recebidasInicio, fim: recebidasFim,
     });
     if (nome) {
-      params.push(`%${nome}%`);
-      condicoes.push(`COALESCE(c.nome, a.comprador) ILIKE $${params.length}`);
+      params.push(`%${normalizarBusca(nome)}%`);
+      condicoes.push(`(${sqlBuscaNome('c.nome', params.length)} OR ${sqlBuscaNome('a.comprador', params.length)})`);
     }
     if (os) {
       params.push(os);
@@ -130,7 +131,7 @@ router.get('/ao-vivo', async (req, res) => {
       tipo: 'AOVIVO',
       numero_os: l.numero_os,
       cliente_id: l.cliente_id,
-      nome: l.cliente_nome || l.comprador,
+      nome: formatarNome(l.cliente_nome || l.comprador),
       dataPedido: l.data_pedido,
       dataEvento: l.dia_entrega,
       horarioEvento: l.horario_entrega,
@@ -273,8 +274,10 @@ router.get('/', async (req, res) => {
     });
 
     if (nome) {
-      params.push(`%${nome}%`);
-      condicoes.push(`nome_comprador ILIKE $${params.length}`);
+      params.push(`%${normalizarBusca(nome)}%`);
+      condicoes.push(`(${sqlBuscaNome('nome_comprador', params.length)} OR EXISTS (
+        SELECT 1 FROM clientes c WHERE c.id=fonadas.cliente_id AND ${sqlBuscaNome('c.nome', params.length)}
+      ))`);
     }
     if (os) {
       params.push(os);
@@ -323,7 +326,7 @@ router.get('/', async (req, res) => {
         dataPagamento: l.data_pagamento,
         impresso: l.impresso,
         formaPagamento: formaPagamento(l.periodo),
-        nome: cliente ? cliente.nome : l.nome_comprador,
+        nome: formatarNome(cliente?.nome || l.nome_comprador),
         fixo: cliente ? cliente.fixo : l.comprador_fixo,
         whatsapp: cliente ? cliente.whatsapp : null,
         celular: cliente ? cliente.celular : l.comprador_celular,
