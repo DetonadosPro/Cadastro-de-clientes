@@ -2,6 +2,7 @@ const express = require('express');
 const { db } = require('../db/database');
 const { normalizarTexto, ehTemaAniversario, chavePessoa, nomePessoaValido, dataBrParaIso } = require('../utils/recall');
 const { hojeIsoBrasilia } = require('../utils/dataHora');
+const { anexarMensagensEmHaver } = require('../utils/recallMensagensEmHaver');
 
 const router = express.Router();
 const STATUS = new Set(['PENDENTE', 'NAO_ATENDEU', 'RETORNAR', 'SEM_INTERESSE', 'INTERESSADO', 'PEDIDO_CRIADO']);
@@ -108,11 +109,15 @@ async function vincularClientesPorTelefone(linhas) {
   for (const cliente of resultado.rows) {
     for (const telefone of [cliente.whatsapp, cliente.celular, cliente.fixo]) {
       const chave = normalizarTelefone(telefone);
-      if (chave && !porTelefone.has(chave)) porTelefone.set(chave, cliente);
+      if (!chave) continue;
+      if (!porTelefone.has(chave)) porTelefone.set(chave, []);
+      if (!porTelefone.get(chave).some((pessoa) => pessoa.id === cliente.id)) porTelefone.get(chave).push(cliente);
     }
   }
   return linhas.map((linha) => {
-    const cliente = porTelefone.get(normalizarTelefone(linha.telefone));
+    const candidatos = (porTelefone.get(normalizarTelefone(linha.telefone)) || [])
+      .filter((cliente) => chavePessoa(cliente.nome) === chavePessoa(linha.cliente_nome));
+    const cliente = candidatos.length === 1 ? candidatos[0] : null;
     return cliente ? { ...linha, cliente_id: cliente.id, cliente_bloqueado: Boolean(cliente.bloqueado) } : linha;
   });
 }
@@ -138,11 +143,14 @@ router.get('/fila', async (req, res) => {
     ]);
     const ordenar = (itens) => itens.sort((a, b) => (a.registro?.status === 'PENDENTE' ? 0 : a.registro ? 1 : 0) - (b.registro?.status === 'PENDENTE' ? 0 : b.registro ? 1 : 0) || a.aniversariante.localeCompare(b.aniversariante) || a.clienteNome.localeCompare(b.clienteNome));
     const linhasNascimento = await vincularClientesPorTelefone(porNascimento.rows);
-    const porDia = ordenar(await anexarStatus(agrupar(porDiaMensagem.rows, data, true), data));
+    let porDia = ordenar(await anexarStatus(agrupar(porDiaMensagem.rows, data, true), data));
     // Pesquisa 2 parte do aniversário do COMPRADOR e usa todos os pedidos
     // dele para descobrir os destinatários 1 e 2 a contatar. Não limita pela
     // data/tema da mensagem: o histórico inteiro comprova a relação.
-    const porAniversario = ordenar(await anexarStatus(agrupar(linhasNascimento, null, false), data));
+    let porAniversario = ordenar(await anexarStatus(agrupar(linhasNascimento, null, false), data));
+    const comMensagens = await anexarMensagensEmHaver([...porDia, ...porAniversario], (sql, valores) => db.query(sql, valores));
+    porAniversario = comMensagens.slice(porDia.length);
+    porDia = comMensagens.slice(0, porDia.length);
     // Mantém "itens" por compatibilidade, mas a interface usa as duas
     // coleções separadas para nunca misturar os conceitos operacionais.
     const itens = combinarGrupos(porDia, porAniversario);

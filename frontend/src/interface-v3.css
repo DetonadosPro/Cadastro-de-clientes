@@ -631,6 +631,12 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--carimbo); }
 .recall-contato, .recall-contexto { border: 1px solid var(--borda); border-radius: 11px; background: #f8fafc; }
 
 /* Reports */
+.recall-tag-em-haver { display:inline-flex; align-items:center; width:max-content; max-width:100%; padding:4px 8px; border-radius:6px; font-size:10px; font-weight:700; line-height:1.4; }
+.recall-tag-em-haver.disponivel { color:#246344; background:#eaf6ee; border:1px solid #c5e4d0; }
+.recall-tag-em-haver.neutra { color:var(--tinta-suave); background:var(--papel-alt); border:1px solid var(--borda); }
+.recall-linha .recall-tag-em-haver { margin-top:5px; }
+.recall-saldo-mensagens { display:grid; gap:7px; margin:12px 0; }
+.recall-saldo-mensagens .recall-links { display:flex; flex-wrap:wrap; gap:6px; }
 .grade-relatorio, .grade-graficos-relatorio, .grade-graficos-recebimentos { gap: 14px; }
 .grade-graficos-relatorio { grid-template-columns: repeat(auto-fit,minmax(min(100%,560px),1fr)); align-items:start; }
 .grafico-relatorio { border: 1px solid var(--borda); border-radius: 14px; background: #fff; box-shadow: var(--sombra-xs); }
