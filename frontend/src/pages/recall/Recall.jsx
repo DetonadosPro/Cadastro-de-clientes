@@ -4,6 +4,7 @@ import { api, getNomeExibicao } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { buildRecallWhatsAppUrl } from '../../utils/mensagemRecall.js';
 import { numeroWhatsAppBrasil } from '../../utils/telefoneWhatsApp.js';
+import { dadosMensagemRecall } from '../../utils/pedidoRecall.js';
 import { AvisoInline, CabecalhoPagina, EstadoCarregando } from '../../components/Interface.jsx';
 
 function isoLocal(data = new Date()) { return `${data.getFullYear()}-${String(data.getMonth()+1).padStart(2,'0')}-${String(data.getDate()).padStart(2,'0')}`; }
@@ -36,17 +37,21 @@ export default function Recall() {
   useEffect(()=>{ setParams((p)=>{ const n=new URLSearchParams(p); n.set('aba','fila'); n.set('data',data); n.set('modo',modoFila==='ANIVERSARIO'?'aniversario':'dia-mensagem'); if(selecionado?.relacaoChave)n.set('relacao',selecionado.relacaoChave);else if(dados)n.delete('relacao'); if(buscaNome)n.set('busca',buscaNome);else n.delete('busca'); return n; },{replace:true}); },[data,modoFila,selecionado?.relacaoChave,buscaNome]);
   useEffect(()=>{if(dados){const lista=listaDoModo(dados,modoFila);setSelecionado(lista.find(i=>i.relacaoChave===selecionado?.relacaoChave)||lista[0]||null);}},[modoFila]);
   function urlRetornoFila(relacao=selecionado?.relacaoChave) { const q=new URLSearchParams({aba:'fila',data,modo:modoFila==='ANIVERSARIO'?'aniversario':'dia-mensagem'}); if(relacao)q.set('relacao',relacao); if(buscaNome)q.set('busca',buscaNome); return `/recall?${q}`; }
-  function criarPedido() { const q=new URLSearchParams({clienteId:String(selecionado.clienteId),recallPara:selecionado.aniversariante,recallData:data,recallRelacao:selecionado.relacaoChave}); navigate(`/fonada/novo?${q}`,{state:{returnTo:urlRetornoFila()}}); }
-  async function salvarStatus(item, status, observacao, retornarEm) {
-    await api.recall.status({
-      dataReferencia: data, relacaoChave: item.relacaoChave,
-      clienteId: item.clienteId, clienteNome: item.clienteNome,
-      aniversarianteNome: item.aniversariante, status,
-      observacao, retornarEm: status === 'RETORNAR' ? retornarEm : null,
-      pedidoOrigemId: item.ultimoPedido?.pedidoId,
-    });
-    await carregarFila(data, item.relacaoChave, modoFila);
-    mostrarToast('Andamento do Recall salvo.');
+  const [criandoPedido,setCriandoPedido]=useState(false);
+  async function criarPedido() {
+    if(criandoPedido)return;
+    setCriandoPedido(true);
+    try {
+      const pedido=await api.fonada.buscar(selecionado.ultimoPedido.pedidoId);
+      const modoOrigem=selecionado._modoFila||modoFila;
+      const invertido=modoOrigem==='ANIVERSARIO';
+      let cadastro=null;
+      if(invertido&&pedido.cliente_id)cadastro=(await api.clientes.buscarCadastro(pedido.cliente_id)).cliente;
+      const recallDadosMensagem=dadosMensagemRecall(pedido,selecionado.ultimoPedido.mensagem,modoOrigem,cadastro);
+      const q=new URLSearchParams({clienteId:String(selecionado.clienteId),recallPara:selecionado.aniversariante,recallData:data,recallRelacao:selecionado.relacaoChave});
+      navigate(`/fonada/novo?${q}`,{state:{returnTo:urlRetornoFila(),recallDadosMensagem}});
+    } catch(e) { mostrarToast(e.message||'Não foi possível preparar o novo pedido.','erro'); }
+    finally { setCriandoPedido(false); }
   }
   const dias=useMemo(()=>Array.from({length:7},(_,i)=>somarDias(isoLocal(),inicioDias+i)),[inicioDias]);
   const itensAtivos=listaDoModo();
@@ -86,32 +91,13 @@ export default function Recall() {
       {dados&&<div className="recall-fontes recall-seletor-pesquisas" role="tablist" aria-label="Tipo de pesquisa"><button type="button" role="tab" aria-selected={modoFila==='DIA_MENSAGEM'} className={modoFila==='DIA_MENSAGEM'?'ativo':''} onClick={()=>setModoFila('DIA_MENSAGEM')}><span className="recall-pesquisa-texto"><small>Pesquisa 1</small><strong>Por dia da mensagem</strong></span><em aria-label={`${listaDoModo(dados,'DIA_MENSAGEM').length} pessoas`}>{listaDoModo(dados,'DIA_MENSAGEM').length}</em></button><button type="button" role="tab" aria-selected={modoFila==='ANIVERSARIO'} className={modoFila==='ANIVERSARIO'?'ativo':''} onClick={()=>setModoFila('ANIVERSARIO')}><span className="recall-pesquisa-texto"><small>Pesquisa 2</small><strong>Aniversário do cliente</strong></span><em aria-label={`${listaDoModo(dados,'ANIVERSARIO').length} pessoas`}>{listaDoModo(dados,'ANIVERSARIO').length}</em></button></div>}
       {erro?<AvisoInline tom="erro" titulo="Não foi possível montar a fila" acao={<button type="button" className="btn secundario" onClick={()=>carregarFila()}>Tentar novamente</button>}>{erro}</AvisoInline>:carregando?<EstadoCarregando className="recall-estado-carregando" rotulo="Montando a fila de relacionamento…" linhas={3}/>:!itensAtivos.length?<div className="painel recall-vazio"><strong>Fila livre para este dia</strong><span>Nenhuma relação foi encontrada nesta pesquisa.</span></div>:<div className="recall-workspace">
         <div className="recall-lista-coluna"><label className="recall-pesquisa-nome"><IconeBusca/><input type="search" value={buscaNome} onChange={(e)=>setBuscaNome(e.target.value)} placeholder="Buscar por nome ou senha..." aria-label="Buscar nas duas pesquisas por nome ou senha"/></label><section className="recall-lista" ref={listaRef} onScroll={guardarScrollLista}>{itensFiltrados.length?itensFiltrados.map(i=><button key={i.relacaoChave} className={`recall-linha ${selecionado?.relacaoChave===i.relacaoChave?'selecionada':''}`} onClick={()=>setSelecionado(i)}><span className="recall-avatar">{i.clienteNome?.charAt(0)}</span><span><strong className="recall-lista-relacao"><span title={i.clienteNome}>{nomeCurto(i.clienteNome)}{i.clienteBloqueado&&<em className="recall-bloqueado">Bloqueado</em>}</span>{!i.clienteBloqueado&&<><b>→</b><span title={i.aniversariante}>{nomeCurto(i.aniversariante)}{i.aniversarianteBloqueado&&<em className="recall-bloqueado">Bloqueado</em>}</span></>}</strong></span></button>):<div className="recall-lista-sem-resultado">Nenhum nome ou senha encontrado.</div>}</section></div>
-        {selecionado&&<Detalhes item={selecionado} modoFila={selecionado._modoFila||modoFila} modoWhatsapp={modoFila} criarPedido={criarPedido} navigate={navigate} returnTo={urlRetornoFila()} posicao={indiceSelecionado+1} total={itensFiltrados.length} onAnterior={()=>navegarNaLista(-1)} onProximo={()=>navegarNaLista(1)} onSalvarStatus={salvarStatus}/>}
+        {selecionado&&<Detalhes item={selecionado} modoFila={selecionado._modoFila||modoFila} modoWhatsapp={modoFila} criarPedido={criarPedido} navigate={navigate} returnTo={urlRetornoFila()} posicao={indiceSelecionado+1} total={itensFiltrados.length} onAnterior={()=>navegarNaLista(-1)} onProximo={()=>navegarNaLista(1)} criandoPedido={criandoPedido}/>}
       </div>}
     </>
   </div>;
 }
 
-function Detalhes({item,modoFila,modoWhatsapp,criarPedido,navigate,returnTo,posicao,total,onAnterior,onProximo,onSalvarStatus}) {
-  const [status, setStatus] = useState(item.registro?.status || 'PENDENTE');
-  const [observacao, setObservacao] = useState(item.registro?.observacao || '');
-  const [retornarEm, setRetornarEm] = useState(item.registro?.retornar_em?.slice(0, 16) || '');
-  const [salvandoStatus, setSalvandoStatus] = useState(false);
-  const [erroStatus, setErroStatus] = useState('');
-  useEffect(() => {
-    setStatus(item.registro?.status || 'PENDENTE');
-    setObservacao(item.registro?.observacao || '');
-    setRetornarEm(item.registro?.retornar_em?.slice(0, 16) || '');
-    setErroStatus('');
-  }, [item.relacaoChave, item.registro?.atualizado_em]);
-  async function confirmarStatus(evento) {
-    evento.preventDefault();
-    setSalvandoStatus(true);
-    setErroStatus('');
-    try { await onSalvarStatus(item, status, observacao, retornarEm); }
-    catch (erro) { setErroStatus(erro.message || 'Não foi possível salvar o andamento.'); }
-    finally { setSalvandoStatus(false); }
-  }
+function Detalhes({item,modoFila,modoWhatsapp,criarPedido,navigate,returnTo,posicao,total,onAnterior,onProximo,criandoPedido}) {
   const pesquisaPorAniversariante=modoFila==='ANIVERSARIO';
   const whatsappUrl=buildRecallWhatsAppUrl(item.telefone,{
     modoFila:modoWhatsapp,
@@ -128,23 +114,6 @@ function Detalhes({item,modoFila,modoWhatsapp,criarPedido,navigate,returnTo,posi
       <div className="recall-links"><button onClick={()=>navigate(`/fonada/${item.ultimoPedido.pedidoId}`,{state:{returnTo}})}>Abrir este pedido</button></div>
     </div>
     <details className="recall-historico-relacao"><summary><span>Histórico da relação</span><em>{item.quantidade} mensagem{item.quantidade!==1?'s':''}</em></summary><div className="recall-historico-itens">{item.historico.map((h)=><button type="button" key={`${h.pedidoId}-${h.mensagem}`} onClick={()=>navigate(`/fonada/${h.pedidoId}`,{state:{returnTo}})}><span className="recall-historico-conteudo"><strong>{h.tema||'Tema não informado'}{h.texto?` · Nº ${h.texto}`:''}</strong><small>{h.data||'Data não informada'}</small></span><em>O.S. {h.os||h.pedidoId}</em><b>›</b></button>)}</div></details>
-    <form className="recall-andamento painel" onSubmit={confirmarStatus}>
-      <h3>Andamento do contato</h3>
-      <label htmlFor="recall-status">Status</label>
-      <select id="recall-status" value={status} onChange={(evento) => setStatus(evento.target.value)}>
-        <option value="PENDENTE">Pendente</option>
-        <option value="NAO_ATENDEU">Não atendeu</option>
-        <option value="RETORNAR">Retornar</option>
-        <option value="SEM_INTERESSE">Sem interesse</option>
-        <option value="INTERESSADO">Interessado</option>
-        {status === 'PEDIDO_CRIADO' && <option value="PEDIDO_CRIADO">Pedido criado</option>}
-      </select>
-      {status === 'RETORNAR' && <><label htmlFor="recall-retornar">Retornar em</label><input id="recall-retornar" type="datetime-local" value={retornarEm} onChange={(evento) => setRetornarEm(evento.target.value)} /></>}
-      <label htmlFor="recall-observacao">Observação</label>
-      <textarea id="recall-observacao" value={observacao} onChange={(evento) => setObservacao(evento.target.value)} rows={2} />
-      {erroStatus && <AvisoInline tom="erro" titulo="Não foi possível salvar o andamento">{erroStatus}</AvisoInline>}
-      <button type="submit" className="btn secundario" disabled={salvandoStatus}>{salvandoStatus ? 'Salvando…' : 'Salvar andamento'}</button>
-    </form>
-    {item.clienteBloqueado?<button className="btn recall-criar" disabled>Cliente bloqueado — novo pedido indisponível</button>:item.clienteId?<button className="btn recall-criar" onClick={criarPedido}>＋ Criar novo pedido</button>:<button className="btn recall-criar" onClick={()=>navigate('/clientes/novo',{state:{dadosIniciais:{nome:item.clienteNome,whatsapp:item.telefone||''},returnTo}})}>＋ Cadastrar novo cliente</button>}
+    {item.clienteBloqueado?<button className="btn recall-criar" disabled>Cliente bloqueado — novo pedido indisponível</button>:item.clienteId?<button className="btn recall-criar" onClick={criarPedido} disabled={criandoPedido}>{criandoPedido?'Preparando pedido…':'＋ Criar novo pedido'}</button>:<button className="btn recall-criar" onClick={()=>navigate('/clientes/novo',{state:{dadosIniciais:{nome:item.clienteNome,whatsapp:item.telefone||''},returnTo}})}>＋ Cadastrar novo cliente</button>}
   </aside>;
 }

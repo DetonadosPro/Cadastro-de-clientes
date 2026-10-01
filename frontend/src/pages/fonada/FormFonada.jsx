@@ -316,7 +316,9 @@ export default function FormFonada() {
             nascimento: respCliente.cliente.nascimento || '',
             recall: recallParaUrl ? 'SIM' : 'NÃO',
             p1_para: recallParaUrl || '',
-            p1_tema: recallParaUrl ? 'ANIV GERAL' : '',
+            p1_tema: recallParaUrl ? (location.state?.recallDadosMensagem?.tema ?? 'ANIV GERAL') : '',
+            p1_fixo: recallParaUrl ? (location.state?.recallDadosMensagem?.fixo || '') : '',
+            p1_celular: recallParaUrl ? (location.state?.recallDadosMensagem?.celular || '') : '',
             p1_dia: recallDataUrl && /^\d{4}-\d{2}-\d{2}$/.test(recallDataUrl)
               ? `${recallDataUrl.slice(8, 10)}/${recallDataUrl.slice(5, 7)}/${recallDataUrl.slice(2, 4)}` : '',
           };
