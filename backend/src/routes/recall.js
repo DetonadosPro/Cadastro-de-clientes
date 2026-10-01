@@ -1,6 +1,6 @@
 const express = require('express');
 const { db } = require('../db/database');
-const { normalizarTexto, ehTemaAniversario, chavePessoa, nomePessoaValido, dataBrParaIso } = require('../utils/recall');
+const { formatarNome, normalizarBusca, sqlBuscaNome, ehTemaAniversario, chavePessoa, nomePessoaValido, dataBrParaIso } = require('../utils/recall');
 const { hojeIsoBrasilia } = require('../utils/dataHora');
 const { anexarMensagensEmHaver } = require('../utils/recallMensagensEmHaver');
 
@@ -27,6 +27,8 @@ function sqlMensagens(filtro1, filtro2) {
 function agrupar(linhas, dataLimite = null, exigirTemaAniversario = true) {
   const grupos = new Map();
   for (const linha of linhas) {
+    linha.cliente_nome = formatarNome(linha.cliente_nome);
+    linha.aniversariante = formatarNome(linha.aniversariante);
     if (!nomePessoaValido(linha.cliente_nome) || !nomePessoaValido(linha.aniversariante)) continue;
     if (exigirTemaAniversario && !ehTemaAniversario(linha.tema)) continue;
     const isoMensagem = dataBrParaIso(linha.dia_mensagem);
@@ -165,10 +167,10 @@ router.get('/buscar', async (req, res) => {
   try {
     const termo = String(req.query.termo || '').trim();
     if (termo.length < 2) return res.json({ enviouPara: [], recebeuDe: [] });
-    const parametro = `%${termo}%`;
+    const parametro = `%${normalizarBusca(termo)}%`;
     const [resultado, resultadoInverso] = await Promise.all([
-      db.query(sqlMensagens('f.p1_para ILIKE $1', 'f.p2_para ILIKE $1'), [parametro]),
-      db.query(sqlDestinatariosDoAniversariante('(f.nome_comprador ILIKE $1 OR c.nome ILIKE $1)'), [parametro]),
+      db.query(sqlMensagens(sqlBuscaNome('f.p1_para'), sqlBuscaNome('f.p2_para')), [parametro]),
+      db.query(sqlDestinatariosDoAniversariante(`(${sqlBuscaNome('f.nome_comprador')} OR ${sqlBuscaNome('c.nome')})`), [parametro]),
     ]);
     const relacoes = agrupar(resultado.rows);
     const mapa = new Map();

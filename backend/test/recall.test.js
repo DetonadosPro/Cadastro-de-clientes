@@ -1,6 +1,19 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { ehTemaAniversario, normalizarTexto, nomePessoaValido } = require('../src/utils/recall');
+const { ehTemaAniversario, normalizarTexto, nomePessoaValido, formatarNome, normalizarBusca, chavePessoa } = require('../src/utils/recall');
+
+test('nomes antigos recebem caixa uniforme sem perder acentos ou mudar a identidade', () => {
+  assert.equal(formatarNome('  katia   EMILLY '), 'KATIA EMILLY');
+  assert.equal(formatarNome('márcia da Conceição'), 'MÁRCIA DA CONCEIÇÃO');
+  assert.equal(formatarNome('Ma\u0301rcia'), 'MÁRCIA');
+  assert.equal(chavePessoa('katia EMILLY'), chavePessoa(formatarNome('katia EMILLY')));
+});
+
+test('busca por nome aceita acentos em qualquer lado e caixa misturada', () => {
+  for (const termo of ['Márcia', 'MARCIA', 'marcia', 'Ma\u0301rcia']) assert.equal(normalizarBusca(termo), 'MARCIA');
+  assert.equal(normalizarBusca('Conceição'), normalizarBusca('conceicao'));
+  assert.equal(normalizarBusca('João'), normalizarBusca('joao'));
+});
 
 test('Pesquisa 1 aceita qualquer tipo de aniversário', () => {
   const temas = [
