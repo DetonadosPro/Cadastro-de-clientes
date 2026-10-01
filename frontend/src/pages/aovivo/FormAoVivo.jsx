@@ -246,10 +246,11 @@ export default function FormAoVivo() {
             data_pedido: data,
             horario_pedido: horario,
             numero_os: respOs.proximaOs,
+            ...(location.state?.recallAoVivo || {}),
           };
           setDados(inicial);
           setCliente(respCliente.cliente);
-          setQtdMensagens(MIN_MENSAGENS);
+          setQtdMensagens(contarMensagensPreenchidas(inicial));
           setQtdMusicas(MIN_MUSICAS);
           salvarRascunhoAoVivo(chaveRascunho, inicial, respCliente.cliente, location.search);
         })
@@ -369,8 +370,14 @@ export default function FormAoVivo() {
       } else {
         const novo = await api.aoVivo.criar(payload);
         limparRascunhoAoVivo(chaveRascunho);
-        mostrarToast('Pedido salvo com sucesso.');
-        navigate(`/ao-vivo/${novo.id}`, { replace: true });
+        const recallRelacao = searchParams.get('recallRelacao');
+        let recallAtualizado = true;
+        if (recallRelacao && searchParams.get('recallData')) {
+          try { await api.recall.pedidoCriado({ sistema: 'AOVIVO', dataReferencia: searchParams.get('recallData'), relacaoChave: recallRelacao, pedidoId: novo.id }); }
+          catch { recallAtualizado = false; }
+        }
+        mostrarToast(recallAtualizado ? 'Pedido salvo com sucesso.' : 'Pedido salvo. Não foi possível atualizar o Recall.', recallAtualizado ? 'sucesso' : 'aviso');
+        navigate(`/ao-vivo/${novo.id}`, { replace: true, state: { returnTo: location.state?.returnTo } });
       }
     } catch (err) {
       setErro(err.message);

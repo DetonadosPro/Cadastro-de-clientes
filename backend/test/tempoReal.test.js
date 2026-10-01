@@ -55,7 +55,7 @@ test('mutação concluída publica evento com origem e tópicos relacionados', (
   assert.equal(chamouProximo, true);
   assert.match(fluxo, /event: atualizacao/);
   assert.match(fluxo, /"topico":"ao-vivo"/);
-  assert.match(fluxo, /"topicos":\["ao-vivo","agenda","cobranca","relatorios"\]/);
+  assert.match(fluxo, /"topicos":\["ao-vivo","agenda","cobranca","relatorios","recall"\]/);
   assert.match(fluxo, /"origem":"tela-origem"/);
   assert.doesNotMatch(fluxo, /\?teste=1/);
   cliente.fechar();

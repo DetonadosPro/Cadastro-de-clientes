@@ -71,6 +71,7 @@ async function executar() {
       esperados.configuracoes_sistema = JSON.parse(JSON.stringify((await pool.query('SELECT * FROM configuracoes_sistema ORDER BY id')).rows));
     }
     esperados.configuracoes_sistema = esperados.configuracoes_sistema.map((linha) => ({ ...linha, meses_mensagem_em_haver: linha.meses_mensagem_em_haver ?? 3 }));
+    esperados.recall_registros = esperados.recall_registros.map((linha) => ({ ...linha, pedido_novo_ao_vivo_id: linha.pedido_novo_ao_vivo_id ?? null }));
     if (modo === 'restaurar') {
       const client = await pool.connect();
       try {

@@ -1,4 +1,5 @@
 import { artigoUsuario, generoPorNome, normalizarNome } from './mensagemAgenda.js';
+import { numeroWhatsAppBrasil } from './telefoneWhatsApp.js';
 
 function generoEstruturado(valor) {
   const chave = String(valor || '')
@@ -59,4 +60,30 @@ export function buildRecallWhatsAppUrl(telefone, dadosMensagem, criarLinkTelefon
   if (!base) return null;
   const separador = base.includes('?') ? '&' : '?';
   return `${base}${separador}text=${encodeURIComponent(buildRecallWhatsAppMessage(dadosMensagem))}`;
+}
+
+export function buildRecallAoVivoMessage({ contato, homenageado, usuario, ocasiao, tema, dataReferencia, numeroOs }) {
+  const nome = normalizarNome(contato) || 'Cliente';
+  const para = String(homenageado || '').trim();
+  const apresentacao = `Oi ${nome}, é ${artigoUsuario(usuario)} ${normalizarNome(usuario) || 'equipe'} do Pombo Correio.`;
+  const data = /^\d{4}-\d{2}-\d{2}$/.test(dataReferencia || '') ? `${dataReferencia.slice(8, 10)}/${dataReferencia.slice(5, 7)}` : 'esta época';
+  const convites = {
+    ANIVERSARIO: `No dia ${data}, temos a oportunidade de celebrar o aniversário de ${para}. Você gostaria de preparar uma nova homenagem ao vivo?`,
+    CASAMENTO: `No dia ${data}, podemos celebrar novamente o aniversário de casamento de ${para}. Que tal uma homenagem ao vivo para comemorar essa união?`,
+    ANIVERSARIO_NAMORO: `No dia ${data}, podemos celebrar o aniversário de namoro de ${para}. Você gostaria de preparar uma nova homenagem ao vivo?`,
+    EMPRESA: `No dia ${data}, podemos celebrar mais um aniversário de ${para}. Que tal uma nova homenagem ao vivo?`,
+    MAES: `O Dia das Mães será em ${data}. Você gostaria de surpreender ${para} com uma nova homenagem ao vivo nessa data especial?`,
+    PAIS: `O Dia dos Pais será em ${data}. Que tal preparar uma nova homenagem ao vivo para ${para}?`,
+    NAMORADOS: `O Dia dos Namorados será em ${data}. Você gostaria de surpreender ${para} com uma nova homenagem ao vivo?`,
+    MULHER: `O Dia da Mulher será em ${data}. Que tal uma nova homenagem ao vivo para ${para}?`,
+    NATAL: `Para este Natal, que tal surpreender ${para} com uma nova homenagem ao vivo?`,
+  };
+  const lembranca = `Você já escolheu uma homenagem ao vivo para ${para} com a gente.`;
+  const convite = convites[ocasiao] || `Na homenagem anterior, você escolheu o tema “${tema || 'homenagem especial'}”. Gostaria de preparar uma nova surpresa para ${para}?`;
+  return `${apresentacao} ${lembranca} ${convite}${numeroOs ? `\n\nO.S.: ${numeroOs}` : ''}`;
+}
+
+export function buildRecallAoVivoUrl(telefone, dados) {
+  const numero = numeroWhatsAppBrasil(telefone);
+  return numero ? `https://api.whatsapp.com/send?phone=${numero}&text=${encodeURIComponent(buildRecallAoVivoMessage(dados))}` : null;
 }

@@ -279,6 +279,7 @@ export const api = {
 
   // ---------- Recall (fila de relacionamento cliente ↔ aniversariante) ----------
   recall: {
+    filaAoVivo: (data) => chamar(`/recall/ao-vivo/fila?data=${encodeURIComponent(data)}`),
     fila: (data) => chamar(`/recall/fila?data=${encodeURIComponent(data)}`),
     buscar: (termo) => chamar(`/recall/buscar?termo=${encodeURIComponent(termo)}`),
     historico: () => chamar('/recall/historico'),

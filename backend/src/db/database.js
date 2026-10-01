@@ -305,6 +305,7 @@ async function iniciarBanco() {
     );
   `);
   await pool.query('CREATE INDEX IF NOT EXISTS idx_recall_data ON recall_registros(data_referencia)');
+  await pool.query('ALTER TABLE recall_registros ADD COLUMN IF NOT EXISTS pedido_novo_ao_vivo_id INTEGER REFERENCES ao_vivo(id) ON DELETE SET NULL');
   await pool.query('CREATE INDEX IF NOT EXISTS idx_recall_relacao ON recall_registros(relacao_chave)');
 
   // Pares de clientes que a pessoa já confirmou não serem a mesma

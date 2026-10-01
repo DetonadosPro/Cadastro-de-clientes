@@ -3,6 +3,7 @@ const { db } = require('../db/database');
 const { formatarNome, normalizarBusca, sqlBuscaNome, ehTemaAniversario, chavePessoa, nomePessoaValido, dataBrParaIso } = require('../utils/recall');
 const { hojeIsoBrasilia } = require('../utils/dataHora');
 const { anexarMensagensEmHaver } = require('../utils/recallMensagensEmHaver');
+const { agruparAoVivo, telefoneDoComprador } = require('../utils/recallAoVivo');
 
 const router = express.Router();
 const STATUS = new Set(['PENDENTE', 'NAO_ATENDEU', 'RETORNAR', 'SEM_INTERESSE', 'INTERESSADO', 'PEDIDO_CRIADO']);
@@ -134,6 +135,26 @@ async function anexarStatus(grupos, dataReferencia) {
   return grupos.map((g) => ({ ...g, registro: porChave.get(g.relacaoChave) || null, ultimoRecall: previas.get(g.relacaoChave) || null }));
 }
 
+router.get('/ao-vivo/fila', async (req, res) => {
+  try {
+    const data = /^\d{4}-\d{2}-\d{2}$/.test(req.query.data || '') ? req.query.data : hojeIsoBrasilia();
+    const resultado = await db.query(`SELECT a.id, a.numero_os, c.id cliente_id, a.comprador, a.para, a.dia_entrega,
+      a.tema_1, a.tema_2, a.tema_3, a.tema_4, a.whatsapp, a.celular, a.celular2, a.resultado_entrega,
+      c.nome cliente_nome, c.whatsapp cliente_whatsapp, c.celular cliente_celular, c.fixo cliente_fixo,
+      COALESCE(c.bloqueado,FALSE) cliente_bloqueado
+      FROM ao_vivo a LEFT JOIN clientes c ON c.id=a.cliente_id AND c.excluido_em IS NULL
+      WHERE a.excluido_em IS NULL AND COALESCE(a.para,'')<>'' AND COALESCE(a.dia_entrega,'')<>'' ORDER BY a.id DESC`);
+    const semFicha = resultado.rows.filter((p) => !p.cliente_id).map((p) => ({ ...p, cliente_nome: p.comprador, telefone: telefoneDoComprador(p) }));
+    const vinculados = new Map((await vincularClientesPorTelefone(semFicha)).map((p) => [p.id, p]));
+    const linhas = resultado.rows.map((p) => vinculados.get(p.id) || p);
+    const itens = await anexarStatus(agruparAoVivo(linhas, data), data);
+    res.json({ data, itens });
+  } catch (erro) {
+    console.error('Erro fila Recall Ao Vivo:', erro);
+    res.status(500).json({ erro: 'Não foi possível montar o Recall de Ao Vivo.' });
+  }
+});
+
 router.get('/fila', async (req, res) => {
   try {
     const data = /^\d{4}-\d{2}-\d{2}$/.test(req.query.data || '') ? req.query.data : hojeIsoBrasilia();
@@ -216,6 +237,18 @@ router.put('/pedido-criado', async (req,res) => {
     const { dataReferencia, relacaoChave, pedidoId } = req.body;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dataReferencia || '') || !relacaoChave || !Number.isInteger(Number(pedidoId))) {
       return res.status(400).json({ erro: 'Dados de vínculo do Recall inválidos.' });
+    }
+    if (req.body.sistema === 'AOVIVO') {
+      if (!relacaoChave.startsWith('AOVIVO:')) return res.status(400).json({ erro: 'Relação de Ao Vivo inválida.' });
+      const pedido = await db.query(`SELECT a.id, a.cliente_id, COALESCE(c.nome,a.comprador) cliente_nome, a.para
+        FROM ao_vivo a LEFT JOIN clientes c ON c.id=a.cliente_id WHERE a.id=$1 AND a.excluido_em IS NULL`, [pedidoId]);
+      if (!pedido.rows.length) return res.status(404).json({ erro: 'Pedido Ao Vivo não encontrado.' });
+      const p = pedido.rows[0];
+      const r = await db.query(`INSERT INTO recall_registros (data_referencia,relacao_chave,cliente_id,cliente_nome,aniversariante_nome,status,pedido_novo_ao_vivo_id,atualizado_por)
+        VALUES ($1,$2,$3,$4,$5,'PEDIDO_CRIADO',$6,$7) ON CONFLICT (data_referencia,relacao_chave) DO UPDATE
+        SET status='PEDIDO_CRIADO',pedido_novo_ao_vivo_id=EXCLUDED.pedido_novo_ao_vivo_id,atualizado_por=EXCLUDED.atualizado_por,atualizado_em=NOW() RETURNING *`,
+      [dataReferencia, relacaoChave, p.cliente_id, formatarNome(p.cliente_nome), formatarNome(p.para), p.id, req.usuario?.usuario || null]);
+      return res.json({ registro: r.rows[0] });
     }
     const pedido = await db.query(`
       SELECT f.id, f.cliente_id, COALESCE(c.nome, f.nome_comprador) AS cliente_nome,

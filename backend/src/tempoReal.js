@@ -9,7 +9,7 @@ let conexoesDescartadasPorPressao = 0;
 
 const RELACIONADOS = {
   configuracoes: ['configuracoes', 'fonadas', 'clientes', 'agenda', 'recall'],
-  'ao-vivo': ['ao-vivo', 'agenda', 'cobranca', 'relatorios'],
+  'ao-vivo': ['ao-vivo', 'agenda', 'cobranca', 'relatorios', 'recall'],
   fonadas: ['fonadas', 'agenda', 'cobranca', 'relatorios', 'recall'],
   clientes: ['clientes', 'recall'],
   agenda: ['agenda', 'fonadas'],

@@ -6,6 +6,7 @@ import { buildRecallWhatsAppUrl } from '../../utils/mensagemRecall.js';
 import { numeroWhatsAppBrasil } from '../../utils/telefoneWhatsApp.js';
 import { dadosMensagemRecall } from '../../utils/pedidoRecall.js';
 import { AvisoInline, CabecalhoPagina, EstadoCarregando } from '../../components/Interface.jsx';
+import RecallAoVivo from './RecallAoVivo.jsx';
 
 function isoLocal(data = new Date()) { return `${data.getFullYear()}-${String(data.getMonth()+1).padStart(2,'0')}-${String(data.getDate()).padStart(2,'0')}`; }
 function somarDias(iso, dias) { const d=new Date(`${iso}T12:00:00`); d.setDate(d.getDate()+dias); return isoLocal(d); }
@@ -23,6 +24,16 @@ function normalizarBusca(valor) { return String(valor||'').normalize('NFD').repl
 function correspondeBusca(valor, termo) { const alvo=normalizarBusca(valor); const compacto=(texto)=>texto.replace(/[^a-z0-9]/g,''); return alvo.includes(termo)||compacto(alvo).includes(compacto(termo)); }
 
 export default function Recall() {
+  const [params, setParams] = useSearchParams();
+  const sistema = params.get('sistema') === 'AOVIVO' ? 'AOVIVO' : 'FONADA';
+  return <div className="recall-page">
+    <CabecalhoPagina contexto="Central de relacionamento" titulo="Recall" descricao={sistema === 'AOVIVO' ? 'Reencontre compradores e prepare novas homenagens ao vivo.' : 'Duas pesquisas complementares, organizadas em filas sem pessoas repetidas.'} />
+    <div className="central-cobranca-navegacao recall-sistemas"><div className="abas-cliente" role="tablist" aria-label="Tipo de Recall">{[['FONADA', 'Fonada'], ['AOVIVO', 'Ao Vivo']].map(([valor, rotulo]) => <button key={valor} role="tab" aria-selected={sistema === valor} className={`aba-cliente-botao ${sistema === valor ? 'ativa' : ''}`} onClick={() => setParams((p) => { const n = new URLSearchParams(p); n.set('sistema', valor); n.delete('relacao'); n.delete('busca'); n.delete('modo'); return n; }, { replace: true })}>{rotulo}</button>)}</div><span>Tipo de pedido</span></div>
+    {sistema === 'AOVIVO' ? <RecallAoVivo /> : <RecallFonada />}
+  </div>;
+}
+
+function RecallFonada() {
   const navigate=useNavigate(); const [params,setParams]=useSearchParams();
   const { mostrarToast } = useToast();
   const [data,setData]=useState(params.get('data')||isoLocal());
@@ -85,7 +96,6 @@ export default function Recall() {
   }
 
   return <div className="recall-page">
-    <CabecalhoPagina contexto="Central de relacionamento" titulo="Recall" descricao="Duas pesquisas complementares, organizadas em filas sem pessoas repetidas." />
     <>
       <div className="recall-dias-navegacao"><button type="button" className="recall-dias-seta" onClick={()=>setInicioDias((atual)=>Math.max(-7,atual-1))} disabled={inicioDias<=-7} aria-label="Mostrar dias anteriores" title="Mostrar dias anteriores">←</button><div className="recall-dias">{dias.map((d)=><button key={d} type="button" className={d===data?'ativo':''} onClick={()=>setData(d)}><small>{d===isoLocal()?'Hoje':d===somarDias(isoLocal(),1)?'Amanhã':dataLegivel(d).split(' ')[0]}</small><strong>{dataLegivel(d).split(' ').slice(-1)}</strong></button>)}</div><button type="button" className="recall-dias-seta" onClick={()=>setInicioDias((atual)=>Math.min(0,atual+1))} disabled={inicioDias>=0} aria-label="Mostrar dias seguintes" title="Mostrar dias seguintes">→</button></div>
       {dados&&<div className="recall-fontes recall-seletor-pesquisas" role="tablist" aria-label="Tipo de pesquisa"><button type="button" role="tab" aria-selected={modoFila==='DIA_MENSAGEM'} className={modoFila==='DIA_MENSAGEM'?'ativo':''} onClick={()=>setModoFila('DIA_MENSAGEM')}><span className="recall-pesquisa-texto"><small>Pesquisa 1</small><strong>Por dia da mensagem</strong></span><em aria-label={`${listaDoModo(dados,'DIA_MENSAGEM').length} pessoas`}>{listaDoModo(dados,'DIA_MENSAGEM').length}</em></button><button type="button" role="tab" aria-selected={modoFila==='ANIVERSARIO'} className={modoFila==='ANIVERSARIO'?'ativo':''} onClick={()=>setModoFila('ANIVERSARIO')}><span className="recall-pesquisa-texto"><small>Pesquisa 2</small><strong>Aniversário do cliente</strong></span><em aria-label={`${listaDoModo(dados,'ANIVERSARIO').length} pessoas`}>{listaDoModo(dados,'ANIVERSARIO').length}</em></button></div>}
