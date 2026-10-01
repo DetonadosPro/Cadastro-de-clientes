@@ -1,11 +1,25 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { carregarConfiguracoes, comConfiguracoes, limiteValido } = require('../src/utils/configuracoes');
+const { carregarConfiguracoes, comConfiguracoes, limiteValido, mesesValidos } = require('../src/utils/configuracoes');
 const { temDireitoSegundaMensagem, situacaoSegundaMensagem, validarDataUsoSegundaMensagem } = require('../src/utils/mensagemEmHaver');
 
 test('limite aceita reais e centavos e rejeita valores inválidos', () => {
   for (const valor of [0, 12, 12.01, 25.5]) assert.equal(limiteValido(valor), true);
   for (const valor of [-1, null, '', '12', NaN, Infinity, 12.001, 100001]) assert.equal(limiteValido(valor), false);
+});
+
+test('prazo configurável recalcula a validade e respeita o último dia do mês', () => {
+  for (const valor of [1, 3, 6, 120]) assert.equal(mesesValidos(valor), true);
+  for (const valor of [0, -1, 1.5, 121, '6', null]) assert.equal(mesesValidos(valor), false);
+  const pedido = { valor: 12, data_pedido: '31/01/26' };
+  comConfiguracoes({ meses_mensagem_em_haver: 1 }, () => {
+    assert.equal(situacaoSegundaMensagem(pedido, new Date(2026, 1, 28)).dataExpiracao, '28/02/2026');
+    assert.equal(situacaoSegundaMensagem(pedido, new Date(2026, 2, 1)).disponivel, false);
+  });
+  comConfiguracoes({ meses_mensagem_em_haver: 6 }, () => {
+    assert.equal(situacaoSegundaMensagem(pedido, new Date(2026, 2, 1)).disponivel, true);
+    assert.equal(situacaoSegundaMensagem(pedido).dataExpiracao, '31/07/2026');
+  });
 });
 
 test('carrega o limite persistido no banco sem assumir o padrão', async () => {

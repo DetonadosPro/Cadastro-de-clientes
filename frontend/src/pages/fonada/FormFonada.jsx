@@ -675,7 +675,6 @@ export default function FormFonada() {
                   }}
                 />
               </div>
-              {configuracoes && <p className="fs-xs texto-suave">Segunda mensagem somente para pedidos de até {numeroParaValorMonetario(configuracoes.limite_segunda_mensagem)}.</p>}
               <div className="form-row">
                 <label>Período:</label>
                 <input

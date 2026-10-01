@@ -8,7 +8,7 @@ let registro = { id: 1, limite_segunda_mensagem: '12.00', versao: 1 };
 const consultar = async (sql, valores) => {
   if (sql.startsWith('SELECT')) return { rows: [{ ...registro }] };
   if (registro.versao !== valores[2]) return { rows: [] };
-  registro = { ...registro, limite_segunda_mensagem: String(valores[0]), atualizado_por: valores[1], versao: registro.versao + 1 };
+  registro = { ...registro, limite_segunda_mensagem: String(valores[0]), meses_mensagem_em_haver: valores[3], atualizado_por: valores[1], versao: registro.versao + 1 };
   return { rows: [{ ...registro }] };
 };
 const caminhoBanco = require.resolve('../src/db/database');
@@ -25,7 +25,9 @@ test('API salva limite, rejeita alteração concorrente e aplica o valor persist
   try {
     assert.equal((await (await fetch(`${base}/elegibilidade`)).json()).liberada, false);
     const salvar = (dados) => fetch(`${base}/configuracoes`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados) });
-    assert.equal((await salvar({ limite_segunda_mensagem: 20, versao: 1 })).status, 200);
+    assert.equal((await salvar({ limite_segunda_mensagem: 20, meses_mensagem_em_haver: 6, versao: 1 })).status, 200);
+    assert.equal((await (await fetch(`${base}/configuracoes`)).json()).meses_mensagem_em_haver, 6);
+    assert.equal((await salvar({ limite_segunda_mensagem: 20, meses_mensagem_em_haver: 0, versao: 2 })).status, 400);
     assert.equal((await (await fetch(`${base}/configuracoes`)).json()).limite_segunda_mensagem, 20);
     assert.equal((await (await fetch(`${base}/elegibilidade`)).json()).liberada, true);
     assert.equal((await salvar({ limite_segunda_mensagem: 8, versao: 1 })).status, 409);

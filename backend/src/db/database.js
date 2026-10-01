@@ -73,6 +73,7 @@ async function iniciarBanco() {
     id INTEGER PRIMARY KEY CHECK (id=1), limite_segunda_mensagem NUMERIC(12,2) NOT NULL DEFAULT 12 CHECK (limite_segunda_mensagem>=0),
     versao INTEGER NOT NULL DEFAULT 1, atualizado_em TIMESTAMP DEFAULT NOW(), atualizado_por TEXT
   )`);
+  await pool.query('ALTER TABLE configuracoes_sistema ADD COLUMN IF NOT EXISTS meses_mensagem_em_haver INTEGER NOT NULL DEFAULT 3 CHECK (meses_mensagem_em_haver BETWEEN 1 AND 120)');
   await pool.query('INSERT INTO configuracoes_sistema (id) VALUES (1) ON CONFLICT (id) DO NOTHING');
   await pool.query(`
     CREATE TABLE IF NOT EXISTS usuarios (

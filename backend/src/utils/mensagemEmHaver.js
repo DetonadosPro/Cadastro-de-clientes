@@ -49,7 +49,7 @@ function situacaoSegundaMensagem(pedido, referencia = hojeSemHora()) {
   const concedida = temDireitoSegundaMensagem(pedido);
   const utilizada = Boolean(String(pedido.p2_resultado || '').trim());
   const compra = dataBrParaDate(pedido.data_pedido);
-  const expiracao = compra ? somarMesesCalendario(compra, 3) : null;
+  const expiracao = compra ? somarMesesCalendario(compra, configuracoesAtuais().meses_mensagem_em_haver) : null;
 
   let status = 'NAO_CONCEDIDA';
   if (utilizada) status = 'UTILIZADA';

@@ -33,13 +33,16 @@ try {
   assert.equal(await page.getByLabel('Limite do pedido (R$)').inputValue(), 'R$ 12,00');
   await page.screenshot({ path: 'test-results/configuracoes-desktop.png', fullPage: true });
   await page.getByLabel('Limite do pedido (R$)').fill('2000');
+  await page.getByLabel('Validade da mensagem em haver (meses)').fill('6');
   await page.getByRole('button', { name: 'Salvar configurações', exact: true }).click();
   await page.getByText('Configurações salvas.', { exact: true }).waitFor();
   assert.equal(configuracoes.limite_segunda_mensagem, 20);
+  assert.equal(configuracoes.meses_mensagem_em_haver, 6);
   await page.goto('http://127.0.0.1:5189/fonada/novo?clienteId=1');
   const valor = page.getByLabel('Valor do pedido Fonada');
   const segunda = page.getByLabel('Tema da 2ª mensagem');
   await valor.waitFor();
+  assert.equal(await page.getByText('Segunda mensagem somente para pedidos', { exact: false }).count(), 0);
   await valor.fill('2000');
   assert.equal(await segunda.isEnabled(), true);
   await segunda.fill('ANIV GERAL');
