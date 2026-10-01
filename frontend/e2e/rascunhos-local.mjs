@@ -1,0 +1,67 @@
+import assert from 'node:assert/strict';
+import { chromium } from '@playwright/test';
+const browser = await chromium.launch({ channel: 'msedge' });
+const page = await browser.newPage();
+const erros = []; const gravacoes = [];
+page.on('pageerror', (e) => erros.push(e.stack));
+await page.addInitScript(() => { localStorage.setItem('pombo_token', 'teste'); localStorage.setItem('pombo_usuario', 'TESTE'); });
+await page.route('**/api/**', async (route) => {
+  const url = new URL(route.request().url());
+  if (['POST', 'PUT', 'DELETE'].includes(route.request().method())) gravacoes.push(url.pathname);
+  if (url.pathname === '/api/eventos') return route.fulfill({ contentType: 'text/event-stream', body: 'event: conectado\ndata: {"ok":true}\n\n' });
+  let json = {};
+  if (url.pathname === '/api/configuracoes') json = { limite_segunda_mensagem: 12, meses_mensagem_em_haver: 3, versao: 1 };
+  else if (url.pathname === '/api/clientes/1') json = { cliente: { id: 1, nome: 'CLIENTE TESTE', whatsapp: '34999999999' } };
+  else if (url.pathname.includes('/proxima-os')) json = { proximaOs: '999' };
+  else if (url.pathname === '/api/fonadas/1') json = { id: 1, cliente_id: 1, senha_os: '123', valor: 12, data_pedido: '01/10/26', p1_tema: 'ANIV GERAL', versao: 1 };
+  else if (url.pathname === '/api/ao-vivo/1') json = { id: 1, cliente_id: 1, numero_os: '456', valor: 120, tema_1: 'ANIV GERAL', versao: 1 };
+  else if (url.pathname === '/api/fonadas' || url.pathname === '/api/ao-vivo') json = { pedidos: [], total: 0, pagina: 1, totalPaginas: 1 };
+  else if (url.pathname.includes('tentativas')) json = { tentativas: [] };
+  else if (url.pathname === '/api/cobranca') json = { pedidos: [] };
+  await route.fulfill({ json });
+});
+try {
+  for (const [rota, tipo, campo] of [['fonada', 'Fonada', 'Tema da 1ª mensagem'], ['ao-vivo', 'Ao Vivo', 'Tema 1 do Ao Vivo']]) {
+    await page.goto(`http://127.0.0.1:5189/${rota}/novo?clienteId=1`);
+    const fechar = page.getByRole('button', { name: new RegExp(`^Fechar rascunho ${tipo}:`) });
+    await fechar.waitFor();
+    await fechar.click();
+    await page.getByRole('button', { name: 'Continuar editando', exact: true }).click();
+    assert.equal(await fechar.count(), 1);
+    await fechar.click();
+    await page.getByRole('button', { name: 'Descartar rascunho', exact: true }).click();
+    await page.waitForURL(`**/${rota}`);
+    assert.equal(await fechar.count(), 0);
+    await page.goto(`http://127.0.0.1:5189/${rota}/1`);
+    await page.getByLabel(campo, { exact: true }).waitFor();
+    assert.equal(await fechar.count(), 0);
+    await page.getByLabel(campo, { exact: true }).fill('TEMA ALTERADO');
+    await fechar.waitFor();
+    await page.getByRole('link', { name: 'Cobrança', exact: true }).click();
+    await page.waitForURL('**/cobranca');
+    await fechar.click();
+    await page.getByRole('button', { name: 'Descartar rascunho', exact: true }).click();
+    assert.match(page.url(), /\/cobranca$/);
+    assert.equal(await fechar.count(), 0);
+    await page.goto(`http://127.0.0.1:5189/${rota}/1`);
+    await page.getByLabel(campo, { exact: true }).waitFor();
+    assert.equal(await page.getByLabel(campo, { exact: true }).inputValue(), 'ANIV GERAL');
+  }
+  await page.goto('http://127.0.0.1:5189/ao-vivo/novo?clienteId=1');
+  const fechar = page.getByRole('button', { name: /^Fechar rascunho Ao Vivo:/ });
+  await fechar.waitFor();
+  await page.getByLabel('Recolher menu', { exact: true }).click();
+  const botao = await fechar.boundingBox(); const menu = await page.locator('.layout-sidebar').boundingBox();
+  assert.equal(botao.x + botao.width <= menu.x + menu.width + 1, true);
+  await fechar.click();
+  await page.getByRole('button', { name: 'Continuar editando', exact: true }).click();
+  await page.getByLabel('Expandir menu', { exact: true }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByLabel('Abrir menu', { exact: true }).click();
+  await fechar.click();
+  await page.getByRole('button', { name: 'Descartar rascunho', exact: true }).click();
+  await page.waitForURL('**/ao-vivo');
+  assert.equal(await fechar.count(), 0);
+  assert.deepEqual(gravacoes, []); assert.deepEqual(erros, []);
+  console.log('Rascunhos Fonada/Ao Vivo: novos e editados, cancelar, descartar ativo/em outra tela, pedido original preservado e nenhuma gravação: OK');
+} finally { await browser.close(); }

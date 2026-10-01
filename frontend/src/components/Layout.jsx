@@ -1,5 +1,5 @@
 import React, { Suspense, useState, useEffect, useRef } from 'react';
-import { EstadoCarregando } from './Interface.jsx';
+import { Dialogo, EstadoCarregando } from './Interface.jsx';
 import LimitePagina from './LimitePagina.jsx';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { getIdTela, getUsuarioLogado, getNomeExibicao, limparSessao } from '../api.js';
@@ -63,6 +63,14 @@ function IconeRecall() {
       <path d="M13.5 5.3c0-.6.5-1.1 1.1-1.1h1.2c.5 0 .9.3 1.1.8l.5 1.5c.1.4 0 .8-.3 1.1l-.8.8c.7 1.5 1.8 2.6 3.3 3.3l.8-.8c.3-.3.7-.4 1.1-.3l1.5.5c.5.2.8.6.8 1.1v1.2c0 .6-.5 1.1-1.1 1.1-5.1 0-9.2-4.1-9.2-9.2Z" transform="translate(-1 0)" />
     </svg>
   );
+}
+
+function ItemRascunho({ prefixo, tipo, rascunho, onFechar }) {
+  const nome = nomeDoRascunho(rascunho);
+  return <div className="nav-rascunho">
+    <NavLink to={rotaDoRascunho(prefixo, rascunho)} className="nav-continuar" title={`Continuar ${tipo}: ${nome}`}><span className="nav-label">↻ {nome}</span></NavLink>
+    <button type="button" className="nav-rascunho-fechar" title={`Fechar rascunho ${tipo}: ${nome}`} aria-label={`Fechar rascunho ${tipo}: ${nome}`} onClick={() => onFechar({ prefixo, tipo, rascunho })}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button>
+  </div>;
 }
 function IconeRelatorios() {
   return (
@@ -152,7 +160,17 @@ export default function Layout() {
   const conteudoRef = useRef(null);
   const temporizadorAtualizacaoRef = useRef(null);
   const atualizacaoPendenteRef = useRef(false);
-  const { rascunhosFonada, rascunhosAoVivo } = useRascunhos();
+  const { rascunhosFonada, rascunhosAoVivo, limparRascunhoFonada, limparRascunhoAoVivo } = useRascunhos();
+  const [rascunhoFechar, setRascunhoFechar] = useState(null);
+  function descartarRascunho() {
+    const { prefixo, rascunho } = rascunhoFechar;
+    const atual = location.pathname === `${prefixo}/${rascunho.chave.startsWith('editar-') ? rascunho.chave.slice(7) : 'novo'}`
+      && (rascunho.chave.startsWith('editar-') || new URLSearchParams(location.search).get('rascunho') === rascunho.chave.slice(5));
+    if (atual) navigate(location.state?.returnTo?.startsWith('/') ? location.state.returnTo : prefixo, { replace: true });
+    (prefixo === '/fonada' ? limparRascunhoFonada : limparRascunhoAoVivo)(rascunho.chave);
+    setRascunhoFechar(null);
+    mostrarToast('Rascunho descartado.');
+  }
   const { mostrarToast } = useToast();
   // A cor da bolinha vem do contexto compartilhado — assim ela e as
   // bordas de urgência na tela Agenda ficam sempre sincronizadas, já
@@ -361,18 +379,14 @@ export default function Layout() {
             <IconeFonada /> <span className="nav-label">Fonada</span>
           </NavLink>
           {Object.values(rascunhosFonada).map((rascunho) => (
-            <NavLink key={rascunho.chave} to={rotaDoRascunho('/fonada', rascunho)} className="nav-continuar" title={`Continuar Fonada: ${nomeDoRascunho(rascunho)}`}>
-              <span className="nav-label">↻ {nomeDoRascunho(rascunho)}</span>
-            </NavLink>
+            <ItemRascunho key={rascunho.chave} prefixo="/fonada" tipo="Fonada" rascunho={rascunho} onFechar={setRascunhoFechar} />
           ))}
 
           <NavLink to="/ao-vivo" className="nav-item-direto" end aria-label="Ao vivo" title="Ao vivo" onClick={(e) => aoClicarLinkSecao(e, '/ao-vivo')}>
             <IconeAoVivo /> <span className="nav-label">Ao vivo</span>
           </NavLink>
           {Object.values(rascunhosAoVivo).map((rascunho) => (
-            <NavLink key={rascunho.chave} to={rotaDoRascunho('/ao-vivo', rascunho)} className="nav-continuar" title={`Continuar Ao vivo: ${nomeDoRascunho(rascunho)}`}>
-              <span className="nav-label">↻ {nomeDoRascunho(rascunho)}</span>
-            </NavLink>
+            <ItemRascunho key={rascunho.chave} prefixo="/ao-vivo" tipo="Ao Vivo" rascunho={rascunho} onFechar={setRascunhoFechar} />
           ))}
         </nav>
 
@@ -417,6 +431,9 @@ export default function Layout() {
         </div>
       </main>
       <CommandPalette aberta={commandAberta} onFechar={() => setCommandAberta(false)} onNavegar={navigate} />
+      {rascunhoFechar && <Dialogo titulo="Fechar rascunho" descricao={`Descartar as alterações não salvas de ${nomeDoRascunho(rascunhoFechar.rascunho)}? O pedido já salvo permanece no sistema.`} onClose={() => setRascunhoFechar(null)} centralizado className="confirmacao-contextual">
+        <div className="confirmacao-acoes"><button className="btn secundario" onClick={() => setRascunhoFechar(null)}>Continuar editando</button><button className="btn" onClick={descartarRascunho}>Descartar rascunho</button></div>
+      </Dialogo>}
     </div>
   );
 }
