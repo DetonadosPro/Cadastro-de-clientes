@@ -120,6 +120,7 @@ function MarcaPombo({ pequena = false }) {
 }
 
 const ROTAS = [
+  { teste: /^\/configuracoes/, secao: 'Sistema', titulo: 'Configurações' },
   { teste: /^\/agenda/, secao: 'Operação', titulo: 'Agenda' },
   { teste: /^\/clientes\/novo/, secao: 'Clientes', titulo: 'Novo cliente' },
   { teste: /^\/clientes\/lixeira/, secao: 'Clientes', titulo: 'Lixeira' },
@@ -376,6 +377,9 @@ export default function Layout() {
         </nav>
 
         <div className="layout-sidebar-fixo">
+          <NavLink to="/configuracoes" className="nav-lixeira" style={linkLixeiraEstilo} aria-label="Configurações" title="Configurações">
+            <span style={estilos.itemComIcone}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m9.5 3-.5 2-2 .9-1.9-.6-2.5 4.3 1.5 1.4v2L2.6 14.4l2.5 4.3 1.9-.6 2 .9.5 2h5l.5-2 2-.9 1.9.6 2.5-4.3-1.5-1.4v-2l1.5-1.4-2.5-4.3-1.9.6-2-.9-.5-2Z"/><circle cx="12" cy="12" r="3"/></svg><span className="nav-label">Configurações</span></span>
+          </NavLink>
           <NavLink to="/clientes/lixeira" className="nav-lixeira" style={linkLixeiraEstilo} aria-label="Lixeira" title="Lixeira">
             <span style={estilos.itemComIcone}><IconeLixeira /> <span className="nav-label">Lixeira</span></span>
           </NavLink>

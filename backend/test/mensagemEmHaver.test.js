@@ -8,7 +8,7 @@ const {
 } = require('../src/utils/mensagemEmHaver');
 
 function pedido(data_pedido, extras = {}) {
-  return { data_pedido, p1_celular: '(34) 99999-9999', p2_resultado: '', ...extras };
+  return { valor: 12, data_pedido, p1_celular: '(34) 99999-9999', p2_resultado: '', ...extras };
 }
 
 function referencia(data) {
@@ -46,15 +46,15 @@ test('resultado da segunda mensagem prevalece como utilizada', () => {
   assert.equal(situacao.status, 'UTILIZADA');
 });
 
-test('pedido interurbano sem campos p2 não concede segunda mensagem', () => {
+test('pedido acima do limite não concede segunda mensagem', () => {
   const situacao = situacaoSegundaMensagem(
-    pedido('10/08/2026', { p1_celular: '(11) 99999-9999' }),
+    pedido('10/08/2026', { valor: 12.01, p1_celular: '(34) 99999-9999' }),
     referencia('27/08/2026')
   );
   assert.equal(situacao.status, 'NAO_CONCEDIDA');
 });
 
-test('campos p2 preservam o direito de pedidos históricos', () => {
+test('pedido no limite concede segunda mensagem independentemente do DDD', () => {
   const situacao = situacaoSegundaMensagem(
     pedido('10/08/2026', { p1_celular: '(11) 99999-9999', p2_tema: 'Aniversário' }),
     referencia('27/08/2026')

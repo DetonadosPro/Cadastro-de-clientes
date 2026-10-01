@@ -1,4 +1,5 @@
 const { agoraBrasilia } = require('./dataHora');
+const { configuracoesAtuais } = require('./configuracoes');
 
 const CAMPOS_SEGUNDA_MENSAGEM = [
   'p2_dia', 'p2_para', 'p2_tema', 'p2_mensagem', 'p2_fixo',
@@ -32,19 +33,10 @@ function somarMesesCalendario(data, quantidade) {
   return resultado;
 }
 
-function telefoneTemDdd34(valor) {
-  const digitos = String(valor || '').replace(/\D/g, '');
-  const semDdi = digitos.startsWith('55') && digitos.length >= 12 ? digitos.slice(2) : digitos;
-  return semDdi.startsWith('34');
-}
-
 function temDireitoSegundaMensagem(pedido) {
-  // Essa é a regra já existente no formulário. Campos p2 preenchidos também
-  // comprovam o direito em pedidos históricos, mesmo que o telefone tenha
-  // sido posteriormente corrigido.
-  return telefoneTemDdd34(pedido.p1_celular)
-    || telefoneTemDdd34(pedido.p1_fixo)
-    || CAMPOS_SEGUNDA_MENSAGEM.some((campo) => String(pedido[campo] || '').trim());
+  const valor = Number(pedido.valor);
+  return pedido.valor != null && String(pedido.valor).trim() !== '' && Number.isFinite(valor)
+    && valor >= 0 && Math.round(valor * 100) <= Math.round(configuracoesAtuais().limite_segunda_mensagem * 100);
 }
 
 function hojeSemHora() {

@@ -12,9 +12,9 @@ const NOME_QA = 'pombo_correio_qa_auditoria';
 const TABELAS = [
   'usuarios', 'clientes', 'fonadas', 'ao_vivo',
   'tentativas_contato', 'tentativas_prazo_ao_vivo', 'lembretes',
-  'recall_registros', 'duplicatas_descartadas', 'contadores_os',
+  'recall_registros', 'duplicatas_descartadas', 'contadores_os', 'configuracoes_sistema',
 ];
-const TABELAS_COM_ID = new Set(TABELAS.filter((t) => !['duplicatas_descartadas', 'contadores_os'].includes(t)));
+const TABELAS_COM_ID = new Set(TABELAS.filter((t) => !['duplicatas_descartadas', 'contadores_os', 'configuracoes_sistema'].includes(t)));
 const pasta = path.resolve(__dirname, '../../docs/auditoria/evidencias/backup-qa');
 const modo = process.argv[2];
 if (!['restaurar', 'verificar', 'limpar'].includes(modo)) throw new Error('Use restaurar, verificar ou limpar.');
@@ -31,9 +31,9 @@ restoreUrl.pathname = `/${NOME_RESTORE}`;
 function arquivosMaisRecentes() {
   const nomes = fs.readdirSync(pasta).filter((nome) => /^[a-z_]+-\d{8}-\d{4}\.json\.gz$/.test(nome));
   const timestamps = [...new Set(nomes.map((nome) => nome.match(/-(\d{8}-\d{4})\.json\.gz$/)[1]))].sort().reverse();
-  const timestamp = timestamps.find((ts) => TABELAS.every((t) => nomes.includes(`${t}-${ts}.json.gz`)));
+  const timestamp = timestamps.find((ts) => TABELAS.filter((t) => t !== 'configuracoes_sistema').every((t) => nomes.includes(`${t}-${ts}.json.gz`)));
   if (!timestamp) throw new Error('Não há conjunto completo de arquivos QA para restaurar.');
-  return Object.fromEntries(TABELAS.map((t) => [t, path.join(pasta, `${t}-${timestamp}.json.gz`)]));
+  return Object.fromEntries(TABELAS.filter((t) => nomes.includes(`${t}-${timestamp}.json.gz`)).map((t) => [t, path.join(pasta, `${t}-${timestamp}.json.gz`)]));
 }
 
 function dataLocalSemFuso(valor) {
@@ -67,11 +67,15 @@ async function executar() {
   const { iniciarBanco, pool } = require('../src/db/database');
   try {
     await iniciarBanco();
+    if (!esperados.configuracoes_sistema) {
+      esperados.configuracoes_sistema = JSON.parse(JSON.stringify((await pool.query('SELECT * FROM configuracoes_sistema ORDER BY id')).rows));
+    }
     if (modo === 'restaurar') {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
         await client.query('DELETE FROM contadores_os');
+        await client.query('DELETE FROM configuracoes_sistema');
         for (const tabela of TABELAS) {
           const tipos = await client.query(
             'SELECT column_name FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2 AND data_type = $3',

@@ -6,6 +6,7 @@ import { RascunhosProvider } from './RascunhosContext.jsx';
 import { ToastProvider } from './ToastContext.jsx';
 import { AgendaAlertaProvider } from './AgendaAlertaContext.jsx';
 import { TempoRealProvider } from './TempoRealContext.jsx';
+import { ConfiguracoesProvider } from './ConfiguracoesContext.jsx';
 import './estilos.css';
 import './modernizacao.css';
 import './experiencia-v2.css';
@@ -17,9 +18,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <RascunhosProvider>
         <ToastProvider>
           <TempoRealProvider>
+            <ConfiguracoesProvider>
             <AgendaAlertaProvider>
               <App />
             </AgendaAlertaProvider>
+            </ConfiguracoesProvider>
           </TempoRealProvider>
         </ToastProvider>
       </RascunhosProvider>

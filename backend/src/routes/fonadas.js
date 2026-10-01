@@ -11,7 +11,7 @@
 const express = require('express');
 const { db, pool, reservarProximaOs } = require('../db/database');
 const { agoraBrasilia } = require('../utils/dataHora');
-const { situacaoSegundaMensagem, validarDataUsoSegundaMensagem, houveAlteracaoP2 } = require('../utils/mensagemEmHaver');
+const { situacaoSegundaMensagem, validarDataUsoSegundaMensagem, houveAlteracaoP2, temDireitoSegundaMensagem, CAMPOS_SEGUNDA_MENSAGEM } = require('../utils/mensagemEmHaver');
 
 const router = express.Router();
 const { dataCurtaValida } = require('../utils/validarDataCurta');
@@ -211,6 +211,9 @@ router.post('/', async (req, res) => {
       }
     }
 
+    if (!temDireitoSegundaMensagem(dados) && CAMPOS_SEGUNDA_MENSAGEM.some((campo) => String(dados[campo] || '').trim())) {
+      return res.status(409).json({ erro: 'O valor do pedido está acima do limite para a segunda mensagem.' });
+    }
     if (String(dados.p2_dia || '').trim() || String(dados.p2_resultado || '').trim()) {
       const validacaoP2 = validarDataUsoSegundaMensagem({ ...dados, p2_resultado: '' }, dados.p2_dia);
       if (!validacaoP2.ok) return res.status(409).json({ erro: validacaoP2.erro });
@@ -288,12 +291,16 @@ router.put('/:id', async (req, res) => {
     }
     if (houveAlteracaoP2(existente, dados)) {
       const pedidoFinal = { ...existente, ...dados };
+      const possuiP2 = CAMPOS_SEGUNDA_MENSAGEM.some((campo) => String(pedidoFinal[campo] || '').trim());
+      if (possuiP2 && !temDireitoSegundaMensagem(pedidoFinal)) {
+        return res.status(409).json({ erro: 'O valor do pedido está acima do limite para a segunda mensagem.' });
+      }
       // Correções textuais de uma mensagem já utilizada continuam
       // permitidas. A validação é obrigatória quando a alteração abre,
       // agenda ou efetivamente utiliza uma segunda mensagem.
       const jaEstavaUtilizada = Boolean(String(existente.p2_resultado || '').trim());
       const continuaUtilizada = Boolean(String(pedidoFinal.p2_resultado || '').trim());
-      if (!jaEstavaUtilizada || !continuaUtilizada) {
+      if (possuiP2 && (!jaEstavaUtilizada || !continuaUtilizada)) {
         const validacaoP2 = validarDataUsoSegundaMensagem({ ...pedidoFinal, p2_resultado: '' }, pedidoFinal.p2_dia);
         if (!validacaoP2.ok) return res.status(409).json({ erro: validacaoP2.erro });
       }

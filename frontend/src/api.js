@@ -119,6 +119,10 @@ async function chamarComSenhaMestra(caminho, senhaMestra, opcoes = {}) {
 }
 
 export const api = {
+  configuracoes: {
+    buscar: () => chamar('/configuracoes'),
+    salvar: (dados) => chamar('/configuracoes', { method: 'PUT', body: JSON.stringify(dados) }),
+  },
   login: (usuario, senha) =>
     chamar('/auth/login', { method: 'POST', body: JSON.stringify({ usuario, senha }) }),
 

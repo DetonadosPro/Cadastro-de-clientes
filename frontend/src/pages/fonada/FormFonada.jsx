@@ -8,6 +8,7 @@ import { formatarCelular, formatarFixo, formatarData, formatarHorario, formatarC
 import CampoData from '../../components/CampoData.jsx';
 import { AvisoInline, CabecalhoPagina, Dialogo, EstadoCarregando } from '../../components/Interface.jsx';
 import { numeroWhatsAppBrasil } from '../../utils/telefoneWhatsApp.js';
+import { useConfiguracoes } from '../../ConfiguracoesContext.jsx';
 
 const VAZIO = {
   senha_os: '', cliente_id: null, data_pedido: '', horario_pedido: '', nascimento: '', tipo: '', recall: 'NÃO', recall_codigo: '',
@@ -110,25 +111,12 @@ function IconeFechar() {
   );
 }
 
-// Extrai os 2 dígitos do DDD de um telefone formatado como "(34) 9 9999-9999"
-// ou "(34) 9999-9999". Retorna null se não houver DDD reconhecível.
-function extrairDDD(telefoneFormatado) {
-  const m = String(telefoneFormatado || '').match(/^\((\d{2})\)/);
-  return m ? m[1] : null;
-}
-
-// A 2ª mensagem só é liberada para edição quando pelo menos um dos
-// telefones já preenchidos (fixo ou celular) da 1ª mensagem tiver DDD
-// 34 — região atendida pelo serviço. Sem isso, os campos ficam
-// bloqueados, para não montar uma 2ª mensagem incompatível.
-const DDD_ATENDIDO = '34';
-function segundaMensagemLiberada(dados) {
-  const ddds = [extrairDDD(dados.p1_celular), extrairDDD(dados.p1_fixo)];
-  return ddds.some((ddd) => ddd === DDD_ATENDIDO);
-}
-
 export default function FormFonada() {
   const { id } = useParams();
+  const { configuracoes, erro: erroConfiguracoes, carregando: carregandoConfiguracoes, recarregar: recarregarConfiguracoes } = useConfiguracoes();
+  function segundaMensagemLiberada(dados) {
+    return !!configuracoes && String(dados.valor || '').trim() !== '' && Math.round(valorMonetarioParaNumero(dados.valor) * 100) <= Math.round(configuracoes.limite_segunda_mensagem * 100);
+  }
   const [searchParams] = useSearchParams();
   const clienteIdUrl = searchParams.get('clienteId');
   const rascunhoIdUrl = searchParams.get('rascunho');
@@ -443,7 +431,7 @@ export default function FormFonada() {
   // (passar) da 1ª mensagem, que deveria copiar tema E número, só
   // copiar o último campo copiado (o número), perdendo o tema.
   function copiarEntreMensagens(nomesCampos, deMensagem) {
-    // Pedido interurbano não possui 2ª mensagem. Além de desabilitar os
+    // Pedidos acima do limite não possuem 2ª mensagem. Além de desabilitar os
     // botões na interface, protege a ação aqui para impedir qualquer cópia.
     if (deMensagem === 1 && !segundaMensagemLiberada(dados)) return;
     const campos = Array.isArray(nomesCampos) ? nomesCampos : [nomesCampos];
@@ -465,6 +453,7 @@ export default function FormFonada() {
 
   async function salvar(datasConfirmadas = false) {
     if (salvandoRef.current) return;
+    if (!configuracoes || erroConfiguracoes) { setErro('Carregue as configurações antes de salvar.'); return; }
     setErro('');
     setCampoObrigatorioFaltando(null);
     if (!dados.cliente_id) {
@@ -514,6 +503,7 @@ export default function FormFonada() {
         { campo: 'p2_dia', rotulo: '2ª mensagem' },
         { campo: 'cobranca', rotulo: 'cobrança' },
       ].filter(({ campo }) => {
+        if (campo === 'p2_dia' && !segundaMensagemLiberada(dados)) return false;
         const data = textoParaData(dados[campo]);
         return data && data.getTime() < hoje.getTime();
       });
@@ -528,9 +518,16 @@ export default function FormFonada() {
         return;
       }
       const payload = { ...dados, valor: valorMonetarioParaNumero(dados.valor) };
+      if (!segundaMensagemLiberada(dados)) {
+        const original = editando ? await api.fonada.buscar(id) : {};
+        for (const campo of Object.keys(VAZIO).filter((campo) => campo.startsWith('p2_'))) payload[campo] = original[campo] || '';
+      }
       if (editando) {
         const atualizado = await api.fonada.atualizar(id, payload);
-        setDados((anterior) => ({ ...anterior, versao: atualizado.versao }));
+        setDados((anterior) => ({ ...anterior, versao: atualizado.versao,
+          ...Object.fromEntries(Object.keys(VAZIO).filter((campo) => campo.startsWith('p2_')).map((campo) => [campo, atualizado[campo] ?? ''])),
+        }));
+        setMensagemEmHaver(atualizado.mensagemEmHaver || null);
         limparRascunhoFonada(chaveRascunho);
         mostrarToast('Pedido salvo com sucesso.');
       } else {
@@ -639,7 +636,7 @@ export default function FormFonada() {
               <ColunaMensagem
                 numero={2} dados={dados} set={set} setComMascara={setComMascara} onCopiar={copiarEntreMensagens}
                 bloqueada={!segundaLiberada || segundaExpirada} editando={editando}
-                situacaoMensagem={mensagemEmHaver}
+                situacaoMensagem={!segundaLiberada ? { status: 'NAO_CONCEDIDA' } : mensagemEmHaver?.status === 'NAO_CONCEDIDA' ? null : mensagemEmHaver}
                 salvandoBaixa={salvandoBaixa} onDarBaixa={darBaixaMensagem} onNaoAtendeu={abrirRemarcarMensagem}
               />
             </div>
@@ -678,6 +675,7 @@ export default function FormFonada() {
                   }}
                 />
               </div>
+              {configuracoes && <p className="fs-xs texto-suave">Segunda mensagem somente para pedidos de até {numeroParaValorMonetario(configuracoes.limite_segunda_mensagem)}.</p>}
               <div className="form-row">
                 <label>Período:</label>
                 <input
@@ -835,10 +833,11 @@ export default function FormFonada() {
             </div>
           )}
 
+          {erroConfiguracoes && <AvisoInline tom="erro" titulo="Não foi possível carregar a regra de valor" acao={<button type="button" className="btn secundario" onClick={recarregarConfiguracoes}>Tentar novamente</button>}>{erroConfiguracoes}</AvisoInline>}
           {erro && <AvisoInline tom="erro" titulo="Revise o pedido antes de salvar">{erro}</AvisoInline>}
 
           <div className="section-box actions-grid">
-            <button type="button" className="btn-action destaque" onClick={() => salvar()} disabled={salvando}>
+            <button type="button" className="btn-action destaque" onClick={() => salvar()} disabled={salvando || carregandoConfiguracoes || !!erroConfiguracoes}>
               <IconeSalvar /> {salvando ? 'Salvando...' : 'Salvar'}
             </button>
             <div className="acoes-secundarias-mobile">
@@ -935,7 +934,7 @@ export default function FormFonada() {
           </ul>
           <div className="confirmacao-acoes">
             <button type="button" className="btn secundario" onClick={() => setConfirmacaoDatasPassadas(null)}>Voltar e revisar</button>
-            <button type="button" className="btn" onClick={() => { setConfirmacaoDatasPassadas(null); salvar(true); }} disabled={salvando}>Confirmar e salvar</button>
+            <button type="button" className="btn" onClick={() => { setConfirmacaoDatasPassadas(null); salvar(true); }} disabled={salvando || carregandoConfiguracoes || !!erroConfiguracoes}>Confirmar e salvar</button>
           </div>
         </Dialogo>
       )}
@@ -962,7 +961,7 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
         <span className={`bolinha-status ${dados[`${p}_dia`] ? 'usada' : 'livre'}`} /> {numero}ª mensagem
         {numero === 2 && situacaoMensagem && (
           <span className={`tag ${situacaoMensagem.status === 'DISPONIVEL' ? 'ok' : situacaoMensagem.status === 'EXPIRADA' ? 'pendente' : 'neutro'}`} style={{ marginLeft: 'auto' }}>
-            {situacaoMensagem.status === 'DISPONIVEL' ? `Disponível até ${situacaoMensagem.dataExpiracao}` : situacaoMensagem.status === 'UTILIZADA' ? 'Utilizada' : situacaoMensagem.status === 'EXPIRADA' ? `Expirada em ${situacaoMensagem.dataExpiracao}` : situacaoMensagem.status === 'NAO_CONCEDIDA' ? 'INTERURBANO' : 'Indisponível'}
+            {situacaoMensagem.status === 'DISPONIVEL' ? `Disponível até ${situacaoMensagem.dataExpiracao}` : situacaoMensagem.status === 'UTILIZADA' ? 'Utilizada' : situacaoMensagem.status === 'EXPIRADA' ? `Expirada em ${situacaoMensagem.dataExpiracao}` : situacaoMensagem.status === 'NAO_CONCEDIDA' ? 'Segunda mensagem indisponível' : 'Indisponível'}
           </span>
         )}
       </div>
@@ -1034,7 +1033,7 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
       <CampoComP label="Quem oferece" nomeCampo="quem_oferece" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} copiarBloqueado={copiarBloqueado} classeExtra="campo-quem-oferece" multilinha />
       <CampoComP label="Resultado" nomeCampo="resultado" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} copiarBloqueado={copiarBloqueado} negrito cor="var(--selo)" classeExtra="campo-resultado" />
 
-      {editando && diaPreenchido && situacaoMensagem?.status !== 'EXPIRADA' && (
+      {editando && !bloqueada && diaPreenchido && situacaoMensagem?.status !== 'EXPIRADA' && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 8, borderTop: '1px dashed var(--papel-alt)' }}>
           <span className="fs-xs" style={{ color: 'var(--tinta-suave)' }}>
             {jaProcessada ? 'Situação da entrega' : 'Marcar entrega desta mensagem'}
@@ -1106,7 +1105,7 @@ function BotaoP({ onClick, titulo, desabilitado }) {
     <button
       type="button"
       className="btn-small botao-p-copiar"
-      title={desabilitado ? 'Disponível apenas para DDD 34' : titulo}
+      title={desabilitado ? 'Segunda mensagem indisponível para este pedido' : titulo}
       aria-label={desabilitado ? 'Cópia indisponível para este telefone' : titulo}
       onClick={onClick}
       disabled={desabilitado}

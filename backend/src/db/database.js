@@ -69,6 +69,11 @@ async function iniciarBanco() {
     console.warn('⚠️  Extensão "unaccent" não pôde ser criada (busca vai ignorar maiúsculas/minúsculas, mas não acentos):', erro.message);
   }
 
+  await pool.query(`CREATE TABLE IF NOT EXISTS configuracoes_sistema (
+    id INTEGER PRIMARY KEY CHECK (id=1), limite_segunda_mensagem NUMERIC(12,2) NOT NULL DEFAULT 12 CHECK (limite_segunda_mensagem>=0),
+    versao INTEGER NOT NULL DEFAULT 1, atualizado_em TIMESTAMP DEFAULT NOW(), atualizado_por TEXT
+  )`);
+  await pool.query('INSERT INTO configuracoes_sistema (id) VALUES (1) ON CONFLICT (id) DO NOTHING');
   await pool.query(`
     CREATE TABLE IF NOT EXISTS usuarios (
       id SERIAL PRIMARY KEY,

@@ -3,6 +3,7 @@ import { api } from '../api.js';
 import { formatarCelular } from '../mascaras.js';
 
 const ACOES = [
+  { id: 'configuracoes', titulo: 'Abrir Configurações', detalhe: 'Regras da Fonada e informações do sistema', rota: '/configuracoes', grupo: 'Navegação', termos: 'configuracoes limite segunda mensagem ajustes' },
   { id: 'agenda', titulo: 'Abrir Agenda', detalhe: 'Compromissos e entregas do dia', rota: '/agenda', grupo: 'Navegação', termos: 'hoje compromissos agenda' },
   { id: 'clientes', titulo: 'Ver clientes', detalhe: 'Pesquisar e consultar cadastros', rota: '/clientes', grupo: 'Navegação', termos: 'clientes contatos cadastros' },
   { id: 'novo-cliente', titulo: 'Novo cliente', detalhe: 'Iniciar um novo cadastro', rota: '/clientes/novo', grupo: 'Ações rápidas', termos: 'cadastrar adicionar novo cliente' },

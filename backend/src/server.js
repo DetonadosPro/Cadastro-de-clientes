@@ -53,6 +53,8 @@ const agendaRouter = require('./routes/agenda');
 const cobrancaRouter = require('./routes/cobranca');
 const relatoriosRouter = require('./routes/relatorios');
 const recallRouter = require('./routes/recall');
+const configuracoesRouter = require('./routes/configuracoes');
+const { carregarConfiguracoes, comConfiguracoes } = require('./utils/configuracoes');
 const autenticar = require('./middleware/autenticar');
 const { iniciarAgendador } = require('./tarefas/agendador');
 const tempoReal = require('./tempoReal');
@@ -108,6 +110,16 @@ async function iniciar() {
   });
 
   app.use('/api/auth', authRouter);
+  app.use('/api', autenticar, async (_req, res, next) => {
+    try {
+      const configuracoes = await carregarConfiguracoes((sql, valores) => pool.query(sql, valores));
+      comConfiguracoes(configuracoes, next);
+    } catch (erro) {
+      console.error('Erro ao carregar configurações:', erro);
+      res.status(503).json({ erro: 'Não foi possível carregar as configurações. Tente novamente.' });
+    }
+  });
+  app.use('/api/configuracoes', configuracoesRouter);
   app.use('/api/fonadas', autenticar, fonadasRouter);
   app.use('/api/ao-vivo', autenticar, aoVivoRouter);
   app.use('/api/clientes', autenticar, clientesRouter);

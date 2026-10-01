@@ -12,7 +12,7 @@
 const express = require('express');
 const { db, pool } = require('../db/database');
 const { agoraBrasilia } = require('../utils/dataHora');
-const { situacaoSegundaMensagem, validarDataUsoSegundaMensagem } = require('../utils/mensagemEmHaver');
+const { situacaoSegundaMensagem, validarDataUsoSegundaMensagem, temDireitoSegundaMensagem } = require('../utils/mensagemEmHaver');
 const { dataCurtaValida } = require('../utils/validarDataCurta');
 
 const router = express.Router();
@@ -95,7 +95,7 @@ router.get('/contagens', async (req, res) => {
 
     const [fonadasResultado, aoVivoResultado, lembretesResultado] = await Promise.all([
       db.query(`
-        SELECT id, p1_dia, p1_para, p1_horario, p1_resultado,
+        SELECT id, valor, p1_dia, p1_para, p1_horario, p1_resultado,
                    p2_dia, p2_para, p2_horario, p2_resultado
         FROM fonadas
         WHERE excluido_em IS NULL
@@ -117,7 +117,7 @@ router.get('/contagens', async (req, res) => {
 
     for (const pedido of fonadasResultado.rows) {
       const chaveP1 = chavePorFormato.get(pedido.p1_dia);
-      const chaveP2 = chavePorFormato.get(pedido.p2_dia);
+      const chaveP2 = temDireitoSegundaMensagem(pedido) ? chavePorFormato.get(pedido.p2_dia) : null;
       if (chaveP1) contagens[chaveP1] += 1;
       if (chaveP2) contagens[chaveP2] += 1;
 
@@ -159,7 +159,7 @@ router.get('/hoje', async (req, res) => {
     const consultandoHoje = !dataConsultada || curto === curtoHoje || curto === longoHoje || longo === curtoHoje || longo === longoHoje;
 
     const fonadasResultado = await db.query(`
-      SELECT f.id, f.versao, f.senha_os, f.nome_comprador, f.cliente_id, f.data_pedido, c.whatsapp AS cliente_whatsapp,
+      SELECT f.id, f.versao, f.valor, f.senha_os, f.nome_comprador, f.cliente_id, f.data_pedido, c.whatsapp AS cliente_whatsapp,
              f.p1_dia, f.p1_para, f.p1_tema, f.p1_mensagem, f.p1_horario, f.p1_celular, f.p1_fixo, f.p1_quem_oferece, f.p1_resultado,
              f.p2_dia, f.p2_para, f.p2_tema, f.p2_mensagem, f.p2_horario, f.p2_celular, f.p2_fixo, f.p2_quem_oferece, f.p2_resultado
       FROM fonadas f
@@ -178,7 +178,7 @@ router.get('/hoje', async (req, res) => {
           passada: Boolean(f.p1_resultado),
         });
       }
-      if ((f.p2_dia === curto || f.p2_dia === longo) && dataCompleta(f.p2_dia)) {
+      if (situacaoP2.concedida && (f.p2_dia === curto || f.p2_dia === longo) && dataCompleta(f.p2_dia)) {
         itensFonada.push({
           pedidoId: f.id, versao: f.versao, mensagem: 2, senha_os: f.senha_os, nome_comprador: f.nome_comprador,
           cliente_id: f.cliente_id, whatsapp: f.cliente_whatsapp, para: f.p2_para, tema: f.p2_tema, codigo: f.p2_mensagem, dia: f.p2_dia, horario: f.p2_horario,

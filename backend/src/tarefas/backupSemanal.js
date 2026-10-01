@@ -32,7 +32,7 @@ function timestamp() {
 const TABELAS_BACKUP = [
   'usuarios', 'clientes', 'fonadas', 'ao_vivo',
   'tentativas_contato', 'tentativas_prazo_ao_vivo', 'lembretes',
-  'recall_registros', 'duplicatas_descartadas', 'contadores_os',
+  'recall_registros', 'duplicatas_descartadas', 'contadores_os', 'configuracoes_sistema',
 ];
 const ORDENACAO = { duplicatas_descartadas: 'cliente_menor_id, cliente_maior_id', contadores_os: 'sistema' };
 

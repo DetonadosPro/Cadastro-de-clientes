@@ -19,6 +19,7 @@ const Agenda = lazy(() => import('./pages/agenda/Agenda.jsx'));
 const CentralCobranca = lazy(() => import('./pages/cobranca/CentralCobranca.jsx'));
 const Relatorios = lazy(() => import('./pages/relatorios/Relatorios.jsx'));
 const Recall = lazy(() => import('./pages/recall/Recall.jsx'));
+const Configuracoes = lazy(() => import('./pages/Configuracoes.jsx'));
 
 function RotaProtegida({ children }) {
   const usuario = getUsuarioLogado();
@@ -54,6 +55,7 @@ export default function App() {
         <Route path="cobranca" element={<CentralCobranca />} />
         <Route path="relatorios" element={<Relatorios />} />
         <Route path="recall" element={<Recall />} />
+        <Route path="configuracoes" element={<Configuracoes />} />
 
         <Route path="clientes" element={<ListaClientes />} />
         <Route path="clientes/novo" element={<FormNovoCliente />} />
