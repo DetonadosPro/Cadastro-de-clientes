@@ -232,6 +232,11 @@ h3 { font-size: 15px; line-height: 1.3; }
   box-shadow: var(--sombra-xs) !important;
 }
 .painel, .section-box, .bloco-sistema, .secao-relatorios { padding: clamp(17px, 2vw, 24px); }
+.painel.lista-fonada-tabela-painel,
+.painel.lista-aovivo-tabela-painel {
+  padding: 0;
+  overflow: hidden;
+}
 .section-box { margin-bottom: 16px; }
 .painel:hover { border-color: var(--borda); }
 .cartao-valor, .recall-metricas > div, .resumo-principal-relatorio > div, .grade-resumo-cobranca-operacional > div {
