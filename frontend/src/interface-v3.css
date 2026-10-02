@@ -651,7 +651,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--carimbo); }
 .recall-saldo-mensagens { display:grid; gap:7px; margin:12px 0; }
 .recall-saldo-mensagens .recall-links { display:flex; flex-wrap:wrap; gap:6px; }
 .grade-relatorio, .grade-graficos-relatorio, .grade-graficos-recebimentos { gap: 14px; }
-.grade-graficos-relatorio { grid-template-columns: repeat(auto-fit,minmax(min(100%,560px),1fr)); align-items:start; }
+.grade-graficos-relatorio { grid-template-columns: minmax(0,1fr); align-items:start; }
 .grafico-relatorio { border: 1px solid var(--borda); border-radius: 14px; background: #fff; box-shadow: var(--sombra-xs); }
 .grafico-cabecalho { padding-bottom: 12px; border-bottom: 1px solid #edf0f4; }
 .grafico-cabecalho h3 { color: var(--tinta); }
@@ -1159,3 +1159,8 @@ body.sobreposicao-aberta .layout-conteudo { overflow: hidden; }
   .layout-sidebar.compacta .nav-rascunho .nav-continuar { flex:0 0 10px; margin:0; }
   .layout-sidebar.compacta .nav-rascunho-fechar { flex-basis:24px; min-height:26px; }
 }
+
+.grafico-comparado { display: grid; gap: 16px; min-width: 0; }
+.relatorio-periodo-titulo { margin: 16px 0 8px; font-size: 13px; color: var(--carimbo); }
+.comparacao-indicadores { margin: 16px 0; min-width: 0; }
+.comparacao-indicadores h3 { margin: 0 0 12px; font-size: 15px; }

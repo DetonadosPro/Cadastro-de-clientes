@@ -88,7 +88,7 @@ export function GraficoEvolucaoVendas({ atual = [], anterior = [], sistema = 'TO
       amplo
       legenda={<div className="seletor-series-grafico"><button type="button" className={periodoDestacado === 'A' ? 'ativo' : ''} onClick={() => setPeriodoDestacado('A')}><Legenda cor={CORES.azul}>Período A</Legenda></button>{anterior.length > 0 && <button type="button" className={periodoDestacado === 'B' ? 'ativo' : ''} onClick={() => setPeriodoDestacado('B')}><Legenda cor={CORES.azulClaro} tracejada>Período B</Legenda></button>}</div>}
     >
-      {!atual.length ? <EstadoSemDados /> : (
+      {!atual.length && !anterior.length ? <EstadoSemDados /> : (
         <div className="grafico-svg-scroll"><svg className="grafico-svg" viewBox={`0 0 ${largura} ${altura}`} role="img" aria-label="Evolução diária das vendas">
           {[0, .25, .5, .75, 1].map((fator) => {
             const y = altura - MARGEM_Y - fator * (altura - MARGEM_Y * 2);
@@ -109,9 +109,9 @@ export function GraficoEvolucaoVendas({ atual = [], anterior = [], sistema = 'TO
   );
 }
 
-export function GraficoVendasPorSistema({ dados = [], sistema = 'TODOS' }) {
+export function GraficoVendasPorSistema({ dados = [], sistema = 'TODOS', referencia = {} }) {
   const largura = 720; const altura = 245;
-  const maximo = Math.max(1, ...dados.map((p) => Number(p.fonada || 0) + Number(p.aoVivo || 0)));
+  const maximo = Math.max(1, ...[...dados, ...(referencia.dados || [])].map((p) => Number(p.fonada || 0) + Number(p.aoVivo || 0)));
   const faixa = (largura - MARGEM_X * 2) / Math.max(dados.length, 1);
   const barra = Math.max(7, Math.min(34, faixa * .62));
   return (
@@ -152,10 +152,10 @@ function combinarFluxo(vendido, recebido) {
   return [...mapa.values()].sort((a, b) => String(a.data).split('/').reverse().join('').localeCompare(String(b.data).split('/').reverse().join('')));
 }
 
-export function GraficoVendidoRecebido({ vendido = [], recebido = [], sistema = 'TODOS' }) {
+export function GraficoVendidoRecebido({ vendido = [], recebido = [], sistema = 'TODOS', referencia = {} }) {
   const dados = combinarFluxo(vendido, recebido);
   const largura = 720; const altura = 245;
-  const maximo = Math.max(1, ...dados.flatMap((p) => [p.vendido, p.recebido]));
+  const maximo = Math.max(1, ...[...dados, ...combinarFluxo(referencia.vendido || [], referencia.recebido || [])].flatMap((p) => [p.vendido, p.recebido]));
   const faixa = (largura - MARGEM_X * 2) / Math.max(dados.length, 1);
   const barra = Math.max(6, Math.min(25, faixa * .45));
   const pontos = dados.map((p) => ({ data: p.data, valor: p.vendido }));
@@ -169,25 +169,25 @@ export function GraficoVendidoRecebido({ vendido = [], recebido = [], sistema = 
   </PainelGrafico>;
 }
 
-export function GraficoBarrasCategorias({ titulo, subtitulo, dados = [], usarQuantidade = false }) {
+export function GraficoBarrasCategorias({ titulo, subtitulo, dados = [], usarQuantidade = false, referencia = {} }) {
   const metrica = (item) => Number(usarQuantidade ? item.quantidade : item.valor || 0);
-  const maximo = Math.max(1, ...dados.map(metrica));
+  const maximo = Math.max(1, ...[...dados, ...(referencia.dados || [])].map(metrica));
   const totalQuantidade = dados.reduce((soma, item) => soma + Number(item.quantidade || 0), 0);
   return <PainelGrafico titulo={titulo} subtitulo={subtitulo}>
     {!dados.length ? <EstadoSemDados /> : <div className="grafico-barras-horizontais">{dados.map((item) => <div className="grafico-barra-linha" key={item.categoria} title={`${item.categoria}: ${usarQuantidade ? `${item.quantidade} pedido(s)` : `${reais(item.valor)} · ${item.quantidade} pagamento(s)`}`}><div><strong>{item.categoria}</strong><span>{usarQuantidade ? item.quantidade : reais(item.valor)}</span></div><div className="grafico-barra-trilho"><i style={{ width: `${Math.max(3, metrica(item) / maximo * 100)}%` }} /></div><small>{usarQuantidade ? `${Math.round(metrica(item) / Math.max(dados.reduce((s, d) => s + metrica(d), 0), 1) * 100)}% dos pedidos` : `${item.quantidade} pagamento(s) · ${totalQuantidade ? Math.round(Number(item.quantidade || 0) / totalQuantidade * 1000) / 10 : 0}%`}</small></div>)}</div>}
   </PainelGrafico>;
 }
 
-export function GraficoRankingEquipe({ funcionarios = [] }) {
-  const maximo = Math.max(1, ...funcionarios.map((f) => Number(f.valorVendidoTotal || 0)));
+export function GraficoRankingEquipe({ funcionarios = [], referencia = {} }) {
+  const maximo = Math.max(1, ...[...funcionarios, ...(referencia.funcionarios || [])].map((f) => Number(f.valorVendidoTotal || 0)));
   return <PainelGrafico titulo="Ranking da equipe" subtitulo="Valor vendido, dividido por modalidade" amplo legenda={<><Legenda cor={CORES.azul}>Fonada</Legenda><Legenda cor={CORES.aoVivo}>Ao Vivo</Legenda></>}>
     {!funcionarios.length ? <EstadoSemDados /> : <div className="grafico-ranking">{funcionarios.map((f, indice) => { const total = Number(f.valorVendidoTotal || 0); return <div className="grafico-ranking-linha" key={f.usuario}><b>{indice + 1}</b><strong>{f.usuario}</strong><div className="grafico-ranking-trilho" title={`${f.usuario}: ${reais(total)}`}><i className="fonada" style={{ width: `${Number(f.valorVendidoFonada || 0) / maximo * 100}%` }} /><i className="aovivo" style={{ width: `${Number(f.valorVendidoAoVivo || 0) / maximo * 100}%` }} /></div><span>{reais(total)}</span></div>; })}</div>}
   </PainelGrafico>;
 }
 
-export function GraficoQuantidadeTicket({ funcionarios = [] }) {
-  const maxQuantidade = Math.max(1, ...funcionarios.map((f) => Number(f.vendasTotal || 0)));
-  const maxTicket = Math.max(1, ...funcionarios.map((f) => Number(f.ticketMedio || 0)));
+export function GraficoQuantidadeTicket({ funcionarios = [], referencia = {} }) {
+  const maxQuantidade = Math.max(1, ...[...funcionarios, ...(referencia.funcionarios || [])].map((f) => Number(f.vendasTotal || 0)));
+  const maxTicket = Math.max(1, ...[...funcionarios, ...(referencia.funcionarios || [])].map((f) => Number(f.ticketMedio || 0)));
   return <PainelGrafico titulo="Volume e ticket médio" subtitulo="Quantidade de vendas e valor médio por pessoa" amplo legenda={<><Legenda cor={CORES.azul}>Quantidade</Legenda><Legenda cor={CORES.verde}>Ticket médio</Legenda></>}>
     {!funcionarios.length ? <EstadoSemDados /> : <div className="grafico-duas-metricas">{funcionarios.map((f) => <div className="grafico-metrica-linha" key={f.usuario}><strong>{f.usuario}</strong><div><span>Vendas</span><div className="grafico-barra-trilho"><i className="quantidade" style={{ width: `${Number(f.vendasTotal || 0) / maxQuantidade * 100}%` }} /></div><b>{f.vendasTotal}</b></div><div><span>Ticket</span><div className="grafico-barra-trilho"><i className="ticket" style={{ width: `${Number(f.ticketMedio || 0) / maxTicket * 100}%` }} /></div><b>{reais(f.ticketMedio)}</b></div></div>)}</div>}
   </PainelGrafico>;

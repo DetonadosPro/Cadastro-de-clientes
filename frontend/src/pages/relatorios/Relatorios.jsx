@@ -236,6 +236,8 @@ function graficosRecebimentos(dados) {
 function AbaVendas({ sistema, intervalo, ativa }) {
   const { inicio, fim, inicioB, fimB, setInicio, setFim, setInicioB, setFimB, limparComparacao, setIntervalo } = intervalo;
   const [dados, setDados] = useState(null);
+  const [dadosB, setDadosB] = useState(null);
+  const buscaAtual = React.useRef(0);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
   const [jaBuscou, setJaBuscou] = useState(false);
@@ -248,16 +250,23 @@ function AbaVendas({ sistema, intervalo, ativa }) {
       setErro('Informe pelo menos a data inicial.');
       return;
     }
+    const busca = ++buscaAtual.current;
     setCarregando(true);
     setErro('');
     setJaBuscou(true);
     try {
-      const resp = await api.relatorios.vendas(inicio, fim, sistemaAtual, { inicioB, fimB, ...paginacao });
+      const [resp, respB] = await Promise.all([
+        api.relatorios.vendas(inicio, fim, sistemaAtual, { inicioB, fimB, ...paginacao }),
+        dataCompleta(inicioB) && (!fimB || dataCompleta(fimB))
+          ? api.relatorios.vendas(inicioB, fimB, sistemaAtual, paginacao) : Promise.resolve(null),
+      ]);
+      if (busca !== buscaAtual.current) return;
       setDados(resp);
+      setDadosB(respB);
     } catch (err) {
-      setErro(err.message);
+      if (busca === buscaAtual.current) setErro(err.message);
     } finally {
-      setCarregando(false);
+      if (busca === buscaAtual.current) setCarregando(false);
     }
   }
 
@@ -269,8 +278,14 @@ function AbaVendas({ sistema, intervalo, ativa }) {
       setJaBuscou(true);
       return undefined;
     }
+    if ((inicioB && !dataCompleta(inicioB)) || (fimB && !dataCompleta(fimB))) return undefined;
+    if (inicioB && fimB && inicioDepoisDoFim(inicioB, fimB)) {
+      setErro('No período B, a data inicial não pode ser posterior à data final.');
+      setDados(null);
+      return undefined;
+    }
     const temporizador = setTimeout(() => buscar(null, sistema), 300);
-    return () => clearTimeout(temporizador);
+    return () => { clearTimeout(temporizador); buscaAtual.current += 1; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inicio, fim, inicioB, fimB, sistema, ativa, paginacao.limite, paginacao.pagina]);
 
@@ -299,14 +314,17 @@ function AbaVendas({ sistema, intervalo, ativa }) {
             <CartaoValor label="Ticket médio" valor={formatarReais(dados.geral.ticketMedio)} />
           </div>
           <ComparacaoPeriodo dados={dados.comparacao} metrica="Vendas" />
+          <ComparacaoIndicadores atual={dados} anterior={dadosB} tipo="vendas" />
           <div className="grade-graficos-relatorio">
-            {fim && <GraficoEvolucaoVendas atual={series.vendasPorDia} anterior={series.periodoAnterior} sistema={sistema} />}
-            {fim && <GraficoVendasPorSistema dados={series.vendasPorDia} sistema={sistema} />}
-            <GraficoQuantidadePagamentos dados={series.pagamentosPorDia} />
-            {sistema === 'FONADA' && dados.graficos?.origemFonada?.length > 0 && <GraficoBarrasCategorias titulo="Origem dos pedidos Fonada" subtitulo="Recall e clientes são origens; não formas de pagamento" dados={dados.graficos.origemFonada} usarQuantidade />}
+            {fim && <GraficoEvolucaoVendas atual={series.vendasPorDia} anterior={dadosB ? graficosVendas(dadosB).vendasPorDia : []} sistema={sistema} />}
+            {fim && <GraficoComparado periodoB={dadosB} propsB={{ dados: graficosVendas(dadosB).vendasPorDia }}><GraficoVendasPorSistema dados={series.vendasPorDia} sistema={sistema} /></GraficoComparado>}
+            <GraficoComparado periodoB={dadosB} propsB={{ dados: graficosVendas(dadosB).pagamentosPorDia }}><GraficoQuantidadePagamentos dados={series.pagamentosPorDia} /></GraficoComparado>
+            {sistema === 'FONADA' && dados.graficos?.origemFonada?.length > 0 && <GraficoComparado periodoB={dadosB} propsB={{ dados: dadosB?.graficos?.origemFonada || [] }}><GraficoBarrasCategorias titulo="Origem dos pedidos Fonada" subtitulo="Recall e clientes são origens; não formas de pagamento" dados={dados.graficos.origemFonada} usarQuantidade /></GraficoComparado>}
           </div>
 
+          {dadosB && <h3 className="relatorio-periodo-titulo">Período A · {inicio} a {fim || inicio}</h3>}
           <TabelaDetalhada dados={dados} itens={dados.itens || []} tituloColunaValor="Venda" onPaginacao={setPaginacao} />
+          {dadosB && <div><h3 className="relatorio-periodo-titulo">Período B · {inicioB} a {fimB || inicioB}</h3><TabelaDetalhada dados={dadosB} itens={dadosB.itens || []} tituloColunaValor="Venda" onPaginacao={setPaginacao} /></div>}
         </>
       )}
     </div>
@@ -316,6 +334,8 @@ function AbaVendas({ sistema, intervalo, ativa }) {
 function AbaRecebimentos({ sistema, intervalo, ativa }) {
   const { inicio, fim, inicioB, fimB, setInicio, setFim, setInicioB, setFimB, limparComparacao, setIntervalo } = intervalo;
   const [dados, setDados] = useState(null);
+  const [dadosB, setDadosB] = useState(null);
+  const buscaAtual = React.useRef(0);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
   const [jaBuscou, setJaBuscou] = useState(false);
@@ -333,16 +353,23 @@ function AbaRecebimentos({ sistema, intervalo, ativa }) {
       setErro('Informe pelo menos a data inicial.');
       return;
     }
+    const busca = ++buscaAtual.current;
     setCarregando(true);
     setErro('');
     setJaBuscou(true);
     try {
-      const resp = await api.relatorios.recebimentos(inicio, fim, sistemaAtual, { inicioB, fimB, ...paginacao });
+      const [resp, respB] = await Promise.all([
+        api.relatorios.recebimentos(inicio, fim, sistemaAtual, { inicioB, fimB, ...paginacao }),
+        dataCompleta(inicioB) && (!fimB || dataCompleta(fimB))
+          ? api.relatorios.recebimentos(inicioB, fimB, sistemaAtual, paginacao) : Promise.resolve(null),
+      ]);
+      if (busca !== buscaAtual.current) return;
       setDados(resp);
+      setDadosB(respB);
     } catch (err) {
-      setErro(err.message);
+      if (busca === buscaAtual.current) setErro(err.message);
     } finally {
-      setCarregando(false);
+      if (busca === buscaAtual.current) setCarregando(false);
     }
   }
 
@@ -354,8 +381,14 @@ function AbaRecebimentos({ sistema, intervalo, ativa }) {
       setJaBuscou(true);
       return undefined;
     }
+    if ((inicioB && !dataCompleta(inicioB)) || (fimB && !dataCompleta(fimB))) return undefined;
+    if (inicioB && fimB && inicioDepoisDoFim(inicioB, fimB)) {
+      setErro('No período B, a data inicial não pode ser posterior à data final.');
+      setDados(null);
+      return undefined;
+    }
     const temporizador = setTimeout(() => buscar(null, sistema), 300);
-    return () => clearTimeout(temporizador);
+    return () => { clearTimeout(temporizador); buscaAtual.current += 1; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inicio, fim, inicioB, fimB, sistema, ativa, paginacao.limite, paginacao.pagina]);
 
@@ -386,17 +419,20 @@ function AbaRecebimentos({ sistema, intervalo, ativa }) {
               tooltip={sistema === 'TODOS' && composicao ? `Fonada: ${formatarReais(receberFonada)}\nAo Vivo: ${formatarReais(receberAoVivo)}` : null} />
           </div>
           <ComparacaoPeriodo dados={dados.comparacao} metrica="Recebimentos" />
+          <ComparacaoIndicadores atual={dados} anterior={dadosB} tipo="recebimentos" />
           <div className="grade-graficos-relatorio grade-graficos-recebimentos">
-            {fim && <GraficoVendidoRecebido vendido={series.vendidoPorDia} recebido={series.recebidoPorDia} sistema={sistema} />}
-            <GraficoBarrasCategorias
+            {fim && <GraficoComparado periodoB={dadosB} propsB={{ vendido: graficosRecebimentos(dadosB).vendidoPorDia, recebido: graficosRecebimentos(dadosB).recebidoPorDia }}><GraficoVendidoRecebido vendido={series.vendidoPorDia} recebido={series.recebidoPorDia} sistema={sistema} /></GraficoComparado>}
+            <GraficoComparado periodoB={dadosB} propsB={{ dados: graficosRecebimentos(dadosB).recebimentosPorForma }}><GraficoBarrasCategorias
               titulo="Formas de recebimento"
               subtitulo="Valor efetivamente recebido em cada forma"
               dados={series.recebimentosPorForma}
-            />
+            /></GraficoComparado>
           </div>
 
 
+          {dadosB && <h3 className="relatorio-periodo-titulo">Período A · {inicio} a {fim || inicio}</h3>}
           <TabelaDetalhada dados={dados} itens={dados.itens || []} tituloColunaValor="Recebido" onPaginacao={setPaginacao} />
+          {dadosB && <div><h3 className="relatorio-periodo-titulo">Período B · {inicioB} a {fimB || inicioB}</h3><TabelaDetalhada dados={dadosB} itens={dadosB.itens || []} tituloColunaValor="Recebido" onPaginacao={setPaginacao} /></div>}
         </>
       )}
     </div>
@@ -406,6 +442,8 @@ function AbaRecebimentos({ sistema, intervalo, ativa }) {
 function AbaDesempenho({ sistema, intervalo, ativa }) {
   const { inicio, fim, inicioB, fimB, setInicio, setFim, setInicioB, setFimB, limparComparacao, setIntervalo } = intervalo;
   const [dados, setDados] = useState(null);
+  const [dadosB, setDadosB] = useState(null);
+  const buscaAtual = React.useRef(0);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
   const [jaBuscou, setJaBuscou] = useState(false);
@@ -416,16 +454,23 @@ function AbaDesempenho({ sistema, intervalo, ativa }) {
       setErro('Informe pelo menos a data inicial.');
       return;
     }
+    const busca = ++buscaAtual.current;
     setCarregando(true);
     setErro('');
     setJaBuscou(true);
     try {
-      const resp = await api.relatorios.desempenho(inicio, fim, sistemaAtual, { inicioB, fimB });
+      const [resp, respB] = await Promise.all([
+        api.relatorios.desempenho(inicio, fim, sistemaAtual, { inicioB, fimB }),
+        dataCompleta(inicioB) && (!fimB || dataCompleta(fimB))
+          ? api.relatorios.desempenho(inicioB, fimB, sistemaAtual) : Promise.resolve(null),
+      ]);
+      if (busca !== buscaAtual.current) return;
       setDados(resp);
+      setDadosB(respB);
     } catch (err) {
-      setErro(err.message);
+      if (busca === buscaAtual.current) setErro(err.message);
     } finally {
-      setCarregando(false);
+      if (busca === buscaAtual.current) setCarregando(false);
     }
   }
 
@@ -437,8 +482,14 @@ function AbaDesempenho({ sistema, intervalo, ativa }) {
       setJaBuscou(true);
       return undefined;
     }
+    if ((inicioB && !dataCompleta(inicioB)) || (fimB && !dataCompleta(fimB))) return undefined;
+    if (inicioB && fimB && inicioDepoisDoFim(inicioB, fimB)) {
+      setErro('No período B, a data inicial não pode ser posterior à data final.');
+      setDados(null);
+      return undefined;
+    }
     const temporizador = setTimeout(() => buscar(null, sistema), 300);
-    return () => clearTimeout(temporizador);
+    return () => { clearTimeout(temporizador); buscaAtual.current += 1; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inicio, fim, inicioB, fimB, sistema, ativa]);
 
@@ -458,15 +509,20 @@ function AbaDesempenho({ sistema, intervalo, ativa }) {
       ) : dados && (
         <>
           <ComparacaoPeriodo dados={dados.comparacao} metrica="Vendas da equipe" />
+          <ComparacaoIndicadores atual={dados} anterior={dadosB} tipo="desempenho" />
           <div className="grade-graficos-relatorio">
-            <GraficoRankingEquipe funcionarios={dados.funcionarios} />
-            <GraficoQuantidadeTicket funcionarios={dados.funcionarios} />
+            <GraficoComparado periodoB={dadosB} propsB={{ funcionarios: dadosB?.funcionarios || [] }}><GraficoRankingEquipe funcionarios={dados.funcionarios} /></GraficoComparado>
+            <GraficoComparado periodoB={dadosB} propsB={{ funcionarios: dadosB?.funcionarios || [] }}><GraficoQuantidadeTicket funcionarios={dados.funcionarios} /></GraficoComparado>
           </div>
           {dados.funcionarios.length === 0 ? (
           <EstadoVazioInterface className="estado-vazio-plano" icone="↗" titulo="Sem vendas atribuídas neste período" descricao="Pedidos antigos, anteriores ao registro de vendedor, não aparecem nesta comparação." />
         ) : (
-          <TabelaDesempenho funcionarios={dados.funcionarios} valorEquipe={dados.valorEquipe} />
+          <div>
+            {dadosB && <h3 className="relatorio-periodo-titulo">Período A · {inicio} a {fim || inicio}</h3>}
+            <TabelaDesempenho funcionarios={dados.funcionarios} valorEquipe={dados.valorEquipe} />
+          </div>
           )}
+          {dadosB && <div><h3 className="relatorio-periodo-titulo">Período B · {inicioB} a {fimB || inicioB}</h3><TabelaDesempenho funcionarios={dadosB.funcionarios} valorEquipe={dadosB.valorEquipe} /></div>}
         </>
       )}
     </div>
@@ -673,4 +729,56 @@ function TabelaDetalhada({ dados, itens, tituloColunaValor, onPaginacao }) {
       </div>
     </div>
   );
+}
+
+function GraficoComparado({ periodoB, propsB, children }) {
+  if (!periodoB) return children;
+  const referencia = { ...children.props, ...propsB };
+  const graficoA = React.cloneElement(children, { referencia });
+  const graficoB = React.cloneElement(children, { ...propsB, referencia: children.props });
+  return <div className="grafico-comparado">
+    <div><h3 className="relatorio-periodo-titulo">Período A</h3>{graficoA}</div>
+    <div><h3 className="relatorio-periodo-titulo">Período B · {periodoB.inicio} a {periodoB.fim || periodoB.inicio}</h3>{graficoB}</div>
+  </div>;
+}
+
+function ComparacaoIndicadores({ atual, anterior, tipo }) {
+  if (!anterior) return null;
+  const linhas = [];
+  const adicionar = (nome, a, b, moeda = false) => linhas.push({ nome, a: Number(a || 0), b: Number(b || 0), moeda });
+  if (tipo === 'vendas') {
+    adicionar('Vendido', atual.geral.valorTotal, anterior.geral.valorTotal, true);
+    adicionar('Pedidos', atual.geral.quantidade, anterior.geral.quantidade);
+    adicionar('Ticket médio', atual.geral.ticketMedio, anterior.geral.ticketMedio, true);
+    for (const [chave, nome] of [['fonada', 'Fonada'], ['aoVivo', 'Ao Vivo']]) {
+      if (!atual[chave] && !anterior[chave]) continue;
+      for (const [campo, label, moeda] of [['valorTotal', 'vendido', true], ['quantidade', 'pedidos', false], ['ticketMedio', 'ticket médio', true], ...(chave === 'fonada' ? [['totalRecall', 'recall', false], ['totalOutros', 'clientes', false]] : [])])
+        adicionar(`${nome}: ${label}`, atual[chave]?.[campo], anterior[chave]?.[campo], moeda);
+    }
+  } else if (tipo === 'recebimentos') {
+    for (const [campo, nome, moeda] of [['valorTotal', 'Recebido', true], ['quantidade', 'Recebimentos', false], ['valorVendido', 'Vendido', true], ['valorRecebidoVendasPeriodo', 'Recebido das vendas do período', true], ['valorAReceberVendasPeriodo', 'Ainda a receber', true], ['totalPix', 'Recebimentos PIX (Fonada)', false], ['totalRecibo', 'Recebimentos por recibo (Fonada)', false]])
+      adicionar(nome, atual[campo], anterior[campo], moeda);
+    for (const [chave, nome] of [['fonada', 'Fonada'], ['aoVivo', 'Ao Vivo']]) {
+      if (!atual[chave] && !anterior[chave]) continue;
+      adicionar(`${nome}: recebido`, atual[chave]?.valorTotal, anterior[chave]?.valorTotal, true);
+      adicionar(`${nome}: registros`, atual[chave]?.quantidade, anterior[chave]?.quantidade);
+      for (const [campo, label] of [['vendido', 'vendido'], ['aReceber', 'a receber']])
+        adicionar(`${nome}: ${label}`, atual.composicaoVendasPeriodo?.[chave]?.[campo], anterior.composicaoVendasPeriodo?.[chave]?.[campo], true);
+    }
+  } else {
+    adicionar('Vendido pela equipe', atual.valorEquipe, anterior.valorEquipe, true);
+    const usuarios = [...new Set([...atual.funcionarios, ...anterior.funcionarios].map(f => f.usuario))];
+    for (const usuario of usuarios) {
+      const a = atual.funcionarios.find(f => f.usuario === usuario) || {};
+      const b = anterior.funcionarios.find(f => f.usuario === usuario) || {};
+      for (const [campo, label, moeda] of [['vendasTotal', 'vendas', false], ['valorVendidoTotal', 'vendido', true], ['ticketMedio', 'ticket médio', true], ['participacaoPercentual', 'participação (%)', false], ['vendasFonada', 'Fonadas', false], ['vendasAoVivo', 'Ao Vivo', false]])
+        adicionar(`${usuario}: ${label}`, a[campo], b[campo], moeda);
+    }
+  }
+  const formatar = (valor, moeda) => moeda ? formatarReais(valor) : valor.toLocaleString('pt-BR');
+  return <section className="painel comparacao-indicadores"><h3>Comparação de indicadores</h3>
+    <div className="lista-relatorio-scroll"><table className="tabela-lista"><thead><tr><th>Indicador</th><th>Período A</th><th>Período B</th><th>A − B</th><th>Variação</th></tr></thead><tbody>
+      {linhas.map(({ nome, a, b, moeda }) => <tr key={nome}><td data-label="Indicador">{nome}</td><td data-label="Período A">{formatar(a, moeda)}</td><td data-label="Período B">{formatar(b, moeda)}</td><td data-label="A − B">{a > b ? '+' : ''}{formatar(a - b, moeda)}</td><td data-label="Variação">{b ? `${a > b ? '+' : ''}${((a - b) / b * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%` : a ? 'Sem base no período B' : '0%'}</td></tr>)}
+    </tbody></table></div>
+  </section>;
 }
