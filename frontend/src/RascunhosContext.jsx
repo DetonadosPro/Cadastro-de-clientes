@@ -3,6 +3,13 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 const RascunhosContext = createContext(null);
 
 export function RascunhosProvider({ children }) {
+  const [rascunhosClientes, setRascunhosClientes] = useState({});
+  const salvarRascunhoCliente = useCallback((chave, dados, estado) => {
+    setRascunhosClientes(atuais => ({ ...atuais, [chave]: { chave, dados, estado, criadoEm: atuais[chave]?.criadoEm || Date.now() } }));
+  }, []);
+  const limparRascunhoCliente = useCallback(chave => {
+    setRascunhosClientes(atuais => { const proximos = { ...atuais }; delete proximos[chave]; return proximos; });
+  }, []);
   const [rascunhosFonada, setRascunhosFonada] = useState({});
   const [rascunhosAoVivo, setRascunhosAoVivo] = useState({});
 
@@ -48,6 +55,7 @@ export function RascunhosProvider({ children }) {
   return (
     <RascunhosContext.Provider
       value={{
+        rascunhosClientes, salvarRascunhoCliente, limparRascunhoCliente,
         rascunhosFonada,
         salvarRascunhoFonada,
         atualizarClienteRascunhoFonada,

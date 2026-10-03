@@ -303,6 +303,7 @@ export default function FormFonada() {
             senha_os: respOs.proximaOs,
             nascimento: respCliente.cliente.nascimento || '',
             recall: recallParaUrl ? 'SIM' : 'NÃO',
+            recall_codigo: recallParaUrl ? String(location.state?.recallDadosMensagem?.osAnterior || '') : '',
             p1_para: recallParaUrl || '',
             p1_tema: recallParaUrl ? (location.state?.recallDadosMensagem?.tema ?? 'ANIV GERAL') : '',
             p1_fixo: recallParaUrl ? (location.state?.recallDadosMensagem?.fixo || '') : '',

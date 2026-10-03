@@ -12,7 +12,7 @@ import { useToast } from '../ToastContext.jsx';
 function rotaDoRascunho(prefixoRota, rascunho) {
   if (rascunho.chave.startsWith('novo-')) {
     const params = new URLSearchParams(rascunho.busca);
-    params.set('clienteId', String(rascunho.dados.cliente_id));
+    if (rascunho.dados.cliente_id) params.set('clienteId', String(rascunho.dados.cliente_id));
     params.set('rascunho', rascunho.chave.slice(5));
     return `${prefixoRota}/novo?${params}`;
   }
@@ -20,7 +20,7 @@ function rotaDoRascunho(prefixoRota, rascunho) {
 }
 
 function nomeDoRascunho(rascunho) {
-  const cliente = rascunho.cliente?.nome || 'Cliente';
+  const cliente = rascunho.cliente?.nome || rascunho.dados.nome || 'Novo cliente';
   if (rascunho.chave.startsWith('editar-')) return `${cliente} · pedido ${rascunho.dados.senha_os || rascunho.dados.numero_os || rascunho.chave.slice(7)}`;
   return `${cliente} · ${new Date(rascunho.criadoEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
 }
@@ -68,7 +68,7 @@ function IconeRecall() {
 function ItemRascunho({ prefixo, tipo, rascunho, onFechar }) {
   const nome = nomeDoRascunho(rascunho);
   return <div className="nav-rascunho">
-    <NavLink to={rotaDoRascunho(prefixo, rascunho)} className="nav-continuar" title={`Continuar ${tipo}: ${nome}`}><span className="nav-label">↻ {nome}</span></NavLink>
+    <NavLink to={rotaDoRascunho(prefixo, rascunho)} state={rascunho.estado} className="nav-continuar" title={`Continuar ${tipo}: ${nome}`}><span className="nav-label">↻ {nome}</span></NavLink>
     <button type="button" className="nav-rascunho-fechar" title={`Fechar rascunho ${tipo}: ${nome}`} aria-label={`Fechar rascunho ${tipo}: ${nome}`} onClick={() => onFechar({ prefixo, tipo, rascunho })}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg></button>
   </div>;
 }
@@ -160,14 +160,14 @@ export default function Layout() {
   const conteudoRef = useRef(null);
   const temporizadorAtualizacaoRef = useRef(null);
   const atualizacaoPendenteRef = useRef(false);
-  const { rascunhosFonada, rascunhosAoVivo, limparRascunhoFonada, limparRascunhoAoVivo } = useRascunhos();
+  const { rascunhosClientes, limparRascunhoCliente, rascunhosFonada, rascunhosAoVivo, limparRascunhoFonada, limparRascunhoAoVivo } = useRascunhos();
   const [rascunhoFechar, setRascunhoFechar] = useState(null);
   function descartarRascunho() {
     const { prefixo, rascunho } = rascunhoFechar;
     const atual = location.pathname === `${prefixo}/${rascunho.chave.startsWith('editar-') ? rascunho.chave.slice(7) : 'novo'}`
       && (rascunho.chave.startsWith('editar-') || new URLSearchParams(location.search).get('rascunho') === rascunho.chave.slice(5));
     if (atual) navigate(location.state?.returnTo?.startsWith('/') ? location.state.returnTo : prefixo, { replace: true });
-    (prefixo === '/fonada' ? limparRascunhoFonada : limparRascunhoAoVivo)(rascunho.chave);
+    (prefixo === '/clientes' ? limparRascunhoCliente : prefixo === '/fonada' ? limparRascunhoFonada : limparRascunhoAoVivo)(rascunho.chave);
     setRascunhoFechar(null);
     mostrarToast('Rascunho descartado.');
   }
@@ -351,6 +351,7 @@ export default function Layout() {
             </button>
           </div>
 
+          {Object.values(rascunhosClientes).map(rascunho => <ItemRascunho key={rascunho.chave} prefixo="/clientes" tipo="Cadastro" rascunho={rascunho} onFechar={setRascunhoFechar} />)}
           <div className="nav-divisor" />
 
           <NavLink to="/cobranca" className="nav-item-direto" aria-label="Cobrança" title="Cobrança" onClick={(e) => aoClicarLinkSecao(e, '/cobranca')}>
@@ -431,7 +432,7 @@ export default function Layout() {
         </div>
       </main>
       <CommandPalette aberta={commandAberta} onFechar={() => setCommandAberta(false)} onNavegar={navigate} />
-      {rascunhoFechar && <Dialogo titulo="Fechar rascunho" descricao={`Descartar as alterações não salvas de ${nomeDoRascunho(rascunhoFechar.rascunho)}? O pedido já salvo permanece no sistema.`} onClose={() => setRascunhoFechar(null)} centralizado className="confirmacao-contextual">
+      {rascunhoFechar && <Dialogo titulo="Fechar rascunho" descricao={`Descartar as alterações não salvas de ${nomeDoRascunho(rascunhoFechar.rascunho)}? Os registros já salvos permanecem no sistema.`} onClose={() => setRascunhoFechar(null)} centralizado className="confirmacao-contextual">
         <div className="confirmacao-acoes"><button className="btn secundario" onClick={() => setRascunhoFechar(null)}>Continuar editando</button><button className="btn" onClick={descartarRascunho}>Descartar rascunho</button></div>
       </Dialogo>}
     </div>

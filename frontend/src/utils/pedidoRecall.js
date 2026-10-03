@@ -2,6 +2,7 @@ export function dadosMensagemRecall(pedido, numeroMensagem, modoFila, cadastroCo
   const prefixo = numeroMensagem === 2 ? 'p2' : 'p1';
   const invertido = modoFila === 'ANIVERSARIO';
   return {
+    osAnterior: String(pedido.senha_os || ''),
     tema: pedido[`${prefixo}_tema`] || '',
     fixo: invertido
       ? (cadastroComprador?.fixo || pedido.comprador_fixo || '')

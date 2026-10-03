@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { useRascunhos } from '../../RascunhosContext.jsx';
 import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
@@ -36,12 +37,36 @@ function enderecoCompleto(endereco, numero) {
 }
 
 export default function FormNovoCliente() {
+  const [params] = useSearchParams();
+  return <FormularioNovoCliente key={params.get('rascunho') || 'novo'} />;
+}
+
+function FormularioNovoCliente() {
   const navigate = useNavigate();
   const location = useLocation();
   const voltarHistorico = useSmartBack('/clientes');
   const { mostrarToast } = useToast();
 
-  const [dados, setDados] = useState(() => ({ ...VAZIO, ...(location.state?.dadosIniciais || {}) }));
+  const [params] = useSearchParams();
+  const { rascunhosClientes, salvarRascunhoCliente, limparRascunhoCliente } = useRascunhos();
+  const [novoId] = useState(() => crypto.randomUUID());
+  const idRascunho = params.get('rascunho') || novoId;
+  const chaveRascunho = `novo-${idRascunho}`;
+  const rascunho = rascunhosClientes[chaveRascunho];
+  const estadoOrigem = rascunho?.estado || location.state;
+  const salvo = useRef(false);
+  const [dados, setDados] = useState(() => ({ ...VAZIO, ...(rascunho?.dados || location.state?.dadosIniciais || {}) }));
+  React.useEffect(() => {
+    if (!params.get('rascunho')) {
+      const novos = new URLSearchParams(params);
+      novos.set('rascunho', idRascunho);
+      navigate({ pathname: location.pathname, search: novos.toString() }, { replace: true, state: estadoOrigem });
+    }
+  }, [idRascunho, location.pathname, navigate, params, estadoOrigem]);
+  React.useEffect(() => {
+    if (!salvo.current && (rascunho || Object.values(dados).some(valor => String(valor || '').trim())))
+      salvarRascunhoCliente(chaveRascunho, dados, estadoOrigem);
+  }, [dados, chaveRascunho, salvarRascunhoCliente]);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
   const [duplicados, setDuplicados] = useState(null);
@@ -78,6 +103,8 @@ export default function FormNovoCliente() {
         ...dadosPersistidos,
         endereco: enderecoCompleto(dados.endereco, numero),
       });
+      salvo.current = true;
+      limparRascunhoCliente(chaveRascunho);
       mostrarToast('Cliente cadastrado com sucesso.');
       navigate(`/clientes/${novo.id}`, { replace: true });
     } catch (err) {
