@@ -42,7 +42,7 @@ test('BTN Agenda: linhas, detalhes, ações Fonada e Ao Vivo', async ({ page, re
     await expect(page.getByRole('button', { name: 'Desfazer', exact: true })).toBeVisible();
     registrar('BTN-069', page, 'button:has-text("Marcar passada")', 'dar baixa', 'ação Desfazer disponível');
     await page.getByRole('button', { name: 'Desfazer', exact: true }).click();
-    await page.locator('.lista-agenda-compacta > .linha-agenda').filter({ hasText: nome }).filter({ hasText: 'Fonada' }).click();
+    await page.locator('.ag-time-group > .linha-agenda').filter({ hasText: nome }).filter({ hasText: 'Fonada' }).click();
     await expect(page.getByRole('button', { name: 'Marcar passada' })).toBeVisible();
     registrar('BTN-070', page, 'button:has-text("Desfazer")', 'desfazer baixa', 'ação Marcar passada restaurada');
     await page.getByRole('button', { name: 'Ver cliente' }).click();
@@ -70,15 +70,15 @@ test('BTN Agenda: linhas, detalhes, ações Fonada e Ao Vivo', async ({ page, re
     await expect(page.getByRole('button', { name: 'Marcar concluído' })).toBeVisible();
     registrar('BTN-040', page, '.linha-agenda:has-text("QA LEMBRETE")', 'selecionar linha', 'detalhes do lembrete exibidos');
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.getByRole('button', { name: 'Fechar detalhes' }).click();
+    await expect(page.getByRole('dialog', { name: 'Detalhes do compromisso' })).toHaveCount(0);
     await page.locator('.linha-agenda').filter({ hasText: nome }).filter({ hasText: 'Fonada' }).click();
     await expect(page.getByRole('button', { name: 'Fechar detalhes' })).toBeVisible();
     await page.getByRole('button', { name: 'Fechar detalhes' }).click();
-    await expect(page.locator('.painel-detalhes-agenda')).not.toHaveClass(/drawer-aberto/);
+    await expect(page.getByRole('dialog', { name: 'Detalhes do compromisso' })).toHaveCount(0);
     registrar('BTN-055', page, 'button[aria-label="Fechar detalhes"]', 'fechar painel móvel', 'detalhes recolhidos');
     await page.locator('.linha-agenda').filter({ hasText: nome }).filter({ hasText: 'Fonada' }).click();
     await page.locator('.drawer-overlay-mobile').click({ position: { x: 2, y: 2 } });
-    await expect(page.locator('.painel-detalhes-agenda')).not.toHaveClass(/drawer-aberto/);
+    await expect(page.getByRole('dialog', { name: 'Detalhes do compromisso' })).toHaveCount(0);
     registrar('BTN-056', page, '.drawer-overlay-mobile', 'clicar fora do painel', 'detalhes recolhidos');
   } finally {
     if (lembrete) await request.delete(`/api/agenda/lembretes/${lembrete.id}`, { headers });

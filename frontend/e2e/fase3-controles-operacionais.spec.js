@@ -18,7 +18,7 @@ test('Agenda navega dias, calendário e quatro abas, incluindo cancelamento de l
   await principal.getByRole('button', { name: 'Hoje', exact: true }).click();
   await principal.getByRole('button', { name: 'Mostrar dia anterior' }).click();
   await principal.getByRole('button', { name: 'Mostrar próximo dia' }).click();
-  const abas = principal.locator('.abas-cliente');
+  const abas = principal.locator('.ag-tabs');
   for (const nome of ['Fonada', 'Ao vivo', 'Lembretes', 'Geral']) {
     const botao = abas.getByRole('button', { name: new RegExp(`^${nome}`) });
     await botao.click();

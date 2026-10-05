@@ -27,7 +27,7 @@ export function BotaoIcone({ rotulo, children, className = '', ...props }) {
   );
 }
 
-export function Dialogo({ titulo, descricao, onClose, children, className = '', centralizado = false }) {
+export function Dialogo({ titulo, descricao, onClose, children, className = '', centralizado = false, rotuloFechar = 'Fechar', fundoClassName = '' }) {
   const tituloId = useId();
   const descricaoId = useId();
   const painelRef = useRef(null);
@@ -73,7 +73,7 @@ export function Dialogo({ titulo, descricao, onClose, children, className = '', 
   }, []);
 
   return createPortal(
-    <div className={`modal-fundo dialogo-fundo nao-imprimir ${centralizado ? 'dialogo-centralizado' : ''}`} onMouseDown={onClose}>
+    <div className={`modal-fundo dialogo-fundo nao-imprimir ${centralizado ? 'dialogo-centralizado' : ''} ${fundoClassName}`} onMouseDown={onClose}>
       <section
         ref={painelRef}
         className={`modal-caixa dialogo-caixa ${className}`.trim()}
@@ -86,7 +86,7 @@ export function Dialogo({ titulo, descricao, onClose, children, className = '', 
       >
         <header className="dialogo-cabecalho">
           <div><h2 id={tituloId}>{titulo}</h2>{descricao && <p id={descricaoId}>{descricao}</p>}</div>
-          <BotaoIcone rotulo="Fechar" onClick={onClose}>×</BotaoIcone>
+          <BotaoIcone rotulo={rotuloFechar} onClick={onClose}>×</BotaoIcone>
         </header>
         <div className="dialogo-conteudo">{children}</div>
       </section>

@@ -7,13 +7,15 @@ import {
   mensagemRegistrarERemarcar,
 } from '../../utils/mensagemAgenda.js';
 import { useToast } from '../../ToastContext.jsx';
-import { useAgendaAlerta, statusUrgenciaItem } from '../../AgendaAlertaContext.jsx';
+import { useAgendaAlerta } from '../../AgendaAlertaContext.jsx';
 import { useAtualizacaoTempoReal } from '../../TempoRealContext.jsx';
 import { formatarData, formatarHorario } from '../../mascaras.js';
 import CampoData from '../../components/CampoData.jsx';
 import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
 import { AvisoInline, CabecalhoPagina, Dialogo } from '../../components/Interface.jsx';
 import { numeroWhatsAppBrasil } from '../../utils/telefoneWhatsApp.js';
+import { agruparMensagensDuplas, itemConcluido, itemExpirado, urgenciaAgenda, ordenarAgenda, buscarNaAgenda, resumoAgenda, agruparTurnos } from '../../utils/agenda.js';
+import './agenda.css';
 
 // Data de hoje no mesmo formato usado nos campos do sistema (dd/mm/aa).
 function hojeFormatado() {
@@ -40,7 +42,7 @@ function paraDataSemHora(dataBr) {
   const [, dd, mm, aa] = m;
   const d = new Date(2000 + parseInt(aa, 10), parseInt(mm, 10) - 1, parseInt(dd, 10));
   d.setHours(0, 0, 0, 0);
-  return d;
+  return d.getDate() === Number(dd) && d.getMonth() === Number(mm) - 1 ? d : null;
 }
 
 // Soma (ou subtrai) dias a uma data no formato dd/mm/aa, devolvendo o
@@ -74,7 +76,13 @@ export default function Agenda() {
   // aba em que a pessoa estava, em vez de resetar para hoje.
   const [searchParams, setSearchParams] = useSearchParams();
   const dataSelecionada = searchParams.get('data') || hojeFormatado();
-  const aba = searchParams.get('aba') || 'geral';
+  const aba = ['geral', 'fonada', 'aovivo', 'lembretes'].includes(searchParams.get('aba')) ? searchParams.get('aba') : 'geral';
+  const busca = searchParams.get('q') || '';
+  const filtro = ['todos', 'pendentes', 'atrasados', 'proximos', 'concluidos'].includes(searchParams.get('situacao')) ? searchParams.get('situacao') : 'todos';
+  const ordem = searchParams.get('ordem') === 'prioridade' ? 'prioridade' : 'horario';
+  const [dataDigitada, setDataDigitada] = useState(dataSelecionada);
+  const [painelMobile, setPainelMobile] = useState(() => window.matchMedia('(max-width: 1100px)').matches);
+  useEffect(() => setDataDigitada(dataSelecionada), [dataSelecionada]);
   const inicioUrl = searchParams.get('inicio');
   const itemUrl = searchParams.get('item');
 
@@ -131,6 +139,8 @@ export default function Agenda() {
   // pessoa recarregue a página.
   useEffect(() => {
     if (!ehHoje || !agendaHojeCarregada) return;
+    setDataRef(dataSelecionada);
+    setErro('');
     setFonada(fonadaHoje);
     setAoVivo(aoVivoHoje);
     setLembretes(lembretesHoje);
@@ -139,6 +149,7 @@ export default function Agenda() {
 
   function carregar(data = dataSelecionada) {
     const idRequisicao = ++requisicaoAgendaRef.current;
+    if (!paraDataSemHora(data)) { setErro('Informe uma data completa e válida.'); setCarregando(false); return; }
     setCarregando(true);
     setErro('');
     api.agenda.hoje(data)
@@ -185,7 +196,8 @@ export default function Agenda() {
       setCarregando(true);
       setErro('');
       carregarAgendaHoje(false).then((resp) => {
-        if (!ativo || !resp || idRequisicao !== requisicaoAgendaRef.current) return;
+        if (!ativo || idRequisicao !== requisicaoAgendaRef.current) return;
+        if (!resp) { setErro('Não foi possível carregar a agenda. Tente novamente.'); setCarregando(false); return; }
         setDataRef(resp.data);
         setFonada(resp.fonada || []);
         setAoVivo(resp.aoVivo || []);
@@ -233,6 +245,16 @@ export default function Agenda() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inicioJanela, ehSmartphone, dataSelecionada, contagensPorData]);
 
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 1100px)');
+    const atualizar = () => {
+      setPainelMobile(media.matches);
+      if (media.matches) setChaveSelecionada(null);
+    };
+    media.addEventListener('change', atualizar);
+    return () => media.removeEventListener('change', atualizar);
+  }, []);
+
   // A faixa estreita do celular sempre nasce centrada no dia selecionado.
   // Em desktop o carrossel continua usando a janela de sete dias original;
   // a media query aqui só evita renderizar o dia selecionado fora da área
@@ -255,25 +277,30 @@ export default function Agenda() {
     function navegarComTeclado(e) {
       const alvo = e.target;
       const digitando = alvo instanceof HTMLInputElement || alvo instanceof HTMLTextAreaElement || alvo instanceof HTMLSelectElement || alvo?.isContentEditable;
-      if (digitando || itemRemarcarAberto || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (digitando || itemRemarcarAberto || lembreteAberto || (painelMobile && chaveSelecionada) || alvo?.closest('button,[role=button]') || e.ctrlKey || e.metaKey || e.altKey) return;
       if (e.key === 'ArrowLeft') { e.preventDefault(); selecionarDiaAdjacente(-1); }
       if (e.key === 'ArrowRight') { e.preventDefault(); selecionarDiaAdjacente(1); }
     }
     document.addEventListener('keydown', navegarComTeclado);
     return () => document.removeEventListener('keydown', navegarComTeclado);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dataSelecionada, inicioJanela, direcaoCarrossel, itemRemarcarAberto]);
+  }, [dataSelecionada, inicioJanela, direcaoCarrossel, itemRemarcarAberto, lembreteAberto, painelMobile, chaveSelecionada]);
 
   function irParaDia(novaData) {
+    if (!paraDataSemHora(novaData)) return;
+    setDataDigitada(novaData);
     if (novaData === dataSelecionada) return;
     const atual = paraDataSemHora(dataSelecionada);
     const proxima = paraDataSemHora(novaData);
+    setChaveSelecionada(null);
     setDirecaoConteudo(atual && proxima && proxima < atual ? 'voltar' : 'avancar');
     clearTimeout(temporizadorConteudoRef.current);
     temporizadorConteudoRef.current = setTimeout(() => setDirecaoConteudo(''), 320);
     setSearchParams((atual) => {
       const novo = new URLSearchParams(atual);
       novo.set('data', novaData);
+      novo.delete('item');
+      if (novaData !== hojeFormatado() && ['atrasados','proximos'].includes(novo.get('situacao'))) novo.delete('situacao');
       return novo;
     }, { replace: true });
   }
@@ -302,12 +329,14 @@ export default function Agenda() {
       irParaDia(novaData);
       return;
     }
-    const data = paraDataSemHora(novaData);
-    const inicio = paraDataSemHora(inicioJanela);
     clearTimeout(temporizadorCarrosselRef.current);
     setDirecaoCarrossel(null);
     setInicioJanela(somarDias(novaData, -3));
     irParaDia(novaData);
+  }
+
+  function mudarFiltros(valores) {
+    setSearchParams(atual => { const novos = new URLSearchParams(atual); for (const [chave, valor] of Object.entries(valores)) valor ? novos.set(chave, valor) : novos.delete(chave); return novos; }, { replace: true });
   }
 
   function irParaAba(novaAba) {
@@ -485,42 +514,6 @@ export default function Agenda() {
   // mensagem já passada e a outra ainda pendente também não é
   // agrupada — nesse caso já não faz mais sentido tratar como "uma
   // coisa só" na lista.
-  function agruparMensagensDuplas(lista) {
-    const porPedido = new Map();
-    for (const item of lista) {
-      if (!porPedido.has(item.pedidoId)) porPedido.set(item.pedidoId, []);
-      porPedido.get(item.pedidoId).push(item);
-    }
-
-    const idsAbsorvidos = new Set();
-    for (const item of lista) {
-      if (item.mensagem !== 1) continue;
-      const doMesmoPedido = porPedido.get(item.pedidoId) || [];
-      const par = doMesmoPedido.find((outro) => outro.mensagem === 2);
-      const podeAgrupar = par
-        && (item.para || '').trim().toUpperCase() === (par.para || '').trim().toUpperCase()
-        && (item.para || '').trim() !== ''
-        && item.dia === par.dia
-        && item.dia
-        && item.horario === par.horario
-        && item.horario
-        && item.passada === par.passada;
-      if (podeAgrupar) idsAbsorvidos.add(`${par.pedidoId}-2`);
-    }
-
-    // Mantém a posição original da 1ª mensagem na lista (já ordenada
-    // por horário) — só marca a 2ª mensagem absorvida para não
-    // aparecer de novo como linha própria, sem reordenar nada.
-    return lista
-      .filter((item) => !idsAbsorvidos.has(`${item.pedidoId}-${item.mensagem}`))
-      .map((item) => {
-        if (item.mensagem !== 1) return item;
-        const doMesmoPedido = porPedido.get(item.pedidoId) || [];
-        const par = doMesmoPedido.find((outro) => outro.mensagem === 2 && idsAbsorvidos.has(`${outro.pedidoId}-2`));
-        return par ? { ...item, agrupada: par } : item;
-      });
-  }
-
   const fonadaExibida = agruparMensagensDuplas(ehHoje ? ordenarPendentesPrimeiro(fonada, 'horario') : fonada);
   const aoVivoExibido = ehHoje ? ordenarPendentesPrimeiro(aoVivo, 'horario_entrega') : aoVivo;
   const lembretesExibidos = [...lembretes].sort((a, b) => {
@@ -538,17 +531,28 @@ export default function Agenda() {
     aovivo: todosItens.filter((item) => item._tipo === 'aovivo'),
     lembretes: todosItens.filter((item) => item._tipo === 'lembrete'),
   };
-  const listaAtual = listasPorAba[aba] || todosItens;
-  const chaveDoItem = (item) => item._chave;
-  const itemEstaConcluido = (item) => (
-    (item._tipo === 'fonada' && Boolean(item.passada))
-    || (item._tipo === 'aovivo' && Boolean(item.passada))
-    || (item._tipo === 'lembrete' && Boolean(item.concluido))
-  );
-  const itensPendentes = listaAtual.filter((item) => !itemEstaConcluido(item));
-  const itensConcluidos = listaAtual.filter(itemEstaConcluido);
-  const listaPendentes = useListaIncremental(itensPendentes, `${dataSelecionada}:${aba}:pendentes`);
-  const listaConcluidos = useListaIncremental(itensConcluidos, `${dataSelecionada}:${aba}:concluidos`);
+  const resumo = resumoAgenda(todosItens, ehHoje);
+  const listaDaAba = listasPorAba[aba] || todosItens;
+  const listaAtual = ordenarAgenda(buscarNaAgenda(listaDaAba, busca).filter(item => {
+    if (filtro === 'pendentes') return !itemConcluido(item);
+    if (filtro === 'concluidos') return itemConcluido(item);
+    if (filtro === 'atrasados') return urgenciaAgenda(item, ehHoje) === 'atrasada';
+    if (filtro === 'proximos') return urgenciaAgenda(item, ehHoje) === 'proxima';
+    return true;
+  }), ordem, ehHoje);
+  const chaveDoItem = item => item._chave;
+  const itemEstaConcluido = itemConcluido;
+  const itensPendentes = listaAtual.filter(item => !itemConcluido(item));
+  const itensConcluidos = listaAtual.filter(itemConcluido);
+  const listaPendentes = useListaIncremental(itensPendentes, `${dataSelecionada}:${aba}:${busca}:${filtro}:${ordem}:pendentes`);
+  const listaConcluidos = useListaIncremental(itensConcluidos, `${dataSelecionada}:${aba}:${busca}:${filtro}:concluidos`);
+  const grupos = ordem === 'horario' ? agruparTurnos(listaPendentes.itensVisiveis) : [{ nome: 'Prioridades do dia', intervalo: 'Atrasos e próximos horários primeiro', itens: listaPendentes.itensVisiveis }];
+  const posicaoPendente = itensPendentes.findIndex(item => item._chave === chaveSelecionada);
+  const posicaoConcluida = itensConcluidos.findIndex(item => item._chave === chaveSelecionada);
+  useEffect(() => {
+    if (posicaoPendente >= 50) listaPendentes.mostrarAte(posicaoPendente + 1);
+    if (posicaoConcluida >= 50) listaConcluidos.mostrarAte(posicaoConcluida + 1);
+  }, [posicaoPendente, posicaoConcluida, dataSelecionada, aba, busca, filtro, ordem]);
 
   // Ao trocar de dia ou de aba: no desktop, seleciona automaticamente o
   // primeiro item (painel de detalhes nunca fica vazio à toa). No
@@ -566,13 +570,14 @@ export default function Agenda() {
       return;
     }
     const itemAindaExiste = listaAtual.find((item) => chaveDoItem(item) === chaveSelecionada);
-    const itemFicouOculto = itemAindaExiste && itemEstaConcluido(itemAindaExiste) && !concluidosAbertos;
+    const itemFicouOculto = itemAindaExiste && itemEstaConcluido(itemAindaExiste) && !concluidosAbertos && filtro !== 'concluidos';
     if (!itemAindaExiste || itemFicouOculto) {
-      const ehMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches;
-      setChaveSelecionada(ehMobile || itensPendentes.length === 0 ? null : chaveDoItem(itensPendentes[0]));
+      const ehMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 1100px)').matches;
+      const primeiro = itensPendentes.find(item => !itemExpirado(item)) || itensPendentes[0];
+      setChaveSelecionada(ehMobile || !primeiro ? null : chaveDoItem(primeiro));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aba, dataSelecionada, fonada, aoVivo, lembretes, concluidosAbertos, carregando]);
+  }, [aba, dataSelecionada, fonada, aoVivo, lembretes, concluidosAbertos, carregando, busca, filtro, ordem]);
 
   const itemSelecionado = listaAtual.find((item) => chaveDoItem(item) === chaveSelecionada) || null;
   const inicioRenderizacao = direcaoCarrossel === 'tras' ? -1 : 0;
@@ -588,7 +593,7 @@ export default function Agenda() {
     const chave = item._chave;
     if (item._tipo === 'fonada') {
       const jaPassada = Boolean(item.passada);
-      const urgencia = (ehHoje && !jaPassada) ? statusUrgenciaItem(item.horario) : null;
+      const urgencia = urgenciaAgenda(item, ehHoje);
       return (
         <LinhaAgenda
           key={chave}
@@ -598,8 +603,10 @@ export default function Agenda() {
           jaPassada={jaPassada}
           senhaOs={item.senha_os}
           horario={item.horario}
-          titulo={item.nome_comprador}
-          tagExtra={item.statusMensagemEmHaver === 'EXPIRADA'
+          tipo="fonada"
+          titulo={item.para || item.nome_comprador}
+          detalhes={[item.nome_comprador && `Cliente: ${item.nome_comprador}`, item.tema, item.agrupada && 'Duas mensagens nesta ligação'].filter(Boolean)}
+          tagExtra={itemExpirado(item)
             ? 'Expirada'
             : item.agrupada
               ? (aba === 'geral' ? 'Fonada · 1ª + 2ª juntas' : '1ª + 2ª juntas')
@@ -612,7 +619,7 @@ export default function Agenda() {
     }
     if (item._tipo === 'aovivo') {
       const jaPassada = Boolean(item.passada);
-      const urgencia = (ehHoje && !jaPassada) ? statusUrgenciaItem(item.horario_entrega) : null;
+      const urgencia = urgenciaAgenda(item, ehHoje);
       return (
         <LinhaAgenda
           key={chave}
@@ -622,12 +629,12 @@ export default function Agenda() {
           jaPassada={jaPassada}
           senhaOs={item.numero_os}
           horario={item.horario_entrega}
-          titulo={item.comprador}
+          tipo="aovivo"
+          titulo={item.para || item.comprador}
           detalhes={[
-            item.bairro,
-            item.brinde,
+            item.comprador && `Cliente: ${item.comprador}`, item.bairro, item.brinde,
           ].filter(Boolean)}
-          tagExtra={aba === 'geral' ? 'Ao vivo' : (jaPassada ? null : 'Agendado')}
+          tagExtra="Ao vivo"
           prazo={pagamentoEhPrazo(item.pagamento)}
           status={jaPassada ? 'Entregue' : (item.pagou === 'SIM' ? 'Pago' : null)}
           statusOk={jaPassada || item.pagou === 'SIM'}
@@ -639,11 +646,13 @@ export default function Agenda() {
         key={chave}
         selecionada={chaveSelecionada === chave}
         onClick={() => setChaveSelecionada(chave)}
-        urgencia={ehHoje && !item.concluido ? statusUrgenciaItem(item.horario) : null}
+        urgencia={urgenciaAgenda(item, ehHoje)}
         jaPassada={item.concluido}
         senhaOs="•"
         horario={item.horario || 'Dia'}
+        tipo="lembrete"
         titulo={item.titulo}
+        detalhes={item.observacao ? [item.observacao] : []}
         tagExtra="Lembrete"
         status={item.concluido ? 'Concluído' : null}
         statusOk={item.concluido}
@@ -651,182 +660,67 @@ export default function Agenda() {
     );
   }
 
+  function selecionarProximo() {
+    if (!resumo.proximo) return;
+    mudarFiltros({ aba: 'geral', q: '', situacao: '' });
+    setChaveSelecionada(resumo.proximo._chave);
+    listaPendentes.mostrarAte(todosItens.length);
+  }
+  const navegarDaAgenda = destino => navigate(destino, { state: { returnTo: `/agenda${window.location.search}` } });
+  const detalhes = <div className={`painel-detalhes-agenda ${itemSelecionado ? 'drawer-aberto' : ''}`}>
+    {!painelMobile && <header className="ag-inspector-heading"><div><small>Seu espaço de trabalho</small><strong>Detalhes do compromisso</strong></div>{itemSelecionado && <button type="button" aria-label="Fechar detalhes" onClick={() => setChaveSelecionada(null)}>×</button>}</header>}
+    <div key={itemSelecionado?._chave || 'sem-selecao'} className="agenda-detalhe-transicao">
+      {!itemSelecionado ? <div className="ag-inspector-empty"><span aria-hidden="true">↖</span><h3>Escolha um compromisso</h3><p>Veja a mensagem, os contatos e as ações aqui, sem perder a sua posição na agenda.</p></div>
+        : itemSelecionado._tipo === 'fonada' ? <DetalhesFonada item={itemSelecionado} ehHoje={ehHoje} salvandoBaixa={salvandoBaixa} navigate={navegarDaAgenda} onDarBaixa={darBaixa} onDesfazerBaixa={desfazerBaixa} onAbrirRemarcar={abrirRemarcar}/>
+        : itemSelecionado._tipo === 'aovivo' ? <DetalhesAoVivo item={itemSelecionado} ehHoje={ehHoje} navigate={navegarDaAgenda}/>
+        : <DetalhesLembrete item={itemSelecionado} onEditar={abrirEdicaoLembrete} onAlternar={alternarLembrete} onExcluir={excluirLembrete}/>}
+    </div>
+  </div>;
+  const textoData = paraDataSemHora(dataSelecionada)?.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) || dataSelecionada;
+  const dataExtensa = textoData.charAt(0).toUpperCase() + textoData.slice(1);
+  const temFiltro = busca || filtro !== 'todos';
   return (
-    <div className="agenda-v2">
-      <CabecalhoPagina
-        className="agenda-cabecalho-v3"
-        contexto="Operação diária"
-        titulo="Agenda"
-        descricao={ehHoje ? 'Acompanhe o ritmo de hoje e as próximas mensagens.' : `Consultando ${rotuloDiaSemana(dataSelecionada)}, ${dataSelecionada}.`}
-        acoes={<div className="agenda-controles-v2">
-          <button type="button" className="btn-small agenda-novo-lembrete" onClick={abrirNovoLembrete}>+ Lembrete</button>
-          <button type="button" className="agenda-seta-dia" onClick={() => selecionarDiaAdjacente(-1)} aria-label="Dia anterior">←</button>
-          <CampoData
-            className="campo-data-agenda"
-            placeholder="dd/mm/aa"
-            value={dataSelecionada}
-            onChange={(v) => selecionarDataGarantindoVisibilidade(formatarData(v))}
-          />
-          {!ehHoje && (
-            <button type="button" className="btn-small agenda-hoje" onClick={() => selecionarDataGarantindoVisibilidade(hojeFormatado())}>
-              Hoje
-            </button>
-          )}
-          <button type="button" className="agenda-seta-dia" onClick={() => selecionarDiaAdjacente(1)} aria-label="Próximo dia">→</button>
-          {!ehHoje && (
-            <span className="aviso-consulta-agenda"><i /> Somente visualização</span>
-          )}
-        </div>}
-      />
-
-      <div className="carrossel-dias-agenda" aria-label="Navegação pelos dias da agenda">
-        <button type="button" className="seta-carrossel-agenda" onClick={() => moverJanela('tras')} disabled={Boolean(direcaoCarrossel)} aria-label="Mostrar dia anterior">‹</button>
-        <div className="faixa-semana-viewport">
-          {carregandoSemana ? (
-            <span className="fs-sm texto-suave">Carregando próximos dias...</span>
-          ) : (
-            <div className={`faixa-semana-agenda ${direcaoCarrossel ? `animando ${direcaoCarrossel}` : ''}`}>
-              {datasDosCards.map((data) => {
-                const total = contagensPorData[data];
-                return (
-                  <button key={data} type="button" className={`${data === dataSelecionada ? 'ativo' : ''} ${data === hojeFormatado() ? 'hoje' : ''}`} onClick={() => irParaDia(data)}>
-                    <span>{data === hojeFormatado() ? 'Hoje' : rotuloDiaSemana(data)}</span>
-                    <strong>{data.slice(0, 5)}</strong>
-                    <small>{total ?? '…'} {total === 1 ? 'compromisso' : 'compromissos'}</small>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-        <button type="button" className="seta-carrossel-agenda" onClick={() => moverJanela('frente')} disabled={Boolean(direcaoCarrossel)} aria-label="Mostrar próximo dia">›</button>
-      </div>
-
-      <div key={`${dataSelecionada}-${aba}`} className={`agenda-conteudo-transicao ${direcaoConteudo}`}>
-      {erro && <AvisoInline tom="erro" titulo="Não foi possível atualizar a agenda">{erro}</AvisoInline>}
-
-      {carregando && !dataRef ? (
-        <SkeletonAgenda />
-      ) : (
-        <div className={`section-box secao-relatorios ${carregando ? 'agenda-carregando-dados' : ''}`} aria-busy={carregando}>
-          {carregando && <div className="agenda-atualizando">Atualizando agenda...</div>}
-          <div className="abas-cliente">
-            <button
-              type="button"
-              className={`aba-cliente-botao ${aba === 'geral' ? 'ativa' : ''}`}
-              onClick={() => irParaAba('geral')}
-            >
-              Geral <span className="aba-contagem">{todosItens.length}</span>
-            </button>
-            <button
-              type="button"
-              className={`aba-cliente-botao ${aba === 'fonada' ? 'ativa' : ''}`}
-              onClick={() => irParaAba('fonada')}
-            >
-              Fonada <span className="aba-contagem">{fonadaExibida.length}</span>
-            </button>
-            <button
-              type="button"
-              className={`aba-cliente-botao ${aba === 'aovivo' ? 'ativa' : ''}`}
-              onClick={() => irParaAba('aovivo')}
-            >
-              Ao vivo <span className="aba-contagem">{aoVivoExibido.length}</span>
-            </button>
-            <button
-              type="button"
-              className={`aba-cliente-botao ${aba === 'lembretes' ? 'ativa' : ''}`}
-              onClick={() => irParaAba('lembretes')}
-            >
-              Lembretes <span className="aba-contagem">{lembretesExibidos.length}</span>
-            </button>
-          </div>
-
-          <div className={`grid-agenda-lista-painel ${listaAtual.length === 0 ? 'sem-itens' : ''}`}>
-            <div className="lista-agenda-compacta">
-              {listaAtual.length === 0 ? (
-                <AgendaVazia ehHoje={ehHoje} onNovo={abrirNovoLembrete} />
-              ) : (
-                <>
-                  {itensPendentes.length > 0
-                    ? listaPendentes.itensVisiveis.map(renderizarLinhaAgenda)
-                    : <div className="agenda-pendentes-vazia">Nenhum item pendente.</div>}
-                  <BotaoMostrarMais temMais={listaPendentes.temMais} restantes={listaPendentes.restantes} onClick={listaPendentes.mostrarMais} />
-                  {itensConcluidos.length > 0 && (
-                    <div className={`agenda-concluidos ${concluidosAbertos ? 'aberto' : ''}`}>
-                      <button
-                        type="button"
-                        className="agenda-concluidos-toggle"
-                        onClick={() => setConcluidosAbertos((aberto) => !aberto)}
-                        aria-expanded={concluidosAbertos}
-                        aria-controls="agenda-itens-concluidos"
-                      >
-                        <span className="agenda-concluidos-seta" aria-hidden="true">›</span>
-                        <span>Concluídos</span>
-                        <span className="agenda-concluidos-contagem">{itensConcluidos.length}</span>
-                        <small>{concluidosAbertos ? 'Clique para recolher' : 'Clique para visualizar'}</small>
-                      </button>
-                      {concluidosAbertos && (
-                        <div id="agenda-itens-concluidos" className="agenda-concluidos-lista">
-                          {listaConcluidos.itensVisiveis.map(renderizarLinhaAgenda)}
-                          <BotaoMostrarMais temMais={listaConcluidos.temMais} restantes={listaConcluidos.restantes} onClick={listaConcluidos.mostrarMais} />
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            {listaAtual.length > 0 && <div className={`painel-detalhes-agenda ${itemSelecionado ? 'drawer-aberto' : ''}`}>
-              {itemSelecionado && (
-                <button
-                  type="button"
-                  className="drawer-fechar-mobile"
-                  onClick={() => setChaveSelecionada(null)}
-                  aria-label="Fechar detalhes"
-                >
-                  ✕
-                </button>
-              )}
-              <div key={itemSelecionado?._chave || 'sem-selecao'} className="agenda-detalhe-transicao">
-              {!itemSelecionado ? (
-                <p className="fs-sm" style={{ color: 'var(--tinta-suave)', textAlign: 'center', padding: '24px 12px' }}>
-                  Selecione um item da lista para ver os detalhes.
-                </p>
-              ) : itemSelecionado._tipo === 'fonada' ? (
-                <DetalhesFonada
-                  item={itemSelecionado}
-                  ehHoje={ehHoje}
-                  salvandoBaixa={salvandoBaixa}
-                  navigate={navigate}
-                  onDarBaixa={darBaixa}
-                  onDesfazerBaixa={desfazerBaixa}
-                  onAbrirRemarcar={abrirRemarcar}
-                />
-              ) : itemSelecionado._tipo === 'aovivo' ? (
-                <DetalhesAoVivo
-                  item={itemSelecionado}
-                  ehHoje={ehHoje}
-                  navigate={navigate}
-                />
-              ) : (
-                <DetalhesLembrete
-                  item={itemSelecionado}
-                  onEditar={abrirEdicaoLembrete}
-                  onAlternar={alternarLembrete}
-                  onExcluir={excluirLembrete}
-                />
-              )}
-              </div>
-            </div>}
+    <div className="agenda-v2 agenda-moderna">
+      <CabecalhoPagina className="agenda-cabecalho-v3" contexto="Seu dia, organizado" titulo="Agenda" descricao="Mensagens, entregas e lembretes. Tudo no seu tempo."
+        acoes={<div className="ag-header-actions"><button type="button" className="ag-button secundario" onClick={() => carregar()} disabled={carregando}>↻ Atualizar</button><button type="button" className="ag-button" onClick={abrirNovoLembrete}>+ Lembrete</button></div>}/>
+      <section className="ag-calendar" aria-label="Navegação pelos dias da agenda">
+        <div className="ag-calendar-top"><div className="ag-day-title"><small>{ehHoje ? 'Hoje' : 'Dia selecionado'}</small><h2>{dataExtensa}</h2></div>
+          <div className="agenda-controles-v2"><button type="button" className="agenda-seta-dia" onClick={() => selecionarDiaAdjacente(-1)} aria-label="Dia anterior">←</button>
+            <CampoData id="ag-data" className="campo-data-agenda" placeholder="dd/mm/aa" value={dataDigitada} onChange={v => {const data = formatarData(v); setDataDigitada(data); if (paraDataSemHora(data)) selecionarDataGarantindoVisibilidade(data);}}/>
+            <button type="button" className="agenda-seta-dia" onClick={() => selecionarDiaAdjacente(1)} aria-label="Próximo dia">→</button><button type="button" className="ag-today" onClick={() => selecionarDataGarantindoVisibilidade(hojeFormatado())}>Hoje</button>
           </div>
         </div>
-      )}
-      </div>
-
-      {itemSelecionado && (
-        <div className="drawer-overlay-mobile" onClick={() => setChaveSelecionada(null)} />
-      )}
+        {dataDigitada !== dataSelecionada && <p className="ag-date-hint" role="status">Informe uma data completa e válida para trocar o dia.</p>}
+        <div className="carrossel-dias-agenda"><button type="button" className="seta-carrossel-agenda" onClick={() => moverJanela('tras')} disabled={Boolean(direcaoCarrossel)} aria-label="Mostrar dia anterior">‹</button>
+          <div className="faixa-semana-viewport">{carregandoSemana ? <div className="ag-week-loading" role="status">Carregando dias…</div> : <div className={`faixa-semana-agenda ${direcaoCarrossel ? `animando ${direcaoCarrossel}` : ''}`}>{datasDosCards.map(data => {
+            const total = contagensPorData[data]; return <button key={data} type="button" aria-pressed={data === dataSelecionada} aria-label={`${data} · ${total ?? 'Carregando'} compromissos`} className={`${data === dataSelecionada ? 'ativo' : ''} ${data === hojeFormatado() ? 'hoje' : ''}`} onClick={() => irParaDia(data)}><span>{rotuloDiaSemana(data)}</span><strong>{data.slice(0,2)}</strong><small>{total ?? '…'} {total === 1 ? 'compromisso' : 'compromissos'}</small><i className="ag-day-density" style={{ '--ag-density': total ? `${Math.min(100, 12 + total * 7)}%` : '0%' }}/></button>;
+          })}</div>}</div><button type="button" className="seta-carrossel-agenda" onClick={() => moverJanela('frente')} disabled={Boolean(direcaoCarrossel)} aria-label="Mostrar próximo dia">›</button></div>
+        {!ehHoje && <p className="ag-consultation-note">Você está consultando outro dia. Baixas e remarcações de mensagens ficam disponíveis na agenda de hoje.</p>}
+      </section>
+      {erro && <AvisoInline tom="erro" titulo="Não foi possível atualizar a agenda" acao={<button type="button" className="ag-button" onClick={() => carregar()}>Tentar novamente</button>}>{erro}</AvisoInline>}
+      {(carregando && dataRef !== dataSelecionada) ? <SkeletonAgenda/> : !erro && dataRef === dataSelecionada && <div className="ag-day-content" aria-busy={carregando}>
+        <section className="ag-overview" aria-label="Resumo do dia">
+          <div className="ag-progress-card"><div><span>Andamento do dia</span><strong>{resumo.concluidos}<small> de {resumo.total} concluídos</small></strong></div><b>{resumo.progresso}%</b><div className="ag-progress-track" role="progressbar" aria-label="Compromissos concluídos" aria-valuenow={resumo.progresso} aria-valuemin={0} aria-valuemax={100}><i style={{width:`${resumo.progresso}%`}}/></div><small>Mensagens juntas contam como um compromisso.</small></div>
+          <button type="button" className="ag-stat-card" aria-label="Mostrar pendentes" onClick={() => mudarFiltros({aba:'geral',situacao:'pendentes',q:''})}><span>Em aberto</span><strong>{resumo.pendentes}</strong><small>Ver pendências <span aria-hidden="true">↗</span></small></button>
+          <button type="button" className={`ag-stat-card atencao ${resumo.atrasados ? 'tem-atrasos' : ''}`} disabled={!ehHoje} aria-label="Mostrar atrasados" onClick={() => mudarFiltros({aba:'geral',situacao:'atrasados',q:''})}><span>{ehHoje ? 'Precisam de atenção' : 'Consulta do dia'}</span><strong>{ehHoje ? resumo.atrasados : '—'}</strong><small>{ehHoje ? `${resumo.proximos} chegando nos próximos 10 min` : 'Alertas ativos somente hoje'}</small></button>
+          <button type="button" className="ag-next-card" onClick={selecionarProximo} disabled={!resumo.proximo} aria-label="Ver próximo compromisso"><span>Próximo horário{!ehHoje ? ' do dia' : ''}</span><strong>{resumo.proximo?._horario || '—'}</strong><small>{resumo.proximo ? resumo.proximo.para || resumo.proximo.titulo || resumo.proximo.nome_comprador || resumo.proximo.comprador : 'Nenhum outro horário agendado'}</small><em>{resumo.proximo ? 'Abrir detalhes ↗' : 'Confira também as tarefas sem horário'}</em></button>
+        </section>
+        <div className="ag-workspace-toolbar"><div className="ag-tabs" aria-label="Tipos de compromisso">{[['geral','Geral',todosItens.length],['fonada','Fonada',fonadaExibida.length],['aovivo','Ao vivo',aoVivoExibido.length],['lembretes','Lembretes',lembretesExibidos.length]].map(([id,nome,total]) => <button type="button" key={id} className={aba===id?'ativa':''} aria-pressed={aba===id} onClick={() => irParaAba(id)}>{nome}<span>{total}</span></button>)}</div>
+          <label className="ag-search"><span aria-hidden="true">⌕</span><input aria-label="Buscar na agenda" placeholder="Cliente, destinatário ou O.S." value={busca} onChange={e => mudarFiltros({q:e.target.value})}/>{busca && <button type="button" aria-label="Limpar busca" onClick={() => mudarFiltros({q:''})}>×</button>}</label>
+        </div>
+        <div className="ag-list-toolbar"><div className="ag-filters" aria-label="Situação dos compromissos">{[['todos','Todos'],['pendentes','Pendentes'],['atrasados','Atrasados'],['proximos','Próximos'],['concluidos','Concluídos']].map(([id,nome]) => <button type="button" key={id} aria-label={`Filtrar por ${nome.toLowerCase()}`} aria-pressed={filtro===id} disabled={!ehHoje && ['atrasados','proximos'].includes(id)} onClick={() => mudarFiltros({situacao:id==='todos'?'':id})}>{nome}</button>)}</div><label className="ag-sort">Organizar por<select aria-label="Ordenar compromissos" value={ordem} onChange={e => mudarFiltros({ordem:e.target.value})}><option value="horario">Horário</option><option value="prioridade">Prioridade</option></select></label></div>
+        <div className="ag-color-legend" aria-label="Legenda da agenda"><span><i className="fonada"/>Fonada</span><span><i className="aovivo"/>Ao vivo</span><span><i className="lembrete"/>Lembrete</span><small>{listaAtual.length} {listaAtual.length === 1 ? 'compromisso' : 'compromissos'} nesta visualização</small></div>
+        {carregando && <div className="ag-updating" role="status">Atualizando agenda…</div>}
+        <div className={`grid-agenda-lista-painel ${listaAtual.length === 0 ? 'sem-itens' : ''}`} inert={carregando?'':undefined}>
+          <div className="lista-agenda-compacta">{listaAtual.length === 0 ? temFiltro ? <div className="ag-filter-empty"><span aria-hidden="true">⌕</span><h3>Nenhum compromisso encontrado</h3><p>Tente outra busca ou ajuste os filtros deste dia.</p><button type="button" className="ag-button secundario" onClick={() => mudarFiltros({q:'',situacao:''})}>Limpar filtros</button></div> : <AgendaVazia ehHoje={ehHoje} onNovo={abrirNovoLembrete}/> : <>
+            {itensPendentes.length ? grupos.map(grupo => <section className="ag-time-group" key={grupo.nome} aria-label={grupo.nome}><header><i/><h3>{grupo.nome}</h3><span>{grupo.intervalo}</span><b>{grupo.itens.length}</b></header>{grupo.itens.map(renderizarLinhaAgenda)}</section>) : filtro !== 'concluidos' && <div className="agenda-pendentes-vazia">Nenhuma pendência nesta visualização.</div>}
+            <BotaoMostrarMais temMais={listaPendentes.temMais} restantes={listaPendentes.restantes} onClick={listaPendentes.mostrarMais}/>
+            {itensConcluidos.length > 0 && <div className={`agenda-concluidos ${concluidosAbertos || filtro==='concluidos' ? 'aberto' : ''}`}><button type="button" className="agenda-concluidos-toggle" onClick={() => filtro==='concluidos' ? mudarFiltros({situacao:''}) : setConcluidosAbertos(v=>!v)} aria-expanded={concluidosAbertos || filtro==='concluidos'} aria-controls="agenda-itens-concluidos"><span className="agenda-concluidos-seta" aria-hidden="true">›</span><span>Concluídos</span><span className="agenda-concluidos-contagem">{itensConcluidos.length}</span><small>{concluidosAbertos || filtro==='concluidos' ? 'Recolher' : 'Ver compromissos'}</small></button>{(concluidosAbertos || filtro==='concluidos') && <div id="agenda-itens-concluidos" className="agenda-concluidos-lista">{listaConcluidos.itensVisiveis.map(renderizarLinhaAgenda)}<BotaoMostrarMais temMais={listaConcluidos.temMais} restantes={listaConcluidos.restantes} onClick={listaConcluidos.mostrarMais}/></div>}</div>}
+          </>}</div>
+          {!painelMobile && listaAtual.length > 0 && detalhes}
+        </div>
+      </div>}
+      {painelMobile && itemSelecionado && !carregando && !erro && dataRef===dataSelecionada && !itemRemarcarAberto && !lembreteAberto && <Dialogo titulo="Detalhes do compromisso" descricao={`${dataSelecionada} · ${itemSelecionado._horario || 'Sem horário'}`} onClose={() => setChaveSelecionada(null)} rotuloFechar="Fechar detalhes" fundoClassName="agenda-detalhes-fundo drawer-overlay-mobile" className="agenda-dialogo-detalhes agenda-moderna">{detalhes}</Dialogo>}
 
       {itemRemarcarAberto && (
         <Dialogo
@@ -980,16 +874,17 @@ function IconeChevron({ aberto }) {
 // Uma linha fina e clicável na lista compacta — horário, nome, tag de
 // urgência/status. Reduz cada item a uma tira baixa, para caber muitos
 // na tela sem rolar, em vez do card grande com todos os campos aberto.
-function LinhaAgenda({ selecionada, onClick, urgencia, jaPassada, senhaOs, horario, titulo, detalhes = [], tagExtra, tagExtraDestaque, prazo, status, statusOk }) {
+function LinhaAgenda({ tipo, selecionada, onClick, urgencia, jaPassada, senhaOs, horario, titulo, detalhes = [], tagExtra, tagExtraDestaque, prazo, status, statusOk }) {
   return (
     <div
-      className={`linha-agenda ${selecionada ? 'selecionada' : ''} ${urgencia ? `urgencia-${urgencia}` : ''} ${jaPassada ? 'passada' : ''}`}
+      className={`linha-agenda ag-tipo-${tipo} ${selecionada ? 'selecionada' : ''} ${urgencia ? `urgencia-${urgencia}` : ''} ${jaPassada ? 'passada' : ''}`}
       onClick={onClick}
       role="button"
+      aria-pressed={selecionada}
       tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter') onClick(); }}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
     >
-      {senhaOs && <span className="linha-agenda-os">{senhaOs}</span>}
+      <span className="ag-type-marker" aria-hidden="true">{tipo === 'fonada' ? '↗' : tipo === 'aovivo' ? '♫' : '✓'}</span>
       <span className="linha-agenda-horario" style={{ textDecoration: jaPassada ? 'line-through' : 'none' }}>
         {horario || '—'}
       </span>
@@ -1006,6 +901,7 @@ function LinhaAgenda({ selecionada, onClick, urgencia, jaPassada, senhaOs, horar
           </span>
         )}
       </span>
+      {senhaOs && senhaOs!=='•' && <span className="linha-agenda-os">O.S. {senhaOs}</span>}
       {(tagExtra || prazo || urgencia || status) && (
         <span className="linha-agenda-tags">
           {tagExtra && <span className="tag neutro linha-agenda-tag" style={tagExtraDestaque ? { fontWeight: 700 } : undefined}>{tagExtra}</span>}
@@ -1024,8 +920,8 @@ function LinhaAgenda({ selecionada, onClick, urgencia, jaPassada, senhaOs, horar
 // uma tela nova para cada um.
 function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onDesfazerBaixa, onAbrirRemarcar }) {
   const chave = `${item.pedidoId}-${item.mensagem}`;
-  const jaPassada = ehHoje && item.passada;
-  const urgencia = (ehHoje && !jaPassada) ? statusUrgenciaItem(item.horario) : null;
+  const jaPassada = Boolean(item.passada);
+  const urgencia = urgenciaAgenda(item, ehHoje);
 
   // Quando as duas mensagens do pedido têm o mesmo destinatário e
   // horário, vêm juntas nesse item (ver agruparMensagensDuplas) — o
@@ -1297,7 +1193,7 @@ function CardRemarcacoesPrazo({ pedidoId }) {
 }
 
 function DetalhesAoVivo({ item, ehHoje, navigate }) {
-  const urgencia = (ehHoje && !item.passada) ? statusUrgenciaItem(item.horario_entrega) : null;
+  const urgencia = urgenciaAgenda(item, ehHoje);
   const mensagens = [1, 2, 3, 4]
     .map((numero) => ({ numero, tema: item[`tema_${numero}`], codigo: item[`mensagem_codigo_${numero}`] }))
     .filter((mensagem) => mensagem.tema || mensagem.codigo);
@@ -1472,23 +1368,3 @@ function InfoTelefone({ label, valor, mensagem, className = '' }) {
     </div>
   );
 }
-
-const estilos = {
-  navegacaoData: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 6,
-    flexWrap: 'wrap',
-  },
-  itemAgenda: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: 14,
-    flexWrap: 'wrap',
-  },
-  itemPassado: {
-    opacity: 0.55,
-  },
-};

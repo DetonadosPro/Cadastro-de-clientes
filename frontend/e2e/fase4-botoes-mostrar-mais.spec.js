@@ -28,9 +28,9 @@ test('BTN-052/054: Agenda expande mais 50 pendentes e concluídos', async ({ pag
   await page.route('**/api/agenda/hoje*', (rota) => responder(rota, { data: dia(), fonada: [], aoVivo: [], lembretes }));
   await entrar(page);
   await page.goto('/agenda');
-  await expect(page.locator('.lista-agenda-compacta > .linha-agenda')).toHaveCount(50);
+  await expect(page.locator('.ag-time-group > .linha-agenda')).toHaveCount(50);
   await page.locator('.lista-agenda-compacta > .lista-mostrar-mais').getByRole('button', { name: /Mostrar mais/ }).click();
-  await expect(page.locator('.lista-agenda-compacta > .linha-agenda')).toHaveCount(51);
+  await expect(page.locator('.ag-time-group > .linha-agenda')).toHaveCount(51);
   registrar('BTN-052', page, '.lista-agenda-compacta > .lista-mostrar-mais button', 'expandir pendentes', '51º lembrete pendente exibido');
   await page.getByRole('button', { name: /Concluídos/ }).click();
   await expect(page.locator('.agenda-concluidos .linha-agenda')).toHaveCount(50);

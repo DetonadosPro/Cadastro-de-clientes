@@ -20,6 +20,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { api, getToken } from './api.js';
 import { useAtualizacaoTempoReal } from './TempoRealContext.jsx';
 import { useToast } from './ToastContext.jsx';
+import { itemExpirado } from './utils/agenda.js';
 
 const AgendaAlertaContext = createContext(null);
 
@@ -62,7 +63,7 @@ function itensAtrasados(itensFonada, itensAoVivo) {
   const atrasados = [];
 
   for (const item of itensFonada) {
-    if (item.passada) continue;
+    if (item.passada || itemExpirado(item)) continue;
     const diff = minutosAteHorario(item.horario, agora);
     if (diff !== null && diff < 0) {
       atrasados.push(`fonada-${item.pedidoId}-${item.mensagem}`);
@@ -84,7 +85,7 @@ function corAgregada(itensFonada, itensAoVivo) {
   const agora = new Date();
 
   for (const item of itensFonada) {
-    if (item.passada) continue;
+    if (item.passada || itemExpirado(item)) continue;
     const diff = minutosAteHorario(item.horario, agora);
     if (diff === null) continue;
     if (diff < 0) temAtrasada = true;

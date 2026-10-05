@@ -29,4 +29,5 @@ Os scripts de importação de planilha são legados e devem ser revisados antes 
 - `npm test` em `backend` e `frontend` executa os testes de unidade.
 - `npm run build` em `frontend` verifica a compilação.
 - `npm run test:relatorios` em `frontend` verifica comparações, gráficos interativos, filtros, paginação e telas de 320 a 1440 pixels com dados simulados, sem acessar o banco. Usa o Microsoft Edge instalado.
+- `npm run test:agenda` em `frontend` verifica a agenda moderna, seus filtros, lembretes, baixas e remarcações com dados simulados, sem acessar o banco. Inclui teclado, toque e telas de 320 a 1440 pixels; usa o Microsoft Edge instalado.
 - A suíte de navegação fica em `frontend/e2e` e exige o banco QA isolado. Consulte [docs/auditoria/INVENTARIO_E_COBERTURA.md](docs/auditoria/INVENTARIO_E_COBERTURA.md) antes de executá-la.
