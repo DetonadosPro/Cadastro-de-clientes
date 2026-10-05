@@ -1165,13 +1165,18 @@ body.sobreposicao-aberta .layout-conteudo { overflow: hidden; }
 .comparacao-indicadores { margin: 16px 0; min-width: 0; }
 .comparacao-indicadores h3 { margin: 0 0 12px; font-size: 15px; }
 
-/* Hora da agenda integrada à navegação superior. */
-.workspace-relogio { flex: 0 0 auto; margin-left: 12px; padding: 5px 10px; border-left: 1px solid #d4dde7; color: var(--carimbo); font: 750 22px var(--fonte-mono); font-variant-numeric: tabular-nums; line-height: 1; white-space: nowrap; }
+/* O relógio permanece visível mesmo quando o contexto da página é ocultado. */
+.workspace-topbar .workspace-contexto { margin-right: 0; }
+.workspace-relogio { flex: 0 0 auto; margin-right: auto; padding: 5px 10px; border-left: 1px solid #d4dde7; color: var(--carimbo); font: 750 22px var(--fonte-mono); font-variant-numeric: tabular-nums; line-height: 1; white-space: nowrap; }
+@media (max-width: 1100px) {
+  .workspace-relogio { border-left: 0; }
+}
 @media (max-width: 900px) {
-  .workspace-contexto:has(.workspace-relogio) { min-width: 0; gap: 5px; }
-  .workspace-relogio { margin-left: 4px; padding: 4px 7px; font-size: 18px; }
+  .workspace-topbar .workspace-contexto { display: flex; }
+  .workspace-topbar .workspace-contexto i { display: none; }
+  .workspace-relogio { padding: 4px 7px; font-size: 18px; }
 }
 @media (max-width: 480px) {
-  .workspace-contexto:has(.workspace-relogio) > strong { max-width: 65px; }
-  .workspace-contexto:has(.workspace-relogio) .workspace-relogio { margin-left: 0; padding-inline: 5px; font-size: 16px; }
+  .workspace-topbar .workspace-contexto { display: none; }
+  .workspace-relogio { padding-inline: 5px; font-size: 16px; }
 }
