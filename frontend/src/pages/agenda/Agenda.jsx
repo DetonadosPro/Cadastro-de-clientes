@@ -605,7 +605,7 @@ export default function Agenda() {
           horario={item.horario}
           tipo="fonada"
           titulo={item.para || item.nome_comprador}
-          detalhes={[item.nome_comprador && `Cliente: ${item.nome_comprador}`, item.tema, item.agrupada && 'Duas mensagens nesta ligação'].filter(Boolean)}
+          detalhes={[item.tema, item.agrupada && 'Duas mensagens nesta ligação'].filter(Boolean)}
           tagExtra={itemExpirado(item)
             ? 'Expirada'
             : item.agrupada
@@ -632,7 +632,7 @@ export default function Agenda() {
           tipo="aovivo"
           titulo={item.para || item.comprador}
           detalhes={[
-            item.comprador && `Cliente: ${item.comprador}`, item.bairro, item.brinde,
+            item.bairro, item.brinde,
           ].filter(Boolean)}
           tagExtra="Ao vivo"
           prazo={pagamentoEhPrazo(item.pagamento)}
@@ -668,7 +668,6 @@ export default function Agenda() {
   }
   const navegarDaAgenda = destino => navigate(destino, { state: { returnTo: `/agenda${window.location.search}` } });
   const detalhes = <div className={`painel-detalhes-agenda ${itemSelecionado ? 'drawer-aberto' : ''}`}>
-    {!painelMobile && <header className="ag-inspector-heading"><div><small>Seu espaço de trabalho</small><strong>Detalhes do compromisso</strong></div>{itemSelecionado && <button type="button" aria-label="Fechar detalhes" onClick={() => setChaveSelecionada(null)}>×</button>}</header>}
     <div key={itemSelecionado?._chave || 'sem-selecao'} className="agenda-detalhe-transicao">
       {!itemSelecionado ? <div className="ag-inspector-empty"><span aria-hidden="true">↖</span><h3>Escolha um compromisso</h3><p>Veja a mensagem, os contatos e as ações aqui, sem perder a sua posição na agenda.</p></div>
         : itemSelecionado._tipo === 'fonada' ? <DetalhesFonada item={itemSelecionado} ehHoje={ehHoje} salvandoBaixa={salvandoBaixa} navigate={navegarDaAgenda} onDarBaixa={darBaixa} onDesfazerBaixa={desfazerBaixa} onAbrirRemarcar={abrirRemarcar}/>

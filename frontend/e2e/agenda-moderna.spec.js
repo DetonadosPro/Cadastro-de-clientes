@@ -59,26 +59,37 @@ test('resumo, horários e mensagens agrupadas representam o dia completo',async(
   await expect(page.getByRole('button',{name:'Mostrar pendentes',exact:true}).locator('strong')).toHaveText('7');
   await expect(page.getByRole('button',{name:'Mostrar atrasados',exact:true}).locator('strong')).toHaveText('1');
   await expect(page.getByRole('button',{name:'Ver próximo compromisso'})).toContainText('10:05');
-  await expect(linha(page,'Ana Maria')).toHaveCount(1);
-  await expect(linha(page,'Ana Maria')).toContainText('1ª + 2ª juntas');
+  await expect(linha(page,'José')).toHaveCount(1);
+  await expect(linha(page,'José')).toContainText('1ª + 2ª juntas');
   await expect(page.getByLabel('Legenda da agenda')).toContainText('Lembrete');
   await expect(page.getByRole('region',{name:'Sem horário',exact:true})).toContainText('Ligar para fornecedor');
   await expect(page.locator('.agenda-detalhe-transicao')).toHaveCSS('opacity','1');
   await expect(page.locator('.agenda-detalhe-fonada')).toContainText('Marília');
+  await expect(page.getByText('Seu espaço de trabalho',{exact:true})).toHaveCount(0);
+  await expect(page.getByText('Detalhes do compromisso',{exact:true})).toHaveCount(0);
+  await expect(page.getByRole('button',{name:'Fechar detalhes'})).toHaveCount(0);
+  await expect(linha(page,'Marília')).not.toContainText('João Silva');
+  await expect(linha(page,'Antônio')).not.toContainText('Renata');
+  for(const seletor of ['.linha-agenda-titulo','.linha-agenda-detalhes','.agenda-destinatario-principal .info-valor','.agenda-cliente-nome','.agenda-tema-linha > strong','.agenda-oferecimento-fonada p']) {
+    await expect(page.locator(seletor).first()).toHaveCSS('text-transform','uppercase');
+  }
   await page.screenshot({path:testInfo.outputPath('agenda-desktop.png')});
 });
 test('busca encontra destinatário, cliente e código da segunda mensagem; filtros mantêm os totais',async({page})=>{
   await preparar(page);
   await page.getByLabel('Buscar na agenda').fill('marilia');
   await expect(page.locator('.linha-agenda')).toHaveCount(1);
-  await expect(linha(page,'João Silva')).toBeVisible();
+  await expect(linha(page,'Marília')).toBeVisible();
   await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow','30');
+  await page.getByLabel('Buscar na agenda').fill('joao silva');
+  await expect(page.locator('.linha-agenda')).toHaveCount(1);
+  await expect(linha(page,'Marília')).toBeVisible();
   await page.getByLabel('Buscar na agenda').fill('parabens-2');
-  await expect(linha(page,'Ana Maria')).toHaveCount(1);
+  await expect(linha(page,'José')).toHaveCount(1);
   await page.getByRole('button',{name:'Limpar busca'}).click();
   await page.getByRole('button',{name:'Filtrar por atrasados',exact:true}).click();
   await expect(page.locator('.linha-agenda')).toHaveCount(1);
-  await expect(linha(page,'João Silva')).toBeVisible();
+  await expect(linha(page,'Marília')).toBeVisible();
   await page.getByRole('button',{name:'Filtrar por próximos',exact:true}).click();
   await expect(page.locator('.linha-agenda')).toHaveCount(2);
   await page.getByRole('button',{name:'Filtrar por concluídos',exact:true}).click();
@@ -93,20 +104,20 @@ test('próximo compromisso muda os filtros e abre o item correto',async({page})=
 });
 test('baixa e desfazer preservam as duas mensagens e a versão de concorrência',async({page})=>{
   const {mutacoes}=await preparar(page);
-  await linha(page,'Ana Maria').click();
+  await linha(page,'José').click();
   await expect(page.locator('.agenda-detalhe-fonada')).toContainText('PARABENS-2');
   await page.getByRole('button',{name:'Marcar as 2 passadas',exact:true}).click();
   await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow','40');
   expect(mutacoes[0].body).toMatchObject({mensagens:[1,2],versao:7});
   await page.getByRole('button',{name:/^Concluídos/}).click();
-  await linha(page,'Ana Maria').click();
+  await linha(page,'José').click();
   await page.getByRole('button',{name:'Desfazer as 2',exact:true}).click();
   await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow','30');
   expect(mutacoes[1].body).toMatchObject({mensagens:[1,2],versao:8});
 });
 test('remarcação mantém o pedido agrupado e exige novo horário',async({page})=>{
   const {mutacoes}=await preparar(page);
-  await linha(page,'Ana Maria').click();
+  await linha(page,'José').click();
   await page.getByRole('button',{name:'Não atendeu',exact:true}).click();
   const modal=page.getByRole('dialog');
   await expect(modal).toContainText('nas 2 mensagens');
@@ -115,12 +126,12 @@ test('remarcação mantém o pedido agrupado e exige novo horário',async({page}
   expect(mutacoes).toHaveLength(0);
   await modal.getByPlaceholder('hh:mm').fill('11:20');
   await modal.getByRole('button',{name:'Registrar e remarcar as 2',exact:true}).click();
-  await expect(linha(page,'Ana Maria')).toHaveCount(0);
+  await expect(linha(page,'José')).toHaveCount(0);
   expect(mutacoes[0].body).toMatchObject({mensagens:[1,2],remarcadoDia:HOJE,remarcadoHorario:'11:20',versao:7});
 });
 test('conflito de outro operador não altera o andamento nem simula uma baixa',async({page})=>{
   await preparar(page,{conflito:true});
-  await linha(page,'Ana Maria').click();
+  await linha(page,'José').click();
   await page.getByRole('button',{name:'Marcar as 2 passadas',exact:true}).click();
   await expect(page.getByText('Pedido alterado por outra pessoa. Recarregue antes de tentar novamente.',{exact:true})).toBeVisible();
   await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow','30');
@@ -146,7 +157,7 @@ test('consulta de outro dia limpa seleção, evita alertas de hoje e permite vol
   await expect(page.locator('.ag-day-content')).toHaveAttribute('aria-busy','false');
   await expect(page).toHaveURL(/data=06%2F10%2F26/);
   await expect(page.getByRole('button',{name:'Filtrar por atrasados'})).toBeDisabled();
-  await linha(page,'Ana Maria').click();
+  await linha(page,'José').click();
   await expect(page.getByRole('button',{name:'Marcar as 2 passadas',exact:true})).toHaveCount(0);
   await page.getByRole('button',{name:'Hoje',exact:true}).click();
   await expect(page.getByRole('button',{name:'Mostrar atrasados',exact:true}).locator('strong')).toHaveText('1');
@@ -162,7 +173,7 @@ test('celular e tablet mantêm o layout e detalhes com teclado, toque e fechamen
   }
   await page.setViewportSize({width:390,height:900});
   await page.screenshot({path:testInfo.outputPath('agenda-celular.png'),fullPage:true});
-  await linha(page,'Ana Maria').tap();
+  await linha(page,'José').tap();
   await expect(page.getByRole('dialog',{name:'Detalhes do compromisso'})).toBeVisible();
   await expect(page.getByRole('dialog',{name:'Detalhes do compromisso'})).toHaveCSS('opacity','1');
   await expect(page.getByRole('button',{name:'Fechar detalhes'})).toBeVisible();
@@ -171,7 +182,7 @@ test('celular e tablet mantêm o layout e detalhes com teclado, toque e fechamen
   await page.screenshot({path:testInfo.outputPath('agenda-detalhes-celular.png')});
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await linha(page,'Ana Maria').focus();
+  await linha(page,'José').focus();
   await page.keyboard.press('Space');
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.locator('.drawer-overlay-mobile').click({position:{x:2,y:2}});
@@ -222,6 +233,6 @@ test('dias cheios mostram mais registros sem reduzir o resumo e preservam a orga
   await page.reload();
   await expect(page.getByLabel('Ordenar compromissos')).toHaveValue('prioridade');
   await page.goto('/agenda?ordem=prioridade&item=179-1');
-  await expect(linha(page,'Cliente extra 79')).toHaveAttribute('aria-pressed','true');
-  await expect(linha(page,'Cliente extra 79')).toBeVisible();
+  await expect(linha(page,'Destinatário extra 79')).toHaveAttribute('aria-pressed','true');
+  await expect(linha(page,'Destinatário extra 79')).toBeVisible();
 });

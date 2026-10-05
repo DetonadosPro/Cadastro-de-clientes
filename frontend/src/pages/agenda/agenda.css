@@ -1,6 +1,16 @@
 /* Agenda: leitura por horário, prioridades explícitas e ações no contexto. */
 .agenda-moderna { --ag-blue:#3861ed; --ag-text:#253550; --ag-muted:#73829a; --ag-border:#e2e8f2; --carimbo:#3861ed; --carimbo-suave:#eef3ff; color:var(--ag-text); text-transform:none; }
 .agenda-moderna input,.agenda-moderna select,.agenda-moderna textarea { text-transform:none; }
+.agenda-moderna .linha-agenda-titulo,
+.agenda-moderna .linha-agenda-detalhes,
+.agenda-moderna .ag-next-card small,
+.agenda-moderna .agenda-destinatario-principal .info-valor,
+.agenda-moderna .agenda-cliente-nome,
+.agenda-moderna .agenda-tema-linha > strong,
+.agenda-moderna .agenda-oferecimento-fonada p,
+.agenda-moderna .agenda-mensagem-aovivo > strong,
+.agenda-moderna .agenda-musicas-aovivo strong,
+.agenda-moderna .detalhe-lembrete-titulo { text-transform:uppercase; }
 .agenda-moderna button { font-family:inherit; cursor:pointer; }
 .agenda-moderna button:disabled { cursor:default; opacity:.55; }
 .agenda-moderna button:focus-visible,.agenda-moderna [role=button]:focus-visible { outline:3px solid #99b2ff; outline-offset:3px; }
@@ -120,10 +130,6 @@
 .agenda-moderna .agenda-concluidos-lista { padding:5px 10px 9px; max-height:none; }
 .agenda-moderna .agenda-concluidos-lista .linha-agenda { margin-bottom:6px; }
 .agenda-moderna .painel-detalhes-agenda { position:sticky; align-self:start; top:12px; padding:21px; max-height:calc(100dvh - 90px); border:1px solid var(--ag-border); border-radius:16px; background:white; box-shadow:0 4px 16px #25395005; }
-.ag-inspector-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; padding-bottom:17px; margin-bottom:19px; border-bottom:1px solid #eef2f8; }
-.ag-inspector-heading small { display:block; font-size:9px; color:#96a5bb; margin-bottom:5px; }
-.ag-inspector-heading strong { color:#7186a6; font-size:12px; font-weight:600; }
-.ag-inspector-heading button { width:25px; height:25px; border:0; border-radius:6px; background:#f4f7fc; color:#97a6be; font-size:18px; }
 .agenda-moderna .agenda-detalhe-cabecalho { gap:10px; padding:0 0 16px; margin-bottom:20px; }
 .agenda-moderna .carimbo-os { padding:6px 8px; font-size:11px; border:1px solid #dfe7f6; border-radius:7px; background:#f6f9fd; color:#647fa9; box-shadow:none; }
 .agenda-moderna .agenda-detalhe-status .tag { font-size:9px; border:0; border-radius:5px; text-transform:none; }
@@ -207,4 +213,4 @@
   .ag-stat-card > span { font-size:10px; }
 }
 @media(prefers-reduced-motion:reduce) { .agenda-moderna * { animation:none!important; transition:none!important; } }
-@media print { .ag-header-actions,.agenda-controles-v2,.carrossel-dias-agenda,.ag-search,.ag-filters,.ag-sort,.ag-inspector-heading button { display:none!important; } .agenda-moderna .linha-agenda { break-inside:avoid; box-shadow:none; } }
+@media print { .ag-header-actions,.agenda-controles-v2,.carrossel-dias-agenda,.ag-search,.ag-filters,.ag-sort { display:none!important; } .agenda-moderna .linha-agenda { break-inside:avoid; box-shadow:none; } }

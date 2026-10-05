@@ -14,9 +14,9 @@ test('BTN Agenda: linhas, detalhes, ações Fonada e Ao Vivo', async ({ page, re
   expect(criado.status()).toBe(201); const cliente = await criado.json();
   let fonada, aoVivo, lembrete;
   try {
-    const fo = await request.post('/api/fonadas', { headers, data: { cliente_id: cliente.id, valor: 20, cobranca: dia(2), periodo: 'MANHÃ', p1_dia: dia(), p1_para: 'QA DESTINATARIO', p1_tema: 'QA' } });
+    const fo = await request.post('/api/fonadas', { headers, data: { cliente_id: cliente.id, valor: 20, cobranca: dia(2), periodo: 'MANHÃ', p1_dia: dia(), p1_para: `QA DESTINATARIO ${nome}`, p1_tema: 'QA' } });
     expect(fo.status()).toBe(201); fonada = await fo.json();
-    const av = await request.post('/api/ao-vivo', { headers, data: { cliente_id: cliente.id, valor: 20, dia_entrega: dia(), para: 'QA DESTINATARIO' } });
+    const av = await request.post('/api/ao-vivo', { headers, data: { cliente_id: cliente.id, valor: 20, dia_entrega: dia(), para: `QA DESTINATARIO ${nome}` } });
     expect(av.status()).toBe(201); aoVivo = await av.json();
     const dataIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
     const le = await request.post('/api/agenda/lembretes', { headers, data: { titulo: `QA LEMBRETE ${nome}`, data: dataIso } });
