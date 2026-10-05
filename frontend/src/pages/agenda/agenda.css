@@ -55,28 +55,26 @@
 .ativo .ag-day-density { background:#ffffff35; }
 .ativo .ag-day-density::after { background:#ffffffb5; }
 .ag-week-loading { min-height:60px; padding:20px 12px; color:#8e9cb1; font-size:12px; }
-.ag-overview { display:grid; grid-template-columns:1.4fr .8fr 1fr 1.1fr; gap:10px; margin-bottom:10px; }
-.ag-progress-card,.ag-stat-card,.ag-next-card { min-width:0; padding:9px 12px; border:1px solid var(--ag-border); border-radius:10px; background:white; text-align:left; box-shadow:0 3px 12px #24374b03; }
-.ag-progress-card { display:grid; grid-template-columns:1fr auto; gap:4px; background:linear-gradient(135deg,#f0f5ff,#fff); border-color:#d8e3ff; }
-.ag-progress-card span,.ag-stat-card > span,.ag-next-card > span { display:block; color:#70819e; font-size:11px; font-weight:600; }
-.ag-progress-card strong { display:block; font-size:22px; color:#3159ce; margin-top:3px; line-height:1.1; letter-spacing:-.03em; }
-.ag-progress-card strong small { font-size:11px; color:#7889a8; font-weight:500; letter-spacing:0; }
-.ag-progress-card > b { align-self:center; font-size:17px; color:#4568cd; font-variant-numeric:tabular-nums; }
-.ag-progress-track { grid-column:1/-1; height:4px; border-radius:6px; background:#e5ecf9; overflow:hidden; }
-.ag-progress-track i { display:block; height:100%; background:#5378ef; border-radius:6px; transition:width .2s; }
-.ag-progress-card > small { grid-column:1/-1; color:#8a9ab3; font-size:8px; line-height:1.3; }
-.ag-stat-card { display:grid; grid-template-columns:minmax(0,1fr) auto; align-content:center; gap:5px 8px; }
-.ag-stat-card strong { display:block; grid-column:2; grid-row:1/3; align-self:center; margin:0; font-size:25px; line-height:1.1; font-weight:720; color:#304462; }
-.ag-stat-card > small { grid-column:1; }
-.ag-stat-card > small { display:block; color:#8998ae; font-size:10px; line-height:1.5; }
-.ag-stat-card:hover:not(:disabled),.ag-next-card:hover:not(:disabled) { border-color:#c4d4fb; background:#fafcff; }
-.ag-stat-card.atencao.tem-atrasos { border-color:#f2d9df; background:#fff8f9; }
-.ag-stat-card.tem-atrasos strong { color:#c55d70; }
-.ag-next-card { position:relative; display:grid; grid-template-columns:minmax(0,1fr) auto; align-content:center; gap:3px 8px; background:#f6faf9; border-color:#deebe7; }
-.ag-next-card strong { display:block; grid-column:2; grid-row:1/3; align-self:center; font-size:22px; letter-spacing:-.03em; color:#24826e; margin:0; font-variant-numeric:tabular-nums; }
-.ag-next-card small { display:block; font-size:11px; color:#5f877d; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; }
-.ag-next-card small { grid-column:1; font-size:10px; }
-.ag-next-card em { display:block; grid-column:1/-1; color:#8ca69e; font-size:9px; font-style:normal; margin:0; line-height:1.3; }
+/* Uma faixa de resumo, sem uma nova fileira de cartões altos. */
+.ag-overview { display:grid; grid-template-columns:1.2fr .65fr 1fr 1.1fr; gap:0; margin-bottom:8px; border:1px solid var(--ag-border); border-radius:10px; background:white; overflow:hidden; }
+.ag-progress-card,.ag-stat-card,.ag-next-card { min-width:0; min-height:48px; padding:7px 12px; border:0; border-radius:0; background:transparent; text-align:left; box-shadow:none; }
+.ag-overview > * + * { border-left:1px solid var(--ag-border); }
+.ag-progress-card { position:relative; display:grid; grid-template-columns:minmax(0,1fr) auto; align-content:center; gap:2px 8px; background:#f5f8ff; }
+.ag-progress-card > span,.ag-stat-card > span,.ag-next-card > span { display:block; color:#61728d; font-size:11px; font-weight:600; line-height:1.3; }
+.ag-progress-card strong { font-size:14px; color:#3159ce; line-height:1.2; }
+.ag-progress-card strong small { font-size:10px; color:#7183a0; font-weight:500; }
+.ag-progress-card > b { grid-column:2; grid-row:1/3; align-self:center; font-size:17px; color:#4568cd; font-variant-numeric:tabular-nums; }
+.ag-progress-track { position:absolute; left:0; bottom:0; width:100%; height:3px; background:#e5ecf9; overflow:hidden; }
+.ag-progress-track i { display:block; height:100%; background:#5378ef; transition:width .2s; }
+.ag-stat-card { display:grid; grid-template-columns:minmax(0,1fr) auto; align-content:center; align-items:center; gap:2px 8px; }
+.ag-stat-card strong { grid-column:2; grid-row:1/3; margin:0; font-size:20px; line-height:1.1; color:#304462; font-variant-numeric:tabular-nums; }
+.ag-stat-card > small { grid-column:1; color:#7183a0; font-size:10px; line-height:1.3; }
+.ag-stat-card.atencao.tem-atrasos { background:#fff8f9; }
+.ag-stat-card.tem-atrasos strong { color:#b4495d; }
+.ag-next-card { display:grid; grid-template-columns:minmax(0,1fr) auto; align-content:center; gap:2px 8px; background:#f5faf8; }
+.ag-next-card:hover:not(:disabled) { background:#eaf5ef; }
+.ag-next-card strong { grid-column:2; grid-row:1/3; align-self:center; font-size:19px; letter-spacing:-.03em; color:#24826e; margin:0; font-variant-numeric:tabular-nums; }
+.ag-next-card small { grid-column:1; display:block; font-size:10px; line-height:1.3; color:#5f877d; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; }
 .ag-workspace-toolbar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin:0 0 8px; }
 .ag-tabs { display:flex; gap:5px; padding:5px; background:#ecf1f8; border:1px solid var(--ag-border); border-radius:12px; }
 .ag-tabs button { display:flex; align-items:center; gap:8px; padding:7px 12px; border:0; border-radius:8px; background:transparent; color:#70819d; font-size:12px; font-weight:650; }
@@ -89,19 +87,6 @@
 .ag-search input::placeholder { color:#93a1b6; }
 .ag-search button { background:transparent; border:0; color:#8b9bb2; font-size:19px; padding:2px; }
 .ag-search:focus-within { border-color:#9ab4f7; box-shadow:0 0 0 2px #3861ed0a; }
-.ag-list-toolbar { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:7px; }
-.ag-filters { display:flex; gap:5px; flex-wrap:wrap; }
-.ag-filters button { border:1px solid transparent; border-radius:7px; padding:6px 10px; background:transparent; color:#8190a7; font-size:11px; }
-.ag-filters button[aria-pressed=true] { background:#eaf0ff; border-color:#d5dffc; color:#4067d4; font-weight:650; }
-.ag-sort { display:flex; gap:8px; align-items:center; font-size:10px; color:#8997ad; }
-.ag-sort select { padding:6px 9px; border:1px solid var(--ag-border); border-radius:7px; color:#697f9f; background:white; font-size:11px; }
-.ag-color-legend { display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin:0 0 6px; font-size:10px; color:#8b9ab1; }
-.ag-color-legend span { display:flex; align-items:center; gap:5px; }
-.ag-color-legend i { width:6px; height:6px; border-radius:50%; }
-.ag-color-legend .fonada { background:#557bef; }
-.ag-color-legend .aovivo { background:#9669d5; }
-.ag-color-legend .lembrete { background:#26a58b; }
-.ag-color-legend small { margin-left:auto; font-size:10px; }
 .agenda-v2.agenda-moderna .grid-agenda-lista-painel { grid-template-columns:minmax(0,1.3fr) minmax(320px,.9fr); padding:0!important; gap:21px; background:transparent; min-height:0; }
 .agenda-moderna .lista-agenda-compacta { display:flex; flex-direction:column; gap:0; border:0; border-radius:0; box-shadow:none; background:transparent; min-width:0; }
 .agenda-moderna .lista-agenda-compacta > * { flex-shrink:0; }
@@ -180,6 +165,8 @@
 @media(max-width:1100px) {
   .agenda-v2.agenda-moderna .grid-agenda-lista-painel { grid-template-columns:1fr; }
   .ag-overview { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .ag-overview > :nth-child(3) { border-left:0; }
+  .ag-overview > :nth-child(n+3) { border-top:1px solid var(--ag-border); }
   .ag-search { flex:1 1 260px; }
 }
 @media(max-width:700px) {
@@ -197,23 +184,11 @@
   .agenda-moderna .faixa-semana-viewport { overflow-x:auto; scrollbar-width:none; padding-bottom:5px; }
   .agenda-moderna .faixa-semana-agenda,.agenda-moderna .faixa-semana-agenda.animando { width:max-content; min-width:100%; }
   .agenda-moderna .faixa-semana-agenda > button { flex:0 0 95px; width:95px; }
-  .ag-overview { gap:9px; }
-  .ag-progress-card,.ag-stat-card,.ag-next-card { padding:8px 10px; }
-  .ag-progress-card strong { font-size:21px; }
-  .ag-progress-card strong small { font-size:9px; }
   .ag-progress-card > b { font-size:15px; }
-  .ag-progress-card > small { font-size:8px; }
-  .ag-stat-card strong { font-size:22px; }
-  .ag-next-card strong { font-size:18px; }
   .ag-tabs { width:100%; gap:3px; padding:4px; }
   .ag-tabs button { flex:1; justify-content:center; padding:8px 7px; gap:5px; font-size:11px; }
   .ag-workspace-toolbar { gap:11px; }
   .ag-search { flex-basis:100%; }
-  .ag-filters { gap:3px; }
-  .ag-filters button { padding:6px 8px; font-size:10px; }
-  .ag-sort { margin-left:auto; }
-  .ag-color-legend { gap:12px; }
-  .ag-color-legend small { margin-left:0; flex-basis:100%; }
   .agenda-moderna .linha-agenda { grid-template-columns:25px 40px minmax(0,1fr) minmax(0,100px); gap:6px 7px; padding:10px 12px; }
   .agenda-moderna .linha-agenda.urgencia-atrasada,.agenda-moderna .linha-agenda.urgencia-proxima { padding-left:10px; }
   .agenda-moderna .linha-agenda-meta { max-width:100%; }
@@ -227,12 +202,9 @@
   .agenda-moderna .linha-agenda { grid-template-columns:23px 35px minmax(0,1fr) minmax(0,88px); gap:6px; }
   .ag-tabs button { font-size:10px; padding-inline:5px; }
   .ag-tabs button span { font-size:8px; padding-inline:3px; }
-  .ag-progress-card,.ag-stat-card,.ag-next-card { padding:8px; }
   .ag-progress-card { column-gap:5px; }
   .ag-progress-card > b { font-size:15px; }
   .ag-stat-card > span { font-size:10px; }
-  .ag-next-card { grid-template-columns:1fr; }
-  .ag-next-card strong { grid-column:1; grid-row:auto; }
 }
 @media(min-width:1101px) {
   .ag-calendar { display:grid; grid-template-columns:300px minmax(0,1fr); gap:12px; align-items:center; }
@@ -246,8 +218,6 @@
   .agenda-moderna .agenda-cabecalho-v3 { margin-bottom:8px; padding-bottom:8px; }
   .ag-calendar { padding-block:8px; margin-bottom:8px; }
   .ag-overview { margin-bottom:8px; }
-  .ag-progress-card,.ag-stat-card,.ag-next-card { padding-block:7px; }
-  .ag-progress-card > small { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
 }
 @media(min-width:1101px) and (min-height:600px) {
   .layout-conteudo:has(.agenda-moderna) { padding-bottom:16px; }
@@ -258,4 +228,14 @@
   .agenda-moderna.ag-workspace-fixo .painel-detalhes-agenda { position:static; align-self:stretch; padding:16px; }
 }
 @media(prefers-reduced-motion:reduce) { .agenda-moderna * { animation:none!important; transition:none!important; } }
-@media print { .ag-header-actions,.agenda-controles-v2,.carrossel-dias-agenda,.ag-search,.ag-filters,.ag-sort { display:none!important; } .agenda-moderna .linha-agenda { break-inside:avoid; box-shadow:none; } .agenda-v2.agenda-moderna.ag-workspace-fixo .grid-agenda-lista-painel { height:auto; } .agenda-moderna.ag-workspace-fixo .lista-agenda-compacta,.agenda-moderna.ag-workspace-fixo .painel-detalhes-agenda { height:auto; overflow:visible; } }
+@media print { .ag-header-actions,.agenda-controles-v2,.carrossel-dias-agenda,.ag-search { display:none!important; } .agenda-moderna .linha-agenda { break-inside:avoid; box-shadow:none; } .agenda-v2.agenda-moderna.ag-workspace-fixo .grid-agenda-lista-painel { height:auto; } .agenda-moderna.ag-workspace-fixo .lista-agenda-compacta,.agenda-moderna.ag-workspace-fixo .painel-detalhes-agenda { height:auto; overflow:visible; } }
+
+/* Leitura do histórico sem o preenchimento amplo dos formulários. */
+.agenda-moderna .section-box.ag-remarcacoes { min-width:0; padding:0; margin:8px 0 0; border-radius:8px; box-shadow:none; }
+.agenda-moderna .ag-remarcacoes-toggle { display:flex; justify-content:space-between; align-items:center; gap:8px; width:100%; min-height:36px; padding:7px 10px; border:0; background:transparent; color:#566a88; font:inherit; border-radius:8px; }
+.agenda-moderna .ag-remarcacoes-toggle > span { min-width:0; font-size:10px; line-height:1.3; }
+.agenda-moderna .ag-remarcacoes-toggle .aba-contagem { padding:1px 5px; font-size:10px; line-height:1.3; }
+.agenda-moderna .ag-remarcacoes-toggle svg { flex-shrink:0; }
+.agenda-moderna .ag-remarcacoes-toggle:hover { background:#f6f8fc; }
+.agenda-moderna .ag-remarcacoes.aberto .ag-remarcacoes-toggle { border-bottom:1px solid var(--ag-border); border-radius:8px 8px 0 0; }
+.ag-remarcacoes-historico { display:grid; gap:8px; padding:10px; overflow-wrap:anywhere; }

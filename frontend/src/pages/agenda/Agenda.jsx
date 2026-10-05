@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api, getNomeExibicao } from '../../api.js';
 import {
@@ -122,8 +122,15 @@ export default function Agenda() {
   const dataSelecionada = searchParams.get('data') || hojeFormatado();
   const aba = ['geral', 'fonada', 'aovivo', 'lembretes'].includes(searchParams.get('aba')) ? searchParams.get('aba') : 'geral';
   const busca = searchParams.get('q') || '';
-  const filtro = ['todos', 'pendentes', 'atrasados', 'proximos', 'concluidos'].includes(searchParams.get('situacao')) ? searchParams.get('situacao') : 'todos';
-  const ordem = searchParams.get('ordem') === 'prioridade' ? 'prioridade' : 'horario';
+  useEffect(() => {
+    if (!searchParams.has('situacao') && !searchParams.has('ordem')) return;
+    setSearchParams(atual => {
+      const novo = new URLSearchParams(atual);
+      novo.delete('situacao');
+      novo.delete('ordem');
+      return novo;
+    }, { replace: true });
+  }, [searchParams, setSearchParams]);
   const [dataDigitada, setDataDigitada] = useState(dataSelecionada);
   const [painelMobile, setPainelMobile] = useState(() => window.matchMedia('(max-width: 1100px)').matches);
   useEffect(() => setDataDigitada(dataSelecionada), [dataSelecionada]);
@@ -349,7 +356,6 @@ export default function Agenda() {
       const novo = new URLSearchParams(atual);
       novo.set('data', novaData);
       novo.delete('item');
-      if (novaData !== hojeFormatado() && ['atrasados','proximos'].includes(novo.get('situacao'))) novo.delete('situacao');
       return novo;
     }, { replace: true });
   }
@@ -582,26 +588,20 @@ export default function Agenda() {
   };
   const resumo = resumoAgenda(todosItens, ehHoje);
   const listaDaAba = listasPorAba[aba] || todosItens;
-  const listaAtual = ordenarAgenda(buscarNaAgenda(listaDaAba, busca).filter(item => {
-    if (filtro === 'pendentes') return !itemConcluido(item);
-    if (filtro === 'concluidos') return itemConcluido(item);
-    if (filtro === 'atrasados') return urgenciaAgenda(item, ehHoje) === 'atrasada';
-    if (filtro === 'proximos') return urgenciaAgenda(item, ehHoje) === 'proxima';
-    return true;
-  }), ordem, ehHoje);
+  const listaAtual = ordenarAgenda(buscarNaAgenda(listaDaAba, busca), 'horario', ehHoje);
   const chaveDoItem = item => item._chave;
   const itemEstaConcluido = itemConcluido;
   const itensPendentes = listaAtual.filter(item => !itemConcluido(item));
   const itensConcluidos = listaAtual.filter(itemConcluido);
-  const listaPendentes = useListaIncremental(itensPendentes, `${dataSelecionada}:${aba}:${busca}:${filtro}:${ordem}:pendentes`);
-  const listaConcluidos = useListaIncremental(itensConcluidos, `${dataSelecionada}:${aba}:${busca}:${filtro}:concluidos`);
-  const grupos = ordem === 'horario' ? agruparTurnos(listaPendentes.itensVisiveis) : [{ nome: 'Prioridades do dia', intervalo: 'Atrasos e próximos horários primeiro', itens: listaPendentes.itensVisiveis }];
+  const listaPendentes = useListaIncremental(itensPendentes, `${dataSelecionada}:${aba}:${busca}:pendentes`);
+  const listaConcluidos = useListaIncremental(itensConcluidos, `${dataSelecionada}:${aba}:${busca}:concluidos`);
+  const grupos = agruparTurnos(listaPendentes.itensVisiveis);
   const posicaoPendente = itensPendentes.findIndex(item => item._chave === chaveSelecionada);
   const posicaoConcluida = itensConcluidos.findIndex(item => item._chave === chaveSelecionada);
   useEffect(() => {
     if (posicaoPendente >= 50) listaPendentes.mostrarAte(posicaoPendente + 1);
     if (posicaoConcluida >= 50) listaConcluidos.mostrarAte(posicaoConcluida + 1);
-  }, [posicaoPendente, posicaoConcluida, dataSelecionada, aba, busca, filtro, ordem]);
+  }, [posicaoPendente, posicaoConcluida, dataSelecionada, aba, busca]);
 
   // Ao trocar de dia ou de aba: no desktop, seleciona automaticamente o
   // primeiro item (painel de detalhes nunca fica vazio à toa). No
@@ -619,14 +619,14 @@ export default function Agenda() {
       return;
     }
     const itemAindaExiste = listaAtual.find((item) => chaveDoItem(item) === chaveSelecionada);
-    const itemFicouOculto = itemAindaExiste && itemEstaConcluido(itemAindaExiste) && !concluidosAbertos && filtro !== 'concluidos';
+    const itemFicouOculto = itemAindaExiste && itemEstaConcluido(itemAindaExiste) && !concluidosAbertos;
     if (!itemAindaExiste || itemFicouOculto) {
       const ehMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 1100px)').matches;
       const primeiro = itensPendentes.find(item => !itemExpirado(item)) || itensPendentes[0];
       setChaveSelecionada(ehMobile || !primeiro ? null : chaveDoItem(primeiro));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aba, dataSelecionada, fonada, aoVivo, lembretes, concluidosAbertos, carregando, busca, filtro, ordem]);
+  }, [aba, dataSelecionada, fonada, aoVivo, lembretes, concluidosAbertos, carregando, busca]);
 
   const itemSelecionado = listaAtual.find((item) => chaveDoItem(item) === chaveSelecionada) || null;
   const inicioRenderizacao = direcaoCarrossel === 'tras' ? -1 : 0;
@@ -709,7 +709,7 @@ export default function Agenda() {
 
   function selecionarProximo() {
     if (!resumo.proximo) return;
-    mudarFiltros({ aba: 'geral', q: '', situacao: '' });
+    mudarFiltros({ aba: 'geral', q: '' });
     setChaveSelecionada(resumo.proximo._chave);
     listaPendentes.mostrarAte(todosItens.length);
   }
@@ -724,7 +724,7 @@ export default function Agenda() {
   </div>;
   const textoData = paraDataSemHora(dataSelecionada)?.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) || dataSelecionada;
   const dataExtensa = textoData.charAt(0).toUpperCase() + textoData.slice(1);
-  const temFiltro = busca || filtro !== 'todos';
+  const temFiltro = Boolean(busca);
   return (
     <div ref={paginaRef} className={`agenda-v2 agenda-moderna ${alturaPainel !== null ? 'ag-workspace-fixo' : ''}`} style={alturaPainel !== null ? { '--ag-workspace-height': `${alturaPainel}px` } : undefined}>
       <CabecalhoPagina className="agenda-cabecalho-v3" contexto="Seu dia, organizado" titulo="Agenda" descricao="Mensagens, entregas e lembretes. Tudo no seu tempo."
@@ -746,22 +746,20 @@ export default function Agenda() {
       {erro && <AvisoInline tom="erro" titulo="Não foi possível atualizar a agenda" acao={<button type="button" className="ag-button" onClick={() => carregar()}>Tentar novamente</button>}>{erro}</AvisoInline>}
       {(carregando && dataRef !== dataSelecionada) ? <SkeletonAgenda/> : !erro && dataRef === dataSelecionada && <div className="ag-day-content" aria-busy={carregando}>
         <section className="ag-overview" aria-label="Resumo do dia">
-          <div className="ag-progress-card" title="Mensagens juntas contam como um compromisso."><div><span>Andamento do dia</span><strong>{resumo.concluidos}<small> de {resumo.total} concluídos</small></strong></div><b>{resumo.progresso}%</b><div className="ag-progress-track" role="progressbar" aria-label="Compromissos concluídos" aria-valuenow={resumo.progresso} aria-valuemin={0} aria-valuemax={100}><i style={{width:`${resumo.progresso}%`}}/></div><small>Mensagens juntas contam como um compromisso.</small></div>
-          <button type="button" className="ag-stat-card" aria-label="Mostrar pendentes" onClick={() => mudarFiltros({aba:'geral',situacao:'pendentes',q:''})}><span>Em aberto</span><strong>{resumo.pendentes}</strong><small>Ver pendências <span aria-hidden="true">↗</span></small></button>
-          <button type="button" className={`ag-stat-card atencao ${resumo.atrasados ? 'tem-atrasos' : ''}`} disabled={!ehHoje} aria-label="Mostrar atrasados" onClick={() => mudarFiltros({aba:'geral',situacao:'atrasados',q:''})}><span>{ehHoje ? 'Precisam de atenção' : 'Consulta do dia'}</span><strong>{ehHoje ? resumo.atrasados : '—'}</strong><small>{ehHoje ? `${resumo.proximos} chegando nos próximos 10 min` : 'Alertas ativos somente hoje'}</small></button>
-          <button type="button" className="ag-next-card" onClick={selecionarProximo} disabled={!resumo.proximo} aria-label="Ver próximo compromisso"><span>Próximo horário{!ehHoje ? ' do dia' : ''}</span><strong>{resumo.proximo?._horario || '—'}</strong><small>{resumo.proximo ? resumo.proximo.para || resumo.proximo.titulo || resumo.proximo.nome_comprador || resumo.proximo.comprador : 'Nenhum outro horário agendado'}</small><em>{resumo.proximo ? 'Abrir detalhes ↗' : 'Confira também as tarefas sem horário'}</em></button>
+          <div className="ag-progress-card" title="Mensagens juntas contam como um compromisso."><span>Andamento do dia</span><strong>{resumo.concluidos}<small> / {resumo.total} concluídos</small></strong><b>{resumo.progresso}%</b><div className="ag-progress-track" role="progressbar" aria-label="Compromissos concluídos" aria-valuenow={resumo.progresso} aria-valuemin={0} aria-valuemax={100}><i style={{width:`${resumo.progresso}%`}}/></div></div>
+          <div className="ag-stat-card" role="group" aria-label="Em aberto"><span>Em aberto</span><strong>{resumo.pendentes}</strong></div>
+          <div className={`ag-stat-card atencao ${resumo.atrasados ? 'tem-atrasos' : ''}`} role="group" aria-label="Precisam de atenção"><span>{ehHoje ? 'Precisam de atenção' : 'Consulta do dia'}</span><strong>{ehHoje ? resumo.atrasados : '—'}</strong><small>{ehHoje ? `${resumo.proximos} chegando em até 10 min` : 'Alertas somente hoje'}</small></div>
+          <button type="button" className="ag-next-card" onClick={selecionarProximo} disabled={!resumo.proximo} aria-label="Ver próximo compromisso" title={resumo.proximo ? 'Abrir detalhes do próximo compromisso' : 'Nenhum outro horário agendado'}><span>Próximo horário{!ehHoje ? ' do dia' : ''}</span><strong>{resumo.proximo?._horario || '—'}</strong><small>{resumo.proximo ? resumo.proximo.para || resumo.proximo.titulo || resumo.proximo.nome_comprador || resumo.proximo.comprador : 'Sem próximo horário'}</small></button>
         </section>
         <div className="ag-workspace-toolbar"><div className="ag-tabs" aria-label="Tipos de compromisso">{[['geral','Geral',todosItens.length],['fonada','Fonada',fonadaExibida.length],['aovivo','Ao vivo',aoVivoExibido.length],['lembretes','Lembretes',lembretesExibidos.length]].map(([id,nome,total]) => <button type="button" key={id} className={aba===id?'ativa':''} aria-pressed={aba===id} onClick={() => irParaAba(id)}>{nome}<span>{total}</span></button>)}</div>
           <label className="ag-search"><span aria-hidden="true">⌕</span><input aria-label="Buscar na agenda" placeholder="Cliente, destinatário ou O.S." value={busca} onChange={e => mudarFiltros({q:e.target.value})}/>{busca && <button type="button" aria-label="Limpar busca" onClick={() => mudarFiltros({q:''})}>×</button>}</label>
         </div>
-        <div className="ag-list-toolbar"><div className="ag-filters" aria-label="Situação dos compromissos">{[['todos','Todos'],['pendentes','Pendentes'],['atrasados','Atrasados'],['proximos','Próximos'],['concluidos','Concluídos']].map(([id,nome]) => <button type="button" key={id} aria-label={`Filtrar por ${nome.toLowerCase()}`} aria-pressed={filtro===id} disabled={!ehHoje && ['atrasados','proximos'].includes(id)} onClick={() => mudarFiltros({situacao:id==='todos'?'':id})}>{nome}</button>)}</div><label className="ag-sort">Organizar por<select aria-label="Ordenar compromissos" value={ordem} onChange={e => mudarFiltros({ordem:e.target.value})}><option value="horario">Horário</option><option value="prioridade">Prioridade</option></select></label></div>
-        <div className="ag-color-legend" aria-label="Legenda da agenda"><span><i className="fonada"/>Fonada</span><span><i className="aovivo"/>Ao vivo</span><span><i className="lembrete"/>Lembrete</span><small>{listaAtual.length} {listaAtual.length === 1 ? 'compromisso' : 'compromissos'} nesta visualização</small></div>
         {carregando && <div className="ag-updating" role="status">Atualizando agenda…</div>}
         <div className={`grid-agenda-lista-painel ${listaAtual.length === 0 ? 'sem-itens' : ''}`} inert={carregando?'':undefined}>
-          <div className="lista-agenda-compacta" role="region" aria-label="Lista de compromissos" tabIndex={0}>{listaAtual.length === 0 ? temFiltro ? <div className="ag-filter-empty"><span aria-hidden="true">⌕</span><h3>Nenhum compromisso encontrado</h3><p>Tente outra busca ou ajuste os filtros deste dia.</p><button type="button" className="ag-button secundario" onClick={() => mudarFiltros({q:'',situacao:''})}>Limpar filtros</button></div> : <AgendaVazia ehHoje={ehHoje} onNovo={abrirNovoLembrete}/> : <>
-            {itensPendentes.length ? grupos.map(grupo => <section className="ag-time-group" key={grupo.nome} aria-label={grupo.nome}><header><i/><h3>{grupo.nome}</h3><span>{grupo.intervalo}</span><b>{grupo.itens.length}</b></header>{grupo.itens.map(renderizarLinhaAgenda)}</section>) : filtro !== 'concluidos' && <div className="agenda-pendentes-vazia">Nenhuma pendência nesta visualização.</div>}
+          <div className="lista-agenda-compacta" role="region" aria-label="Lista de compromissos" tabIndex={0}>{listaAtual.length === 0 ? temFiltro ? <div className="ag-filter-empty"><span aria-hidden="true">⌕</span><h3>Nenhum compromisso encontrado</h3><p>Tente buscar outro nome ou O.S. deste dia.</p><button type="button" className="ag-button secundario" onClick={() => mudarFiltros({q:''})}>Limpar busca</button></div> : <AgendaVazia ehHoje={ehHoje} onNovo={abrirNovoLembrete}/> : <>
+            {itensPendentes.length ? grupos.map(grupo => <section className="ag-time-group" key={grupo.nome} aria-label={grupo.nome}><header><i/><h3>{grupo.nome}</h3><span>{grupo.intervalo}</span><b>{grupo.itens.length}</b></header>{grupo.itens.map(renderizarLinhaAgenda)}</section>) : <div className="agenda-pendentes-vazia">Nenhuma pendência nesta visualização.</div>}
             <BotaoMostrarMais temMais={listaPendentes.temMais} restantes={listaPendentes.restantes} onClick={listaPendentes.mostrarMais}/>
-            {itensConcluidos.length > 0 && <div className={`agenda-concluidos ${concluidosAbertos || filtro==='concluidos' ? 'aberto' : ''}`}><button type="button" className="agenda-concluidos-toggle" onClick={() => filtro==='concluidos' ? mudarFiltros({situacao:''}) : setConcluidosAbertos(v=>!v)} aria-expanded={concluidosAbertos || filtro==='concluidos'} aria-controls="agenda-itens-concluidos"><span className="agenda-concluidos-seta" aria-hidden="true">›</span><span>Concluídos</span><span className="agenda-concluidos-contagem">{itensConcluidos.length}</span><small>{concluidosAbertos || filtro==='concluidos' ? 'Recolher' : 'Ver compromissos'}</small></button>{(concluidosAbertos || filtro==='concluidos') && <div id="agenda-itens-concluidos" className="agenda-concluidos-lista">{listaConcluidos.itensVisiveis.map(renderizarLinhaAgenda)}<BotaoMostrarMais temMais={listaConcluidos.temMais} restantes={listaConcluidos.restantes} onClick={listaConcluidos.mostrarMais}/></div>}</div>}
+            {itensConcluidos.length > 0 && <div className={`agenda-concluidos ${concluidosAbertos ? 'aberto' : ''}`}><button type="button" className="agenda-concluidos-toggle" onClick={() => setConcluidosAbertos(v=>!v)} aria-expanded={concluidosAbertos} aria-controls="agenda-itens-concluidos"><span className="agenda-concluidos-seta" aria-hidden="true">›</span><span>Concluídos</span><span className="agenda-concluidos-contagem">{itensConcluidos.length}</span><small>{concluidosAbertos ? 'Recolher' : 'Ver compromissos'}</small></button>{concluidosAbertos && <div id="agenda-itens-concluidos" className="agenda-concluidos-lista">{listaConcluidos.itensVisiveis.map(renderizarLinhaAgenda)}<BotaoMostrarMais temMais={listaConcluidos.temMais} restantes={listaConcluidos.restantes} onClick={listaConcluidos.mostrarMais}/></div>}</div>}
           </>}</div>
           {!painelMobile && listaAtual.length > 0 && detalhes}
         </div>
@@ -1114,6 +1112,7 @@ function DetalhesFonada({ item, ehHoje, salvandoBaixa, navigate, onDarBaixa, onD
 // pedido/mensagem específico. Busca sob demanda (só quando o item
 // selecionado muda), e fica escondido quando não há nenhuma tentativa.
 function CardRemarcacoes({ pedidoId, mensagem }) {
+  const historicoId = useId();
   const [tentativas, setTentativas] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [aberto, setAberto] = useState(false);
@@ -1135,16 +1134,13 @@ function CardRemarcacoes({ pedidoId, mensagem }) {
   if (carregando || tentativas.length === 0) return null;
 
   return (
-    <div className="section-box" style={{ marginTop: 12 }}>
+    <div className={`section-box ag-remarcacoes ${aberto ? 'aberto' : ''}`}>
       <button
         type="button"
         onClick={() => setAberto((v) => !v)}
-        style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%',
-          background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-          borderBottom: '1px solid var(--papel-alt)', paddingBottom: 8, marginBottom: aberto ? 10 : 0,
-          font: 'inherit', color: 'inherit',
-        }}
+        className="ag-remarcacoes-toggle"
+        aria-expanded={aberto}
+        aria-controls={historicoId}
       >
         <span className="fs-xs" style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 8 }}>
           Remarcações
@@ -1154,7 +1150,7 @@ function CardRemarcacoes({ pedidoId, mensagem }) {
       </button>
 
       {aberto && (
-        <div style={{ display: 'grid', gap: 8 }}>
+        <div id={historicoId} className="ag-remarcacoes-historico">
           {tentativas.map((t) => (
             <div key={t.id} className="info-linha" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: 6 }}>
@@ -1183,6 +1179,7 @@ function CardRemarcacoes({ pedidoId, mensagem }) {
 // previsto" do prazo de pagamento do Ao Vivo — sem o conceito de
 // mensagem (1ª/2ª) nem de horário, só o dia do prazo.
 function CardRemarcacoesPrazo({ pedidoId }) {
+  const historicoId = useId();
   const [tentativas, setTentativas] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [aberto, setAberto] = useState(false);
@@ -1204,16 +1201,13 @@ function CardRemarcacoesPrazo({ pedidoId }) {
   if (carregando || tentativas.length === 0) return null;
 
   return (
-    <div className="section-box" style={{ marginTop: 12 }}>
+    <div className={`section-box ag-remarcacoes ${aberto ? 'aberto' : ''}`}>
       <button
         type="button"
         onClick={() => setAberto((v) => !v)}
-        style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%',
-          background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-          borderBottom: '1px solid var(--papel-alt)', paddingBottom: 8, marginBottom: aberto ? 10 : 0,
-          font: 'inherit', color: 'inherit',
-        }}
+        className="ag-remarcacoes-toggle"
+        aria-expanded={aberto}
+        aria-controls={historicoId}
       >
         <span className="fs-xs" style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: 8 }}>
           Remarcações
@@ -1223,7 +1217,7 @@ function CardRemarcacoesPrazo({ pedidoId }) {
       </button>
 
       {aberto && (
-        <div style={{ display: 'grid', gap: 8 }}>
+        <div id={historicoId} className="ag-remarcacoes-historico">
           {tentativas.map((t) => (
             <div key={t.id} className="info-linha" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: 6 }}>

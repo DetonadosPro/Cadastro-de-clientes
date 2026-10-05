@@ -28,7 +28,7 @@ async function preparar(page,opcoes={}) {
       return route.fulfill({json:data===HOJE?estado:opcoes.vazio?{data,fonada:[],aoVivo:[],lembretes:[]}:dadosDoDia(data)});
     }
     if(url.pathname==='/api/agenda/contagens')return route.fulfill({json:{contagens:Object.fromEntries((url.searchParams.get('datas')||'').split(',').map(d=>[d,10]))}});
-    if(/\/tentativas/.test(url.pathname))return route.fulfill({json:{tentativas:[]}});
+    if(/\/tentativas/.test(url.pathname))return route.fulfill({json:{tentativas:opcoes.historico?[{id:1,mensagem:1,data_hora_tentativa:'05/10/26 09:00',remarcado_dia:HOJE,remarcado_horario:'10:07',observacao:'Cliente pediu para ligar mais tarde. '+ 'Observação longa '.repeat(30)},{id:2,mensagem:2,data_hora_tentativa:'05/10/26 09:10',remarcado_dia:HOJE,remarcado_horario:'10:07'}]:[]}});
     if(url.pathname==='/api/agenda/lembretes'&&metodo==='POST') {
       mutacoes.push({url:url.pathname,body});const novo={...body,id:90};estado.lembretes.push(novo);return route.fulfill({status:201,json:novo});
     }
@@ -57,12 +57,14 @@ test('resumo, horários e mensagens agrupadas representam o dia completo',async(
   await page.setViewportSize({width:1440,height:1000});
   await preparar(page);
   await expect(page.getByRole('progressbar',{name:'Compromissos concluídos'})).toHaveAttribute('aria-valuenow','30');
-  await expect(page.getByRole('button',{name:'Mostrar pendentes',exact:true}).locator('strong')).toHaveText('7');
-  await expect(page.getByRole('button',{name:'Mostrar atrasados',exact:true}).locator('strong')).toHaveText('1');
+  await expect(page.getByRole('group',{name:'Em aberto',exact:true}).locator('strong')).toHaveText('7');
+  await expect(page.getByRole('group',{name:'Precisam de atenção',exact:true}).locator('strong')).toHaveText('1');
   await expect(page.getByRole('button',{name:'Ver próximo compromisso'})).toContainText('10:05');
   await expect(linha(page,'José')).toHaveCount(1);
   await expect(linha(page,'José')).toContainText('1ª + 2ª juntas');
-  await expect(page.getByLabel('Legenda da agenda')).toContainText('Lembrete');
+  await expect(page.getByLabel('Legenda da agenda')).toHaveCount(0);
+  await expect(page.getByLabel('Ordenar compromissos')).toHaveCount(0);
+  await expect(page.getByRole('button',{name:/^Filtrar por/})).toHaveCount(0);
   await expect(page.getByRole('region',{name:'Sem horário',exact:true})).toContainText('Ligar para fornecedor');
   await expect(page.locator('.agenda-detalhe-transicao')).toHaveCSS('opacity','1');
   await expect(page.locator('.agenda-detalhe-fonada')).toContainText('Marília');
@@ -83,7 +85,7 @@ test('resumo, horários e mensagens agrupadas representam o dia completo',async(
   }
   await page.screenshot({path:testInfo.outputPath('agenda-desktop.png')});
 });
-test('busca encontra destinatário, cliente e código da segunda mensagem; filtros mantêm os totais',async({page})=>{
+test('busca encontra destinatário, cliente e código da segunda mensagem sem alterar o resumo',async({page})=>{
   await preparar(page);
   await page.getByLabel('Buscar na agenda').fill('marilia');
   await expect(page.locator('.linha-agenda')).toHaveCount(1);
@@ -95,15 +97,12 @@ test('busca encontra destinatário, cliente e código da segunda mensagem; filtr
   await page.getByLabel('Buscar na agenda').fill('parabens-2');
   await expect(linha(page,'José')).toHaveCount(1);
   await page.getByRole('button',{name:'Limpar busca'}).click();
-  await page.getByRole('button',{name:'Filtrar por atrasados',exact:true}).click();
-  await expect(page.locator('.linha-agenda')).toHaveCount(1);
-  await expect(linha(page,'Marília')).toBeVisible();
-  await page.getByRole('button',{name:'Filtrar por próximos',exact:true}).click();
-  await expect(page.locator('.linha-agenda')).toHaveCount(2);
-  await page.getByRole('button',{name:'Filtrar por concluídos',exact:true}).click();
-  await expect(page.locator('.linha-agenda')).toHaveCount(3);
+  await expect(page.locator('.linha-agenda')).toHaveCount(7);
+  await page.getByRole('button',{name:/^Concluídos/}).click();
+  await expect(page.locator('.linha-agenda')).toHaveCount(10);
+  await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow','30');
 });
-test('próximo compromisso muda os filtros e abre o item correto',async({page})=>{
+test('próximo compromisso troca a aba e abre o item correto',async({page})=>{
   await preparar(page);
   await page.getByRole('button',{name:'Fonada 5',exact:true}).click();
   await page.getByRole('button',{name:'Ver próximo compromisso'}).click();
@@ -164,11 +163,11 @@ test('consulta de outro dia limpa seleção, evita alertas de hoje e permite vol
   await page.getByRole('button',{name:'Próximo dia',exact:true}).click();
   await expect(page.locator('.ag-day-content')).toHaveAttribute('aria-busy','false');
   await expect(page).toHaveURL(/data=06%2F10%2F26/);
-  await expect(page.getByRole('button',{name:'Filtrar por atrasados'})).toBeDisabled();
+  await expect(page.getByRole('group',{name:'Precisam de atenção'})).toContainText('Alertas somente hoje');
   await linha(page,'José').click();
   await expect(page.getByRole('button',{name:'Marcar as 2 passadas',exact:true})).toHaveCount(0);
   await page.getByRole('button',{name:'Hoje',exact:true}).click();
-  await expect(page.getByRole('button',{name:'Mostrar atrasados',exact:true}).locator('strong')).toHaveText('1');
+  await expect(page.getByRole('group',{name:'Precisam de atenção',exact:true}).locator('strong')).toHaveText('1');
 });
 test('celular e tablet mantêm o layout e detalhes com teclado, toque e fechamento acessível',async({page},testInfo)=>{
   const erros=[];page.on('pageerror',erro=>erros.push(erro.message));
@@ -215,7 +214,7 @@ test('dia vazio e busca sem resultado têm orientações próprias',async({page}
   await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow','0');
   await page.getByLabel('Buscar na agenda').fill('teste');
   await expect(page.getByText('Nenhum compromisso encontrado',{exact:true})).toBeVisible();
-  await page.getByRole('button',{name:'Limpar filtros',exact:true}).click();
+  await page.locator('.ag-filter-empty').getByRole('button',{name:'Limpar busca',exact:true}).click();
   await expect(page.getByText('Agenda livre neste dia',{exact:true})).toBeVisible();
 });
 
@@ -229,18 +228,16 @@ test('falha inicial permite tentar novamente sem deixar a agenda presa no carreg
   await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow','30');
 });
 
-test('dias cheios mostram mais registros sem reduzir o resumo e preservam a organização escolhida',async({page})=>{
+test('dias cheios mantêm a leitura por horário e links antigos não ocultam pedidos',async({page})=>{
   await preparar(page,{listaGrande:true});
   await expect(page.locator('.linha-agenda')).toHaveCount(50);
-  await expect(page.getByRole('button',{name:'Mostrar pendentes',exact:true}).locator('strong')).toHaveText('87');
+  await expect(page.getByRole('group',{name:'Em aberto',exact:true}).locator('strong')).toHaveText('87');
   await page.getByRole('button',{name:/^Mostrar mais/}).click();
   await expect(page.locator('.linha-agenda')).toHaveCount(87);
-  await page.getByLabel('Ordenar compromissos').selectOption('prioridade');
-  await expect(page.getByRole('region',{name:'Prioridades do dia'})).toBeVisible();
-  await expect(page.locator('.linha-agenda').first()).toContainText('Marília');
-  await page.reload();
-  await expect(page.getByLabel('Ordenar compromissos')).toHaveValue('prioridade');
-  await page.goto('/agenda?ordem=prioridade&item=179-1');
+  await expect(page.getByRole('region',{name:'Manhã',exact:true})).toBeVisible();
+  await page.goto('/agenda?ordem=prioridade&situacao=atrasados&item=179-1');
+  await expect.poll(()=>new URL(page.url()).searchParams.has('situacao')).toBe(false);
+  await expect.poll(()=>new URL(page.url()).searchParams.has('ordem')).toBe(false);
   await expect(linha(page,'Destinatário extra 79')).toHaveAttribute('aria-pressed','true');
   await expect(linha(page,'Destinatário extra 79')).toBeVisible();
 });
@@ -312,7 +309,8 @@ test('calendário compacto mantém pedidos e detalhes dentro da área útil do c
     const resumo=await page.locator('.ag-overview').boundingBox();
     const grade=await page.locator('.grid-agenda-lista-painel').boundingBox();
     expect(calendario.height).toBeLessThan(110);
-    expect(resumo.height).toBeLessThan(100);
+    expect(resumo.height).toBeLessThanOrEqual(52);
+    expect(grade.height).toBeGreaterThan(height-380);
     expect(grade.height).toBeGreaterThanOrEqual(160);
     expect(grade.y+grade.height).toBeLessThanOrEqual(height-12);
     expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1)).toBe(false);
@@ -330,7 +328,9 @@ test('calendário compacto mantém pedidos e detalhes dentro da área útil do c
   const alvo=linha(page,'Destinatário extra 5');
   await alvo.scrollIntoViewIfNeeded();
   const posicao=await lista.evaluate(el=>el.scrollTop);
-  await alvo.click();
+  // Clique real na linha visível, sem a rolagem preparatória do localizador.
+  const caixaAlvo=await alvo.boundingBox();
+  await page.mouse.click(caixaAlvo.x+caixaAlvo.width/2,caixaAlvo.y+caixaAlvo.height/2);
   await expect(page).toHaveURL(/item=105-1/);
   await expect.poll(()=>lista.evaluate(el=>el.scrollTop)).toBeCloseTo(posicao,0);
   await expect(painel).toHaveJSProperty('scrollTop',0);
@@ -345,4 +345,28 @@ test('calendário compacto mantém pedidos e detalhes dentro da área útil do c
   await page.getByLabel('Buscar na agenda').fill('Sem resultado algum');
   await expect(page.getByText('Nenhum compromisso encontrado',{exact:true})).toBeVisible();
   await expect.poll(()=>page.locator('.layout-conteudo').evaluate(el=>el.scrollHeight-el.clientHeight)).toBeLessThanOrEqual(1);
+});
+
+
+test('remarcações fechadas ocupam uma linha e abrem o histórico sem cortar o painel',async({page},testInfo)=>{
+  await page.setViewportSize({width:1366,height:650});
+  await preparar(page,{historico:true});
+  await linha(page,'José').click();
+  const caixas=page.locator('.ag-remarcacoes');
+  await expect(caixas).toHaveCount(2);
+  for(const caixa of await caixas.all()) {
+    expect((await caixa.boundingBox()).height).toBeLessThanOrEqual(40);
+    await expect(caixa.getByRole('button')).toHaveAttribute('aria-expanded','false');
+  }
+  const toggle=caixas.first().getByRole('button');
+  await toggle.scrollIntoViewIfNeeded();
+  await page.screenshot({path:testInfo.outputPath('remarcacoes-compactas.png')});
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded','true');
+  await expect(caixas.first().getByText('Remarcado para 05/10/26 às 10:07')).toBeVisible();
+  const painel=page.getByRole('region',{name:'Detalhes do pedido selecionado'});
+  expect(await painel.evaluate(el=>el.scrollWidth-el.clientWidth)).toBeLessThanOrEqual(1);
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded','false');
+  expect((await caixas.first().boundingBox()).height).toBeLessThanOrEqual(40);
 });
