@@ -69,8 +69,15 @@ test('resumo, horários e mensagens agrupadas representam o dia completo',async(
   await expect(page.getByText('Seu espaço de trabalho',{exact:true})).toHaveCount(0);
   await expect(page.getByText('Detalhes do compromisso',{exact:true})).toHaveCount(0);
   await expect(page.getByRole('button',{name:'Fechar detalhes'})).toHaveCount(0);
-  await expect(linha(page,'Marília')).not.toContainText('João Silva');
+  await expect(linha(page,'Marília').locator('.linha-agenda-detalhes')).toHaveText('João Silva');
+  await expect(linha(page,'José')).not.toContainText('Duas mensagens nesta ligação');
   await expect(linha(page,'Antônio')).not.toContainText('Renata');
+  await expect(linha(page,'Antônio').locator('.linha-agenda-detalhes')).toHaveText('Centro');
+  await expect(page.locator('.ag-type-marker svg')).toHaveCount(7);
+  const os=await linha(page,'Marília').locator('.linha-agenda-os').boundingBox();
+  const tags=await linha(page,'Marília').locator('.linha-agenda-tags').boundingBox();
+  expect(tags.y).toBeGreaterThan(os.y+os.height);
+  expect(tags.x+tags.width).toBeCloseTo(os.x+os.width,0);
   for(const seletor of ['.linha-agenda-titulo','.linha-agenda-detalhes','.agenda-destinatario-principal .info-valor','.agenda-cliente-nome','.agenda-tema-linha > strong','.agenda-oferecimento-fonada p']) {
     await expect(page.locator(seletor).first()).toHaveCSS('text-transform','uppercase');
   }

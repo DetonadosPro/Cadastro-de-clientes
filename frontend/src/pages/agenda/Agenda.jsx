@@ -637,7 +637,7 @@ export default function Agenda() {
           horario={item.horario}
           tipo="fonada"
           titulo={item.para || item.nome_comprador}
-          detalhes={[item.agrupada && 'Duas mensagens nesta ligação'].filter(Boolean)}
+          detalhes={item.para && item.nome_comprador ? [item.nome_comprador] : []}
           tagExtra={itemExpirado(item)
             ? 'Expirada'
             : item.agrupada
@@ -663,9 +663,7 @@ export default function Agenda() {
           horario={item.horario_entrega}
           tipo="aovivo"
           titulo={item.para || item.comprador}
-          detalhes={[
-            item.bairro, item.brinde,
-          ].filter(Boolean)}
+          detalhes={item.bairro ? [item.bairro] : []}
           tagExtra="Ao vivo"
           prazo={pagamentoEhPrazo(item.pagamento)}
           status={jaPassada ? 'Entregue' : (item.pagou === 'SIM' ? 'Pago' : null)}
@@ -905,6 +903,14 @@ function IconeChevron({ aberto }) {
 // Uma linha fina e clicável na lista compacta — horário, nome, tag de
 // urgência/status. Reduz cada item a uma tira baixa, para caber muitos
 // na tela sem rolar, em vez do card grande com todos os campos aberto.
+function IconeTipoAgenda({ tipo }) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    {tipo === 'fonada' ? <path d="M7 3H4a1 1 0 0 0-1 1c0 9.4 7.6 17 17 17a1 1 0 0 0 1-1v-3l-5-2-2 2a15 15 0 0 1-7-7l2-2-2-5Z" />
+      : tipo === 'aovivo' ? <><path d="m5 9 2-5h10l2 5M5 9h14l2 4v6h-3v-2H6v2H3v-6l2-4ZM3 13h18" /><path d="M6 15h2m8 0h2" /></>
+      : <><rect x="5" y="4" width="15" height="17" rx="2" /><path d="M9 2v4m7-4v4M5 9h15M3 12h4m-4 5h4m4-4h5m-5 4h3" /></>}
+  </svg>;
+}
+
 function LinhaAgenda({ tipo, selecionada, onClick, urgencia, jaPassada, senhaOs, horario, titulo, detalhes = [], tagExtra, tagExtraDestaque, prazo, status, statusOk }) {
   return (
     <div
@@ -915,7 +921,7 @@ function LinhaAgenda({ tipo, selecionada, onClick, urgencia, jaPassada, senhaOs,
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
     >
-      <span className="ag-type-marker" aria-hidden="true">{tipo === 'fonada' ? '↗' : tipo === 'aovivo' ? '♫' : '✓'}</span>
+      <span className="ag-type-marker" aria-hidden="true"><IconeTipoAgenda tipo={tipo}/></span>
       <span className="linha-agenda-horario" style={{ textDecoration: jaPassada ? 'line-through' : 'none' }}>
         {horario || '—'}
       </span>
@@ -932,6 +938,7 @@ function LinhaAgenda({ tipo, selecionada, onClick, urgencia, jaPassada, senhaOs,
           </span>
         )}
       </span>
+      <span className="linha-agenda-meta">
       {senhaOs && senhaOs!=='•' && <span className="linha-agenda-os">O.S. {senhaOs}</span>}
       {(tagExtra || prazo || urgencia || status) && (
         <span className="linha-agenda-tags">
@@ -942,6 +949,7 @@ function LinhaAgenda({ tipo, selecionada, onClick, urgencia, jaPassada, senhaOs,
           {status && <span className={`tag ${statusOk ? 'ok' : 'pendente'} linha-agenda-tag`}>{status}</span>}
         </span>
       )}
+      </span>
     </div>
   );
 }
