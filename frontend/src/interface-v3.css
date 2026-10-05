@@ -480,7 +480,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--carimbo); }
 
 /* Agenda */
 .agenda-v2 { max-width: 1780px; }
-.agenda-cabecalho-v3 { padding-right: 112px; }
+.agenda-cabecalho-v3 { padding-right: 0; }
 .agenda-controles-v2 { padding: 5px; border: 1px solid var(--borda); border-radius: 12px; background: #fff; box-shadow: var(--sombra-xs); }
 .agenda-controles-v2 .campo-data-agenda { width: 124px; min-width: 124px; min-height: 34px; height: 34px; flex: 0 0 124px; padding-left: 10px; }
 .agenda-controles-v2 .campo-data-agenda input { text-align: center; font-weight: 700; }
@@ -1164,3 +1164,14 @@ body.sobreposicao-aberta .layout-conteudo { overflow: hidden; }
 .relatorio-periodo-titulo { margin: 16px 0 8px; font-size: 13px; color: var(--carimbo); }
 .comparacao-indicadores { margin: 16px 0; min-width: 0; }
 .comparacao-indicadores h3 { margin: 0 0 12px; font-size: 15px; }
+
+/* Hora da agenda integrada à navegação superior. */
+.workspace-relogio { flex: 0 0 auto; margin-left: 12px; padding: 5px 10px; border-left: 1px solid #d4dde7; color: var(--carimbo); font: 750 22px var(--fonte-mono); font-variant-numeric: tabular-nums; line-height: 1; white-space: nowrap; }
+@media (max-width: 900px) {
+  .workspace-contexto:has(.workspace-relogio) { min-width: 0; gap: 5px; }
+  .workspace-relogio { margin-left: 4px; padding: 4px 7px; font-size: 18px; }
+}
+@media (max-width: 480px) {
+  .workspace-contexto:has(.workspace-relogio) > strong { max-width: 65px; }
+  .workspace-contexto:has(.workspace-relogio) .workspace-relogio { margin-left: 0; padding-inline: 5px; font-size: 16px; }
+}

@@ -653,7 +653,6 @@ export default function Agenda() {
 
   return (
     <div className="agenda-v2">
-      <Relogio />
       <CabecalhoPagina
         className="agenda-cabecalho-v3"
         contexto="Operação diária"
@@ -1382,25 +1381,6 @@ function MensagemFonada({ numero, tema, codigo, quemOferece }) {
         </div>
       )}
     </section>
-  );
-}
-
-// Relógio no canto superior direito da tela — só na Agenda, para
-// comparar rápido com os horários das mensagens/entregas do dia.
-// Atualiza a cada segundo (para trocar de minuto na hora certa),
-// exibindo só HH:MM.
-function Relogio() {
-  const [agora, setAgora] = useState(new Date());
-  useEffect(() => {
-    const intervalo = setInterval(() => setAgora(new Date()), 1000);
-    return () => clearInterval(intervalo);
-  }, []);
-  const hh = String(agora.getHours()).padStart(2, '0');
-  const mm = String(agora.getMinutes()).padStart(2, '0');
-  return (
-    <div className="relogio-topo nao-imprimir" aria-label={`Hora atual: ${hh}:${mm}`}>
-      {hh}:{mm}
-    </div>
   );
 }
 
