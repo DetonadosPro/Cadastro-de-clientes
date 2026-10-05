@@ -605,7 +605,7 @@ export default function Agenda() {
           horario={item.horario}
           tipo="fonada"
           titulo={item.para || item.nome_comprador}
-          detalhes={[item.tema, item.agrupada && 'Duas mensagens nesta ligação'].filter(Boolean)}
+          detalhes={[item.agrupada && 'Duas mensagens nesta ligação'].filter(Boolean)}
           tagExtra={itemExpirado(item)
             ? 'Expirada'
             : item.agrupada
