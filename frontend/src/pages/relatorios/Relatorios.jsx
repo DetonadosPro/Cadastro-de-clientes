@@ -1,784 +1,120 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../../api.js';
 import { formatarData } from '../../mascaras.js';
 import CampoData from '../../components/CampoData.jsx';
-import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
-import { AvisoInline, CabecalhoPagina, EstadoCarregando, EstadoVazio as EstadoVazioInterface } from '../../components/Interface.jsx';
-import {
-  GraficoBarrasCategorias,
-  GraficoEvolucaoVendas,
-  GraficoQuantidadeTicket,
-  GraficoRankingEquipe,
-  GraficoQuantidadePagamentos,
-  GraficoVendasPorSistema,
-  GraficoVendidoRecebido,
-} from './GraficosRelatorio.jsx';
+import { AvisoInline, CabecalhoPagina } from '../../components/Interface.jsx';
+import { GraficoEvolucao, GraficoCategorias, GraficoComposicao } from './GraficosRelatorio.jsx';
+import { CORES_RELATORIO as CORES, dinheiro, numero, nomePeriodo, diasPeriodo, dataRelatorio, campoData, periodoRapido, periodoAnterior, compararValores, resumoRelatorio, totaisFormas } from '../../utils/relatorios.js';
+import './relatorios.css';
 
+const ABAS = [{ id:'vendas', nome:'Vendas', icone:'↗' },{ id:'recebimentos', nome:'Recebimentos', icone:'↙' },{ id:'desempenho', nome:'Equipe', icone:'◎' }];
 export default function Relatorios() {
-  // Aba e filtro de sistema ficam na URL — assim, ao abrir um pedido a
-  // partir de algum resultado e depois voltar, a tela é restaurada na
-  // mesma aba/filtro em que a pessoa estava, em vez de resetar.
-  const [searchParams, setSearchParams] = useSearchParams();
-  const aba = searchParams.get('aba') || 'vendas';
-  const sistema = searchParams.get('sistema') || 'TODOS';
-  const intervalo = useIntervaloData(searchParams, setSearchParams);
-
-  function irParaAba(novaAba) {
-    setSearchParams((atual) => {
-      const novo = new URLSearchParams(atual);
-      novo.set('aba', novaAba);
-      return novo;
-    }, { replace: true });
+  const [params,setParams] = useSearchParams();
+  const tipo = ABAS.some(a=>a.id===params.get('aba')) ? params.get('aba') : 'vendas';
+  const sistema = ['TODOS','FONADA','AOVIVO'].includes(params.get('sistema')) ? params.get('sistema') : 'TODOS';
+  const padrao = periodoRapido('mes');
+  const inicio = params.has('inicio') ? params.get('inicio') : padrao.inicio;
+  const fim = params.has('fim') ? params.get('fim') : padrao.fim;
+  const inicioB = params.get('inicioB') || '', fimB = params.get('fimB') || '';
+  const comparando = params.get('comparando') === '1' || Boolean(inicioB);
+  function mudar(valores) { setParams(atuais=>{const novos=new URLSearchParams(atuais);for(const [chave,valor] of Object.entries(valores)) valor===null ? novos.delete(chave) : novos.set(chave,valor);return novos;},{replace:true}); }
+  function comparar() { const anterior=periodoAnterior(inicio,fim); mudar(comparando ? {comparando:null,inicioB:null,fimB:null} : {comparando:'1',inicioB:anterior?.inicio||'',fimB:anterior?.fim||''}); }
+  function referencia(tipoReferencia) {
+    const a=dataRelatorio(inicio),b=dataRelatorio(fim||inicio); if(!a||!b)return;
+    if(tipoReferencia==='anterior') {const p=periodoAnterior(inicio,fim);if(p)mudar({inicioB:p.inicio,fimB:p.fim});}
+    if(tipoReferencia==='mes') mudar({inicioB:campoData(new Date(Date.UTC(a.getUTCFullYear(),a.getUTCMonth()-1,1))),fimB:campoData(new Date(Date.UTC(a.getUTCFullYear(),a.getUTCMonth(),0)))});
+    if(tipoReferencia==='ano') { const anterior=d=>{const ano=d.getUTCFullYear()-1,mes=d.getUTCMonth(),dia=Math.min(d.getUTCDate(),new Date(Date.UTC(ano,mes+1,0)).getUTCDate());return campoData(new Date(Date.UTC(ano,mes,dia)));};mudar({inicioB:anterior(a),fimB:anterior(b)}); }
   }
-
-  function mudarSistema(novoSistema) {
-    setSearchParams((atual) => {
-      const novo = new URLSearchParams(atual);
-      novo.set('sistema', novoSistema);
-      return novo;
-    }, { replace: true });
-  }
-
-  return (
-    <div>
-      <CabecalhoPagina contexto="Gestão" titulo="Relatórios" descricao="Compare vendas, recebimentos e desempenho da equipe por período e tipo de pedido." />
-
-      <div className="section-box secao-relatorios">
-        <div className="abas-cliente abas-relatorio">
-          <button
-            type="button"
-            className={`aba-cliente-botao ${aba === 'vendas' ? 'ativa' : ''}`}
-            onClick={() => irParaAba('vendas')}
-          >
-            Vendas
-          </button>
-          <button
-            type="button"
-            className={`aba-cliente-botao ${aba === 'recebimentos' ? 'ativa' : ''}`}
-            onClick={() => irParaAba('recebimentos')}
-          >
-            Recebimentos
-          </button>
-          <button
-            type="button"
-            className={`aba-cliente-botao ${aba === 'desempenho' ? 'ativa' : ''}`}
-            onClick={() => irParaAba('desempenho')}
-          >
-            Desempenho
-          </button>
-          <div className="filtro-sistema-relatorio">
-            <select aria-label="Filtrar relatórios por sistema" value={sistema} onChange={(e) => mudarSistema(e.target.value)}>
-              <option value="TODOS">Todos</option>
-              <option value="FONADA">Fonada</option>
-              <option value="AOVIVO">Ao vivo</option>
-            </select>
-          </div>
-        </div>
-
-        <div style={{ padding: 16 }}>
-          {/* Ambas as abas ficam sempre montadas (só uma é exibida por vez).
-              Isso preserva período, dados buscados e estado de cada uma ao
-              navegar entre elas, em vez de resetar tudo a cada troca. */}
-          <div style={{ display: aba === 'vendas' ? 'block' : 'none' }}>
-            <AbaVendas sistema={sistema} intervalo={intervalo} ativa={aba === 'vendas'} />
-          </div>
-          <div style={{ display: aba === 'recebimentos' ? 'block' : 'none' }}>
-            <AbaRecebimentos sistema={sistema} intervalo={intervalo} ativa={aba === 'recebimentos'} />
-          </div>
-          <div style={{ display: aba === 'desempenho' ? 'block' : 'none' }}>
-            <AbaDesempenho sistema={sistema} intervalo={intervalo} ativa={aba === 'desempenho'} />
-          </div>
-        </div>
+  return <div className="relatorios-modernos">
+    <CabecalhoPagina contexto="Visão do negócio" titulo="Relatórios" descricao="Explore os resultados, descubra o que mudou e compare os períodos que importam." />
+    <div className="rel-navigation"><div className="rel-tabs" aria-label="Tipo de relatório">{ABAS.map(aba=><button type="button" key={aba.id} className={tipo===aba.id?'ativo':''} aria-pressed={tipo===aba.id} onClick={()=>mudar({aba:aba.id})}><span aria-hidden="true">{aba.icone}</span>{aba.nome}</button>)}</div><label className="rel-system"><span>Modalidade</span><select value={sistema} aria-label="Modalidade do relatório" onChange={e=>mudar({sistema:e.target.value})}><option value="TODOS">Todas as modalidades</option><option value="FONADA">Fonada</option><option value="AOVIVO">Ao Vivo</option></select></label></div>
+    <section className="rel-period-picker" aria-label="Escolher períodos">
+      <div className="rel-presets">{[['hoje','Hoje'],['ontem','Ontem'],['semana','Esta semana'],['mes','Este mês'],['mes-anterior','Mês anterior']].map(([valor,nome])=><button type="button" key={valor} onClick={()=>mudar(periodoRapido(valor))}>{nome}</button>)}<button type="button" className={`rel-compare-toggle ${comparando?'ativo':''}`} aria-pressed={comparando} onClick={comparar}>{comparando?'× Remover comparação':'＋ Comparar períodos'}</button></div>
+      <div className={`rel-period-grid ${comparando?'comparando':''}`}>
+        <div className="rel-period-block"><div className="rel-period-name"><i style={{background:CORES.principal}}/><div><small>Período em análise</small><strong>{nomePeriodo(inicio,fim)}</strong></div></div><div className="rel-date-inputs"><div><label htmlFor="rel-inicio">De</label><CampoData id="rel-inicio" value={inicio} placeholder="dd/mm/aa" onChange={v=>mudar({inicio:formatarData(v)})}/></div><div><label htmlFor="rel-fim">Até</label><CampoData id="rel-fim" value={fim} placeholder="dd/mm/aa" onChange={v=>mudar({fim:formatarData(v)})}/></div></div></div>
+        {comparando && <><button type="button" className="rel-swap" aria-label="Inverter os períodos da comparação" disabled={!diasPeriodo(inicio,fim)||!diasPeriodo(inicioB,fimB)} onClick={()=>mudar({inicio:inicioB,fim:fimB||inicioB,inicioB:inicio,fimB:fim||inicio})}>⇄<span>Inverter períodos</span></button><div className="rel-period-block referencia"><div className="rel-period-name"><i style={{background:CORES.comparado}}/><div><small>Comparar com</small><strong>{nomePeriodo(inicioB,fimB)}</strong></div></div><div className="rel-date-inputs"><div><label htmlFor="rel-inicio-ref">De</label><CampoData id="rel-inicio-ref" value={inicioB} placeholder="dd/mm/aa" onChange={v=>mudar({inicioB:formatarData(v)})}/></div><div><label htmlFor="rel-fim-ref">Até</label><CampoData id="rel-fim-ref" value={fimB} placeholder="dd/mm/aa" onChange={v=>mudar({fimB:formatarData(v)})}/></div></div><div className="rel-reference-presets"><button type="button" onClick={()=>referencia('anterior')}>Intervalo anterior</button><button type="button" onClick={()=>referencia('mes')}>Mês anterior</button><button type="button" onClick={()=>referencia('ano')}>Ano anterior</button></div></div></>}
       </div>
-    </div>
-  );
-}
-
-function useIntervaloData(searchParams, setSearchParams) {
-  const inicio = searchParams.get('inicio') || '';
-  const fim = searchParams.get('fim') || '';
-  const inicioB = searchParams.get('inicioB') || '';
-  const fimB = searchParams.get('fimB') || '';
-  function definir(campo, valor) {
-    const formatado = formatarData(valor);
-    setSearchParams((atuais) => {
-      const novos = new URLSearchParams(atuais);
-      if (formatado) novos.set(campo, formatado);
-      else novos.delete(campo);
-      return novos;
-    }, { replace: true });
-  }
-  return {
-    inicio, fim, inicioB, fimB,
-    setInicio: (v) => definir('inicio', v),
-    setFim: (v) => definir('fim', v),
-    setInicioB: (v) => definir('inicioB', v),
-    setFimB: (v) => definir('fimB', v),
-    limparComparacao: () => {
-      setSearchParams((atuais) => { const novos = new URLSearchParams(atuais); novos.delete('inicioB'); novos.delete('fimB'); return novos; }, { replace: true });
-    },
-    setIntervalo: (novoInicio, novoFim) => {
-      const inicioFormatado = formatarData(novoInicio);
-      const fimFormatado = formatarData(novoFim);
-      setSearchParams((atuais) => {
-        const novos = new URLSearchParams(atuais);
-        if (inicioFormatado) novos.set('inicio', inicioFormatado);
-        else novos.delete('inicio');
-        if (fimFormatado) novos.set('fim', fimFormatado);
-        else novos.delete('fim');
-        return novos;
-      }, { replace: true });
-    },
-  };
-}
-
-function formatarReais(v) {
-  return (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
-
-function dataCompleta(valor) {
-  const partes = String(valor || '').match(/^(\d{2})\/(\d{2})\/(\d{2})$/);
-  if (!partes) return false;
-  const [, dia, mes, ano] = partes.map(Number);
-  const data = new Date(2000 + ano, mes - 1, dia);
-  return data.getFullYear() === 2000 + ano && data.getMonth() === mes - 1 && data.getDate() === dia;
-}
-
-function inicioDepoisDoFim(inicio, fim) {
-  if (!dataCompleta(inicio) || !dataCompleta(fim)) return false;
-  const chave = (valor) => {
-    const [dia, mes, ano] = valor.split('/');
-    return `${ano}${mes}${dia}`;
-  };
-  return chave(inicio) > chave(fim);
-}
-
-// Compatibilidade com um backend que ainda esteja terminando de reiniciar
-// após o deploy. As séries oficiais vêm em `graficos` e consideram todos os
-// registros; enquanto esse campo não existe, usamos os itens do relatório
-// para que o card não apareça vazio sem necessidade.
-function serieDosItens(itens = []) {
-  const mapa = new Map();
-  for (const item of itens) {
-    if (!item.data) continue;
-    const atual = mapa.get(item.data) || { data: item.data, valor: 0, quantidade: 0, fonada: 0, aoVivo: 0 };
-    const valor = Number(item.valor || 0);
-    atual.valor += valor;
-    atual.quantidade += 1;
-    if (item.sistema === 'FONADA') atual.fonada += valor;
-    if (item.sistema === 'AOVIVO') atual.aoVivo += valor;
-    mapa.set(item.data, atual);
-  }
-  const chaveData = (data) => String(data).split('/').reverse().join('');
-  return [...mapa.values()].sort((a, b) => chaveData(a.data).localeCompare(chaveData(b.data)));
-}
-
-function formasDosItens(itens = []) {
-  const mapa = new Map();
-  for (const item of itens) {
-    const categoria = String(item.forma || 'NÃO INFORMADO').trim().toUpperCase();
-    const atual = mapa.get(categoria) || { categoria, valor: 0, quantidade: 0 };
-    atual.valor += Number(item.valor || 0);
-    atual.quantidade += 1;
-    mapa.set(categoria, atual);
-  }
-  return [...mapa.values()].sort((a, b) => b.valor - a.valor);
-}
-
-function percentual(parte, total) {
-  return Math.round(Number(parte || 0) / Math.max(Number(total || 0), 1) * 100);
-}
-
-function pagamentosPorDiaDosItens(itens = []) {
-  const mapa = new Map();
-  itens.forEach((item) => {
-    if (!item.data) return;
-    const formaOriginal = String(item.forma || 'NÃO INFORMADO').trim().toUpperCase();
-    const forma = item.sistema === 'FONADA' ? (formaOriginal.includes('PIX') ? 'PIX' : 'PRESENCIAL') : formaOriginal;
-    const ponto = mapa.get(item.data) || { data: item.data, total: 0, formas: {} };
-    ponto.total += 1;
-    ponto.formas[forma] = (ponto.formas[forma] || 0) + 1;
-    mapa.set(item.data, ponto);
-  });
-  const chaveData = (data) => String(data).split('/').reverse().join('');
-  return [...mapa.values()].sort((a, b) => chaveData(a.data).localeCompare(chaveData(b.data)));
-}
-
-function graficosVendas(dados) {
-  const fallback = serieDosItens(dados?.itens);
-  const pagamentosApi = dados?.graficos?.pagamentosPorDia || [];
-  const pagamentosNormalizados = pagamentosApi.map((ponto) => ponto.formas ? ponto : ({
-    data: ponto.data,
-    total: Number(ponto.quantidade || 0) || Number(ponto.pix || 0) + Number(ponto.presencial || 0),
-    formas: { PIX: Number(ponto.pix || 0), PRESENCIAL: Number(ponto.presencial || 0) },
-  }));
-  return {
-    vendasPorDia: dados?.graficos?.vendasPorDia?.length ? dados.graficos.vendasPorDia : fallback,
-    periodoAnterior: dados?.graficos?.periodoAnterior || [],
-    pagamentosPorDia: pagamentosNormalizados.length
-      ? pagamentosNormalizados
-      : pagamentosPorDiaDosItens(dados?.itens),
-  };
-}
-
-function graficosRecebimentos(dados) {
-  const fallback = serieDosItens(dados?.itens);
-  return {
-    vendidoPorDia: dados?.graficos?.vendidoPorDia || [],
-    recebidoPorDia: dados?.graficos?.recebidoPorDia?.length ? dados.graficos.recebidoPorDia : fallback,
-    recebimentosPorForma: dados?.graficos?.recebimentosPorForma?.length
-      ? dados.graficos.recebimentosPorForma
-      : formasDosItens(dados?.itens),
-  };
-}
-
-function AbaVendas({ sistema, intervalo, ativa }) {
-  const { inicio, fim, inicioB, fimB, setInicio, setFim, setInicioB, setFimB, limparComparacao, setIntervalo } = intervalo;
-  const [dados, setDados] = useState(null);
-  const [dadosB, setDadosB] = useState(null);
-  const buscaAtual = React.useRef(0);
-  const [carregando, setCarregando] = useState(false);
-  const [erro, setErro] = useState('');
-  const [jaBuscou, setJaBuscou] = useState(false);
-  const [paginacao, setPaginacao] = useState({ limite: 100, pagina: 1 });
-  const series = graficosVendas(dados);
-
-  async function buscar(e, sistemaAtual = sistema) {
-    if (e) e.preventDefault();
-    if (!inicio) {
-      setErro('Informe pelo menos a data inicial.');
-      return;
-    }
-    const busca = ++buscaAtual.current;
-    setCarregando(true);
-    setErro('');
-    setJaBuscou(true);
-    try {
-      const [resp, respB] = await Promise.all([
-        api.relatorios.vendas(inicio, fim, sistemaAtual, { inicioB, fimB, ...paginacao }),
-        dataCompleta(inicioB) && (!fimB || dataCompleta(fimB))
-          ? api.relatorios.vendas(inicioB, fimB, sistemaAtual, paginacao) : Promise.resolve(null),
-      ]);
-      if (busca !== buscaAtual.current) return;
-      setDados(resp);
-      setDadosB(respB);
-    } catch (err) {
-      if (busca === buscaAtual.current) setErro(err.message);
-    } finally {
-      if (busca === buscaAtual.current) setCarregando(false);
-    }
-  }
-
-  React.useEffect(() => {
-    if (!ativa || !dataCompleta(inicio) || (fim && !dataCompleta(fim))) return undefined;
-    if (fim && inicioDepoisDoFim(inicio, fim)) {
-      setErro('A data inicial não pode ser posterior à data final.');
-      setDados(null);
-      setJaBuscou(true);
-      return undefined;
-    }
-    if ((inicioB && !dataCompleta(inicioB)) || (fimB && !dataCompleta(fimB))) return undefined;
-    if (inicioB && fimB && inicioDepoisDoFim(inicioB, fimB)) {
-      setErro('No período B, a data inicial não pode ser posterior à data final.');
-      setDados(null);
-      return undefined;
-    }
-    const temporizador = setTimeout(() => buscar(null, sistema), 300);
-    return () => { clearTimeout(temporizador); buscaAtual.current += 1; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inicio, fim, inicioB, fimB, sistema, ativa, paginacao.limite, paginacao.pagina]);
-
-  return (
-    <div>
-      <FormularioPeriodo
-        inicio={inicio} fim={fim} inicioB={inicioB} fimB={fimB} setInicio={setInicio} setFim={setFim}
-        setInicioB={setInicioB} setFimB={setFimB} limparComparacao={limparComparacao} setIntervalo={setIntervalo}
-      />
-
-      {erro && <AvisoInline tom="erro" titulo="Não foi possível montar o relatório">{erro}</AvisoInline>}
-
-      {!jaBuscou ? (
-        <EstadoVazioInterface className="estado-vazio-plano" icone="↗" titulo="Escolha um período" descricao="Informe as datas ou use um dos atalhos para visualizar o relatório de vendas." />
-      ) : carregando ? (
-        <EstadoCarregando className="estado-carregando-plano" rotulo="Calculando vendas e indicadores…" linhas={5} />
-      ) : dados && (
-        <>
-          <div className="grade grade-relatorio grade-3 resumo-principal-relatorio">
-            <CartaoValor label="Vendido no período" valor={formatarReais(dados.geral.valorTotal)} destaque
-              sub={sistema === 'TODOS' ? `Fonada ${Math.round((dados.fonada?.valorTotal || 0) / Math.max(dados.geral.valorTotal, 1) * 100)}% · Ao Vivo ${Math.round((dados.aoVivo?.valorTotal || 0) / Math.max(dados.geral.valorTotal, 1) * 100)}%` : null}
-              tooltip={sistema === 'TODOS' ? `Fonada: ${formatarReais(dados.fonada?.valorTotal)}\nAo Vivo: ${formatarReais(dados.aoVivo?.valorTotal)}` : null} />
-            <CartaoValor label="Pedidos" valor={dados.geral.quantidade}
-              sub={sistema === 'TODOS' ? `Fonada ${Math.round((dados.fonada?.quantidade || 0) / Math.max(dados.geral.quantidade, 1) * 100)}% · Ao Vivo ${Math.round((dados.aoVivo?.quantidade || 0) / Math.max(dados.geral.quantidade, 1) * 100)}%` : null}
-              tooltip={sistema === 'TODOS' ? `Fonada: ${dados.fonada?.quantidade || 0} pedido(s)\nAo Vivo: ${dados.aoVivo?.quantidade || 0} pedido(s)` : null} />
-            <CartaoValor label="Ticket médio" valor={formatarReais(dados.geral.ticketMedio)} />
-          </div>
-          <ComparacaoPeriodo dados={dados.comparacao} metrica="Vendas" />
-          <ComparacaoIndicadores atual={dados} anterior={dadosB} tipo="vendas" />
-          <div className="grade-graficos-relatorio">
-            {fim && <GraficoEvolucaoVendas atual={series.vendasPorDia} anterior={dadosB ? graficosVendas(dadosB).vendasPorDia : []} sistema={sistema} />}
-            {fim && <GraficoComparado periodoB={dadosB} propsB={{ dados: graficosVendas(dadosB).vendasPorDia }}><GraficoVendasPorSistema dados={series.vendasPorDia} sistema={sistema} /></GraficoComparado>}
-            <GraficoComparado periodoB={dadosB} propsB={{ dados: graficosVendas(dadosB).pagamentosPorDia }}><GraficoQuantidadePagamentos dados={series.pagamentosPorDia} /></GraficoComparado>
-            {sistema === 'FONADA' && dados.graficos?.origemFonada?.length > 0 && <GraficoComparado periodoB={dadosB} propsB={{ dados: dadosB?.graficos?.origemFonada || [] }}><GraficoBarrasCategorias titulo="Origem dos pedidos Fonada" subtitulo="Recall e clientes são origens; não formas de pagamento" dados={dados.graficos.origemFonada} usarQuantidade /></GraficoComparado>}
-          </div>
-
-          {dadosB && <h3 className="relatorio-periodo-titulo">Período A · {inicio} a {fim || inicio}</h3>}
-          <TabelaDetalhada dados={dados} itens={dados.itens || []} tituloColunaValor="Venda" onPaginacao={setPaginacao} />
-          {dadosB && <div><h3 className="relatorio-periodo-titulo">Período B · {inicioB} a {fimB || inicioB}</h3><TabelaDetalhada dados={dadosB} itens={dadosB.itens || []} tituloColunaValor="Venda" onPaginacao={setPaginacao} /></div>}
-        </>
-      )}
-    </div>
-  );
-}
-
-function AbaRecebimentos({ sistema, intervalo, ativa }) {
-  const { inicio, fim, inicioB, fimB, setInicio, setFim, setInicioB, setFimB, limparComparacao, setIntervalo } = intervalo;
-  const [dados, setDados] = useState(null);
-  const [dadosB, setDadosB] = useState(null);
-  const buscaAtual = React.useRef(0);
-  const [carregando, setCarregando] = useState(false);
-  const [erro, setErro] = useState('');
-  const [jaBuscou, setJaBuscou] = useState(false);
-  const [paginacao, setPaginacao] = useState({ limite: 100, pagina: 1 });
-  const series = graficosRecebimentos(dados);
-  const composicao = dados?.composicaoVendasPeriodo || null;
-  const vendidoFonada = composicao?.fonada?.vendido || 0;
-  const vendidoAoVivo = composicao?.aoVivo?.vendido || 0;
-  const receberFonada = composicao?.fonada?.aReceber || 0;
-  const receberAoVivo = composicao?.aoVivo?.aReceber || 0;
-
-  async function buscar(e, sistemaAtual = sistema) {
-    if (e) e.preventDefault();
-    if (!inicio) {
-      setErro('Informe pelo menos a data inicial.');
-      return;
-    }
-    const busca = ++buscaAtual.current;
-    setCarregando(true);
-    setErro('');
-    setJaBuscou(true);
-    try {
-      const [resp, respB] = await Promise.all([
-        api.relatorios.recebimentos(inicio, fim, sistemaAtual, { inicioB, fimB, ...paginacao }),
-        dataCompleta(inicioB) && (!fimB || dataCompleta(fimB))
-          ? api.relatorios.recebimentos(inicioB, fimB, sistemaAtual, paginacao) : Promise.resolve(null),
-      ]);
-      if (busca !== buscaAtual.current) return;
-      setDados(resp);
-      setDadosB(respB);
-    } catch (err) {
-      if (busca === buscaAtual.current) setErro(err.message);
-    } finally {
-      if (busca === buscaAtual.current) setCarregando(false);
-    }
-  }
-
-  React.useEffect(() => {
-    if (!ativa || !dataCompleta(inicio) || (fim && !dataCompleta(fim))) return undefined;
-    if (fim && inicioDepoisDoFim(inicio, fim)) {
-      setErro('A data inicial não pode ser posterior à data final.');
-      setDados(null);
-      setJaBuscou(true);
-      return undefined;
-    }
-    if ((inicioB && !dataCompleta(inicioB)) || (fimB && !dataCompleta(fimB))) return undefined;
-    if (inicioB && fimB && inicioDepoisDoFim(inicioB, fimB)) {
-      setErro('No período B, a data inicial não pode ser posterior à data final.');
-      setDados(null);
-      return undefined;
-    }
-    const temporizador = setTimeout(() => buscar(null, sistema), 300);
-    return () => { clearTimeout(temporizador); buscaAtual.current += 1; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inicio, fim, inicioB, fimB, sistema, ativa, paginacao.limite, paginacao.pagina]);
-
-  return (
-    <div>
-      <FormularioPeriodo
-        inicio={inicio} fim={fim} inicioB={inicioB} fimB={fimB} setInicio={setInicio} setFim={setFim}
-        setInicioB={setInicioB} setFimB={setFimB} limparComparacao={limparComparacao} setIntervalo={setIntervalo}
-      />
-
-      {erro && <AvisoInline tom="erro" titulo="Não foi possível montar o relatório">{erro}</AvisoInline>}
-
-      {!jaBuscou ? (
-        <EstadoVazioInterface className="estado-vazio-plano" icone="R$" titulo="Escolha um período" descricao="Informe as datas ou use um dos atalhos para visualizar os recebimentos." />
-      ) : carregando ? (
-        <EstadoCarregando className="estado-carregando-plano" rotulo="Calculando recebimentos…" linhas={5} />
-      ) : dados && (
-        <>
-          <div className="grade grade-relatorio grade-3 resumo-principal-relatorio">
-            <CartaoValor label="Recebido no período" valor={formatarReais(dados.valorTotal)}
-              sub={sistema === 'TODOS' ? `Fonada ${percentual(dados.fonada?.valorTotal, dados.valorTotal)}% · Ao Vivo ${percentual(dados.aoVivo?.valorTotal, dados.valorTotal)}%` : `${dados.quantidade} registro(s)`}
-              tooltip={sistema === 'TODOS' ? `Fonada: ${formatarReais(dados.fonada?.valorTotal)}\nAo Vivo: ${formatarReais(dados.aoVivo?.valorTotal)}` : null} destaque />
-            <CartaoValor label="Vendido no período" valor={formatarReais(dados.valorVendido)}
-              sub={sistema === 'TODOS' && composicao ? `Fonada ${percentual(vendidoFonada, dados.valorVendido)}% · Ao Vivo ${percentual(vendidoAoVivo, dados.valorVendido)}%` : null}
-              tooltip={sistema === 'TODOS' && composicao ? `Fonada: ${formatarReais(vendidoFonada)}\nAo Vivo: ${formatarReais(vendidoAoVivo)}` : null} />
-            <CartaoValor label="Ainda a receber" valor={formatarReais(dados.valorAReceberVendasPeriodo)}
-              sub={sistema === 'TODOS' && composicao ? `Fonada ${percentual(receberFonada, dados.valorAReceberVendasPeriodo)}% · Ao Vivo ${percentual(receberAoVivo, dados.valorAReceberVendasPeriodo)}%` : null}
-              tooltip={sistema === 'TODOS' && composicao ? `Fonada: ${formatarReais(receberFonada)}\nAo Vivo: ${formatarReais(receberAoVivo)}` : null} />
-          </div>
-          <ComparacaoPeriodo dados={dados.comparacao} metrica="Recebimentos" />
-          <ComparacaoIndicadores atual={dados} anterior={dadosB} tipo="recebimentos" />
-          <div className="grade-graficos-relatorio grade-graficos-recebimentos">
-            {fim && <GraficoComparado periodoB={dadosB} propsB={{ vendido: graficosRecebimentos(dadosB).vendidoPorDia, recebido: graficosRecebimentos(dadosB).recebidoPorDia }}><GraficoVendidoRecebido vendido={series.vendidoPorDia} recebido={series.recebidoPorDia} sistema={sistema} /></GraficoComparado>}
-            <GraficoComparado periodoB={dadosB} propsB={{ dados: graficosRecebimentos(dadosB).recebimentosPorForma }}><GraficoBarrasCategorias
-              titulo="Formas de recebimento"
-              subtitulo="Valor efetivamente recebido em cada forma"
-              dados={series.recebimentosPorForma}
-            /></GraficoComparado>
-          </div>
-
-
-          {dadosB && <h3 className="relatorio-periodo-titulo">Período A · {inicio} a {fim || inicio}</h3>}
-          <TabelaDetalhada dados={dados} itens={dados.itens || []} tituloColunaValor="Recebido" onPaginacao={setPaginacao} />
-          {dadosB && <div><h3 className="relatorio-periodo-titulo">Período B · {inicioB} a {fimB || inicioB}</h3><TabelaDetalhada dados={dadosB} itens={dadosB.itens || []} tituloColunaValor="Recebido" onPaginacao={setPaginacao} /></div>}
-        </>
-      )}
-    </div>
-  );
-}
-
-function AbaDesempenho({ sistema, intervalo, ativa }) {
-  const { inicio, fim, inicioB, fimB, setInicio, setFim, setInicioB, setFimB, limparComparacao, setIntervalo } = intervalo;
-  const [dados, setDados] = useState(null);
-  const [dadosB, setDadosB] = useState(null);
-  const buscaAtual = React.useRef(0);
-  const [carregando, setCarregando] = useState(false);
-  const [erro, setErro] = useState('');
-  const [jaBuscou, setJaBuscou] = useState(false);
-
-  async function buscar(e, sistemaAtual = sistema) {
-    if (e) e.preventDefault();
-    if (!inicio) {
-      setErro('Informe pelo menos a data inicial.');
-      return;
-    }
-    const busca = ++buscaAtual.current;
-    setCarregando(true);
-    setErro('');
-    setJaBuscou(true);
-    try {
-      const [resp, respB] = await Promise.all([
-        api.relatorios.desempenho(inicio, fim, sistemaAtual, { inicioB, fimB }),
-        dataCompleta(inicioB) && (!fimB || dataCompleta(fimB))
-          ? api.relatorios.desempenho(inicioB, fimB, sistemaAtual) : Promise.resolve(null),
-      ]);
-      if (busca !== buscaAtual.current) return;
-      setDados(resp);
-      setDadosB(respB);
-    } catch (err) {
-      if (busca === buscaAtual.current) setErro(err.message);
-    } finally {
-      if (busca === buscaAtual.current) setCarregando(false);
-    }
-  }
-
-  React.useEffect(() => {
-    if (!ativa || !dataCompleta(inicio) || (fim && !dataCompleta(fim))) return undefined;
-    if (fim && inicioDepoisDoFim(inicio, fim)) {
-      setErro('A data inicial não pode ser posterior à data final.');
-      setDados(null);
-      setJaBuscou(true);
-      return undefined;
-    }
-    if ((inicioB && !dataCompleta(inicioB)) || (fimB && !dataCompleta(fimB))) return undefined;
-    if (inicioB && fimB && inicioDepoisDoFim(inicioB, fimB)) {
-      setErro('No período B, a data inicial não pode ser posterior à data final.');
-      setDados(null);
-      return undefined;
-    }
-    const temporizador = setTimeout(() => buscar(null, sistema), 300);
-    return () => { clearTimeout(temporizador); buscaAtual.current += 1; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inicio, fim, inicioB, fimB, sistema, ativa]);
-
-  return (
-    <div>
-      <FormularioPeriodo
-        inicio={inicio} fim={fim} inicioB={inicioB} fimB={fimB} setInicio={setInicio} setFim={setFim}
-        setInicioB={setInicioB} setFimB={setFimB} limparComparacao={limparComparacao} setIntervalo={setIntervalo}
-      />
-
-      {erro && <AvisoInline tom="erro" titulo="Não foi possível montar o relatório">{erro}</AvisoInline>}
-
-      {!jaBuscou ? (
-        <EstadoVazioInterface className="estado-vazio-plano" icone="↗" titulo="Escolha um período" descricao="Informe as datas ou use um dos atalhos para comparar o desempenho da equipe." />
-      ) : carregando ? (
-        <EstadoCarregando className="estado-carregando-plano" rotulo="Calculando o desempenho da equipe…" linhas={5} />
-      ) : dados && (
-        <>
-          <ComparacaoPeriodo dados={dados.comparacao} metrica="Vendas da equipe" />
-          <ComparacaoIndicadores atual={dados} anterior={dadosB} tipo="desempenho" />
-          <div className="grade-graficos-relatorio">
-            <GraficoComparado periodoB={dadosB} propsB={{ funcionarios: dadosB?.funcionarios || [] }}><GraficoRankingEquipe funcionarios={dados.funcionarios} /></GraficoComparado>
-            <GraficoComparado periodoB={dadosB} propsB={{ funcionarios: dadosB?.funcionarios || [] }}><GraficoQuantidadeTicket funcionarios={dados.funcionarios} /></GraficoComparado>
-          </div>
-          {dados.funcionarios.length === 0 ? (
-          <EstadoVazioInterface className="estado-vazio-plano" icone="↗" titulo="Sem vendas atribuídas neste período" descricao="Pedidos antigos, anteriores ao registro de vendedor, não aparecem nesta comparação." />
-        ) : (
-          <div>
-            {dadosB && <h3 className="relatorio-periodo-titulo">Período A · {inicio} a {fim || inicio}</h3>}
-            <TabelaDesempenho funcionarios={dados.funcionarios} valorEquipe={dados.valorEquipe} />
-          </div>
-          )}
-          {dadosB && <div><h3 className="relatorio-periodo-titulo">Período B · {inicioB} a {fimB || inicioB}</h3><TabelaDesempenho funcionarios={dadosB.funcionarios} valorEquipe={dadosB.valorEquipe} /></div>}
-        </>
-      )}
-    </div>
-  );
-}
-
-function TabelaDesempenho({ funcionarios, valorEquipe }) {
-  const lista = useListaIncremental(funcionarios, funcionarios.map((f) => f.usuario).join('|'));
-  return (
-    <div className="painel tabela-desempenho-wrap">
-      <div className="cabecalho-desempenho">
-        <div>
-          <strong>Comparativo da equipe</strong>
-          <div className="fs-xs" style={{ color: 'var(--tinta-suave)' }}>Vendas registradas por funcionário no período</div>
-        </div>
-        <strong>{formatarReais(valorEquipe)}</strong>
-      </div>
-      <div style={{ overflowX: 'auto' }}>
-        <table className="tabela-lista tabela-desempenho">
-          <thead><tr>
-            <th>Funcionário</th><th>Vendas</th><th>Valor</th><th>Ticket médio</th>
-            <th>Participação</th><th>Fonadas vendidas</th><th>Ao vivo vendidos</th>
-          </tr></thead>
-          <tbody>
-            {lista.itensVisiveis.map((f) => (
-              <tr key={f.usuario}>
-                <td data-label="Funcionário"><strong>{f.usuario}</strong></td>
-                <td data-label="Vendas"><strong>{f.vendasTotal}</strong></td>
-                <td data-label="Valor" className="valor-tabela">{formatarReais(f.valorVendidoTotal)}</td>
-                <td data-label="Ticket médio">{formatarReais(f.ticketMedio)}</td>
-                <td data-label="Participação"><strong>{f.participacaoPercentual}%</strong></td>
-                <td data-label="Fonadas vendidas">{f.vendasFonada}</td>
-                <td data-label="Ao vivo vendidos">{f.vendasAoVivo}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <BotaoMostrarMais temMais={lista.temMais} restantes={lista.restantes} onClick={lista.mostrarMais} />
-    </div>
-  );
-}
-
-function FormularioPeriodo({ inicio, fim, inicioB, fimB, setInicio, setFim, setInicioB, setFimB, limparComparacao, setIntervalo }) {
-  const [comparando, setComparando] = useState(Boolean(inicioB));
-  function aplicarAtalho(tipo) {
-    const hoje = new Date();
-    let primeiro = new Date(hoje);
-    let ultimo = new Date(hoje);
-    if (tipo === 'ontem') {
-      primeiro.setDate(hoje.getDate() - 1);
-      ultimo = new Date(primeiro);
-    } else if (tipo === 'semana') {
-      const dia = hoje.getDay() || 7;
-      primeiro.setDate(hoje.getDate() - dia + 1);
-    } else if (tipo === 'mes') {
-      primeiro = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-    } else if (tipo === 'mes-anterior') {
-      primeiro = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
-      ultimo = new Date(hoje.getFullYear(), hoje.getMonth(), 0);
-    }
-    const paraCampo = (data) => {
-      const dd = String(data.getDate()).padStart(2, '0');
-      const mm = String(data.getMonth() + 1).padStart(2, '0');
-      return `${dd}/${mm}/${String(data.getFullYear()).slice(-2)}`;
-    };
-    const diaIsolado = tipo === 'hoje' || tipo === 'ontem';
-    setIntervalo(paraCampo(primeiro), diaIsolado ? '' : paraCampo(ultimo));
-  }
-
-  return (
-    <div className="form-periodo-relatorio-wrap">
-      <div className="atalhos-periodo">
-        <span className="fs-xs texto-suave">Período rápido</span>
-        <button type="button" onClick={() => aplicarAtalho('hoje')}>Hoje</button>
-        <button type="button" onClick={() => aplicarAtalho('ontem')}>Ontem</button>
-        <button type="button" onClick={() => aplicarAtalho('semana')}>Esta semana</button>
-        <button type="button" onClick={() => aplicarAtalho('mes')}>Este mês</button>
-        <button type="button" onClick={() => aplicarAtalho('mes-anterior')}>Mês anterior</button>
-      </div>
-      <div className="form-periodo-relatorio">
-        <span className="periodo-identificador">Período A</span>
-        <div className="campo">
-          <label>Data inicial</label>
-          <CampoData placeholder="dd/mm/aa" value={inicio} onChange={setInicio} />
-        </div>
-        <div className="campo">
-          <label>Data final</label>
-          <CampoData placeholder="dd/mm/aa" value={fim} onChange={setFim} />
-        </div>
-        <button className="btn btn-secundario botao-comparar-periodo" type="button" onClick={() => {
-          if (comparando) limparComparacao?.();
-          setComparando(!comparando);
-        }}>{comparando ? 'Remover comparação' : 'Comparar período'}</button>
-      </div>
-      {comparando && <div className="form-periodo-relatorio periodo-comparacao-b">
-        <span className="periodo-identificador">Período B</span>
-        <div className="campo"><label>Data inicial</label><CampoData placeholder="dd/mm/aa" value={inicioB} onChange={setInicioB} /></div>
-        <div className="campo"><label>Data final</label><CampoData placeholder="dd/mm/aa" value={fimB} onChange={setFimB} /></div>
-        <span className="texto-suave fs-xs">Escolha qualquer intervalo para uma comparação direta.</span>
-      </div>}
-    </div>
-  );
-}
-
-function CartaoValor({ label, valor, sub, destaque, tooltip }) {
-  return (
-    <div className={`cartao-valor ${destaque ? 'destaque' : ''}`} title={tooltip || undefined} tabIndex={tooltip ? 0 : undefined}>
-      <div className="cartao-valor-label">{label}</div>
-      <div className="cartao-valor-numero">{valor}</div>
-      {sub && <div className="fs-xs" style={{ marginTop: 4, opacity: 0.8 }}>{sub}</div>}
-    </div>
-  );
-}
-
-function ComparacaoPeriodo({ dados, metrica }) {
-  if (!dados) return null;
-  const classe = dados.direcao === 'ALTA' ? 'alta' : dados.direcao === 'QUEDA' ? 'queda' : 'estavel';
-  const simbolo = dados.direcao === 'ALTA' ? '↑' : dados.direcao === 'QUEDA' ? '↓' : '→';
-  const diferenca = Math.abs(dados.diferenca || 0);
-
-  return (
-    <div className={`comparacao-periodo ${classe}`}>
-      <div>
-        <div className="comparacao-periodo-titulo">{metrica}: período A × período B</div>
-        <div className="fs-xs texto-suave">
-          {dados.periodoA ? `A: ${dados.periodoA.inicio} a ${dados.periodoA.fim || dados.periodoA.inicio} · ` : ''}B: {dados.inicio} a {dados.fim || dados.inicio}
-        </div>
-      </div>
-      <div className="comparacao-periodo-resultado">
-        <strong>{simbolo} {dados.percentual == null ? 'Sem base anterior' : `${Math.abs(dados.percentual)}%`}</strong>
-        <span>{formatarReais(diferenca)} {dados.direcao === 'QUEDA' ? 'a menos' : dados.direcao === 'ALTA' ? 'a mais' : 'de diferença'}</span>
-        {Number.isFinite(dados.diferencaQuantidade) && <small>{dados.diferencaQuantidade >= 0 ? '+' : ''}{dados.diferencaQuantidade} pedidos · ticket {dados.diferencaTicket >= 0 ? '+' : ''}{formatarReais(dados.diferencaTicket)}</small>}
-      </div>
-    </div>
-  );
-}
-
-// Tabela com um pedido por linha (comprador, O.S., forma, valor).
-// Clicar na linha abre o pedido, igual às listas de Fonada/Ao Vivo.
-function TabelaDetalhada({ dados, itens, tituloColunaValor, onPaginacao }) {
-  const navigate = useNavigate();
-
-  if (itens.length === 0) {
-    return (
-      <div className="painel" style={{ marginTop: 16, textAlign: 'center', color: 'var(--tinta-suave)' }}>
-        Nenhum pedido nesse período.
-      </div>
-    );
-  }
-
-  return (
-    <div className="painel" style={{ marginTop: 16, padding: 0, overflow: 'hidden' }}>
-      <div className="cabecalho-lista-relatorio">
-        <strong>Pedidos do período</strong>
-        <div className="controles-paginacao-relatorio">
-          <span className="fs-xs texto-suave">Exibindo {itens.length} de {dados.itensTotal ?? itens.length}</span>
-          <label>Por página <select value={dados.limite || 100} onChange={(e) => onPaginacao({ limite: Number(e.target.value), pagina: 1 })}>
-            {[50, 100, 200, 500].map((valor) => <option value={valor} key={valor}>{valor}</option>)}
-          </select></label>
-          <button type="button" disabled={(dados.pagina || 1) <= 1} onClick={() => onPaginacao({ limite: dados.limite, pagina: dados.pagina - 1 })}>Anterior</button>
-          <span>{dados.pagina || 1}/{dados.totalPaginas || 1}</span>
-          <button type="button" disabled={(dados.pagina || 1) >= (dados.totalPaginas || 1)} onClick={() => onPaginacao({ limite: dados.limite, pagina: dados.pagina + 1 })}>Próxima</button>
-        </div>
-      </div>
-      <div className="lista-relatorio-scroll">
-        <table className="tabela-lista">
-          <thead>
-            <tr>
-              <th>Data</th>
-              <th>O.S.</th>
-              <th>Comprador</th>
-              <th>Sistema</th>
-              <th>Forma</th>
-              <th>{tituloColunaValor}</th>
-              <th>Pagamento</th>
-            </tr>
-          </thead>
-          <tbody>
-            {itens.map((item) => (
-              <tr
-                key={`${item.sistema}-${item.id}`}
-                onClick={() => navigate(item.sistema === 'FONADA' ? `/fonada/${item.id}` : `/ao-vivo/${item.id}`)}
-              >
-                <td data-label="Data">{item.data || '—'}</td>
-                <td data-label="O.S.">
-                  <span className="carimbo-os carimbo-os-lista">{item.os}</span>
-                </td>
-                <td data-label="Comprador">{item.nome}</td>
-                <td data-label="Sistema">{item.sistema === 'FONADA' ? 'Fonada' : 'Ao vivo'}</td>
-                <td data-label="Forma">{item.forma}</td>
-                <td data-label={tituloColunaValor} style={{ fontFamily: 'var(--fonte-mono)', fontWeight: 700 }}>
-                  {formatarReais(item.valor)}
-                </td>
-                <td data-label="Pagamento">
-                  <span className={`tag ${String(item.statusPagamento || '').trim().toUpperCase() === 'SIM' ? 'ok' : 'pendente'}`}>
-                    {String(item.statusPagamento || '').trim().toUpperCase() === 'SIM' ? 'Pago' : 'Pendente'}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-function GraficoComparado({ periodoB, propsB, children }) {
-  if (!periodoB) return children;
-  const referencia = { ...children.props, ...propsB };
-  const graficoA = React.cloneElement(children, { referencia });
-  const graficoB = React.cloneElement(children, { ...propsB, referencia: children.props });
-  return <div className="grafico-comparado">
-    <div><h3 className="relatorio-periodo-titulo">Período A</h3>{graficoA}</div>
-    <div><h3 className="relatorio-periodo-titulo">Período B · {periodoB.inicio} a {periodoB.fim || periodoB.inicio}</h3>{graficoB}</div>
+    </section>
+    <ConteudoRelatorio key={tipo} tipo={tipo} sistema={sistema} inicio={inicio} fim={fim} inicioB={inicioB} fimB={fimB} comparando={comparando}/>
   </div>;
 }
 
-function ComparacaoIndicadores({ atual, anterior, tipo }) {
-  if (!anterior) return null;
-  const linhas = [];
-  const adicionar = (nome, a, b, moeda = false) => linhas.push({ nome, a: Number(a || 0), b: Number(b || 0), moeda });
-  if (tipo === 'vendas') {
-    adicionar('Vendido', atual.geral.valorTotal, anterior.geral.valorTotal, true);
-    adicionar('Pedidos', atual.geral.quantidade, anterior.geral.quantidade);
-    adicionar('Ticket médio', atual.geral.ticketMedio, anterior.geral.ticketMedio, true);
-    for (const [chave, nome] of [['fonada', 'Fonada'], ['aoVivo', 'Ao Vivo']]) {
-      if (!atual[chave] && !anterior[chave]) continue;
-      for (const [campo, label, moeda] of [['valorTotal', 'vendido', true], ['quantidade', 'pedidos', false], ['ticketMedio', 'ticket médio', true], ...(chave === 'fonada' ? [['totalRecall', 'recall', false], ['totalOutros', 'clientes', false]] : [])])
-        adicionar(`${nome}: ${label}`, atual[chave]?.[campo], anterior[chave]?.[campo], moeda);
-    }
-  } else if (tipo === 'recebimentos') {
-    for (const [campo, nome, moeda] of [['valorTotal', 'Recebido', true], ['quantidade', 'Recebimentos', false], ['valorVendido', 'Vendido', true], ['valorRecebidoVendasPeriodo', 'Recebido das vendas do período', true], ['valorAReceberVendasPeriodo', 'Ainda a receber', true], ['totalPix', 'Recebimentos PIX (Fonada)', false], ['totalRecibo', 'Recebimentos por recibo (Fonada)', false]])
-      adicionar(nome, atual[campo], anterior[campo], moeda);
-    for (const [chave, nome] of [['fonada', 'Fonada'], ['aoVivo', 'Ao Vivo']]) {
-      if (!atual[chave] && !anterior[chave]) continue;
-      adicionar(`${nome}: recebido`, atual[chave]?.valorTotal, anterior[chave]?.valorTotal, true);
-      adicionar(`${nome}: registros`, atual[chave]?.quantidade, anterior[chave]?.quantidade);
-      for (const [campo, label] of [['vendido', 'vendido'], ['aReceber', 'a receber']])
-        adicionar(`${nome}: ${label}`, atual.composicaoVendasPeriodo?.[chave]?.[campo], anterior.composicaoVendasPeriodo?.[chave]?.[campo], true);
-    }
-  } else {
-    adicionar('Vendido pela equipe', atual.valorEquipe, anterior.valorEquipe, true);
-    const usuarios = [...new Set([...atual.funcionarios, ...anterior.funcionarios].map(f => f.usuario))];
-    for (const usuario of usuarios) {
-      const a = atual.funcionarios.find(f => f.usuario === usuario) || {};
-      const b = anterior.funcionarios.find(f => f.usuario === usuario) || {};
-      for (const [campo, label, moeda] of [['vendasTotal', 'vendas', false], ['valorVendidoTotal', 'vendido', true], ['ticketMedio', 'ticket médio', true], ['participacaoPercentual', 'participação (%)', false], ['vendasFonada', 'Fonadas', false], ['vendasAoVivo', 'Ao Vivo', false]])
-        adicionar(`${usuario}: ${label}`, a[campo], b[campo], moeda);
-    }
-  }
-  const formatar = (valor, moeda) => moeda ? formatarReais(valor) : valor.toLocaleString('pt-BR');
-  return <section className="painel comparacao-indicadores"><h3>Comparação de indicadores</h3>
-    <div className="lista-relatorio-scroll"><table className="tabela-lista"><thead><tr><th>Indicador</th><th>Período A</th><th>Período B</th><th>A − B</th><th>Variação</th></tr></thead><tbody>
-      {linhas.map(({ nome, a, b, moeda }) => <tr key={nome}><td data-label="Indicador">{nome}</td><td data-label="Período A">{formatar(a, moeda)}</td><td data-label="Período B">{formatar(b, moeda)}</td><td data-label="A − B">{a > b ? '+' : ''}{formatar(a - b, moeda)}</td><td data-label="Variação">{b ? `${a > b ? '+' : ''}${((a - b) / b * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%` : a ? 'Sem base no período B' : '0%'}</td></tr>)}
-    </tbody></table></div>
-  </section>;
+function ConteudoRelatorio({tipo,sistema,inicio,fim,inicioB,fimB,comparando}) {
+  const [snapshot,setSnapshot]=useState(null),[carregando,setCarregando]=useState(false),[erro,setErro]=useState(''),[tentativa,setTentativa]=useState(0);
+  const requisicao=useRef(0);
+  const validar=(a,b,nome)=>!dataRelatorio(a)|| (b&&!dataRelatorio(b)) ? `Preencha datas válidas para ${nome}.` : !diasPeriodo(a,b) ? `A data final deve ser igual ou posterior à inicial em ${nome}.` : '';
+  const erroDatas=validar(inicio,fim,'o período em análise') || (comparando ? validar(inicioB,fimB,'o período de comparação') : '');
+  useEffect(()=>{
+    const atual=++requisicao.current;
+    if(erroDatas){setCarregando(false);return;}
+    setCarregando(true);setErro('');
+    const timer=setTimeout(async()=>{
+      try {
+        const [principal,comparado]=await Promise.all([api.relatorios[tipo](inicio,fim,sistema,{limite:50,pagina:1}),comparando ? api.relatorios[tipo](inicioB,fimB,sistema,{limite:50,pagina:1}) : Promise.resolve(null)]);
+        if(atual===requisicao.current)setSnapshot({principal,comparado,sistema,tipo});
+      } catch(e){if(atual===requisicao.current)setErro(e.message);}
+      finally{if(atual===requisicao.current)setCarregando(false);}
+    },250);
+    return()=>{clearTimeout(timer);requisicao.current++;};
+  },[tipo,sistema,inicio,fim,inicioB,fimB,comparando,erroDatas,tentativa]);
+  if(erroDatas)return <AvisoInline tom="aviso" titulo="Revise os períodos">{erroDatas}</AvisoInline>;
+  if(erro)return <AvisoInline tom="erro" titulo="Não foi possível atualizar o relatório" acao={<button type="button" className="btn secundario" onClick={()=>setTentativa(v=>v+1)}>Tentar novamente</button>}>{erro}</AvisoInline>;
+  if(!snapshot)return <div className="rel-loading" role="status"><span/><strong>Preparando seus resultados…</strong><p>Organizando os gráficos e a comparação.</p></div>;
+  const {principal,comparado}=snapshot;
+  const nomes={principal:nomePeriodo(principal.inicio,principal.fim),comparado:comparado ? nomePeriodo(comparado.inicio,comparado.fim) : ''};
+  const a=resumoRelatorio(principal,tipo),b=comparado ? resumoRelatorio(comparado,tipo) : null;
+  const chave=`${principal.inicio}|${principal.fim}|${comparado?.inicio}|${comparado?.fim}|${snapshot.sistema}`;
+  const quantidadeNome=tipo==='recebimentos'?'Recebimentos':'Pedidos vendidos';
+  return <div className={`rel-results ${carregando?'atualizando':''}`} aria-busy={carregando}>
+    <div className="rel-results-heading"><div><span className="rel-eyebrow">{tipo==='recebimentos'?'Visão de recebimentos':tipo==='desempenho'?'Vendas atribuídas à equipe':'Visão de vendas'}</span><h2>{nomes.principal}</h2><p>{principal.inicio} a {principal.fim||principal.inicio} · {snapshot.sistema==='TODOS'?'Fonada e Ao Vivo':snapshot.sistema==='FONADA'?'Fonada':'Ao Vivo'}</p></div>{carregando && <span className="rel-updating" role="status">Atualizando…</span>}</div>
+    {comparado && <ConclusaoComparacao principal={principal} comparado={comparado} a={a} b={b} tipo={tipo} nomes={nomes}/>}
+    <div className="rel-kpis"><Indicador titulo={tipo==='recebimentos'?'Total recebido':'Total vendido'} valor={a.valor} anterior={b?.valor} moeda destaque nomes={nomes}/><Indicador titulo={quantidadeNome} valor={a.quantidade} anterior={b?.quantidade} nomes={nomes}/><Indicador titulo={tipo==='recebimentos'?'Valor médio recebido':'Ticket médio'} valor={a.ticket} anterior={b?.ticket} moeda nomes={nomes}/></div>
+    <div className="rel-interaction-zone" inert={carregando?'':undefined} key={chave}>
+      {tipo==='vendas' && <GraficosVendas principal={principal} comparado={comparado} nomes={nomes}/>}
+      {tipo==='recebimentos' && <GraficosRecebimentos principal={principal} comparado={comparado} nomes={nomes}/>}
+      {tipo==='desempenho' && <GraficosEquipe principal={principal} comparado={comparado} nomes={nomes}/>}
+      <DetalhesRelatorio principal={principal} comparado={comparado} tipo={tipo} nomes={nomes}/>
+    </div>
+  </div>;
 }
+function Indicador({titulo,valor,anterior,moeda,destaque,nomes}) {
+  const formatar=moeda?dinheiro:numero,c=anterior===undefined?null:compararValores(valor,anterior);
+  return <section className={`rel-kpi ${destaque?'destaque':''}`}><span>{titulo}</span><strong>{formatar(valor)}</strong>{c ? <div className="rel-kpi-comparison"><b className={c.diferenca>0?'positivo':c.diferenca<0?'negativo':'neutro'}>{c.percentual===null?'Sem base percentual':`${c.percentual>0?'+':''}${numero(c.percentual)}%`}</b><small>vs. {nomes.comparado}<em>{formatar(anterior)} no período comparado</em></small></div> : <small>{nomes.principal}</small>}</section>;
+}
+function ConclusaoComparacao({principal,comparado,a,b,tipo,nomes}) {
+  const c=compararValores(a.valor,b.valor),maior=c.vencedor==='principal'?nomes.principal:nomes.comparado,menor=c.vencedor==='principal'?nomes.comparado:nomes.principal;
+  const verbo=tipo==='recebimentos'?'recebeu':'vendeu';
+  const diasA=diasPeriodo(principal.inicio,principal.fim),diasB=diasPeriodo(comparado.inicio,comparado.fim);
+  return <section className="rel-comparison-conclusion" aria-label="Resultado da comparação"><div className="rel-conclusion-icon" aria-hidden="true">{c.vencedor==='empate'?'＝':'↗'}</div><div className="rel-conclusion-text"><small>Resultado da comparação</small><h3>{c.vencedor==='empate'?a.valor===0?'Nenhum movimento nos dois períodos':'Os dois períodos tiveram o mesmo total':`${maior} ${verbo} mais`}</h3><p>{c.vencedor==='empate'?`Total de ${dinheiro(a.valor)} em cada período.`:`${dinheiro(Math.abs(c.diferenca))} a mais que ${menor}.`}</p><div className="rel-period-values"><span><i style={{background:CORES.principal}}/>{nomes.principal}<b>{dinheiro(a.valor)}</b></span><span><i style={{background:CORES.comparado}}/>{nomes.comparado}<b>{dinheiro(b.valor)}</b></span></div>{diasA!==diasB && <p className="rel-duration-note">Os intervalos têm {diasA} e {diasB} dias. Média diária: {dinheiro(a.valor/diasA)} em {nomes.principal} e {dinheiro(b.valor/diasB)} em {nomes.comparado}.</p>}</div><div className="rel-conclusion-change"><strong>{c.percentual===null?'—':`${c.percentual>0?'+':''}${numero(c.percentual)}%`}</strong><span>{c.percentual===null?'O período comparado não teve movimento.':`${nomes.principal} em relação a ${nomes.comparado}`}</span></div></section>;
+}
+function serie(dados,nome,cor,campo='vendasPorDia',tracejada=false) { return {nome,cor,pontos:dados?.graficos?.[campo]||[],periodo:{inicio:dados.inicio,fim:dados.fim},dias:diasPeriodo(dados.inicio,dados.fim),tracejada}; }
+function modalidades(dados) {return [['fonada','Fonada'],['aoVivo','Ao Vivo']].filter(([k])=>dados[k]).map(([k,categoria])=>({categoria,valor:Number(dados[k].valorTotal||0),quantidade:Number(dados[k].quantidade||0)}));}
+function GraficosVendas({principal,comparado,nomes}) {
+  return <div className="rel-charts-grid"><GraficoEvolucao titulo="Evolução das vendas" descricao="O valor vendido ao longo de cada período, incluindo os dias sem vendas." series={[serie(principal,nomes.principal,CORES.principal),...(comparado?[serie(comparado,nomes.comparado,CORES.comparado,'vendasPorDia',true)]:[])]} alinhar={Boolean(comparado)}/><GraficoComposicao titulo="Fonada e Ao Vivo" principal={modalidades(principal)} comparado={comparado?modalidades(comparado):null} nomes={nomes}/><GraficoCategorias titulo="Forma prevista de pagamento" descricao="Quantidade de pedidos por forma informada na venda." dados={totaisFormas(principal.graficos?.pagamentosPorDia)} referencia={comparado?totaisFormas(comparado.graficos?.pagamentosPorDia):null} nomes={nomes} quantidade metrica="quantidade"/>{principal.fonada && <GraficoCategorias titulo="Origem dos pedidos Fonada" descricao="Pedidos originados pelo Recall e por outros atendimentos." dados={principal.graficos?.origemFonada||[]} referencia={comparado?comparado.graficos?.origemFonada||[]:null} nomes={nomes} quantidade metrica="quantidade"/>}</div>;
+}
+function GraficosRecebimentos({principal,comparado,nomes}) {
+  const [fluxoPeriodo,setFluxoPeriodo]=useState('principal');
+  const fluxo=fluxoPeriodo==='comparado'&&comparado?comparado:principal,nomeFluxo=fluxo===principal?nomes.principal:nomes.comparado;
+  return <><div className="rel-financial-strip"><div><span>Vendido em {nomes.principal}</span><strong>{dinheiro(principal.valorVendido)}</strong></div><div><span>Recebido dessas vendas</span><strong>{dinheiro(principal.valorRecebidoVendasPeriodo)}</strong></div><div><span>A receber dessas vendas</span><strong>{dinheiro(principal.valorAReceberVendasPeriodo)}</strong></div><p>O total recebido no período também pode incluir pedidos vendidos antes dele.</p></div><div className="rel-charts-grid"><GraficoEvolucao titulo="Evolução dos recebimentos" descricao="Entradas registradas pela data do pagamento." series={[serie(principal,nomes.principal,CORES.principal,'recebidoPorDia'),...(comparado?[serie(comparado,nomes.comparado,CORES.comparado,'recebidoPorDia',true)]:[])]} alinhar={Boolean(comparado)}/><GraficoComposicao titulo="Recebimentos por modalidade" principal={modalidades(principal)} comparado={comparado?modalidades(comparado):null} nomes={nomes}/><GraficoCategorias titulo="Como o dinheiro foi recebido" descricao="Valor e quantidade de recebimentos por forma de pagamento." dados={principal.graficos?.recebimentosPorForma||[]} referencia={comparado?comparado.graficos?.recebimentosPorForma||[]:null} nomes={nomes}/></div><div className="rel-flow-selector"><span>Vendas e entradas de caixa</span>{comparado && <div><button type="button" aria-pressed={fluxoPeriodo==='principal'} onClick={()=>setFluxoPeriodo('principal')}>{nomes.principal}</button><button type="button" aria-pressed={fluxoPeriodo==='comparado'} onClick={()=>setFluxoPeriodo('comparado')}>{nomes.comparado}</button></div>}</div><GraficoEvolucao key={nomeFluxo} titulo={`Vendido e recebido · ${nomeFluxo}`} descricao="São movimentos pela data da venda e pela data do pagamento. A diferença diária não representa saldo devedor." series={[{...serie(fluxo,'Vendido',CORES.principal,'vendidoPorDia'),semQuantidade:true},serie(fluxo,'Recebido',CORES.recebido,'recebidoPorDia')]}/></>;
+}
+function funcionarios(dados) {return (dados.funcionarios||[]).map(f=>({categoria:f.usuario,valor:Number(f.valorVendidoTotal||0),quantidade:Number(f.vendasTotal||0),ticket:Number(f.ticketMedio||0),fonada:Number(f.valorVendidoFonada||0),aoVivo:Number(f.valorVendidoAoVivo||0),quantidadeFonada:Number(f.vendasFonada||0),quantidadeAoVivo:Number(f.vendasAoVivo||0)}));}
+function GraficosEquipe({principal,comparado,nomes}) {
+  const [metrica,setMetrica]=useState('valor');
+  const a=funcionarios(principal),b=comparado?funcionarios(comparado):null;
+  const composicao=lista=>[{categoria:'Fonada',valor:lista.reduce((s,f)=>s+f.fonada,0),quantidade:lista.reduce((s,f)=>s+f.quantidadeFonada,0)},{categoria:'Ao Vivo',valor:lista.reduce((s,f)=>s+f.aoVivo,0),quantidade:lista.reduce((s,f)=>s+f.quantidadeAoVivo,0)}];
+  return <><div className="rel-team-note">Pedidos antigos sem vendedor informado ficam fora dos resultados da equipe.</div><div className="rel-metric-selector" aria-label="Métrica do ranking">{[['valor','Valor vendido'],['quantidade','Quantidade de vendas'],['ticket','Ticket médio']].map(([id,nome])=><button type="button" key={id} aria-pressed={metrica===id} className={metrica===id?'ativo':''} onClick={()=>setMetrica(id)}>{nome}</button>)}</div><div className="rel-charts-grid"><GraficoCategorias key={metrica} titulo="Desempenho por pessoa" descricao="Compare as pessoas nos mesmos períodos. Clique para abrir as modalidades e os valores." dados={a} referencia={b} nomes={nomes} metrica={metrica} quantidade={metrica==='quantidade'} equipe/><GraficoComposicao titulo="Modalidades vendidas pela equipe" principal={composicao(a)} comparado={b?composicao(b):null} nomes={nomes}/></div></>;
+}
+
+function DetalhesRelatorio({principal,comparado,tipo,nomes}) {
+  const [aberto,setAberto]=useState(false),[periodo,setPeriodo]=useState('principal');
+  const escolhido=periodo==='comparado'&&comparado?comparado:principal;
+  return <details className="rel-records" onToggle={e=>setAberto(e.currentTarget.open)}><summary><div><strong>{tipo==='desempenho'?'Consultar números da equipe':'Consultar pedidos do relatório'}</strong><span>Abra para conferir os registros que compõem os resultados.</span></div><span aria-hidden="true">⌄</span></summary>{aberto && <div className="rel-records-content">{comparado && <div className="rel-records-tabs"><button type="button" aria-pressed={periodo==='principal'} onClick={()=>setPeriodo('principal')}>{nomes.principal}</button><button type="button" aria-pressed={periodo==='comparado'} onClick={()=>setPeriodo('comparado')}>{nomes.comparado}</button></div>}{tipo==='desempenho'?<TabelaEquipe dados={escolhido}/>:<PedidosPeriodo key={`${escolhido.inicio}|${escolhido.fim}`} dados={escolhido} tipo={tipo}/>}</div>}</details>;
+}
+function PedidosPeriodo({dados,tipo}) {
+  const [pagina,setPagina]=useState(1),[limite,setLimite]=useState(50),[resposta,setResposta]=useState(dados),[erro,setErro]=useState(''),[carregando,setCarregando]=useState(false),[tentativa,setTentativa]=useState(0);
+  const navegar=useNavigate(),atual=useRef(0);
+  useEffect(()=>{const id=++atual.current;if(pagina===1&&limite===50&&!tentativa){setResposta(dados);setCarregando(false);setErro('');return;}setCarregando(true);setErro('');api.relatorios[tipo](dados.inicio,dados.fim,dados.sistema,{pagina,limite}).then(r=>{if(id===atual.current)setResposta(r);}).catch(e=>{if(id===atual.current)setErro(e.message);}).finally(()=>{if(id===atual.current)setCarregando(false);});return()=>{atual.current++;};},[pagina,limite,tentativa,dados,tipo]);
+  return <div aria-busy={carregando}>{erro && <AvisoInline tom="erro" titulo="Não foi possível carregar os pedidos" acao={<button type="button" className="btn secundario" onClick={()=>setTentativa(t=>t+1)}>Tentar novamente</button>}>{erro}</AvisoInline>}<div className="rel-table-tools"><span>{numero(resposta.itensTotal||0)} registros no período</span><label>Por página <select aria-label="Pedidos por página" value={limite} disabled={carregando} onChange={e=>{setPagina(1);setLimite(Number(e.target.value));}}>{[50,100,200,500].map(n=><option key={n}>{n}</option>)}</select></label><button type="button" disabled={carregando||pagina<=1} onClick={()=>setPagina(p=>p-1)}>Anterior</button><span>{resposta.pagina||1} / {resposta.totalPaginas||1}</span><button type="button" disabled={carregando||pagina>=(resposta.totalPaginas||1)} onClick={()=>setPagina(p=>p+1)}>Próxima</button></div><div className="rel-table-scroll" inert={carregando?'':undefined}><table><thead><tr><th>Data</th><th>O.S.</th><th>Cliente</th><th>Modalidade</th><th>Forma</th><th>{tipo==='recebimentos'?'Recebido':'Vendido'}</th><th>Pagamento</th></tr></thead><tbody>{(resposta.itens||[]).map(item=><tr key={`${item.sistema}-${item.id}`}><td>{item.data}</td><td><button type="button" className="rel-order-link" onClick={()=>navegar(item.sistema==='FONADA'?`/fonada/${item.id}`:`/ao-vivo/${item.id}`,{state:{returnTo:`/relatorios${window.location.search}`}})}>{item.os}</button></td><td>{item.nome}</td><td>{item.sistema==='FONADA'?'Fonada':'Ao Vivo'}</td><td>{item.forma}</td><td className="rel-table-money">{dinheiro(item.valor)}</td><td><span className={`tag ${item.statusPagamento==='SIM'?'ok':'pendente'}`}>{item.statusPagamento==='SIM'?'Pago':'Pendente'}</span></td></tr>)}</tbody></table>{!(resposta.itens||[]).length && <p className="rel-chart-empty">Nenhum pedido neste período.</p>}</div></div>;
+}
+function TabelaEquipe({dados}) {return <div className="rel-table-scroll"><table><thead><tr><th>Pessoa</th><th>Vendas</th><th>Valor vendido</th><th>Ticket médio</th><th>Participação</th><th>Fonada</th><th>Ao Vivo</th></tr></thead><tbody>{(dados.funcionarios||[]).map(f=><tr key={f.usuario}><td><strong>{f.usuario}</strong></td><td>{numero(f.vendasTotal)}</td><td className="rel-table-money">{dinheiro(f.valorVendidoTotal)}</td><td>{dinheiro(f.ticketMedio)}</td><td>{numero(f.participacaoPercentual)}%</td><td>{numero(f.vendasFonada)}</td><td>{numero(f.vendasAoVivo)}</td></tr>)}</tbody></table>{!dados.funcionarios?.length&&<p className="rel-chart-empty">Nenhuma venda atribuída à equipe neste período.</p>}</div>;}

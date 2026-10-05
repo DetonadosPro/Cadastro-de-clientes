@@ -91,12 +91,14 @@ test('FIELD-092/093: relatórios filtram sistema e alteram tamanho da página', 
     expect(resp.status()).toBe(201);
     pedido = await resp.json();
     await page.goto(`/relatorios?aba=vendas&inicio=${encodeURIComponent(d.br)}&fim=${encodeURIComponent(d.br)}&sistema=TODOS`);
-    const sistema = page.getByLabel('Filtrar relatórios por sistema');
+    const sistema = page.getByLabel('Modalidade do relatório');
     await sistema.selectOption('FONADA');
     await expect(page).toHaveURL(/sistema=FONADA/);
+    await expect(page.locator('.rel-results')).toHaveAttribute('aria-busy', 'false');
+    await page.locator('.rel-records summary').click();
     await expect(page.getByText(cliente.nome).first()).toBeVisible();
-    registrar('FIELD-092', page, 'select[aria-label="Filtrar relatórios por sistema"]', 'selecionar Fonada', 'URL e tabela filtradas');
-    const porPagina = page.getByLabel('Por página');
+    registrar('FIELD-092', page, 'select[aria-label="Modalidade do relatório"]', 'selecionar Fonada', 'URL e tabela filtradas');
+    const porPagina = page.getByLabel('Pedidos por página');
     await porPagina.selectOption('50');
     await expect(porPagina).toHaveValue('50');
     await expect.poll(async () => {
@@ -104,25 +106,27 @@ test('FIELD-092/093: relatórios filtram sistema e alteram tamanho da página', 
       return (await resposta.json()).limite;
     }).toBe(50);
     registrar('FIELD-093', page, 'label:has-text("Por página") select', 'selecionar 50', 'limite 50 exibido e API consultável');
-    const atalhos = page.locator('.atalhos-periodo:visible');
+    const atalhos = page.locator('.rel-presets:visible');
     for (const [id, titulo] of [['BTN-255', 'Hoje'], ['BTN-256', 'Ontem'], ['BTN-257', 'Esta semana'], ['BTN-258', 'Este mês'], ['BTN-259', 'Mês anterior']]) {
       await atalhos.getByRole('button', { name: titulo, exact: true }).click();
-      await expect(page.locator('.form-periodo-relatorio:visible').first().locator('input').first()).not.toHaveValue('');
-      registrar(id, page, `.atalhos-periodo button:has-text("${titulo}")`, 'aplicar período', 'data inicial preenchida');
+      await expect(page.locator('#rel-inicio')).not.toHaveValue('');
+      registrar(id, page, `.rel-presets button:has-text("${titulo}")`, 'aplicar período', 'data inicial preenchida');
     }
     await atalhos.getByRole('button', { name: 'Hoje', exact: true }).click();
-    const comparar = page.getByRole('button', { name: 'Comparar período' }).first();
+    const comparar = page.getByRole('button', { name: '＋ Comparar períodos' }).first();
     await comparar.click();
-    await expect(page.locator('.periodo-comparacao-b:visible')).toBeVisible();
-    registrar('BTN-260', page, 'button.botao-comparar-periodo', 'abrir comparação', 'período B exibido');
-    await page.getByRole('button', { name: 'Remover comparação' }).first().click();
+    await expect(page.locator('.rel-period-block.referencia')).toBeVisible();
+    registrar('BTN-260', page, 'button.rel-compare-toggle', 'abrir comparação', 'período B exibido');
+    await page.getByRole('button', { name: '× Remover comparação' }).first().click();
     await page.getByRole('button', { name: 'Vendas', exact: true }).click();
     await expect(page).toHaveURL(/aba=vendas/);
-    registrar('BTN-251', page, '.abas-relatorio button:has-text("Vendas")', 'clicar', 'aba de vendas ativa');
+    registrar('BTN-251', page, '.rel-tabs button:has-text("Vendas")', 'clicar', 'aba de vendas ativa');
+    await expect(page.locator('.rel-results')).toHaveAttribute('aria-busy', 'false');
+    await page.locator('.rel-records summary').click();
     await expect(page.getByText(cliente.nome).first()).toBeVisible();
-    await page.locator('.lista-relatorio-scroll tbody tr', { hasText: cliente.nome }).click();
+    await page.locator('.rel-table-scroll tbody tr', { hasText: cliente.nome }).getByRole('button').click();
     await expect(page).toHaveURL(new RegExp(`/fonada/${pedido.id}$`));
-    registrar('BTN-263', page, '.lista-relatorio-scroll tbody tr', 'clicar linha', 'pedido Fonada aberto');
+    registrar('BTN-263', page, '.rel-table-scroll tbody tr .rel-order-link', 'clicar linha', 'pedido Fonada aberto');
   } finally {
     if (pedido) await request.delete(`/api/fonadas/${pedido.id}`, { headers });
     await request.delete(`/api/clientes/${cliente.id}`, { headers });

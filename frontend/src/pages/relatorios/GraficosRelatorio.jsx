@@ -1,194 +1,104 @@
-import React, { useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
+import { CORES_RELATORIO as CORES, dinheiro, numero, seriesCalendario } from '../../utils/relatorios.js';
 
-const CORES = {
-  azul: '#245fa4',
-  azulClaro: '#86acd5',
-  aoVivo: '#d77b61',
-  verde: '#2f9466',
-  grade: '#dfe7f0',
-};
+const PALETA = ['#3861ed', '#9062da', '#168574', '#dc8a16', '#ce587d', '#54758f', '#6b773b', '#9a6048'];
+const pct = (valor, total) => total ? `${numero(valor / total * 100)}%` : '0%';
+const compacto = v => Number(v) >= 1000000 ? `R$ ${numero(v / 1000000)} mi` : Number(v) >= 1000 ? `R$ ${numero(v / 1000)} mil` : `R$ ${numero(v)}`;
 
-function reais(valor) {
-  return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+function Legenda({ itens, toggle }) {
+  return <div className="rel-legend" aria-label="Legenda do gráfico">{itens.map((item, i) => toggle
+    ? <button type="button" key={item.nome} aria-pressed={!item.oculto} onClick={() => toggle(i)} className={item.oculto ? 'oculta' : ''}><i style={{ background: item.cor }} className={item.tracejada ? 'tracejada' : ''} />{item.nome}</button>
+    : <span key={item.nome}><i style={{ background: item.cor }} />{item.nome}</span>)}</div>;
 }
-
-function reaisCurto(valor) {
-  const numero = Number(valor || 0);
-  if (numero >= 1000000) return `R$ ${(numero / 1000000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mi`;
-  if (numero >= 1000) return `R$ ${(numero / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mil`;
-  return `R$ ${Math.round(numero)}`;
+function Valores({ info }) {
+  return <div className="rel-detail-values">{info.linhas.map((linha, i) => <div key={i}><span>{linha.cor && <i style={{ background: linha.cor }} />}{linha.nome}</span><strong>{linha.valor}</strong>{linha.extra && <small>{linha.extra}</small>}</div>)}</div>;
 }
-
-function dataCurta(data) {
-  return String(data || '').slice(0, 5);
+function useExploracao() {
+  const [hover, setHover] = useState(null), [selecionado, setSelecionado] = useState(null);
+  const limpar = () => { setHover(null); setSelecionado(null); };
+  const eventos = info => ({ onMouseEnter: () => setHover(info), onFocus: () => setHover(info), onBlur: () => setHover(null), onClick: () => setSelecionado(info), onKeyDown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelecionado(info); } } });
+  return { hover, selecionado, eventos, limpar, sair: () => setHover(null) };
 }
-
-function PainelGrafico({ titulo, subtitulo, legenda, children, amplo = false }) {
-  return (
-    <section className={`painel grafico-relatorio ${amplo ? 'grafico-amplo' : ''}`}>
-      <header className="grafico-cabecalho">
-        <div><strong>{titulo}</strong><span>{subtitulo}</span></div>
-        {legenda && <div className="grafico-legenda">{legenda}</div>}
-      </header>
+function Painel({ titulo, descricao, legenda, controles, exploracao, children, amplo = false }) {
+  return <section className={`rel-chart ${amplo ? 'rel-chart-wide' : ''}`} aria-label={titulo}>
+    <header className="rel-chart-header"><div><h2>{titulo}</h2><p>{descricao}</p></div>{controles}</header>
+    {legenda}
+    <div className="rel-chart-stage" onMouseLeave={exploracao.sair}>
       {children}
-    </section>
-  );
+      {exploracao.hover && <div className="rel-tooltip" role="tooltip"><strong>{exploracao.hover.titulo}</strong><Valores info={exploracao.hover} /><small>Clique para manter os detalhes abertos</small></div>}
+    </div>
+    <div className="rel-chart-hint"><span aria-hidden="true">↗</span> Passe o mouse ou toque para explorar. Clique para fixar os detalhes.</div>
+    {exploracao.selecionado && <aside className="rel-selection" aria-label="Detalhes selecionados"><div className="rel-selection-header"><div><small>Detalhe selecionado</small><h3>{exploracao.selecionado.titulo}</h3></div><button type="button" onClick={exploracao.limpar} aria-label="Limpar seleção do gráfico">×</button></div><Valores info={exploracao.selecionado} /></aside>}
+  </section>;
 }
 
-function Legenda({ cor, children, tracejada = false }) {
-  return <span className={tracejada ? 'tracejada' : ''} style={{ '--cor-legenda': cor }}><i />{children}</span>;
+export function GraficoEvolucao({ titulo, descricao, series = [], alinhar = false }) {
+  const exploracao = useExploracao(), id = useId().replaceAll(':', '');
+  const svgRef = useRef(null);
+  const [largura, setLargura] = useState(800);
+  useEffect(() => {
+    const observador = new ResizeObserver(([entrada]) => setLargura(Math.max(260, Math.round(entrada.contentRect.width))));
+    observador.observe(svgRef.current);
+    return () => observador.disconnect();
+  }, []);
+  const [ocultas, setOcultas] = useState([]);
+  const pontos = seriesCalendario(series.map(s => s.pontos || []), series.map(s => s.periodo));
+  const ativas = series.map((s,i) => ({ ...s, pontos: pontos[i], indice: i })).filter(s => !ocultas.includes(s.indice));
+  const quantidade = Math.max(1, ...pontos.map(s => s.length));
+  const altura = largura < 500 ? 250 : 300, esquerda = largura < 500 ? 64 : 76, direita = 24, topo = 24, base = altura - 49;
+  const maximoBruto = Math.max(1, ...ativas.flatMap(s => s.pontos.map(p => p.valor)));
+  const magnitude = 10 ** Math.floor(Math.log10(maximoBruto));
+  const maximo = Math.ceil(maximoBruto / magnitude) * magnitude;
+  const x = i => quantidade === 1 ? (largura + esquerda - direita) / 2 : esquerda + i * (largura - esquerda - direita) / (quantidade - 1);
+  const y = v => base - Number(v || 0) / maximo * (base - topo);
+  const toggle = i => setOcultas(atual => atual.includes(i) ? atual.filter(n => n !== i) : atual.length < series.length - 1 ? [...atual,i] : atual);
+  const rotulos = Math.min(quantidade, largura < 500 ? 3 : 6);
+  const indices = [...new Set(Array.from({length: rotulos}, (_,i) => Math.round(i * (quantidade - 1) / Math.max(rotulos - 1,1))))];
+  const infoPonto = i => ({ titulo: alinhar ? `Comparação ${series.some(s => s.dias > 90) ? 'da faixa' : 'do dia'} ${i + 1}` : (ativas[0]?.pontos[i]?.data || ativas.find(s => s.pontos[i])?.pontos[i]?.data || 'Detalhe'), linhas: ativas.flatMap(s => {
+    const p = s.pontos[i];
+    if (!p) return [{ nome: s.nome, valor: '—', extra: 'Fora deste período', cor: s.cor }];
+    const data = p.data === p.fim ? p.data : `${p.data} a ${p.fim}`;
+    return [{ nome: `${s.nome} · ${data}`, valor: dinheiro(p.valor), extra: `${s.semQuantidade ? 'Pela data da venda' : `${numero(p.quantidade)} registro(s)${p.quantidade ? ` · média ${dinheiro(p.valor / p.quantidade)}` : ''}`}`, cor: s.cor }, ...(p.fonada || p.aoVivo ? [{ nome: `Fonada · ${s.nome} · ${data}`, valor: dinheiro(p.fonada), extra: `${numero(p.quantidadeFonada)} registro(s) · ${pct(p.fonada,p.valor)}`, cor: CORES.fonada }, { nome: `Ao Vivo · ${s.nome} · ${data}`, valor: dinheiro(p.aoVivo), extra: `${numero(p.quantidadeAoVivo)} registro(s) · ${pct(p.aoVivo,p.valor)}`, cor: CORES.aoVivo }] : [])];
+  }) });
+  return <Painel titulo={titulo} descricao={descricao} amplo exploracao={exploracao} legenda={<Legenda itens={series.map((s,i) => ({...s, oculto: ocultas.includes(i)}))} toggle={toggle}>
+  </Legenda>}>
+    <svg ref={svgRef} className="rel-line-svg" viewBox={`0 0 ${largura} ${altura}`} role="group" aria-label={titulo}>
+      <defs>{ativas.map(s => <linearGradient id={`${id}-${s.indice}`} key={s.indice} x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor={s.cor} stopOpacity=".16" /><stop offset="100%" stopColor={s.cor} stopOpacity=".01" /></linearGradient>)}</defs>
+      {[0,.25,.5,.75,1].map(f => <g key={f}><line className="rel-grid-line" x1={esquerda} x2={largura-direita} y1={y(maximo*f)} y2={y(maximo*f)} /><text className="rel-axis" x={esquerda-12} y={y(maximo*f)+4} textAnchor="end">{compacto(maximo*f)}</text></g>)}
+      {ativas.map(s => { const coords = s.pontos.map((p,i) => `${x(i)},${y(p.valor)}`).join(' '); return <g key={s.indice}><polygon points={`${x(0)},${base} ${coords} ${x(s.pontos.length-1)},${base}`} fill={`url(#${id}-${s.indice})`} /><polyline points={coords} fill="none" stroke={s.cor} strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" strokeDasharray={s.tracejada ? '7 5' : undefined} />{s.pontos.map((p,i) => <circle key={i} cx={x(i)} cy={y(p.valor)} r={quantidade < 45 ? 3.5 : 2} fill="white" stroke={s.cor} strokeWidth="2" />)}</g>; })}
+      {indices.map(i => <text className="rel-axis" key={i} x={x(i)} y={altura-22} textAnchor="middle">{alinhar ? `${series.some(s => s.dias > 90) ? 'Faixa' : 'Dia'} ${i + 1}` : (pontos[0]?.[i]?.data || pontos.find(p => p[i])?.[i]?.data || '').slice(0,5)}</text>)}
+      {Array.from({length:quantidade},(_,i) => { const info=infoPonto(i), faixa=(largura-esquerda-direita)/Math.max(quantidade-1,1); return <g className="rel-chart-hit" role="button" tabIndex="0" key={i} aria-label={`Detalhar ${info.titulo}`} data-index={i} {...exploracao.eventos(info)}><rect x={quantidade===1 ? esquerda : Math.max(esquerda-8,x(i)-faixa/2)} y={topo} width={quantidade===1 ? largura-esquerda-direita : Math.min(faixa,largura-direita-Math.max(esquerda-8,x(i)-faixa/2))} height={base-topo} fill="transparent" /><line className="rel-crosshair" x1={x(i)} x2={x(i)} y1={topo} y2={base} /></g>; })}
+    </svg>
+    {alinhar && <p className="rel-axis-note">Os pontos comparam dias contados desde o início de cada período. Os detalhes mostram as datas correspondentes.</p>}
+    {quantidade && series.some(s => s.dias > 90) && <p className="rel-axis-note">Os valores foram somados em faixas de dias para manter a leitura do intervalo completo.</p>}
+  </Painel>;
 }
 
-function EstadoSemDados() {
-  return <div className="grafico-sem-dados">Sem dados para construir este gráfico.</div>;
-}
-
-const MARGEM_X = 62;
-const MARGEM_Y = 35;
-
-function pontosLinha(dados, maximo, largura, altura, margemX = MARGEM_X, margemY = MARGEM_Y) {
-  if (!dados.length) return '';
-  const espaco = dados.length > 1 ? (largura - margemX * 2) / (dados.length - 1) : 0;
-  return dados.map((ponto, indice) => {
-    const x = dados.length > 1 ? margemX + indice * espaco : largura / 2;
-    const y = altura - margemY - (Number(ponto.valor || 0) / maximo) * (altura - margemY * 2);
-    return `${x},${y}`;
-  }).join(' ');
-}
-
-function RotulosEixo({ dados, largura, altura, margemX = MARGEM_X }) {
-  if (!dados.length) return null;
-  const quantidade = Math.min(dados.length, 6);
-  const indices = [...new Set(Array.from({ length: quantidade }, (_, i) =>
-    Math.round(i * (dados.length - 1) / Math.max(quantidade - 1, 1))))];
-  return indices.map((indice) => {
-    const x = dados.length > 1 ? margemX + indice * ((largura - margemX * 2) / (dados.length - 1)) : largura / 2;
-    return <text key={indice} x={x} y={altura - 5} textAnchor="middle">{dataCurta(dados[indice]?.data)}</text>;
-  });
-}
-
-function tituloPonto(ponto, substantivo = 'pedido') {
-  const total = Number(ponto.valor || 0);
-  const fonada = Number(ponto.fonada || 0);
-  const aoVivo = Number(ponto.aoVivo || 0);
-  const percentual = (valor) => total ? Math.round(valor / total * 1000) / 10 : 0;
-  return `${ponto.data}\nTotal: ${reais(total)} · ${ponto.quantidade || 0} ${substantivo}(s)\nFonada: ${reais(fonada)} · ${ponto.quantidadeFonada || 0} · ${percentual(fonada)}%\nAo Vivo: ${reais(aoVivo)} · ${ponto.quantidadeAoVivo || 0} · ${percentual(aoVivo)}%`;
-}
-
-export function GraficoEvolucaoVendas({ atual = [], anterior = [], sistema = 'TODOS' }) {
-  const [periodoDestacado, setPeriodoDestacado] = useState('A');
-  const largura = 720; const altura = 245;
-  const maximo = Math.max(1, ...atual.map((p) => Number(p.valor || 0)), ...anterior.map((p) => Number(p.valor || 0)));
-  const selecionado = periodoDestacado === 'B' && anterior.length ? anterior : atual;
-  const resumoSelecionado = selecionado.reduce((acc, p) => ({ valor: acc.valor + Number(p.valor || 0), quantidade: acc.quantidade + Number(p.quantidade || 0) }), { valor: 0, quantidade: 0 });
-  return (
-    <PainelGrafico
-      titulo={`Evolução das vendas · ${sistema === 'TODOS' ? 'Todos' : sistema === 'FONADA' ? 'Fonada' : 'Ao Vivo'}`}
-      subtitulo="Valor e volume diário; a linha pontilhada representa o período B escolhido"
-      amplo
-      legenda={<div className="seletor-series-grafico"><button type="button" className={periodoDestacado === 'A' ? 'ativo' : ''} onClick={() => setPeriodoDestacado('A')}><Legenda cor={CORES.azul}>Período A</Legenda></button>{anterior.length > 0 && <button type="button" className={periodoDestacado === 'B' ? 'ativo' : ''} onClick={() => setPeriodoDestacado('B')}><Legenda cor={CORES.azulClaro} tracejada>Período B</Legenda></button>}</div>}
-    >
-      {!atual.length && !anterior.length ? <EstadoSemDados /> : (
-        <div className="grafico-svg-scroll"><svg className="grafico-svg" viewBox={`0 0 ${largura} ${altura}`} role="img" aria-label="Evolução diária das vendas">
-          {[0, .25, .5, .75, 1].map((fator) => {
-            const y = altura - MARGEM_Y - fator * (altura - MARGEM_Y * 2);
-            return <g key={fator}><line x1={MARGEM_X} y1={y} x2={largura - MARGEM_X} y2={y} /><text className="grafico-valor-eixo" x={MARGEM_X - 10} y={y + 4} textAnchor="end">{reaisCurto(maximo * fator)}</text></g>;
-          })}
-          {anterior.length > 0 && <polyline className={`grafico-linha anterior ${periodoDestacado === 'B' ? 'serie-destaque' : 'serie-atenuada'}`} points={pontosLinha(anterior, maximo, largura, altura)} />}
-          <polyline className={`grafico-linha atual ${periodoDestacado === 'A' ? 'serie-destaque' : 'serie-atenuada'}`} points={pontosLinha(atual, maximo, largura, altura)} />
-          {selecionado.map((ponto, indice) => {
-            const x = selecionado.length > 1 ? MARGEM_X + indice * ((largura - MARGEM_X * 2) / (selecionado.length - 1)) : largura / 2;
-            const y = altura - MARGEM_Y - (Number(ponto.valor || 0) / maximo) * (altura - MARGEM_Y * 2);
-            return <circle className="grafico-ponto-interativo" tabIndex="0" key={`${periodoDestacado}-${ponto.data}-${indice}`} cx={x} cy={y} r="5"><title>{tituloPonto(ponto)}</title></circle>;
-          })}
-          <g className="grafico-eixo"><RotulosEixo dados={selecionado} largura={largura} altura={altura} /></g>
-        </svg></div>
-      )}
-      {!!selecionado.length && <div className="resumo-serie-selecionada"><strong>Período {periodoDestacado}</strong><span>{reais(resumoSelecionado.valor)}</span><small>{resumoSelecionado.quantidade} pedido(s) · ticket {reais(resumoSelecionado.quantidade ? resumoSelecionado.valor / resumoSelecionado.quantidade : 0)}</small></div>}
-    </PainelGrafico>
-  );
-}
-
-export function GraficoVendasPorSistema({ dados = [], sistema = 'TODOS', referencia = {} }) {
-  const largura = 720; const altura = 245;
-  const maximo = Math.max(1, ...[...dados, ...(referencia.dados || [])].map((p) => Number(p.fonada || 0) + Number(p.aoVivo || 0)));
-  const faixa = (largura - MARGEM_X * 2) / Math.max(dados.length, 1);
-  const barra = Math.max(7, Math.min(34, faixa * .62));
-  return (
-    <PainelGrafico titulo={sistema === 'TODOS' ? 'Composição Fonada × Ao Vivo' : `Volume diário · ${sistema === 'FONADA' ? 'Fonada' : 'Ao Vivo'}`} subtitulo="Valor, quantidade e participação em cada dia" amplo legenda={sistema === 'TODOS' ? <><Legenda cor={CORES.azul}>Fonada</Legenda><Legenda cor={CORES.aoVivo}>Ao Vivo</Legenda></> : null}>
-      {!dados.length ? <EstadoSemDados /> : <div className="grafico-svg-scroll"><svg className="grafico-svg" viewBox={`0 0 ${largura} ${altura}`} role="img" aria-label="Vendas de Fonada e Ao Vivo por dia">
-        {[0, .25, .5, .75, 1].map((fator) => { const y = altura - MARGEM_Y - fator * (altura - MARGEM_Y * 2); return <g key={fator}><line x1={MARGEM_X} y1={y} x2={largura - MARGEM_X} y2={y} /><text className="grafico-valor-eixo" x={MARGEM_X - 10} y={y + 4} textAnchor="end">{reaisCurto(maximo * fator)}</text></g>; })}
-        {dados.map((ponto, indice) => {
-          const x = MARGEM_X + faixa * indice + faixa / 2 - barra / 2;
-          const hFonada = Number(ponto.fonada || 0) / maximo * (altura - MARGEM_Y * 2);
-          const hAoVivo = Number(ponto.aoVivo || 0) / maximo * (altura - MARGEM_Y * 2);
-          const base = altura - MARGEM_Y;
-          return <g className="grafico-ponto-interativo" tabIndex="0" key={ponto.data}><title>{tituloPonto(ponto)}</title><rect className="barra-fonada" x={x} y={base - hFonada} width={barra} height={hFonada} /><rect className="barra-aovivo" x={x} y={base - hFonada - hAoVivo} width={barra} height={hAoVivo} /></g>;
-        })}
-        <g className="grafico-eixo"><RotulosEixo dados={dados} largura={largura} altura={altura} /></g>
-      </svg></div>}
-    </PainelGrafico>
-  );
-}
-
-export function GraficoQuantidadePagamentos({ dados = [] }) {
-  const categorias = [...new Set(dados.flatMap((p) => Object.keys(p.formas || {})))];
-  const paleta = [CORES.azul, CORES.aoVivo, CORES.verde, '#8b6caf', '#b58a2a', '#718096'];
-  const totalPeriodo = dados.reduce((soma, p) => soma + Number(p.total || 0), 0);
-  const totalCategoria = (categoria) => dados.reduce((soma, p) => soma + Number(p.formas?.[categoria] || 0), 0);
-  return <PainelGrafico titulo="Origem dos pagamentos" subtitulo="Quantidade e participação por forma" amplo legenda={<>{categorias.map((categoria, i) => <Legenda key={categoria} cor={paleta[i % paleta.length]}>{categoria} · {totalPeriodo ? Math.round(totalCategoria(categoria) / totalPeriodo * 1000) / 10 : 0}%</Legenda>)}</>}>
-    {!dados.length ? <EstadoSemDados /> : <div className="grafico-barras-horizontais origem-pagamentos-barras">{categorias.map((categoria, i) => {
-      const quantidade = totalCategoria(categoria);
-      const pct = totalPeriodo ? Math.round(quantidade / totalPeriodo * 1000) / 10 : 0;
-      return <div className="grafico-barra-linha" key={categoria} title={`${categoria}: ${quantidade} pagamento(s) · ${pct}%`}><div><strong>{categoria}</strong><span>{quantidade}</span></div><div className="grafico-barra-trilho"><i style={{ width: `${Math.max(3, pct)}%`, background: paleta[i % paleta.length] }} /></div><small>{quantidade} pagamento(s) · {pct}%</small></div>;
+export function GraficoCategorias({ titulo, descricao, dados = [], referencia = null, nomes, quantidade = false, metrica = 'valor', equipe = false }) {
+  const exploracao = useExploracao();
+  const categorias = [...new Set([...dados,...(referencia || [])].map(d => d.categoria))];
+  const valor = d => Number(d?.[metrica] || 0);
+  const total = dados.reduce((s,d) => s + valor(d),0), totalB = (referencia || []).reduce((s,d) => s + valor(d),0);
+  const maximo = Math.max(1,...[...dados,...(referencia || [])].map(valor));
+  const formatar = quantidade ? numero : dinheiro;
+  const lista = categorias.map(c => ({categoria:c,a:dados.find(d=>d.categoria===c),b:referencia?.find(d=>d.categoria===c)})).sort((a,b) => Math.max(valor(b.a),valor(b.b))-Math.max(valor(a.a),valor(a.b)));
+  const legendas = referencia ? [{nome:nomes.principal,cor:CORES.principal},{nome:nomes.comparado,cor:CORES.comparado}] : lista.map((item,i) => ({nome:item.categoria,cor:PALETA[i % PALETA.length]}));
+  return <Painel titulo={titulo} descricao={descricao} exploracao={exploracao} legenda={<Legenda itens={legendas} />}>
+    {!lista.length ? <div className="rel-chart-empty">Nenhum registro neste período.</div> : <div className="rel-bars">{lista.map((item,i) => {
+      const linhas = [[item.a,nomes.principal,referencia ? CORES.principal : PALETA[i % PALETA.length],total], ...(referencia ? [[item.b,nomes.comparado,CORES.comparado,totalB]] : [])];
+      const info = {titulo:item.categoria,linhas:linhas.flatMap(([d,nome,cor,t]) => [{nome,valor:formatar(valor(d)),extra:`${numero(d?.quantidade)} registro(s) · ${metrica === 'ticket' ? `${pct(Number(d?.valor||0), (nome === nomes.principal ? dados : (referencia || [])).reduce((s,item) => s+Number(item.valor||0),0))} do valor vendido` : `${pct(valor(d),t)} do total`}${!quantidade && d?.quantidade ? ` · ticket ${dinheiro(Number(d.valor||0)/d.quantidade)}` : ''}`,cor}, ...(equipe && d ? [{nome:`Fonada · ${nome}`,valor:dinheiro(d.fonada),extra:`${numero(d.quantidadeFonada)} vendas`,cor:CORES.fonada},{nome:`Ao Vivo · ${nome}`,valor:dinheiro(d.aoVivo),extra:`${numero(d.quantidadeAoVivo)} vendas`,cor:CORES.aoVivo}] : [])])};
+      return <button className="rel-bar-row" type="button" key={item.categoria} aria-label={`Detalhar ${item.categoria}`} {...exploracao.eventos(info)}><div className="rel-bar-label"><strong>{item.categoria}</strong>{!referencia && <span>{formatar(valor(item.a))}</span>}</div>{linhas.map(([d,nome,cor],j) => <div className="rel-bar-series" key={j}>{referencia && <small title={nome}>{nome}</small>}<div className="rel-bar-track"><i style={{width:`${valor(d)/maximo*100}%`,background:cor}} /></div>{referencia && <b>{formatar(valor(d))}</b>}</div>)}</button>;
     })}</div>}
-  </PainelGrafico>;
+  </Painel>;
 }
 
-function combinarFluxo(vendido, recebido) {
-  const mapa = new Map();
-  vendido.forEach((p) => mapa.set(p.data, { data: p.data, vendido: Number(p.valor || 0), recebido: 0 }));
-  recebido.forEach((p) => mapa.set(p.data, { ...(mapa.get(p.data) || { data: p.data, vendido: 0 }), recebido: Number(p.valor || 0) }));
-  return [...mapa.values()].sort((a, b) => String(a.data).split('/').reverse().join('').localeCompare(String(b.data).split('/').reverse().join('')));
-}
-
-export function GraficoVendidoRecebido({ vendido = [], recebido = [], sistema = 'TODOS', referencia = {} }) {
-  const dados = combinarFluxo(vendido, recebido);
-  const largura = 720; const altura = 245;
-  const maximo = Math.max(1, ...[...dados, ...combinarFluxo(referencia.vendido || [], referencia.recebido || [])].flatMap((p) => [p.vendido, p.recebido]));
-  const faixa = (largura - MARGEM_X * 2) / Math.max(dados.length, 1);
-  const barra = Math.max(6, Math.min(25, faixa * .45));
-  const pontos = dados.map((p) => ({ data: p.data, valor: p.vendido }));
-  return <PainelGrafico titulo={`Vendido × recebido · ${sistema === 'TODOS' ? 'Todos' : sistema === 'FONADA' ? 'Fonada' : 'Ao Vivo'}`} subtitulo="Recebimentos do dia podem pertencer a vendas anteriores" amplo legenda={<><Legenda cor={CORES.verde}>Recebido</Legenda><Legenda cor={CORES.azul}>Vendido</Legenda></>}>
-    {!dados.length ? <EstadoSemDados /> : <div className="grafico-svg-scroll"><svg className="grafico-svg" viewBox={`0 0 ${largura} ${altura}`} role="img" aria-label="Valores vendidos e recebidos por dia">
-      {[0, .25, .5, .75, 1].map((fator) => { const y = altura - MARGEM_Y - fator * (altura - MARGEM_Y * 2); return <g key={fator}><line x1={MARGEM_X} y1={y} x2={largura - MARGEM_X} y2={y} /><text className="grafico-valor-eixo" x={MARGEM_X - 10} y={y + 4} textAnchor="end">{reaisCurto(maximo * fator)}</text></g>; })}
-      {dados.map((p, indice) => { const x = MARGEM_X + faixa * indice + faixa / 2 - barra / 2; const h = p.recebido / maximo * (altura - MARGEM_Y * 2); return <rect key={p.data} className="barra-recebido" x={x} y={altura - MARGEM_Y - h} width={barra} height={h}><title>{p.data} · Recebido: {reais(p.recebido)}</title></rect>; })}
-      <polyline className="grafico-linha atual" points={pontosLinha(pontos, maximo, largura, altura)} />
-      <g className="grafico-eixo"><RotulosEixo dados={dados} largura={largura} altura={altura} /></g>
-    </svg></div>}
-  </PainelGrafico>;
-}
-
-export function GraficoBarrasCategorias({ titulo, subtitulo, dados = [], usarQuantidade = false, referencia = {} }) {
-  const metrica = (item) => Number(usarQuantidade ? item.quantidade : item.valor || 0);
-  const maximo = Math.max(1, ...[...dados, ...(referencia.dados || [])].map(metrica));
-  const totalQuantidade = dados.reduce((soma, item) => soma + Number(item.quantidade || 0), 0);
-  return <PainelGrafico titulo={titulo} subtitulo={subtitulo}>
-    {!dados.length ? <EstadoSemDados /> : <div className="grafico-barras-horizontais">{dados.map((item) => <div className="grafico-barra-linha" key={item.categoria} title={`${item.categoria}: ${usarQuantidade ? `${item.quantidade} pedido(s)` : `${reais(item.valor)} · ${item.quantidade} pagamento(s)`}`}><div><strong>{item.categoria}</strong><span>{usarQuantidade ? item.quantidade : reais(item.valor)}</span></div><div className="grafico-barra-trilho"><i style={{ width: `${Math.max(3, metrica(item) / maximo * 100)}%` }} /></div><small>{usarQuantidade ? `${Math.round(metrica(item) / Math.max(dados.reduce((s, d) => s + metrica(d), 0), 1) * 100)}% dos pedidos` : `${item.quantidade} pagamento(s) · ${totalQuantidade ? Math.round(Number(item.quantidade || 0) / totalQuantidade * 1000) / 10 : 0}%`}</small></div>)}</div>}
-  </PainelGrafico>;
-}
-
-export function GraficoRankingEquipe({ funcionarios = [], referencia = {} }) {
-  const maximo = Math.max(1, ...[...funcionarios, ...(referencia.funcionarios || [])].map((f) => Number(f.valorVendidoTotal || 0)));
-  return <PainelGrafico titulo="Ranking da equipe" subtitulo="Valor vendido, dividido por modalidade" amplo legenda={<><Legenda cor={CORES.azul}>Fonada</Legenda><Legenda cor={CORES.aoVivo}>Ao Vivo</Legenda></>}>
-    {!funcionarios.length ? <EstadoSemDados /> : <div className="grafico-ranking">{funcionarios.map((f, indice) => { const total = Number(f.valorVendidoTotal || 0); return <div className="grafico-ranking-linha" key={f.usuario}><b>{indice + 1}</b><strong>{f.usuario}</strong><div className="grafico-ranking-trilho" title={`${f.usuario}: ${reais(total)}`}><i className="fonada" style={{ width: `${Number(f.valorVendidoFonada || 0) / maximo * 100}%` }} /><i className="aovivo" style={{ width: `${Number(f.valorVendidoAoVivo || 0) / maximo * 100}%` }} /></div><span>{reais(total)}</span></div>; })}</div>}
-  </PainelGrafico>;
-}
-
-export function GraficoQuantidadeTicket({ funcionarios = [], referencia = {} }) {
-  const maxQuantidade = Math.max(1, ...[...funcionarios, ...(referencia.funcionarios || [])].map((f) => Number(f.vendasTotal || 0)));
-  const maxTicket = Math.max(1, ...[...funcionarios, ...(referencia.funcionarios || [])].map((f) => Number(f.ticketMedio || 0)));
-  return <PainelGrafico titulo="Volume e ticket médio" subtitulo="Quantidade de vendas e valor médio por pessoa" amplo legenda={<><Legenda cor={CORES.azul}>Quantidade</Legenda><Legenda cor={CORES.verde}>Ticket médio</Legenda></>}>
-    {!funcionarios.length ? <EstadoSemDados /> : <div className="grafico-duas-metricas">{funcionarios.map((f) => <div className="grafico-metrica-linha" key={f.usuario}><strong>{f.usuario}</strong><div><span>Vendas</span><div className="grafico-barra-trilho"><i className="quantidade" style={{ width: `${Number(f.vendasTotal || 0) / maxQuantidade * 100}%` }} /></div><b>{f.vendasTotal}</b></div><div><span>Ticket</span><div className="grafico-barra-trilho"><i className="ticket" style={{ width: `${Number(f.ticketMedio || 0) / maxTicket * 100}%` }} /></div><b>{reais(f.ticketMedio)}</b></div></div>)}</div>}
-  </PainelGrafico>;
+export function GraficoComposicao({ titulo, principal, comparado, nomes }) {
+  const exploracao = useExploracao();
+  const series = [[principal,nomes.principal], ...(comparado ? [[comparado,nomes.comparado]] : [])];
+  return <Painel titulo={titulo} descricao="Participação no valor total. Selecione uma modalidade para ver volume e ticket." exploracao={exploracao} legenda={<Legenda itens={[{nome:'Fonada',cor:CORES.fonada},{nome:'Ao Vivo',cor:CORES.aoVivo}]} />}>
+    <div className={`rel-donuts ${comparado ? 'comparando' : ''}`}>{series.map(([dados,nome],j) => {
+      const total = (dados || []).reduce((s,d) => s+Number(d.valor||0),0); let acumulado=0;
+      return <div className="rel-donut-period" key={j}><strong>{nome}</strong><div className="rel-donut-wrap"><svg viewBox="0 0 200 200" role="group" aria-label={`Composição de ${nome}`}><circle cx="100" cy="100" r="76" fill="none" stroke="#edf0f7" strokeWidth="24" />{(dados || []).map(d => {const proporcao=total ? Number(d.valor||0)/total*100 : 0, offset=acumulado;acumulado+=proporcao;const cor=d.categoria==='Fonada' ? CORES.fonada : CORES.aoVivo;const info={titulo:`${d.categoria} · ${nome}`,linhas:[{nome:'Valor',valor:dinheiro(d.valor),cor},{nome:'Participação',valor:pct(d.valor,total)},{nome:'Quantidade',valor:`${numero(d.quantidade)} registros`},{nome:'Ticket médio',valor:dinheiro(d.quantidade ? d.valor/d.quantidade : 0)}]};return proporcao>0 && <circle className="rel-donut-hit" key={d.categoria} cx="100" cy="100" r="76" fill="none" stroke={cor} strokeWidth="24" pathLength="100" strokeDasharray={`${proporcao} ${100-proporcao}`} strokeDashoffset={-offset} transform="rotate(-90 100 100)" tabIndex="0" role="button" aria-label={`Detalhar ${d.categoria} em ${nome}`} {...exploracao.eventos(info)} />; })}</svg><div className="rel-donut-center"><small>{total ? 'Total do período' : 'Sem movimento'}</small><b>{dinheiro(total)}</b></div></div><div className="rel-donut-totals">{(dados || []).map(d=><span key={d.categoria}><i style={{background:d.categoria==='Fonada' ? CORES.fonada : CORES.aoVivo}} />{d.categoria}<b>{pct(d.valor,total)}</b></span>)}</div></div>;
+    })}</div>
+  </Painel>;
 }

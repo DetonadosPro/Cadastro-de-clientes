@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "test": "node --test test/*.test.js",
+    "test:relatorios": "playwright test --config=playwright.relatorios.config.js",
     "test:e2e": "playwright test",
     "preview": "vite preview"
   },

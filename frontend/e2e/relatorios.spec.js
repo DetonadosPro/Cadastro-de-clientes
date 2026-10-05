@@ -46,10 +46,11 @@ test('relatórios conciliam vendas e recebimentos de Fonada e Ao Vivo', async ({
 
     await page.goto(`/relatorios?aba=vendas&${filtro}`);
     await expect(page.getByRole('heading', { name: 'Relatórios' })).toBeVisible();
+    await page.locator('.rel-records summary').click();
     await expect(page.getByText(nome).first()).toBeVisible();
     await page.getByRole('button', { name: 'Recebimentos', exact: true }).click();
     await expect(page).toHaveURL(/aba=recebimentos/);
-    await page.getByRole('button', { name: 'Desempenho', exact: true }).click();
+    await page.getByRole('button', { name: 'Equipe', exact: true }).click();
     await expect(page).toHaveURL(/aba=desempenho/);
     await page.reload();
     await expect(page).toHaveURL(/aba=desempenho/);
