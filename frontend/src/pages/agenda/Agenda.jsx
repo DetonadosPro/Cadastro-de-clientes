@@ -72,6 +72,23 @@ function pagamentoEhPrazo(pagamento) {
 export default function Agenda() {
   const paginaRef = useRef(null);
   const [alturaPainel, setAlturaPainel] = useState(null);
+  useEffect(() => {
+    const pagina = paginaRef.current;
+    if (!pagina) return;
+    function rolarLista(evento) {
+      if (evento.ctrlKey || !evento.cancelable || Math.abs(evento.deltaX) > Math.abs(evento.deltaY)) return;
+      const lista = evento.target instanceof Element ? evento.target.closest('.lista-agenda-compacta') : null;
+      if (!lista || !pagina.contains(lista) || lista.scrollHeight <= lista.clientHeight) return;
+      if (!['auto', 'scroll'].includes(getComputedStyle(lista).overflowY)) return;
+      // A rodinha atua na região sob o ponteiro, sem mudar o foco ou selecionar um pedido.
+      const unidade = evento.deltaMode === 1 ? parseFloat(getComputedStyle(lista).lineHeight) || 16
+        : evento.deltaMode === 2 ? lista.clientHeight : 1;
+      evento.preventDefault();
+      lista.scrollTop += evento.deltaY * unidade;
+    }
+    pagina.addEventListener('wheel', rolarLista, { passive: false, capture: true });
+    return () => pagina.removeEventListener('wheel', rolarLista, true);
+  }, []);
   useLayoutEffect(() => {
     const pagina = paginaRef.current;
     const conteudo = pagina?.closest('.layout-conteudo');

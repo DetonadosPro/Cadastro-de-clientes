@@ -265,6 +265,43 @@ test('selecionar pedidos preserva a posição da página quando a janela é baix
   await expect.poll(()=>conteudo.evaluate(el=>el.scrollTop)).toBeCloseTo(posicao,0);
 });
 
+test('rodinha move a lista sob o mouse sem clicar ou mudar o foco',async({page})=>{
+  await page.setViewportSize({width:1920,height:940});
+  await preparar(page,{listaGrande:true,detalhesLongos:true});
+  await linha(page,'José').click();
+  const busca=page.getByLabel('Buscar na agenda');
+  await busca.focus();
+  const lista=page.getByRole('region',{name:'Lista de compromissos'});
+  const painel=page.getByRole('region',{name:'Detalhes do pedido selecionado'});
+  const caixa=await lista.boundingBox();
+  await page.mouse.move(caixa.x+caixa.width/2,caixa.y+60);
+  await page.mouse.wheel(0,240);
+  await expect.poll(()=>lista.evaluate(el=>el.scrollTop)).toBeGreaterThan(100);
+  await expect(busca).toBeFocused();
+  await expect(page).toHaveURL(/item=2-1/);
+  await expect(page.locator('.layout-conteudo')).toHaveJSProperty('scrollTop',0);
+  await page.mouse.wheel(0,-240);
+  await expect.poll(()=>lista.evaluate(el=>el.scrollTop)).toBe(0);
+  await page.mouse.wheel(0,240);
+  await expect.poll(()=>lista.evaluate(el=>el.scrollTop)).toBeGreaterThan(100);
+  const posicao=await lista.evaluate(el=>el.scrollTop);
+  const caixaPainel=await painel.boundingBox();
+  await page.mouse.move(caixaPainel.x+caixaPainel.width/2,caixaPainel.y+60);
+  await page.mouse.wheel(0,240);
+  await expect.poll(()=>painel.evaluate(el=>el.scrollTop)).toBeGreaterThan(100);
+  await expect(lista).toHaveJSProperty('scrollTop',posicao);
+  const calendario=await page.locator('.ag-calendar').boundingBox();
+  await page.mouse.move(calendario.x+20,calendario.y+20);
+  await page.mouse.wheel(0,240);
+  await expect(lista).toHaveJSProperty('scrollTop',posicao);
+  const zoom=await lista.evaluate(el=>{
+    const evento=new WheelEvent('wheel',{bubbles:true,cancelable:true,ctrlKey:true,deltaY:100});
+    el.dispatchEvent(evento);
+    return {cancelado:evento.defaultPrevented,posicao:el.scrollTop};
+  });
+  expect(zoom).toEqual({cancelado:false,posicao});
+});
+
 test('calendário compacto mantém pedidos e detalhes dentro da área útil do computador',async({page},testInfo)=>{
   await preparar(page,{listaGrande:true,detalhesLongos:true});
   for(const [width,height] of [[1920,940],[1600,800],[1366,650],[1280,600]]) {
