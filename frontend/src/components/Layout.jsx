@@ -420,7 +420,7 @@ export default function Layout() {
         <div className={`workspace-topbar nao-imprimir ${estaCriandoCliente ? 'sem-acao-principal' : ''}`}>
           <nav className="workspace-contexto" aria-label="Localização atual">
             <span>{contextoRota.secao}</span><i aria-hidden="true">/</i><strong>{contextoRota.titulo}</strong>
-            {location.pathname.startsWith('/agenda') && <RelogioAgenda />}
+            <RelogioAgenda />
           </nav>
           <button type="button" className="workspace-command" onClick={() => setCommandAberta(true)} aria-label="Abrir busca global">
             <span>⌕</span><span>Buscar clientes, páginas ou ações</span><kbd>Ctrl K</kbd>
