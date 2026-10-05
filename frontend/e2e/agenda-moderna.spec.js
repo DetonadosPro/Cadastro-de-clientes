@@ -370,3 +370,29 @@ test('remarcações fechadas ocupam uma linha e abrem o histórico sem cortar o 
   await expect(toggle).toHaveAttribute('aria-expanded','false');
   expect((await caixas.first().boundingBox()).height).toBeLessThanOrEqual(40);
 });
+
+
+test('painel termina após remarcações e limita apenas detalhes que excedem a tela',async({page},testInfo)=>{
+  await page.setViewportSize({width:1660,height:1050});
+  await preparar(page,{historico:true});
+  await linha(page,'Marília').click();
+  const painel=page.getByRole('region',{name:'Detalhes do pedido selecionado'});
+  const historico=painel.locator('.ag-remarcacoes');
+  await expect(historico).toHaveCount(1);
+  const grade=await page.locator('.grid-agenda-lista-painel').boundingBox();
+  const caixaPainel=await painel.boundingBox();
+  const caixaHistorico=await historico.boundingBox();
+  expect(caixaPainel.height).toBeLessThan(grade.height-50);
+  expect(caixaPainel.y+caixaPainel.height-caixaHistorico.y-caixaHistorico.height).toBeLessThanOrEqual(18);
+  await expect(painel).toHaveJSProperty('scrollTop',0);
+  await page.screenshot({path:testInfo.outputPath('detalhes-sem-espaco-vazio.png')});
+  await historico.getByRole('button').click();
+  await expect(historico.getByRole('button')).toHaveAttribute('aria-expanded','true');
+  await page.setViewportSize({width:1366,height:650});
+  await expect.poll(()=>painel.evaluate(el=>el.scrollHeight-el.clientHeight)).toBeGreaterThan(0);
+  await expect.poll(()=>page.locator('.layout-conteudo').evaluate(el=>el.scrollHeight-el.clientHeight)).toBeLessThanOrEqual(1);
+  const caixaMenor=await painel.boundingBox();
+  expect(caixaMenor.y+caixaMenor.height).toBeLessThanOrEqual(650-12);
+  await painel.evaluate(el=>{el.scrollTop=el.scrollHeight;});
+  await expect(historico.getByText('Remarcado para 05/10/26 às 10:07')).toBeInViewport();
+});

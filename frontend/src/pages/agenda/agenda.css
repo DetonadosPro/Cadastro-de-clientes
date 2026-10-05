@@ -223,12 +223,12 @@
   .layout-conteudo:has(.agenda-moderna) { padding-bottom:16px; }
   .agenda-v2.agenda-moderna.ag-workspace-fixo .grid-agenda-lista-painel { height:var(--ag-workspace-height); min-height:0; align-items:stretch; }
   .agenda-v2.agenda-moderna.ag-workspace-fixo .lista-agenda-compacta,
-  .agenda-v2.agenda-moderna.ag-workspace-fixo .painel-detalhes-agenda { min-height:0; height:100%; max-height:none; overflow-y:auto; overscroll-behavior-y:contain; scrollbar-gutter:stable; scrollbar-width:thin; }
-  .agenda-moderna.ag-workspace-fixo .lista-agenda-compacta { padding:0 8px 4px 3px; }
-  .agenda-moderna.ag-workspace-fixo .painel-detalhes-agenda { position:static; align-self:stretch; padding:16px; }
+  .agenda-v2.agenda-moderna.ag-workspace-fixo .painel-detalhes-agenda { min-height:0; overflow-y:auto; overscroll-behavior-y:contain; scrollbar-gutter:stable; scrollbar-width:thin; }
+  .agenda-moderna.ag-workspace-fixo .lista-agenda-compacta { height:100%; padding:0 8px 4px 3px; }
+  .agenda-v2.agenda-moderna.ag-workspace-fixo .painel-detalhes-agenda { position:static; align-self:start; height:auto; max-height:100%; padding:16px; }
 }
 @media(prefers-reduced-motion:reduce) { .agenda-moderna * { animation:none!important; transition:none!important; } }
-@media print { .ag-header-actions,.agenda-controles-v2,.carrossel-dias-agenda,.ag-search { display:none!important; } .agenda-moderna .linha-agenda { break-inside:avoid; box-shadow:none; } .agenda-v2.agenda-moderna.ag-workspace-fixo .grid-agenda-lista-painel { height:auto; } .agenda-moderna.ag-workspace-fixo .lista-agenda-compacta,.agenda-moderna.ag-workspace-fixo .painel-detalhes-agenda { height:auto; overflow:visible; } }
+@media print { .ag-header-actions,.agenda-controles-v2,.carrossel-dias-agenda,.ag-search { display:none!important; } .agenda-moderna .linha-agenda { break-inside:avoid; box-shadow:none; } .agenda-v2.agenda-moderna.ag-workspace-fixo .grid-agenda-lista-painel { height:auto; } .agenda-v2.agenda-moderna.ag-workspace-fixo .lista-agenda-compacta,.agenda-v2.agenda-moderna.ag-workspace-fixo .painel-detalhes-agenda { height:auto; max-height:none; overflow:visible; } }
 
 /* Leitura do histórico sem o preenchimento amplo dos formulários. */
 .agenda-moderna .section-box.ag-remarcacoes { min-width:0; padding:0; margin:8px 0 0; border-radius:8px; box-shadow:none; }
