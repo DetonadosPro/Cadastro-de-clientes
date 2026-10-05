@@ -19,6 +19,7 @@ async function preparar(page,opcoes={}) {
   await page.addInitScript(()=>{localStorage.setItem('pombo_token','token-simulado');localStorage.setItem('pombo_usuario','QA');localStorage.setItem('pombo_nome','Operador de exemplo');});
   const estado=dadosDoDia(),mutacoes=[];
   if(opcoes.listaGrande)estado.fonada.push(...Array.from({length:80},(_,i)=>({...estado.fonada[0],pedidoId:100+i,senha_os:`F${100+i}`,nome_comprador:`Cliente extra ${i}`,para:`Destinatário extra ${i}`,horario:'15:00'})));
+  if(opcoes.detalhesLongos)estado.fonada=estado.fonada.map(f=>f.pedidoId===2?{...f,quemOferece:'Toda a família. '.repeat(180)}:f);
   await page.route('**/api/**',async route=>{
     const req=route.request(),url=new URL(req.url()),metodo=req.method(),body=req.postDataJSON();
     if(url.pathname==='/api/agenda/hoje') {
@@ -235,4 +236,69 @@ test('dias cheios mostram mais registros sem reduzir o resumo e preservam a orga
   await page.goto('/agenda?ordem=prioridade&item=179-1');
   await expect(linha(page,'Destinatário extra 79')).toHaveAttribute('aria-pressed','true');
   await expect(linha(page,'Destinatário extra 79')).toBeVisible();
+});
+
+test('selecionar pedidos preserva a posição da página quando a janela é baixa',async({page})=>{
+  await page.setViewportSize({width:1366,height:500});
+  await preparar(page,{listaGrande:true});
+  const pedido=linha(page,'Destinatário extra 5');
+  await page.waitForTimeout(600);
+  await pedido.scrollIntoViewIfNeeded();
+  const conteudo=page.locator('.layout-conteudo');
+  const posicao=await conteudo.evaluate(el=>el.scrollTop);
+  expect(posicao).toBeGreaterThan(100);
+  await pedido.click();
+  await expect(page).toHaveURL(/item=105-1/);
+  await expect.poll(()=>conteudo.evaluate(el=>el.scrollTop)).toBeCloseTo(posicao,0);
+  await expect(pedido).toHaveAttribute('aria-pressed','true');
+  await page.getByRole('button',{name:/Novo cliente/}).click();
+  await expect(page).toHaveURL(/\/clientes\/novo$/);
+  await page.goBack();
+  await expect(page).toHaveURL(/item=105-1/);
+  await expect.poll(()=>conteudo.evaluate(el=>el.scrollTop)).toBeCloseTo(posicao,0);
+});
+
+test('calendário compacto mantém pedidos e detalhes dentro da área útil do computador',async({page},testInfo)=>{
+  await preparar(page,{listaGrande:true,detalhesLongos:true});
+  for(const [width,height] of [[1920,940],[1600,800],[1366,650],[1280,600]]) {
+    await page.setViewportSize({width,height});
+    await expect(page.locator('.agenda-moderna').first()).toHaveClass(/ag-workspace-fixo/);
+    await expect.poll(()=>page.locator('.layout-conteudo').evaluate(el=>el.scrollHeight-el.clientHeight)).toBeLessThanOrEqual(1);
+    const calendario=await page.locator('.ag-calendar').boundingBox();
+    const resumo=await page.locator('.ag-overview').boundingBox();
+    const grade=await page.locator('.grid-agenda-lista-painel').boundingBox();
+    expect(calendario.height).toBeLessThan(110);
+    expect(resumo.height).toBeLessThan(100);
+    expect(grade.height).toBeGreaterThanOrEqual(160);
+    expect(grade.y+grade.height).toBeLessThanOrEqual(height-12);
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1)).toBe(false);
+    await page.screenshot({path:testInfo.outputPath(`agenda-compacta-${width}x${height}.png`)});
+  }
+  await page.setViewportSize({width:1920,height:940});
+  await linha(page,'José').click();
+  const painel=page.getByRole('region',{name:'Detalhes do pedido selecionado'});
+  const lista=page.getByRole('region',{name:'Lista de compromissos'});
+  await expect.poll(()=>painel.evaluate(el=>el.scrollHeight-el.clientHeight)).toBeGreaterThan(100);
+  await painel.evaluate(el=>{el.scrollTop=el.scrollHeight;});
+  await expect(painel.getByRole('button',{name:'Marcar as 2 passadas',exact:true})).toBeInViewport();
+  await expect(page.getByRole('button',{name:'+ Lembrete',exact:true})).toBeInViewport();
+  await lista.evaluate(el=>{el.scrollTop=200;});
+  const alvo=linha(page,'Destinatário extra 5');
+  await alvo.scrollIntoViewIfNeeded();
+  const posicao=await lista.evaluate(el=>el.scrollTop);
+  await alvo.click();
+  await expect(page).toHaveURL(/item=105-1/);
+  await expect.poll(()=>lista.evaluate(el=>el.scrollTop)).toBeCloseTo(posicao,0);
+  await expect(painel).toHaveJSProperty('scrollTop',0);
+  await expect(page.locator('.layout-conteudo')).toHaveJSProperty('scrollTop',0);
+  await page.setViewportSize({width:1366,height:500});
+  await expect(page.locator('.agenda-moderna').first()).not.toHaveClass(/ag-workspace-fixo/);
+  await page.setViewportSize({width:1280,height:720});
+  await expect(page.locator('.agenda-moderna').first()).toHaveClass(/ag-workspace-fixo/);
+  await page.getByRole('button',{name:'Próximo dia',exact:true}).click();
+  await expect(page.locator('.ag-consultation-note')).toBeVisible();
+  await expect.poll(()=>page.locator('.layout-conteudo').evaluate(el=>el.scrollHeight-el.clientHeight)).toBeLessThanOrEqual(1);
+  await page.getByLabel('Buscar na agenda').fill('Sem resultado algum');
+  await expect(page.getByText('Nenhum compromisso encontrado',{exact:true})).toBeVisible();
+  await expect.poll(()=>page.locator('.layout-conteudo').evaluate(el=>el.scrollHeight-el.clientHeight)).toBeLessThanOrEqual(1);
 });

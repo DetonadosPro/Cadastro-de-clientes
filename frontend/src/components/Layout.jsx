@@ -1,7 +1,7 @@
-import React, { Suspense, useState, useEffect, useRef } from 'react';
+import React, { Suspense, useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Dialogo, EstadoCarregando } from './Interface.jsx';
 import LimitePagina from './LimitePagina.jsx';
-import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation, useNavigationType } from 'react-router-dom';
 import { getIdTela, getUsuarioLogado, getNomeExibicao, limparSessao } from '../api.js';
 import { useRascunhos } from '../RascunhosContext.jsx';
 import { useAgendaAlerta } from '../AgendaAlertaContext.jsx';
@@ -152,6 +152,8 @@ const ROTAS = [
 export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const tipoNavegacao = useNavigationType();
+  const rotaRolagemRef = useRef(null);
   const usuario = getUsuarioLogado();
   const nomeExibicao = getNomeExibicao();
   const [menuAberto, setMenuAberto] = useState(false);
@@ -236,19 +238,29 @@ export default function Layout() {
   // Cada entrada do histórico do React Router possui uma chave estável.
   // Guardamos a rolagem por chave para que voltar restaure a posição da
   // tela anterior, inclusive quando o conteúdo termina de carregar depois.
-  useEffect(() => {
+  useLayoutEffect(() => {
     const elemento = conteudoRef.current;
     if (!elemento) return undefined;
     const chave = `pombo-scroll:${location.key}`;
-    const salvo = Number(sessionStorage.getItem(chave) || 0);
-    const restaurar = () => { elemento.scrollTop = salvo; };
-    restaurar();
-    const tentativas = [80, 220, 500].map((tempo) => setTimeout(restaurar, tempo));
+    // Seleção, busca e filtros da agenda substituem a mesma entrada da URL.
+    // Preserve a posição nessas mudanças; voltar pelo histórico ainda restaura.
+    const preservar = location.pathname === '/agenda' && rotaRolagemRef.current === location.pathname && tipoNavegacao === 'REPLACE';
+    rotaRolagemRef.current = location.pathname;
+    const salvo = preservar ? elemento.scrollTop : Number(sessionStorage.getItem(chave) || 0);
+    // A troca de página pode reduzir o documento e zerar scrollTop antes do
+    // cleanup. Guarde a última posição observada enquanto a página existia.
+    let posicao = salvo;
+    const registrar = () => { posicao = elemento.scrollTop; };
+    elemento.addEventListener('scroll', registrar, { passive: true });
+    const restaurar = () => { elemento.scrollTop = salvo; registrar(); };
+    if (!preservar) restaurar();
+    const tentativas = preservar ? [] : [80, 220, 500].map((tempo) => setTimeout(restaurar, tempo));
     return () => {
       tentativas.forEach(clearTimeout);
-      sessionStorage.setItem(chave, String(elemento.scrollTop));
+      elemento.removeEventListener('scroll', registrar);
+      sessionStorage.setItem(chave, String(posicao));
     };
-  }, [location.key]);
+  }, [location.key, location.pathname, tipoNavegacao]);
 
   useEffect(() => {
     localStorage.setItem('pombo_sidebar_compacta', sidebarCompacta ? '1' : '0');
