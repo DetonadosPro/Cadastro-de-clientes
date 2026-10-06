@@ -288,7 +288,7 @@ router.get('/', async (req, res) => {
 
     const linhasResultado = await db.query(`
       SELECT id, senha_os, nome_comprador, data_pedido, valor, cobranca, cobranca_reagendada,
-             periodo, pagou, recebi, data_pagamento, p1_dia, impresso, versao,
+             periodo, pagou, recebi, data_pagamento, p1_dia, p1_para, p2_para, impresso, versao,
              comprador_fixo, comprador_celular, comprador_endereco, comprador_complemento,
              comprador_bairro, comprador_referencia, cliente_id
       FROM fonadas
@@ -321,6 +321,7 @@ router.get('/', async (req, res) => {
         cobrancaReagendada: l.cobranca_reagendada,
         periodo: l.periodo,
         transmissao: l.p1_dia,
+        destinatarios: [...new Set([l.p1_para, l.p2_para].map((nome) => String(nome || '').trim()).filter(Boolean))],
         pagou: l.pagou,
         recebi: l.recebi,
         dataPagamento: l.data_pagamento,

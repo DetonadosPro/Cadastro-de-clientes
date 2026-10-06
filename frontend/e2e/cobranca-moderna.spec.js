@@ -17,6 +17,11 @@ async function preparar(page) {
     { id: 13, cliente_id: 102, nome: 'João Silva', senha_os: '126', cobranca: '15/10/26', valor: 80, pagou: 'NÃO', formaPagamento: 'PIX', versao: 1 },
     { id: 14, cliente_id: 103, nome: 'Carla Souza', senha_os: '127', cobranca: '02/10/26', valor: 60, pagou: 'SIM', formaPagamento: 'PIX', dataPagamento: '02/10/26', versao: 1 },
   ];
+  fonadas[0].destinatarios = ['Fernanda', 'Carlos'];
+  fonadas[0].data_pedido = '20/09/26';
+  fonadas[1].destinatarios = ['Victor'];
+  fonadas[1].data_pedido = '21/09/26';
+  fonadas[2].destinatarios = ['Maria de Lourdes Aparecida de Oliveira'];
   const aovivo = fonadas.map(p => ({ ...p, numero_os: `AV${p.id}`, dataCobranca: p.cobranca, dataPedido: '01/10/26', dataEvento: '06/10/26', horarioEvento: '14:00', destinatario: 'Fernanda', pagamentoPrevisto: 'PIX', valorRecebido: p.valor, formaRecebimento: 'PIX' }));
   await page.route('**/api/**', async route => {
     const req = route.request(), url = new URL(req.url());
@@ -70,6 +75,21 @@ test('resumo filtra as cobranças e limpar filtros recupera a lista', async ({ p
   await page.getByRole('region', { name: 'Resumo financeiro da consulta' }).getByRole('button', { name: /Recebidas no mês/ }).click();
   await expect(page.locator('.cobranca-aovivo-card')).toHaveCount(1);
   await expect(page.locator('.cobranca-aovivo-card')).toContainText('Carla Souza');
+});
+
+test('destinatários da Fonada aparecem no card e no pedido correto junto das datas', async ({ page }) => {
+  await preparar(page);
+  const grupo = page.locator('.grupo-cobranca').first();
+  await expect(grupo.locator('.cb-fonada-destinatarios')).toHaveText('Para: Fernanda · Carlos · Victor');
+  await grupo.getByRole('button', { name: 'Expandir pedidos' }).click();
+  const pedidos = grupo.locator('.pedido-cobranca-individual');
+  await expect(pedidos.nth(0).locator('.pedido-cobranca-datas')).toHaveText('Para: Fernanda · CarlosCompra: 20/09/26Cobrança: 01/10/26');
+  await expect(pedidos.nth(1).locator('.pedido-cobranca-datas')).toHaveText('Para: VictorCompra: 21/09/26Cobrança: 01/10/26');
+  const semNome = page.locator('.grupo-cobranca').last();
+  await expect(semNome.locator('.cb-fonada-destinatarios')).toHaveText('Para: Não informado');
+  await semNome.getByRole('button', { name: 'Expandir pedidos' }).click();
+  await expect(semNome.locator('.pedido-cobranca-destinatarios')).toHaveText('Para: Não informado');
+  await expect(page).toHaveURL(/\/cobranca/);
 });
 
 test('seleção, impressão, baixa e reagendamento conservam suas ações', async ({ page }) => {

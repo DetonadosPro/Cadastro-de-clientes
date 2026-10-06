@@ -77,6 +77,8 @@
 .cobranca-moderna .grupo-cobranca-cliente strong { font-size:18px; line-height:1.35; white-space:normal; overflow-wrap:anywhere; }
 .cobranca-moderna .grupo-cobranca-cliente span,.cobranca-moderna .grupo-cobranca-urgencia small,.cobranca-moderna .grupo-cobranca-valor span,.cobranca-moderna .cobranca-aovivo-card small,.cobranca-moderna .cobranca-aovivo-card span:not(.carimbo-os) { font-size:10px; color:#677991; }
 .cobranca-moderna .grupo-cobranca-cliente span { font-size:12px; line-height:1.4; white-space:normal; overflow-wrap:anywhere; }
+.cobranca-moderna .grupo-cobranca-cliente span.cb-fonada-destinatarios { color:#465d7c; font-size:14px; font-weight:550; }
+.cobranca-moderna .pedido-cobranca-datas > .pedido-cobranca-destinatarios { color:#465d7c; font-size:14px; font-weight:600; line-height:1.4; white-space:normal; overflow-wrap:anywhere; }
 .cobranca-moderna .grupo-cobranca-valor strong,.cobranca-moderna .cobranca-aovivo-valor strong { color:#31435f; font-family:inherit; font-size:15px; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
 .cobranca-moderna .grupo-cobranca-status-impressao { font-size:9px; font-weight:600; letter-spacing:0; text-transform:none; }
 .cobranca-moderna .grupo-cobranca-acoes,.cobranca-moderna .cobranca-aovivo-acoes { display:flex; flex-wrap:wrap; grid-column:auto; gap:6px; justify-content:flex-end; }

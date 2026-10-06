@@ -73,6 +73,10 @@ function valorInformado(valor) {
   return texto && texto !== '0' && texto !== '-' ? texto : '';
 }
 
+function destinatariosDoPedido(pedido) {
+  return (pedido.destinatarios || []).filter(Boolean);
+}
+
 function foiRecebidoNoMesAtual(pedido) {
   const partes = String(pedido.dataPagamento || '').match(/^\d{2}\/(\d{2})\/(\d{2}|\d{4})$/);
   if (!partes) return false;
@@ -524,6 +528,7 @@ function ListaGrupos({ grupos, pedidosVisiveis, expandidos, selecionados, altern
                   </button>
                 ) : <strong>{grupo.nome}</strong>}
                 <span>{grupo.pedidos.length} pedido(s) · O.S. {grupo.pedidos.map((p) => p.senha_os || p.id).join(', ')}</span>
+                <span className="cb-fonada-destinatarios">Para: {[...new Set(grupo.pedidos.flatMap(destinatariosDoPedido))].join(' · ') || 'Não informado'}</span>
               </div>
               <div className="grupo-cobranca-status-impressao">{grupo.pedidos.length > 0 && quantidadeImpressos === grupo.pedidos.length ? 'Impresso' : ''}</div>
               <div className="grupo-cobranca-valor"><strong>{formatarReais(grupo.valorTotal)}</strong><span>{[...new Set(grupo.pedidos.map((p) => p.formaPagamento))].join(' · ')}</span></div>
@@ -558,7 +563,7 @@ function DetalhesGrupo({ grupo, selecionados, alternarSelecao, imprimir, abrirBa
           <div className={`pedido-cobranca-individual ${grupo.pedidos.length === 1 ? 'pedido-unico' : ''}`} key={pedido.id}>
             <input type="checkbox" checked={selecionados.has(pedido.id)} onChange={() => alternarSelecao([pedido])} aria-label={`Selecionar O.S. ${pedido.senha_os || pedido.id} para impressão`} />
             <span className="carimbo-os carimbo-os-lista">{pedido.senha_os || pedido.id}</span>
-            <span className="pedido-cobranca-datas"><span>Compra: {pedido.data_pedido || '—'}</span><span>Cobrança: {pedido.cobrancaReagendada ? `${pedido.cobranca || '—'} → ${pedido.cobrancaReagendada}` : pedido.cobranca || '—'}</span></span>
+            <span className="pedido-cobranca-datas"><span className="pedido-cobranca-destinatarios">Para: {destinatariosDoPedido(pedido).join(' · ') || 'Não informado'}</span><span>Compra: {pedido.data_pedido || '—'}</span><span>Cobrança: {pedido.cobrancaReagendada ? `${pedido.cobranca || '—'} → ${pedido.cobrancaReagendada}` : pedido.cobranca || '—'}</span></span>
             <span className={`tag ${pedido.formaPagamento === 'PIX' ? 'ok' : pedido.formaPagamento === 'DEPÓSITO' ? 'aviso' : 'neutro'}`}>{pedido.formaPagamento}</span>
             <strong>{formatarReais(pedido.valor)}</strong>
             {grupo.pedidos.length > 1 && <span className={`recibo-status ${reciboJaImpresso(pedido) ? 'impresso' : ''}`}><IconeImpressora /> {reciboJaImpresso(pedido) ? 'Impresso' : 'Não impresso'}</span>}
