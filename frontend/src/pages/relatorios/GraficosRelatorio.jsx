@@ -10,7 +10,14 @@ function Legenda({ itens, toggle }) {
     ? <button type="button" key={item.nome} aria-pressed={!item.oculto} onClick={() => toggle(i)} className={item.oculto ? 'oculta' : ''}><i style={{ background: item.cor }} className={item.tracejada ? 'tracejada' : ''} />{item.nome}</button>
     : <span key={item.nome}><i style={{ background: item.cor }} />{item.nome}</span>)}</div>;
 }
-function Valores({ info }) {
+function Valores({ info, compacto = false }) {
+  if (info.grupos) return <div className={`rel-detail-periods ${compacto ? 'compacto' : ''}`}>
+    {info.grupos.map((grupo, i) => <section className="rel-detail-period" key={i} style={{ '--period-color': grupo.cor }}>
+      <header><i aria-hidden="true" /><strong>{grupo.nome}</strong>{grupo.data && <small>{grupo.data}</small>}</header>
+      <div className="rel-period-main"><span>{grupo.linhas[0].nome}</span><strong>{grupo.linhas[0].valor}</strong>{grupo.linhas[0].extra && <small>{grupo.linhas[0].extra}</small>}</div>
+      {!compacto && grupo.linhas.length > 1 && <div className="rel-period-breakdown">{grupo.linhas.slice(1).map((linha, j) => <div key={j}><span>{linha.nome}</span><strong>{linha.valor}</strong>{linha.extra && <small>{linha.extra}</small>}</div>)}</div>}
+    </section>)}
+  </div>;
   return <div className="rel-detail-values">{info.linhas.map((linha, i) => <div key={i}><span>{linha.cor && <i style={{ background: linha.cor }} />}{linha.nome}</span><strong>{linha.valor}</strong>{linha.extra && <small>{linha.extra}</small>}</div>)}</div>;
 }
 function useExploracao() {
@@ -25,7 +32,7 @@ function Painel({ titulo, descricao, legenda, controles, exploracao, children, a
     {legenda}
     <div className="rel-chart-stage" onMouseLeave={exploracao.sair}>
       {children}
-      {exploracao.hover && <div className="rel-tooltip" role="tooltip"><strong>{exploracao.hover.titulo}</strong><Valores info={exploracao.hover} /><small>Clique para manter os detalhes abertos</small></div>}
+      {exploracao.hover && <div className="rel-tooltip" role="tooltip"><strong>{exploracao.hover.titulo}</strong><Valores info={exploracao.hover} compacto /><small>Clique para ver o detalhamento</small></div>}
     </div>
     <div className="rel-chart-hint"><span aria-hidden="true">↗</span> Passe o mouse ou toque para explorar. Clique para fixar os detalhes.</div>
     {exploracao.selecionado && <aside className="rel-selection" aria-label="Detalhes selecionados"><div className="rel-selection-header"><div><small>Detalhe selecionado</small><h3>{exploracao.selecionado.titulo}</h3></div><button type="button" onClick={exploracao.limpar} aria-label="Limpar seleção do gráfico">×</button></div><Valores info={exploracao.selecionado} /></aside>}
@@ -54,11 +61,15 @@ export function GraficoEvolucao({ titulo, descricao, series = [], alinhar = fals
   const toggle = i => setOcultas(atual => atual.includes(i) ? atual.filter(n => n !== i) : atual.length < series.length - 1 ? [...atual,i] : atual);
   const rotulos = Math.min(quantidade, largura < 500 ? 3 : 6);
   const indices = [...new Set(Array.from({length: rotulos}, (_,i) => Math.round(i * (quantidade - 1) / Math.max(rotulos - 1,1))))];
-  const infoPonto = i => ({ titulo: alinhar ? `Comparação ${series.some(s => s.dias > 90) ? 'da faixa' : 'do dia'} ${i + 1}` : (ativas[0]?.pontos[i]?.data || ativas.find(s => s.pontos[i])?.pontos[i]?.data || 'Detalhe'), linhas: ativas.flatMap(s => {
+  const infoPonto = i => ({ titulo: alinhar ? `${series.some(s => s.dias > 90) ? 'Faixa' : 'Dia'} ${i + 1}` : (ativas[0]?.pontos[i]?.data || ativas.find(s => s.pontos[i])?.pontos[i]?.data || 'Detalhe'), grupos: ativas.map(s => {
     const p = s.pontos[i];
-    if (!p) return [{ nome: s.nome, valor: '—', extra: 'Fora deste período', cor: s.cor }];
+    if (!p) return { nome: s.nome, cor: s.cor, linhas: [{ nome: 'Total', valor: '—', extra: 'Fora deste período' }] };
     const data = p.data === p.fim ? p.data : `${p.data} a ${p.fim}`;
-    return [{ nome: `${s.nome} · ${data}`, valor: dinheiro(p.valor), extra: `${s.semQuantidade ? 'Pela data da venda' : `${numero(p.quantidade)} registro(s)${p.quantidade ? ` · média ${dinheiro(p.valor / p.quantidade)}` : ''}`}`, cor: s.cor }, ...(p.fonada || p.aoVivo ? [{ nome: `Fonada · ${s.nome} · ${data}`, valor: dinheiro(p.fonada), extra: `${numero(p.quantidadeFonada)} registro(s) · ${pct(p.fonada,p.valor)}`, cor: CORES.fonada }, { nome: `Ao Vivo · ${s.nome} · ${data}`, valor: dinheiro(p.aoVivo), extra: `${numero(p.quantidadeAoVivo)} registro(s) · ${pct(p.aoVivo,p.valor)}`, cor: CORES.aoVivo }] : [])];
+    return { nome: s.nome, cor: s.cor, data: alinhar ? data : undefined, linhas: [
+      { nome: 'Total', valor: dinheiro(p.valor), extra: s.semQuantidade ? 'Pela data da venda' : `${numero(p.quantidade)} registros` },
+      ...(!s.semQuantidade && p.quantidade ? [{ nome: 'Média por registro', valor: dinheiro(p.valor / p.quantidade) }] : []),
+      ...(p.fonada || p.aoVivo ? [{ nome: 'Fonada', valor: dinheiro(p.fonada), extra: `${numero(p.quantidadeFonada)} registros · ${pct(p.fonada,p.valor)}` }, { nome: 'Ao Vivo', valor: dinheiro(p.aoVivo), extra: `${numero(p.quantidadeAoVivo)} registros · ${pct(p.aoVivo,p.valor)}` }] : []),
+    ] };
   }) });
   return <Painel titulo={titulo} descricao={descricao} amplo exploracao={exploracao} legenda={<Legenda itens={series.map((s,i) => ({...s, oculto: ocultas.includes(i)}))} toggle={toggle}>
   </Legenda>}>
@@ -86,7 +97,11 @@ export function GraficoCategorias({ titulo, descricao, dados = [], referencia = 
   return <Painel titulo={titulo} descricao={descricao} exploracao={exploracao} legenda={<Legenda itens={legendas} />}>
     {!lista.length ? <div className="rel-chart-empty">Nenhum registro neste período.</div> : <div className="rel-bars">{lista.map((item,i) => {
       const linhas = [[item.a,nomes.principal,referencia ? CORES.principal : PALETA[i % PALETA.length],total], ...(referencia ? [[item.b,nomes.comparado,CORES.comparado,totalB]] : [])];
-      const info = {titulo:item.categoria,linhas:linhas.flatMap(([d,nome,cor,t]) => [{nome,valor:formatar(valor(d)),extra:`${numero(d?.quantidade)} registro(s) · ${metrica === 'ticket' ? `${pct(Number(d?.valor||0), (nome === nomes.principal ? dados : (referencia || [])).reduce((s,item) => s+Number(item.valor||0),0))} do valor vendido` : `${pct(valor(d),t)} do total`}${!quantidade && d?.quantidade ? ` · ticket ${dinheiro(Number(d.valor||0)/d.quantidade)}` : ''}`,cor}, ...(equipe && d ? [{nome:`Fonada · ${nome}`,valor:dinheiro(d.fonada),extra:`${numero(d.quantidadeFonada)} vendas`,cor:CORES.fonada},{nome:`Ao Vivo · ${nome}`,valor:dinheiro(d.aoVivo),extra:`${numero(d.quantidadeAoVivo)} vendas`,cor:CORES.aoVivo}] : [])])};
+      const info = {titulo:item.categoria,grupos:linhas.map(([d,nome,cor,t]) => ({ nome, cor: referencia ? cor : CORES.principal, linhas: [
+        {nome:quantidade ? 'Quantidade' : metrica === 'ticket' ? 'Ticket médio' : 'Valor',valor:formatar(valor(d)),extra:metrica === 'ticket' ? `${numero(d?.quantidade)} vendas` : `${quantidade ? '' : `${numero(d?.quantidade)} registros · `}${pct(valor(d),t)} do total`},
+        ...(!quantidade && metrica !== 'ticket' && d?.quantidade ? [{nome:'Ticket médio',valor:dinheiro(Number(d.valor||0)/d.quantidade)}] : []),
+        ...(equipe && d ? [{nome:'Fonada',valor:dinheiro(d.fonada),extra:`${numero(d.quantidadeFonada)} vendas`},{nome:'Ao Vivo',valor:dinheiro(d.aoVivo),extra:`${numero(d.quantidadeAoVivo)} vendas`}] : []),
+      ] }))};
       return <button className="rel-bar-row" type="button" key={item.categoria} aria-label={`Detalhar ${item.categoria}`} {...exploracao.eventos(info)}><div className="rel-bar-label"><strong>{item.categoria}</strong>{!referencia && <span>{formatar(valor(item.a))}</span>}</div>{linhas.map(([d,nome,cor],j) => <div className="rel-bar-series" key={j}>{referencia && <small title={nome}>{nome}</small>}<div className="rel-bar-track"><i style={{width:`${valor(d)/maximo*100}%`,background:cor}} /></div>{referencia && <b>{formatar(valor(d))}</b>}</div>)}</button>;
     })}</div>}
   </Painel>;
@@ -98,7 +113,7 @@ export function GraficoComposicao({ titulo, principal, comparado, nomes }) {
   return <Painel titulo={titulo} descricao="Participação no valor total. Selecione uma modalidade para ver volume e ticket." exploracao={exploracao} legenda={<Legenda itens={[{nome:'Fonada',cor:CORES.fonada},{nome:'Ao Vivo',cor:CORES.aoVivo}]} />}>
     <div className={`rel-donuts ${comparado ? 'comparando' : ''}`}>{series.map(([dados,nome],j) => {
       const total = (dados || []).reduce((s,d) => s+Number(d.valor||0),0); let acumulado=0;
-      return <div className="rel-donut-period" key={j}><strong>{nome}</strong><div className="rel-donut-wrap"><svg viewBox="0 0 200 200" role="group" aria-label={`Composição de ${nome}`}><circle cx="100" cy="100" r="76" fill="none" stroke="#edf0f7" strokeWidth="24" />{(dados || []).map(d => {const proporcao=total ? Number(d.valor||0)/total*100 : 0, offset=acumulado;acumulado+=proporcao;const cor=d.categoria==='Fonada' ? CORES.fonada : CORES.aoVivo;const info={titulo:`${d.categoria} · ${nome}`,linhas:[{nome:'Valor',valor:dinheiro(d.valor),cor},{nome:'Participação',valor:pct(d.valor,total)},{nome:'Quantidade',valor:`${numero(d.quantidade)} registros`},{nome:'Ticket médio',valor:dinheiro(d.quantidade ? d.valor/d.quantidade : 0)}]};return proporcao>0 && <circle className="rel-donut-hit" key={d.categoria} cx="100" cy="100" r="76" fill="none" stroke={cor} strokeWidth="24" pathLength="100" strokeDasharray={`${proporcao} ${100-proporcao}`} strokeDashoffset={-offset} transform="rotate(-90 100 100)" tabIndex="0" role="button" aria-label={`Detalhar ${d.categoria} em ${nome}`} {...exploracao.eventos(info)} />; })}</svg><div className="rel-donut-center"><small>{total ? 'Total do período' : 'Sem movimento'}</small><b>{dinheiro(total)}</b></div></div><div className="rel-donut-totals">{(dados || []).map(d=><span key={d.categoria}><i style={{background:d.categoria==='Fonada' ? CORES.fonada : CORES.aoVivo}} />{d.categoria}<b>{pct(d.valor,total)}</b></span>)}</div></div>;
+      return <div className="rel-donut-period" key={j}><strong><i style={{background:j ? CORES.comparado : CORES.principal}} />{nome}</strong><div className="rel-donut-wrap"><svg viewBox="0 0 200 200" role="group" aria-label={`Composição de ${nome}`}><circle cx="100" cy="100" r="76" fill="none" stroke="#edf0f7" strokeWidth="24" />{(dados || []).map(d => {const proporcao=total ? Number(d.valor||0)/total*100 : 0, offset=acumulado;acumulado+=proporcao;const cor=d.categoria==='Fonada' ? CORES.fonada : CORES.aoVivo;const info={titulo:d.categoria,grupos:[{nome,cor:j ? CORES.comparado : CORES.principal,linhas:[{nome:'Valor',valor:dinheiro(d.valor),extra:`${numero(d.quantidade)} registros · ${pct(d.valor,total)} do total`},{nome:'Participação',valor:pct(d.valor,total)},{nome:'Quantidade',valor:`${numero(d.quantidade)} registros`},{nome:'Ticket médio',valor:dinheiro(d.quantidade ? d.valor/d.quantidade : 0)}]}]};return proporcao>0 && <circle className="rel-donut-hit" key={d.categoria} cx="100" cy="100" r="76" fill="none" stroke={cor} strokeWidth="24" pathLength="100" strokeDasharray={`${proporcao} ${100-proporcao}`} strokeDashoffset={-offset} transform="rotate(-90 100 100)" tabIndex="0" role="button" aria-label={`Detalhar ${d.categoria} em ${nome}`} {...exploracao.eventos(info)} />; })}</svg><div className="rel-donut-center"><small>{total ? 'Total do período' : 'Sem movimento'}</small><b>{dinheiro(total)}</b></div></div><div className="rel-donut-totals">{(dados || []).map(d=><span key={d.categoria}><i style={{background:d.categoria==='Fonada' ? CORES.fonada : CORES.aoVivo}} />{d.categoria}<b>{pct(d.valor,total)}</b></span>)}</div></div>;
     })}</div>
   </Painel>;
 }

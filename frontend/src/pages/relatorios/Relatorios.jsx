@@ -28,7 +28,7 @@ export default function Relatorios() {
   }
   return <div className="relatorios-modernos">
     <CabecalhoPagina contexto="Visão do negócio" titulo="Relatórios" descricao="Explore os resultados, descubra o que mudou e compare os períodos que importam." />
-    <div className="rel-navigation"><div className="rel-tabs" aria-label="Tipo de relatório">{ABAS.map(aba=><button type="button" key={aba.id} className={tipo===aba.id?'ativo':''} aria-pressed={tipo===aba.id} onClick={()=>mudar({aba:aba.id})}><span aria-hidden="true">{aba.icone}</span>{aba.nome}</button>)}</div><label className="rel-system"><span>Modalidade</span><select value={sistema} aria-label="Modalidade do relatório" onChange={e=>mudar({sistema:e.target.value})}><option value="TODOS">Todas as modalidades</option><option value="FONADA">Fonada</option><option value="AOVIVO">Ao Vivo</option></select></label></div>
+    <div className="rel-navigation"><div className="rel-tabs" aria-label="Tipo de relatório">{ABAS.map(aba=><button type="button" key={aba.id} className={tipo===aba.id?'ativo':''} aria-pressed={tipo===aba.id} onClick={()=>mudar({aba:aba.id})}><span aria-hidden="true">{aba.icone}</span>{aba.nome}</button>)}</div><div className="rel-system"><span>Modalidade</span><div className="rel-system-options" role="group" aria-label="Modalidade do relatório">{[['TODOS','Todas'],['FONADA','Fonada'],['AOVIVO','Ao Vivo']].map(([valor,nome])=><button type="button" key={valor} aria-pressed={sistema===valor} onClick={()=>mudar({sistema:valor})}>{nome}</button>)}</div></div></div>
     <section className="rel-period-picker" aria-label="Escolher períodos">
       <div className="rel-presets">{[['hoje','Hoje'],['ontem','Ontem'],['semana','Esta semana'],['mes','Este mês'],['mes-anterior','Mês anterior']].map(([valor,nome])=><button type="button" key={valor} onClick={()=>mudar(periodoRapido(valor))}>{nome}</button>)}<button type="button" className={`rel-compare-toggle ${comparando?'ativo':''}`} aria-pressed={comparando} onClick={comparar}>{comparando?'× Remover comparação':'＋ Comparar períodos'}</button></div>
       <div className={`rel-period-grid ${comparando?'comparando':''}`}>
@@ -36,7 +36,7 @@ export default function Relatorios() {
         {comparando && <><button type="button" className="rel-swap" aria-label="Inverter os períodos da comparação" disabled={!diasPeriodo(inicio,fim)||!diasPeriodo(inicioB,fimB)} onClick={()=>mudar({inicio:inicioB,fim:fimB||inicioB,inicioB:inicio,fimB:fim||inicio})}>⇄<span>Inverter períodos</span></button><div className="rel-period-block referencia"><div className="rel-period-name"><i style={{background:CORES.comparado}}/><div><small>Comparar com</small><strong>{nomePeriodo(inicioB,fimB)}</strong></div></div><div className="rel-date-inputs"><div><label htmlFor="rel-inicio-ref">De</label><CampoData id="rel-inicio-ref" value={inicioB} placeholder="dd/mm/aa" onChange={v=>mudar({inicioB:formatarData(v)})}/></div><div><label htmlFor="rel-fim-ref">Até</label><CampoData id="rel-fim-ref" value={fimB} placeholder="dd/mm/aa" onChange={v=>mudar({fimB:formatarData(v)})}/></div></div><div className="rel-reference-presets"><button type="button" onClick={()=>referencia('anterior')}>Intervalo anterior</button><button type="button" onClick={()=>referencia('mes')}>Mês anterior</button><button type="button" onClick={()=>referencia('ano')}>Ano anterior</button></div></div></>}
       </div>
     </section>
-    <ConteudoRelatorio key={tipo} tipo={tipo} sistema={sistema} inicio={inicio} fim={fim} inicioB={inicioB} fimB={fimB} comparando={comparando}/>
+    <ConteudoRelatorio key={`${tipo}|${sistema}`} tipo={tipo} sistema={sistema} inicio={inicio} fim={fim} inicioB={inicioB} fimB={fimB} comparando={comparando}/>
   </div>;
 }
 
@@ -60,7 +60,7 @@ function ConteudoRelatorio({tipo,sistema,inicio,fim,inicioB,fimB,comparando}) {
   },[tipo,sistema,inicio,fim,inicioB,fimB,comparando,erroDatas,tentativa]);
   if(erroDatas)return <AvisoInline tom="aviso" titulo="Revise os períodos">{erroDatas}</AvisoInline>;
   if(erro)return <AvisoInline tom="erro" titulo="Não foi possível atualizar o relatório" acao={<button type="button" className="btn secundario" onClick={()=>setTentativa(v=>v+1)}>Tentar novamente</button>}>{erro}</AvisoInline>;
-  if(!snapshot)return <div className="rel-loading" role="status"><span/><strong>Preparando seus resultados…</strong><p>Organizando os gráficos e a comparação.</p></div>;
+  if(!snapshot)return <div className="rel-loading" role="status"><span/><strong>Carregando {sistema==='TODOS'?'todas as modalidades':sistema==='FONADA'?'Fonada':'Ao Vivo'}…</strong><p>Organizando os gráficos e a comparação.</p></div>;
   const {principal,comparado}=snapshot;
   const nomes={principal:nomePeriodo(principal.inicio,principal.fim),comparado:comparado ? nomePeriodo(comparado.inicio,comparado.fim) : ''};
   const a=resumoRelatorio(principal,tipo),b=comparado ? resumoRelatorio(comparado,tipo) : null;
