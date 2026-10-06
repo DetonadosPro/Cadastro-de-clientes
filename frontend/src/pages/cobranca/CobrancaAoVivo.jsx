@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarData } from '../../mascaras.js';
@@ -8,6 +8,7 @@ import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaInc
 import { AvisoInline, Dialogo, EstadoCarregando, EstadoVazio } from '../../components/Interface.jsx';
 import { linkWhatsAppCobranca } from '../../utils/mensagemCobranca.js';
 import { ResumoCobranca, CabecalhoPesquisa, CabecalhoResultados } from './InterfaceCobranca.jsx';
+import { useRetornoCobranca } from './useRetornoCobranca.js';
 
 function hojeBr() {
   const data = new Date();
@@ -123,6 +124,7 @@ export default function CobrancaAoVivo({ mostrarCabecalho = true }) {
   const [novaData, setNovaData] = useState('');
   const [salvando, setSalvando] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { mostrarToast } = useToast();
 
   async function carregar() {
@@ -165,6 +167,19 @@ export default function CobrancaAoVivo({ mostrarCabecalho = true }) {
     return pendentes;
   }, [filtro, pendentes, recebidasNoMes]);
   const lista = useListaIncremental(visiveis, `${filtro}:${nome}:${os}`);
+  const retornoLista = useRetornoCobranca({ consulta: JSON.stringify(['AOVIVO', filtro, nome, os]), pronto: !carregando, lista });
+
+  function navegarComPesquisa(destino, item) {
+    retornoLista.guardar(String(item));
+    const novos = new URLSearchParams(parametrosUrl);
+    if (filtro !== 'pendentes') novos.set('avFiltro', filtro); else novos.delete('avFiltro');
+    if (nome) novos.set('avNome', nome); else novos.delete('avNome');
+    if (os) novos.set('avOs', os); else novos.delete('avOs');
+    const pesquisa = novos.toString();
+    const retorno = `${location.pathname}${pesquisa ? `?${pesquisa}` : ''}`;
+    navigate(retorno, { replace: true });
+    navigate(destino, { state: { returnTo: retorno } });
+  }
 
   function abrirBaixa(pedido) {
     setBaixa(pedido);
@@ -256,10 +271,10 @@ export default function CobrancaAoVivo({ mostrarCabecalho = true }) {
           {lista.itensVisiveis.map((pedido) => {
             const valorMensagem = pedido.pagou === 'SIM' ? (pedido.valorRecebido ?? pedido.valor) : pedido.valor;
             const whatsapp = linkWhatsAppCobranca(pedido.whatsapp || pedido.celular, pedido.nome, valorMensagem);
-            return <div className={`cobranca-aovivo-card ${pedido.pagou === 'SIM' ? 'recebida' : (diasAte(pedido.dataCobranca) ?? 0) < 0 ? 'atrasada' : ''}`} key={pedido.id}>
+            return <div className={`cobranca-aovivo-card ${pedido.pagou === 'SIM' ? 'recebida' : (diasAte(pedido.dataCobranca) ?? 0) < 0 ? 'atrasada' : ''}${retornoLista.itemMarcado === String(pedido.id) ? ' cb-retorno-marcado' : ''}`} key={pedido.id}>
               <div className="cobranca-aovivo-os"><span className="carimbo-os carimbo-os-lista">{pedido.numero_os || pedido.id}</span><small>{pedido.dataPedido || '—'}</small></div>
               <div className="cobranca-aovivo-cliente">
-                <button type="button" onClick={() => pedido.cliente_id && navigate(`/clientes/${pedido.cliente_id}`)}>{pedido.nome || 'Cliente não informado'}</button>
+                <button type="button" onClick={() => pedido.cliente_id && navegarComPesquisa(`/clientes/${pedido.cliente_id}`, pedido.id)}>{pedido.nome || 'Cliente não informado'}</button>
                 <span className="cb-aovivo-destinatario">Para: {pedido.destinatario || '—'}</span>
                 <span>Evento: {pedido.dataEvento || '—'} {pedido.horarioEvento || ''}</span>
               </div>
@@ -267,7 +282,7 @@ export default function CobrancaAoVivo({ mostrarCabecalho = true }) {
               <div className="cobranca-aovivo-valor"><strong>{reais(pedido.pagou === 'SIM' ? (pedido.valorRecebido ?? pedido.valor) : pedido.valor)}</strong><span>{pedido.pagou === 'SIM' ? (pedido.formaRecebimento || 'Recebido') : (pedido.pagamentoPrevisto || 'Forma não informada')}</span></div>
               <div className="cobranca-aovivo-acoes">
                 {whatsapp && <a className="btn-small cobranca-whatsapp" href={whatsapp} target="_blank" rel="noreferrer" aria-label="Abrir WhatsApp" title="Abrir WhatsApp"><IconeWhatsAppReferencia /></a>}
-                <button type="button" className="btn-small" onClick={() => navigate(`/ao-vivo/${pedido.id}`)}>Abrir pedido</button>
+                <button type="button" className="btn-small" onClick={() => navegarComPesquisa(`/ao-vivo/${pedido.id}`, pedido.id)}>Abrir pedido</button>
                 {pedido.pagou === 'SIM' ? <button type="button" className="btn-small" onClick={() => desfazer(pedido)}>Desfazer baixa</button> : <><button type="button" className="btn-small" onClick={() => { setReagendar(pedido); setNovaData((diasAte(pedido.dataCobranca) ?? -1) >= 0 ? pedido.dataCobranca : hojeBr()); }}>Reagendar</button><button type="button" className="btn-small primario" onClick={() => abrirBaixa(pedido)}>Dar baixa</button></>}
               </div>
             </div>;

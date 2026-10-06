@@ -180,3 +180,4 @@
   .cb-dialogo .grade { grid-template-columns:1fr; }
 }
 @media(prefers-reduced-motion:reduce) { .cobranca-moderna * { transition:none; } }
+.cobranca-moderna .cb-retorno-marcado { background:#f1f5ff; border-color:#afc4f7; box-shadow:0 0 0 2px #3861ed14; }

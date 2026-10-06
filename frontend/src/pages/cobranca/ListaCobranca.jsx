@@ -9,6 +9,7 @@ import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaInc
 import { AvisoInline, Dialogo, EstadoCarregando, EstadoVazio } from '../../components/Interface.jsx';
 import { linkWhatsAppCobranca } from '../../utils/mensagemCobranca.js';
 import { ResumoCobranca, CabecalhoPesquisa, CabecalhoResultados } from './InterfaceCobranca.jsx';
+import { useRetornoCobranca } from './useRetornoCobranca.js';
 
 function dataLocalFormatada(deslocamento = 0) {
   const data = new Date();
@@ -213,7 +214,8 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
   const ultimaBusca = useRef(0);
   const navigate = useNavigate();
   const location = useLocation();
-  function navegarComPesquisa(destino) {
+  function navegarComPesquisa(destino, item) {
+    retornoLista.guardar(item);
     const pesquisa = parametrosDaPesquisa(parametrosUrl).toString();
     const retorno = `${location.pathname}${pesquisa ? `?${pesquisa}` : ''}`;
     // Salva inclusive alterações feitas antes do temporizador da URL.
@@ -240,6 +242,7 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
   }, [filtroRapido, formaFiltro, pendentes, pagasOrdenadas, recebidasNoMes]);
   const lista = useListaIncremental(pedidosFiltrados, `${filtroRapido}:${formaFiltro}:${cobrarDia}:${nome}:${os}`);
   const pedidosVisiveis = lista.itensVisiveis;
+  const retornoLista = useRetornoCobranca({ consulta: JSON.stringify(['FONADA', filtroRapido, formaFiltro, cobrarDia, nome, os]), pronto: jaBuscou && !carregando, lista, expandidos, setExpandidos });
   const grupos = useMemo(() => agruparPedidos(pedidosVisiveis), [pedidosVisiveis]);
   // A lista exibida é ordenada por grupos (data/urgência e cliente). A impressão
   // precisa percorrer essa mesma sequência, não a ordem original da API nem a
@@ -461,7 +464,7 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
         : carregando ? <EstadoCarregando className="nao-imprimir" rotulo="Atualizando cobranças…" linhas={4} />
           : grupos.length === 0 ? <EstadoVazio className="nao-imprimir cobranca-estado-vazio" icone="R$" titulo="Nenhuma cobrança neste grupo" descricao="Altere o período, a situação ou os dados de busca para consultar outros recebimentos." />
             : <>
-              <ListaGrupos grupos={grupos} pedidosVisiveis={pedidosVisiveis} expandidos={expandidos} selecionados={selecionados} alternarGrupo={alternarGrupo} alternarSelecao={alternarSelecao} imprimir={imprimir} abrirBaixa={abrirBaixa} abrirReagendamento={abrirReagendamento} abrirDesfazer={setPedidoDesfazer} navigate={navegarComPesquisa} />
+              <ListaGrupos grupos={grupos} pedidosVisiveis={pedidosVisiveis} expandidos={expandidos} selecionados={selecionados} alternarGrupo={alternarGrupo} alternarSelecao={alternarSelecao} imprimir={imprimir} abrirBaixa={abrirBaixa} abrirReagendamento={abrirReagendamento} abrirDesfazer={setPedidoDesfazer} navigate={navegarComPesquisa} itemMarcado={retornoLista.itemMarcado} />
               <BotaoMostrarMais temMais={lista.temMais} restantes={lista.restantes} onClick={lista.mostrarMais} />
             </>}
 
@@ -502,7 +505,7 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
   );
 }
 
-function ListaGrupos({ grupos, pedidosVisiveis, expandidos, selecionados, alternarGrupo, alternarSelecao, imprimir, abrirBaixa, abrirReagendamento, abrirDesfazer, navigate }) {
+function ListaGrupos({ grupos, pedidosVisiveis, expandidos, selecionados, alternarGrupo, alternarSelecao, imprimir, abrirBaixa, abrirReagendamento, abrirDesfazer, navigate, itemMarcado }) {
   return (
     <div className="lista-grupos-cobranca nao-imprimir">
       <div className="lista-grupos-meta"><strong>{grupos.length} cliente{grupos.length !== 1 ? 's' : ''} nesta lista</strong><span>Selecione para imprimir ou expanda os pedidos</span></div>
@@ -511,7 +514,7 @@ function ListaGrupos({ grupos, pedidosVisiveis, expandidos, selecionados, altern
         const whatsapp = linkWhatsAppCobranca(grupo.whatsapp, grupo.nome, grupo.valorTotal);
         const quantidadeImpressos = grupo.pedidos.filter(reciboJaImpresso).length;
         return (
-          <div className={`grupo-cobranca ${classeUrgencia(primeiro)}`} key={grupo.chave}>
+          <div className={`grupo-cobranca ${classeUrgencia(primeiro)}${itemMarcado === grupo.chave ? ' cb-retorno-marcado' : ''}`} key={grupo.chave}>
             <div className="grupo-cobranca-principal">
               <div className="grupo-cobranca-controles">
                 <CaixaSelecaoGrupo pedidos={grupo.pedidos} selecionados={selecionados} onChange={() => alternarSelecao(grupo.pedidos)} />
@@ -523,7 +526,7 @@ function ListaGrupos({ grupos, pedidosVisiveis, expandidos, selecionados, altern
               </div>
               <div className="grupo-cobranca-cliente">
                 {grupo.cliente_id ? (
-                  <button type="button" className="cobranca-link-cliente" onClick={() => navigate(`/clientes/${grupo.cliente_id}`)} title="Abrir cadastro do cliente">
+                  <button type="button" className="cobranca-link-cliente" onClick={() => navigate(`/clientes/${grupo.cliente_id}`, grupo.chave)} title="Abrir cadastro do cliente">
                     <strong>{grupo.nome}</strong><IconeAbrir />
                   </button>
                 ) : <strong>{grupo.nome}</strong>}
@@ -542,7 +545,7 @@ function ListaGrupos({ grupos, pedidosVisiveis, expandidos, selecionados, altern
                 {primeiro.pagou === 'SIM' && grupo.pedidos.length === 1 && <button type="button" className="btn-small" onClick={() => abrirDesfazer(primeiro)}>Desfazer baixa</button>}
               </div>
             </div>
-            {aberto && <DetalhesGrupo grupo={grupo} selecionados={selecionados} alternarSelecao={alternarSelecao} imprimir={imprimir} abrirBaixa={abrirBaixa} abrirDesfazer={abrirDesfazer} navigate={navigate} />}
+            {aberto && <DetalhesGrupo grupo={grupo} selecionados={selecionados} alternarSelecao={alternarSelecao} imprimir={imprimir} abrirBaixa={abrirBaixa} abrirDesfazer={abrirDesfazer} navigate={(destino) => navigate(destino, grupo.chave)} />}
           </div>
         );
       })}

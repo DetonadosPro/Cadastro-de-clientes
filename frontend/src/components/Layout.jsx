@@ -241,6 +241,16 @@ export default function Layout() {
   useLayoutEffect(() => {
     const elemento = conteudoRef.current;
     if (!elemento) return undefined;
+    // Cobrança restaura após carregar seus dados e usa apenas um retorno em memória.
+    if (location.pathname === '/cobranca') {
+      const mesmaTela = rotaRolagemRef.current === location.pathname;
+      rotaRolagemRef.current = location.pathname;
+      if (!mesmaTela || tipoNavegacao !== 'REPLACE') {
+        elemento.scrollTop = 0;
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      }
+      return undefined;
+    }
     const chave = `pombo-scroll:${location.key}`;
     // Seleção, busca e filtros da agenda substituem a mesma entrada da URL.
     // Preserve a posição nessas mudanças; voltar pelo histórico ainda restaura.
