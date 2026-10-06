@@ -1,0 +1,168 @@
+/* Mesma paleta e hierarquia da Agenda e dos Relatórios, restritas à cobrança. */
+.cobranca-moderna { --cb-blue:#3861ed; --cb-text:#253550; --cb-muted:#5f6e83; --cb-border:#e2e8f2; --carimbo:#3861ed; --carimbo-suave:#eef3ff; color:var(--cb-text); text-transform:none; }
+.cobranca-moderna button,.cobranca-moderna input,.cobranca-moderna select { font-family:inherit; text-transform:none; }
+.cobranca-moderna button { cursor:pointer; }
+.cobranca-moderna button:focus-visible,.cobranca-moderna a:focus-visible,.cb-dialogo button:focus-visible { outline:3px solid #99b2ff; outline-offset:3px; }
+.cobranca-moderna .cabecalho-pagina { padding-bottom:14px; margin-bottom:17px; border:0; }
+.cobranca-moderna .cabecalho-pagina h1 { font-size:25px; letter-spacing:-.035em; }
+.cobranca-moderna .cabecalho-pagina-contexto { display:none; }
+.cobranca-moderna .cabecalho-pagina p { font-size:12px; color:var(--cb-muted); }
+.cobranca-moderna .central-cobranca-navegacao { display:flex; justify-content:space-between; align-items:center; gap:15px; margin-bottom:21px; }
+.cobranca-moderna .central-cobranca-navegacao > span { color:var(--cb-muted); font-size:11px; }
+.cobranca-moderna .cobranca-abas-sistema { display:flex; width:fit-content; padding:5px; gap:4px; margin:0; border:1px solid var(--cb-border); border-radius:12px; background:#eef2f8; }
+.cobranca-moderna .aba-cliente-botao { min-width:130px; min-height:40px; padding:9px 18px; border:0; border-radius:8px; background:transparent; font-size:13px; font-weight:650; color:#617087; }
+.cobranca-moderna .aba-cliente-botao svg { width:17px; height:17px; }
+.cobranca-moderna .aba-cliente-botao.ativa { background:white; color:#2c51ce; box-shadow:0 2px 6px #23365712; }
+.cobranca-moderna .grade-resumo-cobranca-operacional { grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; margin:0 0 20px; }
+.cobranca-moderna .resumo-cobranca-operacional { --cb-accent:#4664bd; --cb-tint:#eef3ff; min-width:0; padding:16px; border:1px solid var(--cb-border); border-radius:13px; background:white; box-shadow:0 3px 14px #21355004; transition:border-color .15s,background .15s; }
+.cobranca-moderna .resumo-cobranca-operacional.atrasada { --cb-accent:#b64f58; --cb-tint:#fceff0; }
+.cobranca-moderna .resumo-cobranca-operacional.hoje { --cb-accent:#9a6819; --cb-tint:#fdf5e8; }
+.cobranca-moderna .resumo-cobranca-operacional.recebida { --cb-accent:#127663; --cb-tint:#e6f5f0; }
+.cobranca-moderna .resumo-cobranca-operacional:hover { transform:none; border-color:#bbcdf6; box-shadow:0 3px 14px #21355004; }
+.cobranca-moderna .resumo-cobranca-operacional.ativo { background:linear-gradient(120deg,#f3f6ff,#fff); border-color:#b8c9f3; }
+.cobranca-moderna .resumo-cobranca-operacional span { margin:0; font-size:11px; font-weight:600; letter-spacing:0; text-transform:none; }
+.cobranca-moderna .resumo-cobranca-operacional .cb-resumo-topo { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:11px; }
+.cb-resumo-topo i { display:grid; place-items:center; flex:0 0 27px; width:27px; height:27px; border-radius:8px; color:var(--cb-accent); background:var(--cb-tint); }
+.cb-resumo-topo svg { width:16px; height:16px; }
+.cobranca-moderna .resumo-cobranca-operacional strong { color:var(--cb-text); font-family:inherit; font-size:clamp(18px,1.6vw,25px); font-weight:730; line-height:1.3; letter-spacing:-.035em; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; margin:0 0 5px; }
+.cobranca-moderna .resumo-cobranca-operacional.total strong { color:#3159d5; }
+.cobranca-moderna .resumo-cobranca-operacional small { color:var(--cb-muted); font-size:10px; }
+.cobranca-moderna .cobranca-filtros,.cobranca-moderna .cobranca-aovivo-filtros { padding:19px 21px; border:1px solid var(--cb-border); border-radius:15px; background:white; box-shadow:0 3px 15px #22345103; margin-bottom:24px; }
+.cb-pesquisa-cabecalho { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
+.cb-pesquisa-cabecalho > div { display:flex; align-items:center; gap:9px; min-width:0; }
+.cb-icone-pesquisa { display:grid; place-items:center; color:#6580b1; }
+.cb-icone-pesquisa svg { width:18px; height:18px; }
+.cb-pesquisa-cabecalho h2 { margin:0; font-size:13px; font-weight:650; letter-spacing:-.01em; color:#344663; }
+.cb-limpar { flex:0 0 auto; padding:4px 0; background:transparent; border:0; color:#3a60c9; font-size:11px; text-decoration:underline; text-underline-offset:3px; }
+.cobranca-moderna .cobranca-atalhos { flex-wrap:wrap; overflow:visible; gap:7px; margin-bottom:18px; padding:0; border:0; background:transparent; }
+.cobranca-moderna .cobranca-atalhos button { min-height:32px; padding:6px 11px; border:1px solid #e6ebf3 !important; border-radius:7px !important; background:#f7f9fc !important; color:#53627a !important; font-size:11px; font-weight:600; }
+.cobranca-moderna .cobranca-atalhos button:hover { color:#2e55cc !important; background:#edf2ff !important; border-color:#ccd8fa !important; }
+.cobranca-moderna .cobranca-atalhos button.ativo { color:#fff !important; background:#3861ed !important; border-color:#3861ed !important; }
+.cobranca-moderna .cobranca-campos-filtro { grid-template-columns:150px 120px minmax(150px,1fr) 185px; gap:14px; width:100%; }
+.cobranca-moderna .cobranca-aovivo-filtros .cobranca-campos-filtro { grid-template-columns:150px minmax(0,1fr); }
+.cobranca-moderna .cobranca-campos-filtro .campo { min-width:0; }
+.cobranca-moderna .cobranca-campos-filtro label { color:var(--cb-muted); font-size:10px; font-weight:600; margin-bottom:5px; }
+.cobranca-moderna .cobranca-campos-filtro input,.cobranca-moderna .cobranca-campos-filtro select { width:100%; min-width:0; min-height:39px; height:39px; border:1px solid #dce4ef; border-radius:8px; background:#fbfcfe; font-size:12px; box-shadow:none; }
+.cobranca-moderna input:focus,.cobranca-moderna select:focus { border-color:#8da9f6; outline:2px solid #3861ed14; }
+.cobranca-moderna .campo-data-raiz { width:100%; min-width:0; height:39px; border:1px solid #dce4ef; background:#fbfcfe; box-shadow:none; }
+.cobranca-moderna .campo-data-raiz input { min-height:0; height:100%; padding:0; border:0; border-radius:0; background:transparent; outline:0; }
+.cobranca-moderna .campo-data-botao-icone { color:#6982b0; }
+.cb-resultados-cabecalho { display:flex; justify-content:space-between; align-items:center; gap:15px; margin-bottom:17px; }
+.cb-sobretitulo { display:block; margin-bottom:5px; color:var(--cb-muted); font-size:9px; font-weight:650; letter-spacing:.08em; text-transform:uppercase; }
+.cb-resultados-cabecalho h2 { margin:0 0 5px; color:#253550; font-size:21px; font-weight:720; letter-spacing:-.03em; line-height:1.4; }
+.cb-resultados-cabecalho p { margin:0; color:var(--cb-muted); font-size:11px; font-variant-numeric:tabular-nums; }
+.cb-resultados-acoes { flex:0 0 auto; }
+.cobranca-moderna .btn,.cobranca-moderna .btn-small { border-radius:8px; box-shadow:none; font-size:11px; font-weight:600; }
+.cobranca-moderna .btn { min-height:38px; }
+.cobranca-moderna .btn-small { min-height:33px; padding:7px 9px; background:#f9fbfd; border:1px solid #dfe6f1; color:#526b90; }
+.cobranca-moderna .btn-small.primario { color:white; background:#3861ed; border-color:#3861ed; }
+.cobranca-moderna .btn-small:hover { filter:brightness(.97); }
+.cobranca-moderna .cobranca-barra-selecao { border:1px solid #cbd9fa; border-radius:12px; background:#f2f6ff; box-shadow:none; padding:14px 17px; gap:14px; }
+.cobranca-moderna .lista-grupos-cobranca { gap:8px; }
+.cobranca-moderna .lista-grupos-meta { font-size:10px; color:var(--cb-muted); padding:0 2px 5px; }
+.cobranca-moderna .lista-grupos-meta strong { font-weight:600; }
+.cobranca-moderna .grupo-cobranca,.cobranca-moderna .cobranca-aovivo-card { border:1px solid var(--cb-border); border-left:3px solid #b8c8ee; border-radius:12px; box-shadow:0 2px 9px #24374b03; }
+.cobranca-moderna .grupo-cobranca.atrasada,.cobranca-moderna .cobranca-aovivo-card.atrasada { border-left-color:#d89298; }
+.cobranca-moderna .grupo-cobranca.hoje { border-left-color:#d8b16e; }
+.cobranca-moderna .grupo-cobranca.recebida,.cobranca-moderna .cobranca-aovivo-card.recebida { border-left-color:#70b9a5; }
+.cobranca-moderna .grupo-cobranca-principal { grid-template-columns:52px 110px minmax(140px,1fr) 62px 105px 225px; gap:12px; padding:16px; }
+.cobranca-moderna .grupo-cobranca-principal > * { min-width:0; grid-column:auto; }
+.cobranca-moderna .grupo-cobranca-expandir { width:27px; height:29px; border:0; border-radius:7px; background:#f0f4fb; color:#6b83af; }
+.cobranca-moderna input[type=checkbox] { accent-color:#3861ed; }
+.cobranca-moderna .grupo-cobranca-urgencia span { display:inline-block; padding:4px 6px; border-radius:5px; background:#eef3ff; color:#4a68a2; font-size:10px; font-weight:600; }
+.cobranca-moderna .atrasada .grupo-cobranca-urgencia span { color:#a4515b; background:#fceff0; }
+.cobranca-moderna .hoje .grupo-cobranca-urgencia span { color:#906620; background:#fcf5e8; }
+.cobranca-moderna .recebida .grupo-cobranca-urgencia span { color:#287e6c; background:#edf7f2; }
+.cobranca-moderna .grupo-cobranca-cliente strong,.cobranca-moderna .cobranca-aovivo-cliente button { font-size:13px; font-weight:650; color:#304762; text-transform:uppercase; }
+.cobranca-moderna .grupo-cobranca-cliente span,.cobranca-moderna .grupo-cobranca-urgencia small,.cobranca-moderna .grupo-cobranca-valor span,.cobranca-moderna .cobranca-aovivo-card small,.cobranca-moderna .cobranca-aovivo-card span:not(.carimbo-os) { font-size:10px; color:#677991; }
+.cobranca-moderna .grupo-cobranca-valor strong,.cobranca-moderna .cobranca-aovivo-valor strong { color:#31435f; font-family:inherit; font-size:15px; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+.cobranca-moderna .grupo-cobranca-status-impressao { font-size:9px; font-weight:600; letter-spacing:0; text-transform:none; }
+.cobranca-moderna .grupo-cobranca-acoes,.cobranca-moderna .cobranca-aovivo-acoes { display:flex; flex-wrap:wrap; grid-column:auto; gap:6px; justify-content:flex-end; }
+.cobranca-moderna .grupo-cobranca-acoes .btn-small,.cobranca-moderna .cobranca-aovivo-acoes .btn-small { width:auto; justify-content:center; }
+.cobranca-moderna .cobranca-whatsapp,.cobranca-moderna .cobranca-recibo-icone { width:32px; height:33px; min-height:33px; border-radius:8px; }
+.cobranca-moderna .cobranca-whatsapp { color:#287e6c; border-color:#cde8de; background:#f1f9f5; }
+.cobranca-moderna .grupo-cobranca-detalhes { padding:16px 18px; border-top:1px solid #e8edf5; background:#f8fafd; }
+.cobranca-moderna .grupo-cobranca-endereco { grid-template-columns:2fr 1fr 1.5fr; gap:15px; }
+.cobranca-moderna .grupo-cobranca-endereco > div { min-width:0; overflow-wrap:anywhere; }
+.cobranca-moderna .grupo-cobranca-endereco span { font-size:9px; font-weight:600; color:#6e7d92; text-transform:none; }
+.cobranca-moderna .grupo-cobranca-endereco strong { font-size:11px; font-weight:550; color:#3a506d; }
+.cobranca-moderna .grupo-cobranca-pedidos { border-color:#e1e7f1; border-radius:9px; }
+.cobranca-moderna .pedido-cobranca-individual,.cobranca-moderna .pedido-cobranca-individual.pedido-unico { grid-template-columns:18px 65px minmax(130px,1fr) 75px 90px; padding:12px; border-color:#edf1f7; gap:10px; }
+.cobranca-moderna .pedido-cobranca-individual > * { min-width:0; grid-column:auto; }
+.cobranca-moderna .pedido-cobranca-acoes { grid-column:2/-1; justify-content:flex-start; }
+.cobranca-moderna .recibo-status { grid-column:2/4; justify-self:start; border-radius:6px; }
+.cobranca-moderna .carimbo-os { border:1px solid #dfe7f6; border-radius:6px; background:#f5f8fd; color:#536d97; font-size:10px; box-shadow:none; }
+.cobranca-moderna .cobranca-aovivo-card { grid-template-columns:80px minmax(140px,1fr) 130px 105px; padding:16px; gap:12px; }
+.cobranca-moderna .cobranca-aovivo-acoes { grid-column:2/-1; justify-content:flex-end; padding-top:7px; }
+.cobranca-moderna .cobranca-aovivo-data strong { font-size:11px; color:#516b93; }
+.cobranca-moderna .cobranca-estado-vazio { border:1px dashed #dae3f0; border-radius:15px; padding:40px 20px; background:#fafcfe; }
+.modal-caixa.cb-dialogo { border:1px solid #e1e7f2; border-radius:16px; box-shadow:0 16px 60px #1d315633; color:#253550; }
+.cb-dialogo .dialogo-cabecalho { border-color:#e8edf5; }
+.cb-dialogo .acoes-modal-cobranca .btn { border-radius:8px; background:#3861ed; border-color:#3861ed; }
+.cb-dialogo .acoes-modal-cobranca .btn.secundario { background:white; color:#586d8c; border-color:#dfe6f1; }
+.cb-dialogo input,.cb-dialogo select { border-radius:8px; border-color:#dce4ef; }
+@media(max-width:1250px) {
+  .cobranca-moderna .grupo-cobranca-principal { grid-template-columns:52px 110px minmax(120px,1fr) 65px 100px; }
+  .cobranca-moderna .grupo-cobranca-acoes { grid-column:3/-1; padding-top:2px; }
+  .cobranca-moderna .grade-resumo-cobranca-operacional { gap:8px; }
+  .cobranca-moderna .resumo-cobranca-operacional { padding:12px; }
+}
+@media(max-width:950px) {
+  .cobranca-moderna .grade-resumo-cobranca-operacional { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .cobranca-moderna .resumo-cobranca-operacional.total { grid-row:span 2; display:flex; flex-direction:column; justify-content:center; }
+  .cobranca-moderna .cobranca-campos-filtro { grid-template-columns:1fr 1fr; }
+  .cobranca-moderna .cobranca-filtro-nome,.cobranca-moderna .cobranca-filtro-forma { grid-column:auto; }
+}
+@media(max-width:700px) {
+  .cobranca-moderna .central-cobranca-navegacao > span { display:none; }
+  .cobranca-moderna .cabecalho-pagina p { font-size:11px; }
+  .cobranca-moderna .central-cobranca-navegacao { margin-bottom:17px; }
+  .cobranca-moderna .grade-resumo-cobranca-operacional { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+  .cobranca-moderna .resumo-cobranca-operacional.total { grid-row:auto; grid-column:1/-1; display:grid; grid-template-columns:1fr auto; align-items:center; gap:0 10px; }
+  .cobranca-moderna .resumo-cobranca-operacional.total .cb-resumo-topo { margin:0; }
+  .cobranca-moderna .resumo-cobranca-operacional.total small { grid-column:1; }
+  .cobranca-moderna .resumo-cobranca-operacional.total strong { grid-column:2; grid-row:1/3; margin:0; font-size:23px; }
+  .cobranca-moderna .resumo-cobranca-operacional .cb-resumo-topo { margin-bottom:6px; }
+  .cobranca-moderna .resumo-cobranca-operacional strong { font-size:20px; }
+  .cobranca-moderna .resumo-cobranca-operacional span { font-size:10px; }
+  .cobranca-moderna .cobranca-filtros,.cobranca-moderna .cobranca-aovivo-filtros { padding:16px; }
+  .cb-pesquisa-cabecalho { gap:8px; }
+  .cb-pesquisa-cabecalho h2 { font-size:12px; }
+  .cobranca-moderna .cobranca-campos-filtro,.cobranca-moderna .cobranca-aovivo-filtros .cobranca-campos-filtro { grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important; gap:12px; }
+  .cobranca-moderna .cobranca-campos-filtro > * { grid-column:auto !important; }
+  .cobranca-moderna .cobranca-aovivo-filtros .cobranca-filtro-nome { grid-column:auto; }
+  .cobranca-moderna .cobranca-campos-filtro input,.cobranca-moderna .cobranca-campos-filtro select { min-height:42px; height:42px; font-size:14px; }
+  .cobranca-moderna .campo-data-raiz { height:42px; }
+  .cobranca-moderna .campo-data-raiz input { min-height:0; height:100%; }
+  .cb-resultados-cabecalho { align-items:flex-start; flex-direction:column; gap:11px; }
+  .cb-resultados-cabecalho h2 { font-size:19px; }
+  .cb-resultados-acoes:not(:empty) { width:100%; }
+  .cobranca-moderna .cobranca-imprimir { width:100%; }
+  .cobranca-moderna .lista-grupos-meta { align-items:flex-start; gap:8px; }
+  .cobranca-moderna .lista-grupos-meta span { max-width:145px; text-align:right; line-height:1.5; }
+  .cobranca-moderna .grupo-cobranca-principal { grid-template-columns:52px minmax(0,1fr) auto; padding:14px; gap:10px; }
+  .cobranca-moderna .grupo-cobranca-controles { grid-column:1; grid-row:1; }
+  .cobranca-moderna .grupo-cobranca-cliente { grid-column:2/-1; grid-row:1; }
+  .cobranca-moderna .grupo-cobranca-urgencia { grid-column:1/3; grid-row:2; }
+  .cobranca-moderna .grupo-cobranca-status-impressao { grid-column:3; grid-row:2; text-align:right; }
+  .cobranca-moderna .grupo-cobranca-valor { grid-column:1/-1; display:flex; justify-content:space-between; align-items:baseline; text-align:left; padding:9px 0; border-top:1px solid #eef1f7; }
+  .cobranca-moderna .grupo-cobranca-acoes { grid-column:1/-1; padding:0; justify-content:flex-end; }
+  .cobranca-moderna .btn-small { min-height:38px; }
+  .cobranca-moderna .grupo-cobranca-expandir { min-height:36px; width:30px; }
+  .cobranca-moderna .grupo-cobranca-acoes .cobranca-whatsapp,.cobranca-moderna .grupo-cobranca-acoes .cobranca-recibo-icone,.cobranca-moderna .cobranca-aovivo-acoes .cobranca-whatsapp { width:38px; height:38px; }
+  .cobranca-moderna .grupo-cobranca-detalhes { padding:14px; }
+  .cobranca-moderna .grupo-cobranca-endereco { grid-template-columns:1fr; gap:9px; }
+  .cobranca-moderna .pedido-cobranca-individual,.cobranca-moderna .pedido-cobranca-individual.pedido-unico { grid-template-columns:18px minmax(0,1fr) auto; gap:10px; }
+  .cobranca-moderna .pedido-cobranca-datas { grid-column:2/-1; }
+  .cobranca-moderna .pedido-cobranca-individual > .tag { grid-column:2; }
+  .cobranca-moderna .pedido-cobranca-individual > strong { grid-column:3; }
+  .cobranca-moderna .recibo-status { grid-column:2/-1; }
+  .cobranca-moderna .pedido-cobranca-acoes { grid-column:1/-1; flex-wrap:wrap; }
+  .cobranca-moderna .cobranca-aovivo-card { grid-template-columns:65px minmax(0,1fr); padding:14px; gap:13px 10px; }
+  .cobranca-moderna .cobranca-aovivo-data { grid-column:1/-1; }
+  .cobranca-moderna .cobranca-aovivo-valor { grid-column:1/-1; flex-direction:row; justify-content:space-between; align-items:center; border-top:1px solid #edf1f7; padding-top:12px; text-align:left; }
+  .cobranca-moderna .cobranca-aovivo-acoes { grid-column:1/-1; padding-top:0; justify-content:flex-start; }
+  .cobranca-moderna .cobranca-aovivo-cliente span { white-space:normal; line-height:1.5; }
+  .cb-dialogo .grade { grid-template-columns:1fr; }
+}
+@media(prefers-reduced-motion:reduce) { .cobranca-moderna * { transition:none; } }

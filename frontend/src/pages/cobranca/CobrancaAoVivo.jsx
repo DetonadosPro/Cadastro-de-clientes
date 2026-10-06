@@ -7,6 +7,7 @@ import CampoData from '../../components/CampoData.jsx';
 import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
 import { AvisoInline, Dialogo, EstadoCarregando, EstadoVazio } from '../../components/Interface.jsx';
 import { linkWhatsAppCobranca } from '../../utils/mensagemCobranca.js';
+import { ResumoCobranca, CabecalhoPesquisa, CabecalhoResultados } from './InterfaceCobranca.jsx';
 
 function hojeBr() {
   const data = new Date();
@@ -233,25 +234,23 @@ export default function CobrancaAoVivo({ mostrarCabecalho = true }) {
         <div><h1 style={{ marginBottom: 2 }}>Cobrança — Ao Vivo</h1><p className="fs-sm texto-suave" style={{ margin: 0 }}>Pagamento e realização da mensagem são controles independentes</p></div>
       </div>}
 
-      <div className="grade-resumo-cobranca-operacional nao-imprimir">
-        <Resumo titulo="Pendente" valor={totalPendente} quantidade={pendentes.length} classe="total" onClick={() => setFiltro('pendentes')} />
-        <Resumo titulo="Atrasadas" pedidos={pendentes.filter((p) => (diasAte(p.dataCobranca) ?? 0) < 0)} classe="atrasada" onClick={() => setFiltro('atrasadas')} />
-        <Resumo titulo="Para hoje" pedidos={pendentes.filter((p) => diasAte(p.dataCobranca) === 0)} classe="hoje" onClick={() => setFiltro('hoje')} />
-        <Resumo titulo="Próximas" pedidos={pendentes.filter((p) => (diasAte(p.dataCobranca) ?? -1) > 0)} classe="futura" onClick={() => setFiltro('proximas')} />
-        <Resumo titulo="Recebido no mês" valor={totalRecebido} quantidade={recebidasNoMes.length} classe="recebida" onClick={() => setFiltro('recebidas')} />
-      </div>
+      {!carregando && <section className="grade-resumo-cobranca-operacional nao-imprimir" aria-label="Resumo financeiro da consulta">
+        {[['Total pendente', 'total', 'pendentes', pendentes], ['Atrasadas', 'atrasada', 'atrasadas', pendentes.filter((p) => (diasAte(p.dataCobranca) ?? 0) < 0)], ['Para hoje', 'hoje', 'hoje', pendentes.filter((p) => diasAte(p.dataCobranca) === 0)], ['Próximas', 'futura', 'proximas', pendentes.filter((p) => (diasAte(p.dataCobranca) ?? -1) > 0)], ['Recebidas no mês', 'recebida', 'recebidas', recebidasNoMes]].map(([titulo, classe, filtroResumo, pedidos]) => <ResumoCobranca key={classe} titulo={titulo} classe={classe} ativo={filtro === filtroResumo} quantidade={pedidos.length} valor={classe === 'total' ? totalPendente : classe === 'recebida' ? totalRecebido : pedidos.reduce((s, p) => s + Number(p.valor || 0), 0)} onClick={() => setFiltro(filtroResumo)} />)}
+      </section>}
 
       <div className="painel cobranca-aovivo-filtros nao-imprimir">
+        <CabecalhoPesquisa temFiltros={Boolean(nome || os || filtro !== 'pendentes')} onLimpar={() => { setNome(''); setOs(''); setFiltro('pendentes'); }} />
         <div className="cobranca-atalhos">
-          {[['pendentes', 'Pendentes'], ['atrasadas', 'Atrasadas'], ['hoje', 'Hoje'], ['proximas', 'Próximas'], ['recebidas', 'Recebidas no mês']].map(([v, r]) => <button type="button" key={v} className={filtro === v ? 'ativo' : ''} onClick={() => setFiltro(v)}>{r}</button>)}
+          {[['pendentes', 'Pendentes'], ['atrasadas', 'Atrasadas'], ['hoje', 'Hoje'], ['proximas', 'Próximas'], ['recebidas', 'Recebidas no mês']].map(([v, r]) => <button type="button" key={v} className={filtro === v ? 'ativo' : ''} aria-pressed={filtro === v} onClick={() => setFiltro(v)}>{r}</button>)}
         </div>
         <div className="cobranca-campos-filtro">
-          <div className="campo cobranca-filtro-os"><label>O.S.</label><input value={os} onChange={(e) => setOs(e.target.value)} placeholder="Número exato" /></div>
-          <div className="campo cobranca-filtro-nome"><label>Cliente</label><input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do comprador" /></div>
+          <div className="campo cobranca-filtro-os"><label htmlFor="cb-av-os">O.S.</label><input id="cb-av-os" value={os} onChange={(e) => setOs(e.target.value)} placeholder="Número exato" /></div>
+          <div className="campo cobranca-filtro-nome"><label htmlFor="cb-av-nome">Cliente</label><input id="cb-av-nome" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do comprador" /></div>
         </div>
       </div>
 
       {erro && <AvisoInline tom="erro" titulo="Não foi possível atualizar os pagamentos">{erro}</AvisoInline>}
+      {!carregando && <CabecalhoResultados titulo={{ atrasadas: 'Cobranças atrasadas', hoje: 'Cobranças de hoje', proximas: 'Próximas cobranças', recebidas: 'Recebidas no mês' }[filtro] || 'Cobranças pendentes'} quantidade={visiveis.length} valor={visiveis.reduce((s, p) => s + Number(p.pagou === 'SIM' ? (p.valorRecebido ?? p.valor) : p.valor), 0)} />}
       {carregando ? <EstadoCarregando rotulo="Atualizando pagamentos Ao vivo…" linhas={4} /> : visiveis.length === 0 ? <EstadoVazio className="cobranca-estado-vazio" icone="R$" titulo="Nenhum pagamento Ao vivo neste grupo" descricao="Altere a situação, o nome ou a O.S. para consultar outros registros." /> : (
         <div className="lista-cobranca-aovivo nao-imprimir">
           {lista.itensVisiveis.map((pedido) => {
@@ -291,14 +290,8 @@ export default function CobrancaAoVivo({ mostrarCabecalho = true }) {
   );
 }
 
-function Resumo({ titulo, pedidos, valor, quantidade, classe, onClick }) {
-  const lista = pedidos || [];
-  const total = valor ?? lista.reduce((s, p) => s + Number(p.valor || 0), 0);
-  return <button type="button" className={`resumo-cobranca-operacional ${classe}`} onClick={onClick}><span>{titulo}</span><strong>{reais(total)}</strong><small>{quantidade ?? lista.length} pedido(s)</small></button>;
-}
-
 function Modal({ titulo, fechar, children }) {
-  return <Dialogo titulo={titulo} onClose={fechar} className="nao-imprimir modal-cobranca-calendario">{children}</Dialogo>;
+  return <Dialogo titulo={titulo} onClose={fechar} className="nao-imprimir modal-cobranca-calendario cb-dialogo">{children}</Dialogo>;
 }
 
 function Acoes({ cancelar, confirmar, salvando, rotulo }) {

@@ -8,6 +8,7 @@ import CampoData from '../../components/CampoData.jsx';
 import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
 import { AvisoInline, Dialogo, EstadoCarregando, EstadoVazio } from '../../components/Interface.jsx';
 import { linkWhatsAppCobranca } from '../../utils/mensagemCobranca.js';
+import { ResumoCobranca, CabecalhoPesquisa, CabecalhoResultados } from './InterfaceCobranca.jsx';
 
 function dataLocalFormatada(deslocamento = 0) {
   const data = new Date();
@@ -397,17 +398,26 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
         </div>}
       </div>}
 
+      {jaBuscou && !carregando && <section className="grade-resumo-cobranca-operacional nao-imprimir" aria-label="Resumo financeiro da consulta">
+        <ResumoCobranca titulo="Total pendente" valor={somarPedidos(pendentes)} quantidade={pendentes.length} classe="total" ativo={filtroRapido === 'todas'} onClick={() => aplicarFiltro('todas')} />
+        <ResumoCobranca titulo="Atrasadas" valor={somarPedidos(atrasadas)} quantidade={atrasadas.length} classe="atrasada" ativo={filtroRapido === 'atrasadas'} onClick={() => aplicarFiltro('atrasadas')} />
+        <ResumoCobranca titulo="Para hoje" valor={somarPedidos(paraHoje)} quantidade={paraHoje.length} classe="hoje" ativo={filtroRapido === 'hoje'} onClick={() => aplicarFiltro('hoje')} />
+        <ResumoCobranca titulo="Próximas" valor={somarPedidos(futuras)} quantidade={futuras.length} classe="futura" ativo={filtroRapido === 'proximas'} onClick={() => aplicarFiltro('proximas')} />
+        <ResumoCobranca titulo="Recebidas no mês" valor={somarPedidos(recebidasNoMes)} quantidade={recebidasNoMes.length} classe="recebida" ativo={filtroRapido === 'recebidas'} onClick={() => aplicarFiltro('recebidas')} />
+      </section>}
+
       <div className="painel cobranca-filtros nao-imprimir">
+        <CabecalhoPesquisa temFiltros={Boolean(cobrarDia || nome || os || filtroRapido !== 'todas' || formaFiltro !== 'todos')} onLimpar={() => { setCobrarDia(''); setNome(''); setOs(''); setFiltroRapido('todas'); aplicarFormaFiltro('todos'); }} />
         <div className="cobranca-atalhos">
           {[
             ['atrasadas', 'Atrasadas'], ['hoje', 'Hoje'], ['amanha', 'Amanhã'],
             ['semana', 'Esta semana'], ['proximas', 'Próximas'], ['pagas', 'Recebidas'], ['recebidas', 'Recebidas no mês'],
-          ].map(([valor, rotulo]) => <button key={valor} type="button" className={filtroRapido === valor ? 'ativo' : ''} onClick={() => aplicarFiltro(valor)}>{rotulo}</button>)}
+          ].map(([valor, rotulo]) => <button key={valor} type="button" className={filtroRapido === valor ? 'ativo' : ''} aria-pressed={filtroRapido === valor} onClick={() => aplicarFiltro(valor)}>{rotulo}</button>)}
         </div>
         <div className="cobranca-campos-filtro">
-          <div className="campo"><label>Data exata</label><CampoData placeholder="dd/mm/aa" value={cobrarDia} onChange={(v) => { const data = formatarData(v); setCobrarDia(data); setFiltroRapido(data ? 'data' : 'todas'); }} /></div>
-          <div className="campo cobranca-filtro-os"><label>O.S.</label><input value={os} onChange={(e) => setOs(e.target.value)} placeholder="Número exato" /></div>
-          <div className="campo cobranca-filtro-nome"><label>Nome</label><input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do comprador" /></div>
+          <div className="campo"><label htmlFor="cb-data">Data exata</label><CampoData id="cb-data" placeholder="dd/mm/aa" value={cobrarDia} onChange={(v) => { const data = formatarData(v); setCobrarDia(data); setFiltroRapido(data ? 'data' : 'todas'); }} /></div>
+          <div className="campo cobranca-filtro-os"><label htmlFor="cb-os">O.S.</label><input id="cb-os" value={os} onChange={(e) => setOs(e.target.value)} placeholder="Número exato" /></div>
+          <div className="campo cobranca-filtro-nome"><label htmlFor="cb-nome">Nome</label><input id="cb-nome" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do comprador" /></div>
           <div className="campo cobranca-filtro-forma">
             <label htmlFor="cobranca-forma-impressao">Forma para impressão</label>
             <select id="cobranca-forma-impressao" value={formaFiltro} onChange={(e) => aplicarFormaFiltro(e.target.value)}>
@@ -439,15 +449,9 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
       )}
 
       {erro && <AvisoInline className="nao-imprimir" tom="erro" titulo="Não foi possível atualizar as cobranças">{erro}</AvisoInline>}
-      {jaBuscou && !carregando && (
-        <div className="grade-resumo-cobranca-operacional nao-imprimir">
-          <ResumoCobranca titulo="Atrasadas" pedidos={atrasadas} classe="atrasada" onClick={() => aplicarFiltro('atrasadas')} />
-          <ResumoCobranca titulo="Para hoje" pedidos={paraHoje} classe="hoje" onClick={() => aplicarFiltro('hoje')} />
-          <ResumoCobranca titulo="Próximas" pedidos={futuras} classe="futura" onClick={() => aplicarFiltro('proximas')} />
-          <ResumoCobranca titulo="Recebidas no mês" pedidos={recebidasNoMes} classe="recebida" onClick={() => aplicarFiltro('recebidas')} />
-          <ResumoCobranca titulo="Total pendente" pedidos={pendentes} classe="total" onClick={() => aplicarFiltro('todas')} />
-        </div>
-      )}
+      {jaBuscou && !carregando && <CabecalhoResultados titulo={filtroRapido === 'data' && cobrarDia ? `Cobranças de ${cobrarDia}` : ({ atrasadas: 'Cobranças atrasadas', hoje: 'Cobranças de hoje', amanha: 'Cobranças de amanhã', semana: 'Cobranças desta semana', proximas: 'Próximas cobranças', pagas: 'Cobranças recebidas', recebidas: 'Recebidas no mês' }[filtroRapido] || 'Cobranças pendentes')} quantidade={pedidosFiltrados.length} valor={somarPedidos(pedidosFiltrados)}>
+        {pedidosVisiveis.length > 0 && pedidosSelecionados.length === 0 && <button type="button" className="btn cobranca-imprimir" onClick={() => imprimir(pedidosNaOrdemDaLista)}><IconeImpressora />Imprimir lista ({pedidosVisiveis.length})</button>}
+      </CabecalhoResultados>}
 
       {!jaBuscou ? <EstadoCarregando className="nao-imprimir" rotulo="Carregando cobranças…" linhas={4} />
         : carregando ? <EstadoCarregando className="nao-imprimir" rotulo="Atualizando cobranças…" linhas={4} />
@@ -497,7 +501,7 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
 function ListaGrupos({ grupos, pedidosVisiveis, expandidos, selecionados, alternarGrupo, alternarSelecao, imprimir, abrirBaixa, abrirReagendamento, abrirDesfazer, navigate }) {
   return (
     <div className="lista-grupos-cobranca nao-imprimir">
-      <div className="lista-grupos-meta"><strong>{grupos.length} cliente(s)</strong><span>{pedidosVisiveis.length} pedido(s) · {formatarReais(somarPedidos(pedidosVisiveis))}</span></div>
+      <div className="lista-grupos-meta"><strong>{grupos.length} cliente{grupos.length !== 1 ? 's' : ''} nesta lista</strong><span>Selecione para imprimir ou expanda os pedidos</span></div>
       {grupos.map((grupo) => {
         const aberto = expandidos.has(grupo.chave); const primeiro = grupo.pedidos[0];
         const whatsapp = linkWhatsAppCobranca(grupo.whatsapp, grupo.nome, grupo.valorTotal);
@@ -581,11 +585,8 @@ function CaixaSelecaoGrupo({ pedidos, selecionados, onChange }) {
   return <input ref={referencia} type="checkbox" checked={todos} onChange={onChange} aria-label={`Selecionar ${pedidos.length} pedido(s) deste cliente para impressão`} />;
 }
 
-function ResumoCobranca({ titulo, pedidos, classe, onClick }) {
-  return <button type="button" className={`resumo-cobranca-operacional ${classe}`} onClick={onClick}><span>{titulo}</span><strong>{formatarReais(somarPedidos(pedidos))}</strong><small>{pedidos.length} pedido(s)</small></button>;
-}
 function Modal({ titulo, onClose, children }) {
-  return <Dialogo titulo={titulo} onClose={onClose} className="nao-imprimir modal-cobranca-calendario">{children}</Dialogo>;
+  return <Dialogo titulo={titulo} onClose={onClose} className="nao-imprimir modal-cobranca-calendario cb-dialogo">{children}</Dialogo>;
 }
 function AcoesModal({ onCancelar, onConfirmar, salvando, rotulo }) {
   return <div className="acoes-modal-cobranca"><button type="button" className="btn secundario" onClick={onCancelar}>Cancelar</button><button type="button" className="btn" onClick={onConfirmar} disabled={salvando}>{salvando ? 'Salvando...' : rotulo}</button></div>;
