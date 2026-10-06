@@ -62,13 +62,18 @@ export function buildRecallWhatsAppUrl(telefone, dadosMensagem, criarLinkTelefon
   return `${base}${separador}text=${encodeURIComponent(buildRecallWhatsAppMessage(dadosMensagem))}`;
 }
 
-export function buildRecallAoVivoMessage({ contato, homenageado, usuario, ocasiao, tema, dataReferencia, numeroOs }) {
+export function buildRecallAoVivoMessage({ contato, homenageado, generoHomenageado, usuario, ocasiao, tema, dataReferencia, numeroOs }) {
   const nome = normalizarNome(contato) || 'Cliente';
   const para = String(homenageado || '').trim();
+  if (ocasiao === 'ANIVERSARIO') {
+    const genero = generoDoAniversariante(para, generoHomenageado);
+    const destinatario = normalizarNome(para) || (genero.artigo === 'a' ? 'destinatária' : 'destinatário');
+    const objeto = genero.artigo === 'a' ? 'la' : 'lo';
+    return `Oi, ${nome}! 😊 Amanhã é aniversário ${genero.contracao} ${destinatario}! 🎂\n\nQue tal surpreendê-${objeto} *novamente* com uma linda *Mensagem ao Vivo*? 🎶✨\n\nE tem um presente nosso: *toda a homenagem é filmada e você recebe o vídeo sem custo adicional!* ❤️\n\nQuer reservar uma homenagem para ${genero.pronome}?${numeroOs ? `\n\nO.S.: ${numeroOs}` : ''}`;
+  }
   const apresentacao = `Oi ${nome}, é ${artigoUsuario(usuario)} ${normalizarNome(usuario) || 'equipe'} do Pombo Correio.`;
   const data = /^\d{4}-\d{2}-\d{2}$/.test(dataReferencia || '') ? `${dataReferencia.slice(8, 10)}/${dataReferencia.slice(5, 7)}` : 'esta época';
   const convites = {
-    ANIVERSARIO: `No dia ${data}, temos a oportunidade de celebrar o aniversário de ${para}. Você gostaria de preparar uma nova homenagem ao vivo?`,
     CASAMENTO: `No dia ${data}, podemos celebrar novamente o aniversário de casamento de ${para}. Que tal uma homenagem ao vivo para comemorar essa união?`,
     ANIVERSARIO_NAMORO: `No dia ${data}, podemos celebrar o aniversário de namoro de ${para}. Você gostaria de preparar uma nova homenagem ao vivo?`,
     EMPRESA: `No dia ${data}, podemos celebrar mais um aniversário de ${para}. Que tal uma nova homenagem ao vivo?`,

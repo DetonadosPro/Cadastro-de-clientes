@@ -37,7 +37,7 @@ export default function RecallAoVivo() {
   const indice = filtrados.indexOf(selecionado);
   useEffect(() => { setParams((p) => { const n = new URLSearchParams(p); n.set('sistema', 'AOVIVO'); n.set('data', data); if (busca) n.set('busca', busca); else n.delete('busca'); if (selecionado) n.set('relacao', selecionado.relacaoChave); else n.delete('relacao'); return n; }, { replace: true }); }, [data, busca, selecionado?.relacaoChave]);
   const retorno = `/recall?${new URLSearchParams({ sistema: 'AOVIVO', data, busca, ...(selecionado ? { relacao: selecionado.relacaoChave } : {}) })}`;
-  const dadosMensagem = selecionado && { contato: selecionado.clienteNome, homenageado: selecionado.aniversariante, usuario: getNomeExibicao(), ocasiao: selecionado.ocasiao, tema: selecionado.ultimoPedido.tema, dataReferencia: data, numeroOs: selecionado.ultimoPedido.os };
+  const dadosMensagem = selecionado && { contato: selecionado.clienteNome, homenageado: selecionado.aniversariante, generoHomenageado: selecionado.aniversarianteGenero, usuario: getNomeExibicao(), ocasiao: selecionado.ocasiao, tema: selecionado.ultimoPedido.tema, dataReferencia: data, numeroOs: selecionado.ultimoPedido.os };
   const whatsapp = selecionado && !selecionado.clienteBloqueado && buildRecallAoVivoUrl(selecionado.telefone, dadosMensagem);
   function abrir(id) { navigate(`/ao-vivo/${id}`, { state: { returnTo: retorno } }); }
   async function criar() {
