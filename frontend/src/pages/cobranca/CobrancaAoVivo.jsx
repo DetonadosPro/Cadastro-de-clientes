@@ -258,7 +258,11 @@ export default function CobrancaAoVivo({ mostrarCabecalho = true }) {
             const whatsapp = linkWhatsAppCobranca(pedido.whatsapp || pedido.celular, pedido.nome, valorMensagem);
             return <div className={`cobranca-aovivo-card ${pedido.pagou === 'SIM' ? 'recebida' : (diasAte(pedido.dataCobranca) ?? 0) < 0 ? 'atrasada' : ''}`} key={pedido.id}>
               <div className="cobranca-aovivo-os"><span className="carimbo-os carimbo-os-lista">{pedido.numero_os || pedido.id}</span><small>{pedido.dataPedido || '—'}</small></div>
-              <div className="cobranca-aovivo-cliente"><button type="button" onClick={() => pedido.cliente_id && navigate(`/clientes/${pedido.cliente_id}`)}>{pedido.nome || 'Cliente não informado'}</button><span>Para: {pedido.destinatario || '—'} · Evento: {pedido.dataEvento || '—'} {pedido.horarioEvento || ''}</span></div>
+              <div className="cobranca-aovivo-cliente">
+                <button type="button" onClick={() => pedido.cliente_id && navigate(`/clientes/${pedido.cliente_id}`)}>{pedido.nome || 'Cliente não informado'}</button>
+                <span className="cb-aovivo-destinatario">Para: {pedido.destinatario || '—'}</span>
+                <span>Evento: {pedido.dataEvento || '—'} {pedido.horarioEvento || ''}</span>
+              </div>
               <div className="cobranca-aovivo-data"><strong>{rotuloData(pedido)}</strong><span>{pedido.pagou === 'SIM' ? `Pago em ${pedido.dataPagamento || '—'}${pedido.recebidoPor ? ` · ${pedido.recebidoPor}` : ''}` : `Cobrança: ${pedido.dataCobranca || '—'}`}</span></div>
               <div className="cobranca-aovivo-valor"><strong>{reais(pedido.pagou === 'SIM' ? (pedido.valorRecebido ?? pedido.valor) : pedido.valor)}</strong><span>{pedido.pagou === 'SIM' ? (pedido.formaRecebimento || 'Recebido') : (pedido.pagamentoPrevisto || 'Forma não informada')}</span></div>
               <div className="cobranca-aovivo-acoes">
