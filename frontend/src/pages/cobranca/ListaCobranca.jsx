@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarData } from '../../mascaras.js';
@@ -162,8 +162,8 @@ function reciboJaImpresso(pedido) {
 
 export default function ListaCobranca({ mostrarCabecalho = true }) {
   const [parametrosUrl, setParametrosUrl] = useSearchParams();
-  const [cobrarDia, setCobrarDia] = useState('');
-  const [filtroRapido, setFiltroRapido] = useState(() => parametrosUrl.get('filtro') || 'todas');
+  const [cobrarDia, setCobrarDia] = useState(() => parametrosUrl.get('cobrarDia') || '');
+  const [filtroRapido, setFiltroRapido] = useState(() => parametrosUrl.get('filtro') || (parametrosUrl.get('cobrarDia') ? 'data' : 'todas'));
   const [formaFiltro, setFormaFiltro] = useState(() => {
     const forma = parametrosUrl.get('forma');
     return ['presencial', 'pix'].includes(forma) ? forma : 'todos';
@@ -171,19 +171,22 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
   const [nome, setNome] = useState(() => parametrosUrl.get('nome') || '');
   const [os, setOs] = useState(() => parametrosUrl.get('os') || '');
 
+  function parametrosDaPesquisa(atuais) {
+    const novos = new URLSearchParams(atuais);
+    if (cobrarDia) novos.set('cobrarDia', cobrarDia); else novos.delete('cobrarDia');
+    if (filtroRapido && filtroRapido !== 'todas') novos.set('filtro', filtroRapido); else novos.delete('filtro');
+    if (formaFiltro !== 'todos') novos.set('forma', formaFiltro); else novos.delete('forma');
+    if (nome) novos.set('nome', nome); else novos.delete('nome');
+    if (os) novos.set('os', os); else novos.delete('os');
+    return novos;
+  }
+
   useEffect(() => {
     const temporizador = setTimeout(() => {
-      setParametrosUrl((atuais) => {
-        const novos = new URLSearchParams(atuais);
-        if (filtroRapido && filtroRapido !== 'todas') novos.set('filtro', filtroRapido); else novos.delete('filtro');
-        if (formaFiltro !== 'todos') novos.set('forma', formaFiltro); else novos.delete('forma');
-        if (nome) novos.set('nome', nome); else novos.delete('nome');
-        if (os) novos.set('os', os); else novos.delete('os');
-        return novos;
-      }, { replace: true });
+      setParametrosUrl(parametrosDaPesquisa, { replace: true });
     }, 200);
     return () => clearTimeout(temporizador);
-  }, [filtroRapido, formaFiltro, nome, os, setParametrosUrl]);
+  }, [cobrarDia, filtroRapido, formaFiltro, nome, os, setParametrosUrl]);
   const [pendentes, setPendentes] = useState([]);
   const [recebidas, setRecebidas] = useState([]);
   const [carregando, setCarregando] = useState(false);
@@ -204,6 +207,15 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
   const [salvandoReagendamento, setSalvandoReagendamento] = useState(false);
   const ultimaBusca = useRef(0);
   const navigate = useNavigate();
+  const location = useLocation();
+  function navegarComPesquisa(destino) {
+    const pesquisa = parametrosDaPesquisa(parametrosUrl).toString();
+    const retorno = `${location.pathname}${pesquisa ? `?${pesquisa}` : ''}`;
+    // Salva inclusive alterações feitas antes do temporizador da URL.
+    // O botão Voltar e o histórico do navegador retornam à mesma pesquisa.
+    navigate(retorno, { replace: true });
+    navigate(destino, { state: { returnTo: retorno } });
+  }
   const { mostrarToast } = useToast();
   const recebidasNoMes = useMemo(() => recebidas.filter(foiRecebidoNoMesAtual), [recebidas]);
   const pagasOrdenadas = useMemo(() => [...recebidas].sort((a, b) => {
@@ -441,7 +453,7 @@ export default function ListaCobranca({ mostrarCabecalho = true }) {
         : carregando ? <EstadoCarregando className="nao-imprimir" rotulo="Atualizando cobranças…" linhas={4} />
           : grupos.length === 0 ? <EstadoVazio className="nao-imprimir cobranca-estado-vazio" icone="R$" titulo="Nenhuma cobrança neste grupo" descricao="Altere o período, a situação ou os dados de busca para consultar outros recebimentos." />
             : <>
-              <ListaGrupos grupos={grupos} pedidosVisiveis={pedidosVisiveis} expandidos={expandidos} selecionados={selecionados} alternarGrupo={alternarGrupo} alternarSelecao={alternarSelecao} imprimir={imprimir} abrirBaixa={abrirBaixa} abrirReagendamento={abrirReagendamento} abrirDesfazer={setPedidoDesfazer} navigate={navigate} />
+              <ListaGrupos grupos={grupos} pedidosVisiveis={pedidosVisiveis} expandidos={expandidos} selecionados={selecionados} alternarGrupo={alternarGrupo} alternarSelecao={alternarSelecao} imprimir={imprimir} abrirBaixa={abrirBaixa} abrirReagendamento={abrirReagendamento} abrirDesfazer={setPedidoDesfazer} navigate={navegarComPesquisa} />
               <BotaoMostrarMais temMais={lista.temMais} restantes={lista.restantes} onClick={lista.mostrarMais} />
             </>}
 
