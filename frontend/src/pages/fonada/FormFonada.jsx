@@ -994,7 +994,6 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
         <span className={`tag ${situacaoMensagem?.status === 'EXPIRADA' ? 'pendente' : bloqueada ? 'neutro' : jaProcessada ? 'ok' : 'aviso'}`}>{textoSituacao}</span>
       </div>
       {situacaoMensagem?.status === 'NAO_CONCEDIDA' && <p className="pf-mensagem-nota">A segunda mensagem não está disponível para este valor.</p>}
-      <CampoComP label="Para" nomeCampo="para" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} copiarBloqueado={copiarBloqueado} classeExtra="campo-para-fonada" />
       <div className="pf-form-row pf-par pf-tema-numero">
         <CampoMensagem id={`${p}-tema`} label="Tema">
           <input id={`${p}-tema`} aria-label={`Tema da ${numero}ª mensagem`} value={dados[`${p}_tema`]} onChange={e => set(`${p}_tema`,e.target.value)} disabled={bloqueada} />
@@ -1004,6 +1003,7 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
         </CampoMensagem>
         {mostrarBotaoP && <BotaoP onClick={() => onCopiar(['tema','mensagem'],numero)} titulo="Copiar tema/nº para a 2ª mensagem" desabilitado={copiarBloqueado} />}
       </div>
+      <CampoComP label="Para" nomeCampo="para" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} copiarBloqueado={copiarBloqueado} classeExtra="campo-para-fonada" />
       <div className="pf-form-row pf-par pf-telefones">
         <CampoMensagem id={`${p}-fixo`} label="Telefone fixo">
           <input id={`${p}-fixo`} aria-label={`Telefone fixo da ${numero}ª mensagem`} value={dados[`${p}_fixo`]} onChange={e => setComMascara(`${p}_fixo`,e.target.value,'fixo')} disabled={bloqueada} className="campo-fixo-fonada" inputMode="tel" />

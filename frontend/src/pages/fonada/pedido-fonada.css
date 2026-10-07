@@ -39,9 +39,12 @@
 .pedido-fonada-moderno .secao-transmissao .coluna-mensagem .pf-form-row label { min-width:0; margin:0; font-size:11px; font-weight:550; color:var(--pf-suave); letter-spacing:0; text-transform:none; }
 .pedido-fonada-moderno .secao-transmissao .pf-par { display:grid; grid-template-columns:minmax(0,1fr) 80px 30px; align-items:end; }
 .pedido-fonada-moderno .secao-transmissao .pf-par:not(:has(.botao-p-copiar)) { grid-template-columns:minmax(0,1fr) 80px; }
-.pedido-fonada-moderno .secao-transmissao .pf-telefones { grid-template-columns:minmax(0,1fr) minmax(0,1.15fr) 30px; }
-.pedido-fonada-moderno .secao-transmissao .pf-telefones:not(:has(.botao-p-copiar)) { grid-template-columns:minmax(0,1fr) minmax(0,1.15fr); }
-.pedido-fonada-moderno .secao-transmissao .pf-dia-horario { grid-template-columns:minmax(0,1fr) 80px 30px; }
+.pedido-fonada-moderno .secao-transmissao .pf-telefones { grid-template-columns:136px 152px 30px; }
+.pedido-fonada-moderno .secao-transmissao .pf-telefones:not(:has(.botao-p-copiar)) { grid-template-columns:136px 152px; }
+.pedido-fonada-moderno .secao-transmissao .pf-dia-horario { grid-template-columns:124px 80px 30px; }
+.pedido-fonada-moderno .secao-transmissao .pf-dia-horario:not(:has(.botao-p-copiar)) { grid-template-columns:124px 80px; }
+.pedido-fonada-moderno .secao-transmissao .coluna-mensagem .pf-form-row .campo-fixo-fonada { max-width:136px; }
+.pedido-fonada-moderno .secao-transmissao .coluna-mensagem .pf-form-row .campo-celular-fonada { max-width:152px; }
 .pedido-fonada-moderno .pf-campo { display:grid; gap:6px; min-width:0; }
 .pedido-fonada-moderno .pf-campo > .campo-data-raiz { width:100%; min-width:0; min-height:38px; height:38px; padding:0; border-color:#dce4ef; background:#fbfcfe; box-sizing:border-box; }
 .pedido-fonada-moderno .secao-transmissao .coluna-mensagem .pf-form-row .campo-data-raiz input { border:0; background:transparent; padding:8px 34px 8px 10px; height:36px; min-height:36px; font-variant-numeric:tabular-nums; box-shadow:none; }
@@ -113,8 +116,8 @@
   .pedido-fonada-moderno .grade-comprador-lateral { grid-template-columns:minmax(280px,.85fr) minmax(0,1.6fr); }
 }
 @container(max-width:340px) {
-  .pedido-fonada-moderno .secao-transmissao .pf-telefones { grid-template-columns:minmax(0,1fr) 30px; }
-  .pedido-fonada-moderno .secao-transmissao .pf-telefones:not(:has(.botao-p-copiar)) { grid-template-columns:minmax(0,1fr); }
+  .pedido-fonada-moderno .secao-transmissao .pf-telefones { grid-template-columns:152px 30px; }
+  .pedido-fonada-moderno .secao-transmissao .pf-telefones:not(:has(.botao-p-copiar)) { grid-template-columns:152px; }
   .pedido-fonada-moderno .pf-telefones > .pf-campo:nth-child(2) { grid-column:1; grid-row:2; }
   .pedido-fonada-moderno .pf-telefones > .botao-p-copiar { grid-column:2; grid-row:1/3; align-self:center !important; }
 }

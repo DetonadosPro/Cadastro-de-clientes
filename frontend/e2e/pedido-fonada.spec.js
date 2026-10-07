@@ -39,6 +39,17 @@ test('pedido completo é legível em desktop, notebook e celular',async({page},t
     await page.setViewportSize({width,height});
     expect(await page.locator('.pedido-fonada-moderno').evaluate(el=>el.scrollWidth>el.clientWidth+1),`Pedido transborda em ${width}`).toBe(false);
     expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1)).toBe(false);
+    for(const mensagem of [1,2]) {
+      const secao=page.getByRole('region',{name:`${mensagem}ª mensagem`,exact:true});
+      expect(await secao.locator('input,textarea').evaluateAll(els=>els.map(el=>el.getAttribute('aria-label')))).toEqual([
+        `Tema da ${mensagem}ª mensagem`,`Número da ${mensagem}ª mensagem`,`Para da ${mensagem}ª mensagem`,
+        `Telefone fixo da ${mensagem}ª mensagem`,`Celular da ${mensagem}ª mensagem`,`Dia da ${mensagem}ª mensagem`,
+        `Horário da ${mensagem}ª mensagem`,`Quem oferece da ${mensagem}ª mensagem`,`Resultado da ${mensagem}ª mensagem`,
+      ]);
+      for(const [nome,limite] of [[`Telefone fixo da ${mensagem}ª mensagem`,136],[`Celular da ${mensagem}ª mensagem`,152],[`Dia da ${mensagem}ª mensagem`,124],[`Horário da ${mensagem}ª mensagem`,80]]) {
+        expect((await campo(page,nome).boundingBox()).width,`${nome} muito grande em ${width}`).toBeLessThanOrEqual(limite+1);
+      }
+    }
     const tema=await campo(page,'Tema da 1ª mensagem').boundingBox(),numero=await campo(page,'Número da 1ª mensagem').boundingBox();
     expect(tema.width,`Tema deve ser maior que número em ${width}`).toBeGreaterThan(numero.width);
     await expect(page.getByRole('button',{name:'Salvar',exact:true})).toBeVisible();
