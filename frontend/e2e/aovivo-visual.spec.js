@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 
-async function preparar(page,{vazio=false,erro=false,nomesMinusculos=false}={}) {
+async function preparar(page,{vazio=false,erro=false,nomesMinusculos=false,total=31}={}) {
   await page.addInitScript(()=>{localStorage.setItem('pombo_token','token-simulado');localStorage.setItem('pombo_usuario','QA');sessionStorage.removeItem('ultimoAoVivoSelecionado');window.impressoesTeste=0;window.print=()=>{window.impressoesTeste++;};});
   const pedido={id:101,numero_os:'27001',cliente_id:1,comprador:'MARIA APARECIDA DA SILVA DE OLIVEIRA',celular:'(34) 9 9999-8888',para:'ANA CLARA (ANIVERSÁRIO DA MÃE)',dia_entrega:'07/10/26',horario_entrega:'18:30',endereco:'RUA DAS FLORES, 123 — CASA DO FUNDO',bairro:'JARDIM UBERABA',referencia:'PERTO DA PRAÇA CENTRAL, PORTÃO AZUL',musica_1:'CANÇÃO ESPECIAL DE ANIVERSÁRIO',musica_2:'MÚSICA PARA TODA A FAMÍLIA',valor:105,pagou:'SIM',pagamento:'PIX',resultado_entrega:'ENTREGUE AUTOMATICAMENTE',versao:1};
   const pedidos=[pedido,{...pedido,id:102,numero_os:'27002',comprador:'JOÃO CARLOS',pagou:'NÃO',pagamento:'PRAZO',resultado_entrega:'NÃO ENTREGUE'},{...pedido,id:103,numero_os:'27003',comprador:'LÚCIA',resultado_entrega:''}];
@@ -9,7 +9,7 @@ async function preparar(page,{vazio=false,erro=false,nomesMinusculos=false}={}) 
     const url=new URL(route.request().url());
     if(url.pathname==='/api/ao-vivo'||url.pathname==='/api/ao-vivo/hoje') {
       if(erro)return route.fulfill({status:500,json:{erro:'Falha simulada de consulta.'}});
-      return route.fulfill({json:{data:'07/10/26',pedidos:vazio?[]:url.searchParams.get('pagina')==='2'?[{...pedido,id:104}]:pedidos,total:vazio?0:31}});
+      return route.fulfill({json:{data:'07/10/26',pedidos:vazio?[]:url.searchParams.get('pagina')==='2'?[{...pedido,id:104}]:pedidos,total:vazio?0:total}});
     }
     if(url.pathname==='/api/ao-vivo/imprimir')return route.fulfill({json:{pedidos:pedidos.filter(p=>url.searchParams.get('ids')?.split(',').includes(String(p.id))).map(p=>({...p,musicas:[p.musica_1,p.musica_2]}))}});
     if(url.pathname==='/api/ao-vivo/101')return route.fulfill({json:pedido});
@@ -22,7 +22,7 @@ async function preparar(page,{vazio=false,erro=false,nomesMinusculos=false}={}) 
 
 for(const rota of ['/ao-vivo','/ao-vivo/hoje'])test(`${rota}: nomes, local e informações legíveis em todas as telas`,async({page},testInfo)=>{
   const erros=[];page.on('pageerror',e=>erros.push(e.message));
-  await preparar(page);await page.goto(rota);
+  await preparar(page,{total:20579});await page.goto(rota);
   await expect(page.locator('.aovivo-moderna')).toContainText('MARIA APARECIDA DA SILVA DE OLIVEIRA');
   await expect(page.locator('.aovivo-moderna')).toContainText('ANA CLARA (ANIVERSÁRIO DA MÃE)');
   for(const width of [1920,1600,1280,1024,768,390,320]){
@@ -33,6 +33,7 @@ for(const rota of ['/ao-vivo','/ao-vivo/hoje'])test(`${rota}: nomes, local e inf
       await expect(page.locator('.operacao-dia-musicas').first()).toContainText('CANÇÃO ESPECIAL DE ANIVERSÁRIO');
     }
     if([1600,390].includes(width))await page.screenshot({path:testInfo.outputPath(`aovivo-${rota.endsWith('hoje')?'hoje':'lista'}-${width}.png`),fullPage:true});
+    if(rota==='/ao-vivo'&&[1600,320].includes(width))await page.getByRole('navigation',{name:'Paginação',exact:true}).screenshot({path:testInfo.outputPath(`paginacao-${width}.png`)});
   }
   expect(erros).toEqual([]);
   await page.getByRole('link',{name:rota.endsWith('hoje')?'Todos os pedidos':'Eventos de hoje',exact:true}).click();
@@ -75,6 +76,8 @@ test('filtros, limpeza e paginação continuam funcionando',async({page})=>{
   await page.getByRole('textbox',{name:'Buscar pedidos de Ao Vivo'}).fill('MARIA');await expect(page).toHaveURL(/busca=MARIA/);
   await page.getByRole('button',{name:'Limpar',exact:true}).click();await expect(filtro).toHaveValue('');await expect(page).not.toHaveURL(/busca=/);
   await page.getByRole('button',{name:/Próxima/}).click();await expect(page).toHaveURL(/pagina=2/);await expect(page.locator('.tabela-aovivo tbody tr')).toHaveCount(1);
+  await expect(page.getByRole('button',{name:/Próxima/})).toBeDisabled();
+  await page.getByRole('button',{name:/Anterior/}).click();await expect(page).toHaveURL(/pagina=1/);await expect(page.getByRole('button',{name:/Anterior/})).toBeDisabled();
 });
 
 test('seleção pelo teclado não abre pedido e impressão usa somente os selecionados',async({page})=>{

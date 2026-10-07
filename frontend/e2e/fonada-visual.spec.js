@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 
-async function preparar(page,{vazio=false,erro=false,nomesMinusculos=false}={}) {
+async function preparar(page,{vazio=false,erro=false,nomesMinusculos=false,total=31}={}) {
   await page.addInitScript(()=>{localStorage.setItem('pombo_token','token-simulado');localStorage.setItem('pombo_usuario','QA');sessionStorage.removeItem('ultimoFonadaSelecionado');});
   const pedido={id:101,senha_os:'37001',cliente_id:1,nome_comprador:'MARIA APARECIDA DA SILVA DE OLIVEIRA',comprador_celular:'(34) 9 9999-8888',p1_para:'ANA CLARA (MENSAGEM DE ANIVERSÁRIO DA MÃE)',p1_dia:'07/10/26',p1_horario:'09:30',p1_tema:'ANIVERSÁRIO ESPECIAL',p1_celular:'(34) 9 9999-8888',p1_quem_oferece:'TODA A FAMÍLIA E AMIGOS',data_pedido:'06/10/26',valor:12,pagou:'SIM',recall:'SIM',versao:1,mensagemEmHaver:{status:'DISPONIVEL',dataExpiracao:'06/01/27'}};
   const pedidos=[pedido,{...pedido,id:102,nome_comprador:'JOÃO CARLOS',pagou:'NÃO',recall:'NÃO',mensagemEmHaver:{status:'EXPIRADA',dataExpiracao:'01/10/26'}},{...pedido,id:103,nome_comprador:'LÚCIA',p2_para:'PEDRO',p2_dia:'08/10/26',p2_horario:'18:00',mensagemEmHaver:{status:'UTILIZADA'}}];
@@ -9,7 +9,7 @@ async function preparar(page,{vazio=false,erro=false,nomesMinusculos=false}={}) 
     const url=new URL(route.request().url());
     if(url.pathname==='/api/fonadas'||url.pathname==='/api/fonadas/hoje') {
       if(erro)return route.fulfill({status:500,json:{erro:'Falha simulada de consulta.'}});
-      return route.fulfill({json:{data:'07/10/26',fonadas:vazio?[]:url.searchParams.get('pagina')==='2'?[{...pedido,id:104}]:pedidos,total:vazio?0:31}});
+      return route.fulfill({json:{data:'07/10/26',fonadas:vazio?[]:url.searchParams.get('pagina')==='2'?[{...pedido,id:104}]:pedidos,total:vazio?0:total}});
     }
     if(url.pathname==='/api/fonadas/101')return route.fulfill({json:pedido});
     if(url.pathname==='/api/clientes/1')return route.fulfill({json:{cliente:{id:1,nome:pedido.nome_comprador},fonada:[],aoVivo:[]}});
@@ -21,7 +21,7 @@ async function preparar(page,{vazio=false,erro=false,nomesMinusculos=false}={}) 
 
 for(const rota of ['/fonada','/fonada/hoje'])test(`${rota}: nomes e detalhes legíveis no computador e celular`,async({page},testInfo)=>{
   const erros=[];page.on('pageerror',e=>erros.push(e.message));
-  await preparar(page);await page.goto(rota);
+  await preparar(page,{total:20579});await page.goto(rota);
   await expect(page.locator('.fonada-moderna')).toContainText('MARIA APARECIDA DA SILVA DE OLIVEIRA');
   await expect(page.locator('.fonada-moderna')).toContainText('ANA CLARA (MENSAGEM DE ANIVERSÁRIO DA MÃE)');
   for(const width of [1920,1600,1280,1024,768,390,320]){
@@ -29,6 +29,7 @@ for(const rota of ['/fonada','/fonada/hoje'])test(`${rota}: nomes e detalhes leg
     if(rota.endsWith('hoje'))for(const label of ['Para','Tema','Telefone','Oferece'])await expect(page.locator('.operacao-dia-info small').filter({hasText:new RegExp(`^${label}$`)}).first()).toBeVisible();
     expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),`Transbordamento em ${width}`).toBe(false);
     if([1600,390].includes(width))await page.screenshot({path:testInfo.outputPath(`fonada-${rota.endsWith('hoje')?'hoje':'lista'}-${width}.png`),fullPage:true});
+    if(rota==='/fonada'&&[1600,320].includes(width))await page.getByRole('navigation',{name:'Paginação',exact:true}).screenshot({path:testInfo.outputPath(`paginacao-${width}.png`)});
   }
   expect(erros).toEqual([]);
   await page.getByRole('link',{name:rota.endsWith('hoje')?'Todos os pedidos':'Mensagens de hoje',exact:true}).click();
@@ -66,6 +67,8 @@ test('todos os campos de pesquisa, limpeza e paginação continuam funcionando',
   await page.getByRole('button',{name:/Próxima/}).click();
   await expect(page).toHaveURL(/pagina=2/);
   await expect(page.locator('.tabela-fonada tbody tr')).toHaveCount(1);
+  await expect(page.getByRole('button',{name:/Próxima/})).toBeDisabled();
+  await page.getByRole('button',{name:/Anterior/}).click();await expect(page).toHaveURL(/pagina=1/);await expect(page.getByRole('button',{name:/Anterior/})).toBeDisabled();
 });
 
 test('pedido abre pelo teclado e retorno preserva o destaque da lista',async({page})=>{

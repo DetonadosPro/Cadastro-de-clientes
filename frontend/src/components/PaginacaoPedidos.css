@@ -1,0 +1,61 @@
+/* Paginação compacta das listas de pedidos. */
+@media screen {
+  .paginacao-interface:is(.lista-fonada-paginacao,.lista-aovivo-paginacao) {
+    display:grid;
+    grid-template-columns:auto minmax(90px,auto) auto;
+    width:fit-content;
+    max-width:100%;
+    min-height:44px;
+    align-items:center;
+    gap:10px;
+    margin:20px auto 0;
+    padding:0;
+    border:0;
+    border-radius:0;
+    background:transparent;
+  }
+  .paginacao-interface:is(.lista-fonada-paginacao,.lista-aovivo-paginacao) > .botao {
+    width:auto;
+    min-width:108px;
+    min-height:42px;
+    padding:10px 14px;
+    border:1px solid #dce5f4;
+    border-radius:10px;
+    background:#fff;
+    color:#3861ed;
+    font-size:12px;
+    font-weight:650;
+    box-shadow:0 2px 5px #23365705;
+  }
+  .paginacao-interface:is(.lista-fonada-paginacao,.lista-aovivo-paginacao) > .botao:hover:not(:disabled) {
+    border-color:#b8caf8;
+    background:#eef3ff;
+  }
+  .paginacao-interface:is(.lista-fonada-paginacao,.lista-aovivo-paginacao) > .botao:disabled {
+    background:#f0f3f8;
+    border-color:#e4e9f1;
+    color:#94a0b1;
+    opacity:1;
+    box-shadow:none;
+  }
+  .paginacao-interface:is(.lista-fonada-paginacao,.lista-aovivo-paginacao) .paginacao-interface-status {
+    display:flex;
+    flex-wrap:wrap;
+    align-items:baseline;
+    justify-content:center;
+    grid-column:auto;
+    grid-row:auto;
+    gap:2px 5px;
+    padding:0 6px;
+    font-variant-numeric:tabular-nums;
+    line-height:1.5;
+  }
+  .paginacao-interface:is(.lista-fonada-paginacao,.lista-aovivo-paginacao) .paginacao-interface-status strong { color:#253550; font-size:15px; }
+  .paginacao-interface:is(.lista-fonada-paginacao,.lista-aovivo-paginacao) .paginacao-interface-status span { color:#65748b; font-size:12px; }
+  .paginacao-interface:is(.lista-fonada-paginacao,.lista-aovivo-paginacao) .paginacao-interface-status small { flex-basis:100%; margin:0; text-align:center; color:#7a889b; font-size:10px; }
+  @media(max-width:600px) {
+    .paginacao-interface:is(.lista-fonada-paginacao,.lista-aovivo-paginacao) { grid-template-columns:auto minmax(80px,auto) auto; gap:6px; }
+    .paginacao-interface:is(.lista-fonada-paginacao,.lista-aovivo-paginacao) > .botao { min-width:82px; padding:10px 8px; font-size:11px; }
+    .paginacao-interface:is(.lista-fonada-paginacao,.lista-aovivo-paginacao) .paginacao-interface-status { padding:0; }
+  }
+}

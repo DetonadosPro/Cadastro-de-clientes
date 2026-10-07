@@ -7,6 +7,7 @@ import PaginaImpressaoAoVivo from './PaginaImpressaoAoVivo.jsx';
 import { AvisoInline, EstadoCarregando, EstadoVazio, Paginacao } from '../../components/Interface.jsx';
 import NavegacaoAoVivo from './NavegacaoAoVivo.jsx';
 import './aovivo.css';
+import '../../components/PaginacaoPedidos.css';
 
 function IconeBusca() {
   return (

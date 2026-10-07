@@ -5,6 +5,7 @@ import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
 import { AvisoInline, EstadoCarregando, EstadoVazio, Paginacao } from '../../components/Interface.jsx';
 import NavegacaoFonada from './NavegacaoFonada.jsx';
 import './fonada.css';
+import '../../components/PaginacaoPedidos.css';
 
 function IconeInfo() {
   return (
