@@ -732,7 +732,6 @@ export default function Agenda() {
           <div className="agenda-controles-v2"><button type="button" className="agenda-seta-dia" onClick={() => selecionarDiaAdjacente(-1)} aria-label="Dia anterior">←</button>
             <CampoData id="ag-data" className="campo-data-agenda" placeholder="dd/mm/aa" value={dataDigitada} onChange={v => {const data = formatarData(v); setDataDigitada(data); if (paraDataSemHora(data)) selecionarDataGarantindoVisibilidade(data);}}/>
             <button type="button" className="agenda-seta-dia" onClick={() => selecionarDiaAdjacente(1)} aria-label="Próximo dia">→</button><button type="button" className="ag-today" onClick={() => selecionarDataGarantindoVisibilidade(hojeFormatado())}>Hoje</button>
-            <button type="button" className="ag-button ag-novo-lembrete" onClick={abrirNovoLembrete}>+ Lembrete</button>
           </div>
         </div>
         {dataDigitada !== dataSelecionada && <p className="ag-date-hint" role="status">Informe uma data completa e válida para trocar o dia.</p>}
@@ -751,7 +750,9 @@ export default function Agenda() {
           <div className="ag-progress-card" title="Mensagens juntas contam como um compromisso."><span>Andamento do dia</span><strong>{resumo.concluidos}<small> / {resumo.total} concluídos</small></strong><b>{resumo.progresso}%</b><div className="ag-progress-track" role="progressbar" aria-label="Compromissos concluídos" aria-valuenow={resumo.progresso} aria-valuemin={0} aria-valuemax={100}><i style={{width:`${resumo.progresso}%`}}/></div></div>
         </section>
         <div className="ag-workspace-toolbar"><div className="ag-tabs" aria-label="Tipos de compromisso">{[['geral','Geral',todosItens.length],['fonada','Fonada',fonadaExibida.length],['aovivo','Ao vivo',aoVivoExibido.length],['lembretes','Lembretes',lembretesExibidos.length]].map(([id,nome,total]) => <button type="button" key={id} className={aba===id?'ativa':''} aria-pressed={aba===id} onClick={() => irParaAba(id)}>{nome}<span>{total}</span></button>)}</div>
-          <label className="ag-search"><span aria-hidden="true">⌕</span><input aria-label="Buscar na agenda" placeholder="Cliente, destinatário ou O.S." value={busca} onChange={e => mudarFiltros({q:e.target.value})}/>{busca && <button type="button" aria-label="Limpar busca" onClick={() => mudarFiltros({q:''})}>×</button>}</label>
+          <div className="ag-workspace-actions"><label className="ag-search"><span aria-hidden="true">⌕</span><input aria-label="Buscar na agenda" placeholder="Cliente, destinatário ou O.S." value={busca} onChange={e => mudarFiltros({q:e.target.value})}/>{busca && <button type="button" aria-label="Limpar busca" onClick={() => mudarFiltros({q:''})}>×</button>}</label>
+            <button type="button" className="ag-button ag-novo-lembrete" onClick={abrirNovoLembrete}>+ Lembrete</button>
+          </div>
         </div>
         {carregando && <div className="ag-updating" role="status">Atualizando agenda…</div>}
         <div className={`grid-agenda-lista-painel ${listaAtual.length === 0 ? 'sem-itens' : ''}`} inert={carregando?'':undefined}>
