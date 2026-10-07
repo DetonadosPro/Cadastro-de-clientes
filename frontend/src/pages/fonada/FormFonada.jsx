@@ -761,11 +761,11 @@ export default function FormFonada() {
           </div>
 
           {editando && (tentativas.length > 0 || dados.p1_resultado || dados.p2_resultado) && (
-            <div className="section-box">
-              <div className="section-title">
+            <details className="section-box historico-tentativas" key={id}>
+              <summary className="section-title">
                 <span>Histórico de tentativas</span>
                 <span className="aba-contagem">{itensHistorico.length}</span>
-              </div>
+              </summary>
               <div style={{ display: 'grid', gap: 8 }}>
                 {itensHistorico.map((item) => (
                   item.tipo === 'sucesso' ? (
@@ -797,7 +797,7 @@ export default function FormFonada() {
                   )
                 ))}
               </div>
-            </div>
+            </details>
           )}
         </div>
 
