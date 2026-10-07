@@ -74,14 +74,14 @@ function LinhaMensagem({ numero, para, dia, horario, bloqueada, situacao }) {
       ? 'Não disponível'
       : para || (situacao?.status === 'DISPONIVEL' ? `Disponível até ${situacao.dataExpiracao}` : situacao?.status === 'UTILIZADA' ? 'Utilizada' : '');
   return (
-    <div className={`resumo-mensagem ${indisponivel ? 'bloqueada' : ''}`}>
+    <div className={`resumo-mensagem ${indisponivel ? 'bloqueada' : ''} ${dia && !indisponivel ? 'com-data' : ''}`}>
       <span className={`ponto-msg ${indisponivel ? 'bloqueada' : (marcada ? 'usada' : 'livre')}`}>{numero}ª</span>
-      <span className="resumo-mensagem-destino">{descricao}</span>
-      {!indisponivel && (
+      {dia && !indisponivel && (
         <span className="resumo-mensagem-data">
           {dia ? `${dia}${horario ? ` • ${horario}` : ''}` : ''}
         </span>
       )}
+      <span className="resumo-mensagem-destino">{descricao}</span>
     </div>
   );
 }
