@@ -64,4 +64,26 @@ function agruparAoVivo(linhas, referencia) {
     return { ...g, ultimoPedido: g.historico[0], quantidade: g.historico.length };
   }).sort((a, b) => a.aniversariante.localeCompare(b.aniversariante, 'pt-BR') || a.clienteNome.localeCompare(b.clienteNome, 'pt-BR'));
 }
-module.exports = { ocasiaoDoTema, domingoDoMes, telefoneDoComprador, agruparAoVivo };
+function agruparAoVivoAniversario(linhas, referencia) {
+  const dm = `${referencia.slice(8,10)}/${referencia.slice(5,7)}`;
+  const grupos = new Map();
+  for (const p of linhas) {
+    const nascimento = String(p.cliente_nascimento || p.aniversario || '').trim();
+    if (nascimento.slice(0,5) !== dm || /^NAO ENTREGUE\b/.test(normalizarTexto(p.resultado_entrega))) continue;
+    // Pesquisa 2 contata exclusivamente o destinatário, nunca o comprador.
+    const telefone = telefoneDoComprador({ celular: p.celular_local });
+    if (!telefone) continue;
+    const contato = formatarNome(p.para), aniversariante = formatarNome(p.cliente_nome || p.comprador);
+    if (!/[A-Z]/.test(normalizarTexto(contato)) || !/[A-Z]/.test(normalizarTexto(aniversariante))) continue;
+    const comprador = p.cliente_id ? `ID:${p.cliente_id}` : `NOME:${chavePessoa(aniversariante)}`;
+    const chave = `AOVIVO:ANIVERSARIO:NOME:${chavePessoa(contato)}:${telefone.replace(/\D/g,'')}|PARA:${comprador}`;
+    if (!grupos.has(chave)) grupos.set(chave, { relacaoChave:chave, sistema:'AOVIVO', clienteId:null, clienteNome:contato, clienteBloqueado:false, compradorId:p.cliente_id, aniversariante, aniversarianteNascimento:nascimento, telefone, ocasiao:'ANIVERSARIO', modoFila:'ANIVERSARIO', historico:[] });
+    const temas = [p.tema_1,p.tema_2,p.tema_3,p.tema_4].filter(Boolean);
+    grupos.get(chave).historico.push({pedidoId:p.id,os:p.numero_os,data:p.dia_entrega,tema:temas.join(' · '),temas,ocasiao:'ANIVERSARIO'});
+  }
+  return [...grupos.values()].map(g=>{
+    g.historico.sort((a,b)=>String(dataBrParaIso(b.data)||'').localeCompare(String(dataBrParaIso(a.data)||''))||b.pedidoId-a.pedidoId);
+    return {...g,ultimoPedido:g.historico[0],quantidade:g.historico.length};
+  }).sort((a,b)=>a.aniversariante.localeCompare(b.aniversariante,'pt-BR')||a.clienteNome.localeCompare(b.clienteNome,'pt-BR'));
+}
+module.exports = { ocasiaoDoTema, domingoDoMes, telefoneDoComprador, agruparAoVivo, agruparAoVivoAniversario };

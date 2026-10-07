@@ -1,7 +1,21 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { ocasiaoDoTema, agruparAoVivo, domingoDoMes } = require('../src/utils/recallAoVivo');
+const { ocasiaoDoTema, agruparAoVivo, agruparAoVivoAniversario, domingoDoMes } = require('../src/utils/recallAoVivo');
 const base = { id: 1, numero_os: '123', cliente_id: 7, cliente_nome: 'katia EMILLY', comprador: 'Nome antigo', para: 'márcia', dia_entrega: '05/10/25', tema_1: 'ANIV GERAL', cliente_whatsapp: '34999999999', celular_local: '3411111111' };
+
+test('Pesquisa 2 usa aniversário do comprador e somente celular do destinatário, independentemente do tema e dia do evento',()=>{
+  const pedido={...base,cliente_nascimento:'07/10/90',aniversario_destinatario:'05/10',celular_local:'(34) 9 8888-7777',tema_1:'FORMATURA',dia_entrega:'12/03/25'};
+  const itens=agruparAoVivoAniversario([pedido,{...pedido,id:2,dia_entrega:'15/06/24'},...['',null,'   ','0','(  ) -'].map((celular_local,i)=>({...pedido,id:i+3,para:`SEM TELEFONE ${i}`,celular_local})),{...pedido,id:9,cliente_nascimento:'08/10/90'}],'2026-10-07');
+  assert.equal(itens.length,1);
+  assert.equal(itens[0].clienteNome,'MÁRCIA');
+  assert.equal(itens[0].aniversariante,'KATIA EMILLY');
+  assert.equal(itens[0].telefone,pedido.celular_local);
+  assert.equal(itens[0].quantidade,2);
+  assert.equal(itens[0].ultimoPedido.pedidoId,1);
+  assert.equal(itens[0].modoFila,'ANIVERSARIO');
+  assert.match(itens[0].relacaoChave,/^AOVIVO:ANIVERSARIO:/);
+  assert.equal(agruparAoVivoAniversario([pedido],'2026-10-05').length,0);
+});
 
 test('temas reais distinguem aniversário da mãe e Dia das Mães', () => {
   for (const tema of ['ANIV MAE', 'ANIV DE MÃE', 'ANIV ROM']) assert.equal(ocasiaoDoTema(tema), 'ANIVERSARIO');

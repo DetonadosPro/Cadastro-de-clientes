@@ -3,7 +3,7 @@ const { db } = require('../db/database');
 const { formatarNome, normalizarBusca, sqlBuscaNome, ehTemaAniversario, chavePessoa, nomePessoaValido, dataBrParaIso } = require('../utils/recall');
 const { hojeIsoBrasilia } = require('../utils/dataHora');
 const { anexarMensagensEmHaver } = require('../utils/recallMensagensEmHaver');
-const { agruparAoVivo, telefoneDoComprador } = require('../utils/recallAoVivo');
+const { agruparAoVivo, agruparAoVivoAniversario, telefoneDoComprador } = require('../utils/recallAoVivo');
 
 const router = express.Router();
 const STATUS = new Set(['PENDENTE', 'NAO_ATENDEU', 'RETORNAR', 'SEM_INTERESSE', 'INTERESSADO', 'PEDIDO_CRIADO']);
@@ -139,16 +139,19 @@ router.get('/ao-vivo/fila', async (req, res) => {
   try {
     const data = /^\d{4}-\d{2}-\d{2}$/.test(req.query.data || '') ? req.query.data : hojeIsoBrasilia();
     const resultado = await db.query(`SELECT a.id, a.numero_os, c.id cliente_id, a.comprador, a.para, a.dia_entrega,
-      a.tema_1, a.tema_2, a.tema_3, a.tema_4, a.whatsapp, a.celular, a.celular2, a.resultado_entrega,
+      a.tema_1, a.tema_2, a.tema_3, a.tema_4, a.whatsapp, a.celular, a.celular2, a.celular_local, a.aniversario, a.resultado_entrega,
       c.nome cliente_nome, c.whatsapp cliente_whatsapp, c.celular cliente_celular, c.fixo cliente_fixo,
-      COALESCE(c.bloqueado,FALSE) cliente_bloqueado
+      c.nascimento cliente_nascimento, COALESCE(c.bloqueado,FALSE) cliente_bloqueado
       FROM ao_vivo a LEFT JOIN clientes c ON c.id=a.cliente_id AND c.excluido_em IS NULL
-      WHERE a.excluido_em IS NULL AND COALESCE(a.para,'')<>'' AND COALESCE(a.dia_entrega,'')<>'' ORDER BY a.id DESC`);
+      WHERE a.excluido_em IS NULL AND COALESCE(a.para,'')<>'' ORDER BY a.id DESC`);
     const semFicha = resultado.rows.filter((p) => !p.cliente_id).map((p) => ({ ...p, cliente_nome: p.comprador, telefone: telefoneDoComprador(p) }));
     const vinculados = new Map((await vincularClientesPorTelefone(semFicha)).map((p) => [p.id, p]));
     const linhas = resultado.rows.map((p) => vinculados.get(p.id) || p);
     const itens = await anexarStatus(agruparAoVivo(linhas, data), data);
-    res.json({ data, itens });
+    const gruposAniversario = agruparAoVivoAniversario(resultado.rows, data);
+    const contatos = await vincularClientesPorTelefone(gruposAniversario.map(g=>({...g,cliente_nome:g.clienteNome,telefone:g.telefone})));
+    const porAniversario = await anexarStatus(contatos.map(g=>({...g,clienteId:g.cliente_id||null,clienteBloqueado:Boolean(g.cliente_bloqueado)})),data);
+    res.json({ data, itens, porDiaMensagem:itens, porAniversario });
   } catch (erro) {
     console.error('Erro fila Recall Ao Vivo:', erro);
     res.status(500).json({ erro: 'Não foi possível montar o Recall de Ao Vivo.' });
