@@ -32,7 +32,14 @@
 .recall-moderna .recall-sistemas .aba-cliente-botao { min-width:125px; min-height:40px; padding:9px 20px; border:0; border-radius:8px; background:transparent; color:#617087; font-size:13px; font-weight:650; }
 .recall-moderna .recall-sistemas .aba-cliente-botao.ativa { color:#2c51ce; background:white; box-shadow:0 2px 6px #23365712; }
 
-.recall-moderna .recall-dias-navegacao { display:flex; align-items:center; gap:12px; padding:16px; margin:0 0 18px; border:1px solid var(--rc-border); border-radius:15px; background:white; }
+.recall-moderna .recall-dias-navegacao { display:grid; grid-template-columns:auto 34px minmax(0,1fr) 34px; align-items:center; gap:12px; padding:16px; margin:0 0 18px; border:1px solid var(--rc-border); border-radius:15px; background:white; }
+.recall-moderna .recall-modalidades { display:flex; gap:3px; padding:4px; border-radius:10px; background:#eef2f8; }
+.recall-moderna .recall-modalidades button { min-height:44px; padding:8px 13px; border:0; border-radius:7px; background:transparent; color:var(--rc-muted); font-size:12px; font-weight:650; white-space:nowrap; }
+.recall-moderna .recall-modalidades button[aria-selected="true"] { background:white; color:#3157d1; box-shadow:0 2px 6px #23365712; }
+@media(max-width:1100px) {
+  .recall-moderna .recall-dias-navegacao { grid-template-columns:34px minmax(0,1fr) 34px; }
+  .recall-moderna .recall-modalidades { grid-column:1 / -1; justify-self:start; }
+}
 .recall-moderna .recall-dias { display:flex; flex:1; gap:8px; margin:0; padding:3px; min-width:0; overflow-x:auto; scrollbar-width:thin; }
 .recall-moderna .recall-dias button { flex:1 0 75px; min-width:75px; min-height:60px; padding:8px 14px; border:1px solid #e7ecf4; border-radius:10px; background:#f8fafd; color:var(--rc-muted); box-shadow:none; }
 .recall-moderna .recall-dias button small { font-size:11px; font-weight:500; margin-bottom:5px; }
@@ -157,7 +164,7 @@
   .recall-moderna .cabecalho-pagina h1 { font-size:23px; }
   .recall-moderna .recall-sistemas { flex-wrap:wrap; gap:9px; }
   .recall-moderna .recall-sistemas > span { font-size:10px; }
-  .recall-moderna .recall-dias-navegacao { gap:6px; padding:10px 8px; border-radius:12px; }
+  .recall-moderna .recall-dias-navegacao { grid-template-columns:27px minmax(0,1fr) 27px; gap:6px; padding:10px 8px; border-radius:12px; }
   .recall-moderna .recall-dias button { flex-basis:64px; min-width:64px; min-height:54px; padding:8px; }
   .recall-moderna .recall-dias-seta { flex-basis:27px; width:27px; }
   .recall-moderna .recall-fontes.recall-seletor-pesquisas { gap:8px; }

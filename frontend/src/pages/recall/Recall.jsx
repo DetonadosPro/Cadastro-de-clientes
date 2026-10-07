@@ -24,10 +24,9 @@ function normalizarBusca(valor) { return String(valor||'').normalize('NFD').repl
 function correspondeBusca(valor, termo) { const alvo=normalizarBusca(valor); const compacto=(texto)=>texto.replace(/[^a-z0-9]/g,''); return alvo.includes(termo)||compacto(alvo).includes(compacto(termo)); }
 
 export default function Recall() {
-  const [params, setParams] = useSearchParams();
+  const [params] = useSearchParams();
   const sistema = params.get('sistema') === 'AOVIVO' ? 'AOVIVO' : 'FONADA';
   return <div className="recall-page recall-moderna">
-    <div className="central-cobranca-navegacao recall-sistemas"><div className="abas-cliente" role="tablist" aria-label="Tipo de Recall">{[['FONADA', 'Fonada'], ['AOVIVO', 'Ao Vivo']].map(([valor, rotulo]) => <button key={valor} role="tab" aria-selected={sistema === valor} className={`aba-cliente-botao ${sistema === valor ? 'ativa' : ''}`} onClick={() => setParams((p) => { const n = new URLSearchParams(p); n.set('sistema', valor); n.delete('relacao'); n.delete('busca'); n.delete('modo'); return n; }, { replace: true })}>{rotulo}</button>)}</div><span>Escolha a modalidade do relacionamento</span></div>
     {sistema === 'AOVIVO' ? <RecallAoVivo /> : <RecallFonada />}
   </div>;
 }

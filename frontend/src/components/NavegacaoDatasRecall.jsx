@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 const hoje = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
 function somarDias(iso, quantidade) {
@@ -8,10 +9,15 @@ function somarDias(iso, quantidade) {
 }
 
 export default function NavegacaoDatasRecall({ data, onChange }) {
+  const [params, setParams] = useSearchParams();
+  const sistema = params.get('sistema') === 'AOVIVO' ? 'AOVIVO' : 'FONADA';
   const referencia = hoje();
   const [inicio, setInicio] = useState(() => Math.max(-7, Math.min(0, Math.round((new Date(`${data}T12:00:00`) - new Date(`${referencia}T12:00:00`)) / 86400000) || 0)));
   const dias = Array.from({ length: 7 }, (_, i) => somarDias(referencia, inicio + i));
   return <div className="recall-dias-navegacao">
+    <div className="recall-modalidades" role="tablist" aria-label="Tipo de Recall">
+      {[['FONADA', 'Fonada'], ['AOVIVO', 'Ao Vivo']].map(([valor, rotulo]) => <button key={valor} type="button" role="tab" aria-selected={sistema === valor} onClick={() => setParams((p) => { const n = new URLSearchParams(p); n.set('sistema', valor); n.delete('relacao'); n.delete('busca'); n.delete('modo'); return n; }, { replace: true })}>{rotulo}</button>)}
+    </div>
     <button type="button" className="recall-dias-seta" onClick={() => setInicio((v) => Math.max(-7, v - 1))} disabled={inicio <= -7} aria-label="Mostrar dias anteriores" title="Mostrar dias anteriores">←</button>
     <div className="recall-dias">{dias.map((dia) => {
       const valor = new Date(`${dia}T12:00:00`);

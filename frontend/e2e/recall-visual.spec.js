@@ -22,7 +22,7 @@ for(const sistema of ['FONADA','AOVIVO'])for(const modo of ['dia-mensagem','aniv
     await preparar(page);
     await page.goto(`/recall?sistema=${sistema}&data=2026-10-07&modo=${modo}`);
     await expect(page.getByRole('tab',{name:/Pesquisa 1/})).toBeVisible({timeout:15000});
-    await expect(page.getByRole('tab',{name:/Pesquisa 1/})).toBeVisible();
+    await expect(page.locator('.recall-dias-navegacao').getByRole('tab',{name:sistema==='FONADA'?'Fonada':'Ao Vivo',exact:true})).toHaveAttribute('aria-selected','true');
     await expect(page.getByRole('tab',{name:/Pesquisa 2/})).toHaveAttribute('aria-selected',String(modo==='aniversario'));
     await expect(page.locator('.recall-linha')).toHaveCount(modo==='aniversario'?1:2);
     if(modo==='dia-mensagem'){
@@ -39,6 +39,7 @@ for(const sistema of ['FONADA','AOVIVO'])for(const modo of ['dia-mensagem','aniv
     }
     for(const width of [1720,1440,1024,768,390,320]){
       await page.setViewportSize({width,height:1000});
+      await page.evaluate(()=>{ window.scrollTo(0,0); document.querySelectorAll('*').forEach(el=>el.scrollTop=0); });
       expect(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1),`Transbordamento em ${width}px`).toBe(false);
       if(width===1720||width===390)await page.screenshot({path:testInfo.outputPath(`recall-${sistema}-${modo}-${width}.png`),fullPage:true});
     }
