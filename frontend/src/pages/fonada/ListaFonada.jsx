@@ -2,7 +2,9 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../api.js';
 import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
-import { AvisoInline, CabecalhoPagina, EstadoCarregando, EstadoVazio, Paginacao } from '../../components/Interface.jsx';
+import { AvisoInline, EstadoCarregando, EstadoVazio, Paginacao } from '../../components/Interface.jsx';
+import NavegacaoFonada from './NavegacaoFonada.jsx';
+import './fonada.css';
 
 function IconeInfo() {
   return (
@@ -186,14 +188,10 @@ export default function ListaFonada() {
     : 'Buscar por nome do comprador, destinatário ou telefone...';
 
   return (
-    <div className="lista-fonada-pagina">
-      <CabecalhoPagina
-        contexto="Pedidos"
-        titulo="Fonada"
-        descricao="Encontre pedidos, acompanhe as duas transmissões e confira pagamentos em uma única lista."
-        meta={!carregando ? `${total} pedido${total === 1 ? '' : 's'}` : null}
-      />
+    <div className="lista-fonada-pagina fonada-moderna">
+      <NavegacaoFonada>{carregando ? 'Consultando pedidos…' : `${total} pedido${total === 1 ? '' : 's'}`}</NavegacaoFonada>
 
+      <div className="fonada-filtros">
       <div className="lista-fonada-busca">
         <select
           aria-label="Campo de busca de Fonada"
@@ -208,6 +206,7 @@ export default function ListaFonada() {
         <div className="lista-fonada-campo-busca">
           <IconeBusca />
           <input
+            aria-label="Buscar pedidos de Fonada"
             type="text"
             placeholder={placeholderBusca}
             value={busca}
@@ -221,13 +220,14 @@ export default function ListaFonada() {
       <div className="lista-fonada-meta">
         <div className="legenda-chip">
           <IconeInfo />
-          <span><span className="bolinha-status usada" /> MARCADA</span>
-          <span><span className="bolinha-status livre" /> DISPONÍVEL</span>
+          <span><span className="bolinha-status usada" /> Marcada</span>
+          <span><span className="bolinha-status livre" /> Disponível</span>
         </div>
         {!carregando && <span className="lista-fonada-total">{total} pedido(s) encontrado(s)</span>}
       </div>
+      </div>
 
-      {erro && <AvisoInline tom="erro" titulo="Não foi possível carregar os pedidos">{erro}</AvisoInline>}
+      {erro && <AvisoInline tom="erro" titulo="Não foi possível carregar os pedidos" acao={<button type="button" className="btn secundario" onClick={() => carregar(buscaUrl,paginaUrl,campoUrl)}>Tentar novamente</button>}>{erro}</AvisoInline>}
 
       {carregando ? (
         <EstadoCarregando rotulo="Carregando pedidos de Fonada…" linhas={7} />
@@ -259,6 +259,9 @@ export default function ListaFonada() {
                   <tr
                     key={p.id}
                     id={`fonada-${p.id}`}
+                    tabIndex={0}
+                    aria-label={`Abrir pedido ${p.senha_os || p.id} de ${p.nome_comprador || 'cliente não informado'}`}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } }}
                     className={ultimoSelecionado === String(p.id) ? 'linha-ultimo-selecionado' : ''}
                     onClick={() => {
                       sessionStorage.setItem('ultimoFonadaSelecionado', String(p.id));

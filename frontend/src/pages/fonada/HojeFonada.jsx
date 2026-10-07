@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api.js';
 import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
-import { AvisoInline, CabecalhoPagina, EstadoCarregando, EstadoVazio } from '../../components/Interface.jsx';
+import { AvisoInline, EstadoCarregando, EstadoVazio } from '../../components/Interface.jsx';
+import NavegacaoFonada from './NavegacaoFonada.jsx';
+import './fonada.css';
 
 export default function HojeFonada() {
   const [dataRef, setDataRef] = useState('');
@@ -23,8 +25,8 @@ export default function HojeFonada() {
   }, []);
 
   return (
-    <div className="operacao-dia-pagina">
-      <CabecalhoPagina contexto="Operação diária" titulo="Fonada de hoje" descricao="Mensagens organizadas por horário para uma leitura operacional rápida." meta={dataRef || null} />
+    <div className="operacao-dia-pagina fonada-moderna">
+      <NavegacaoFonada>{carregando ? 'Consultando mensagens…' : `${dataRef} · ${itens.length} pedido${itens.length === 1 ? '' : 's'} hoje`}</NavegacaoFonada>
 
       {erro && <AvisoInline tom="erro" titulo="Não foi possível montar a lista">{erro}</AvisoInline>}
 

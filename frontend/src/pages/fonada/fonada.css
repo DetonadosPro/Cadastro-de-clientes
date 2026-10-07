@@ -1,0 +1,90 @@
+/* Visual das listas de Fonada, isolado da edição dos pedidos. */
+.fonada-moderna { --fn-blue:#3861ed; --fn-text:#253550; --fn-muted:#65748b; --fn-border:#e2e8f2; --carimbo:#3861ed; --carimbo-suave:#eef3ff; color:var(--fn-text); text-transform:none; }
+.fonada-moderna :where(button,input,select,a,span,strong,small,p,th,td) { font-family:inherit; text-transform:none; }
+.fonada-moderna :where(button,input,select,a,tr):focus-visible { outline:3px solid #99b2ff; outline-offset:3px; }
+.fonada-navegacao { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:18px; }
+.fonada-abas { display:flex; gap:4px; padding:5px; border:1px solid var(--fn-border); border-radius:12px; background:#eef2f8; }
+.fonada-abas a { padding:10px 17px; border-radius:8px; color:var(--fn-muted); text-decoration:none; font-size:12px; font-weight:650; }
+.fonada-abas a.active { background:white; color:#3157d1; box-shadow:0 2px 6px #23365712; }
+.fonada-navegacao-meta { font-size:11px; color:var(--fn-muted); font-variant-numeric:tabular-nums; }
+.fonada-filtros { padding:16px; margin-bottom:18px; border:1px solid var(--fn-border); border-radius:14px; background:white; }
+.fonada-moderna .lista-fonada-busca { display:grid; grid-template-columns:220px minmax(0,1fr) auto; gap:10px; margin-bottom:12px; }
+.fonada-moderna .lista-fonada-busca :is(input,select) { min-height:42px; height:42px; border:1px solid #dce4ef; border-radius:9px; background:#fbfcfe; font-size:12px; color:var(--fn-text); }
+.fonada-moderna .lista-fonada-campo-busca .busca-input { padding-left:36px; }
+.fonada-moderna .btn { border-radius:8px; font-size:11px; font-weight:600; }
+.fonada-moderna .lista-fonada-meta { margin:0; gap:10px; flex-wrap:wrap; }
+.fonada-moderna .legenda-chip { display:flex; align-items:center; flex-wrap:wrap; gap:14px; padding:0; border:0; background:transparent; font-size:10px; color:var(--fn-muted); }
+.fonada-moderna .lista-fonada-total { font-size:10px; color:var(--fn-muted); }
+.fonada-moderna .lista-fonada-tabela-painel { border:1px solid var(--fn-border); border-radius:14px; background:white; box-shadow:0 3px 16px #22345104; }
+.fonada-moderna .tabela-fonada { width:100%; table-layout:fixed; border-collapse:collapse; }
+.fonada-moderna .tabela-fonada th { padding:13px 12px; background:#f8fafd; color:#6b7c94; font-size:10px; font-weight:600; border-bottom:1px solid var(--fn-border); }
+.fonada-moderna .tabela-fonada th:nth-child(1) { width:8%; }
+.fonada-moderna .tabela-fonada th:nth-child(2) { width:23%; }
+.fonada-moderna .tabela-fonada th:nth-child(3) { width:36%; }
+.fonada-moderna .tabela-fonada th:nth-child(4) { width:10%; }
+.fonada-moderna .tabela-fonada th:nth-child(5) { width:7%; }
+.fonada-moderna .tabela-fonada th:nth-child(6) { width:8%; }
+.fonada-moderna .tabela-fonada th:nth-child(7) { width:8%; }
+.fonada-moderna .tabela-fonada td { padding:15px 12px; border-bottom:1px solid #edf0f6; color:#465973; font-size:12px; vertical-align:middle; white-space:normal; overflow-wrap:anywhere; }
+.fonada-moderna .tabela-fonada tbody tr { cursor:pointer; transition:background .15s; }
+.fonada-moderna .tabela-fonada tbody tr:hover { background:#f8faff; }
+.fonada-moderna .tabela-fonada tbody tr.linha-ultimo-selecionado { background:#eef3ff; box-shadow:inset 3px 0 #3861ed; }
+.fonada-moderna .tabela-fonada tbody tr:last-child td { border-bottom:0; }
+.fonada-moderna .lista-fonada-cliente-nome { color:var(--fn-text); font-size:13px; font-weight:650; line-height:1.5; }
+.fonada-moderna .lista-fonada-cliente-contato { color:var(--fn-muted); font-size:11px; margin-top:4px; }
+.fonada-moderna .resumo-mensagens { display:grid; gap:8px; }
+.fonada-moderna .resumo-mensagem { grid-template-columns:27px minmax(0,1fr); gap:4px 8px; line-height:1.5; }
+.fonada-moderna .resumo-mensagem-destino { overflow:visible; text-overflow:clip; white-space:normal; overflow-wrap:anywhere; font-size:12px; color:#36516f; }
+.fonada-moderna .resumo-mensagem-data { grid-column:2; font-size:10px; color:#7b8ca3; white-space:normal; }
+.fonada-moderna .ponto-msg { width:27px; min-width:27px; border-radius:7px; padding:4px 0; font-size:9px; }
+.fonada-moderna .resumo-mensagem.bloqueada .resumo-mensagem-destino { color:#8994a5; font-size:11px; }
+.fonada-moderna .carimbo-os { padding:5px 7px; border:1px solid #dce5f7; border-radius:7px; background:#f5f8ff; color:#5678b9; font-size:10px; }
+.fonada-moderna .tag { padding:4px 7px; border-radius:6px; font-size:9px; font-weight:600; white-space:normal; }
+.fonada-moderna .tag.ok { background:#effaf5; color:#278568; border-color:#cfebdf; }
+.fonada-moderna .tag.pendente { background:#fff5e6; color:#a77b33; border-color:#f2e2c4; }
+.fonada-moderna .lista-fonada-paginacao { padding:14px 0 0; color:var(--fn-muted); font-size:11px; }
+.fonada-moderna .estado-vazio { padding:35px 20px; border:1px dashed var(--fn-border); border-radius:14px; background:white; }
+.fonada-moderna .operacao-dia-lista { gap:12px; }
+.fonada-moderna .operacao-dia-item { border:1px solid var(--fn-border); border-radius:14px; box-shadow:0 3px 14px #21355004; background:white; }
+.fonada-moderna .operacao-dia-item:hover { border-color:#b8c9f1; background:#fbfcff; }
+.fonada-moderna .operacao-dia-horario { border-color:#e6edf7; background:#f4f7fe; border-radius:13px 0 0 13px; }
+.fonada-moderna .operacao-dia-horario strong { color:#3861ed; font-family:inherit; font-size:21px; font-weight:700; }
+.fonada-moderna .operacao-dia-horario small { font-size:10px; font-weight:500; text-transform:none; }
+.fonada-moderna .operacao-dia-corpo { gap:13px; padding:16px; }
+.fonada-moderna .operacao-dia-topo { flex-wrap:wrap; }
+.fonada-moderna .operacao-dia-topo > strong { font-size:14px; font-weight:650; overflow:visible; white-space:normal; overflow-wrap:anywhere; }
+.fonada-moderna .operacao-dia-info:nth-child(n) { display:grid; align-content:start; }
+.fonada-moderna .operacao-dia-info small { font-size:10px; font-weight:500; letter-spacing:0; text-transform:none; color:var(--fn-muted); }
+.fonada-moderna .operacao-dia-info strong { font-size:12px; font-weight:550; overflow:visible; white-space:normal; overflow-wrap:anywhere; line-height:1.5; }
+@media(max-width:1000px) {
+  .fonada-moderna .lista-fonada-tabela-painel { border:0; border-radius:0; background:transparent; box-shadow:none; }
+  .fonada-moderna .tabela-fonada,.fonada-moderna .tabela-fonada tbody { display:block; border:0; background:transparent; }
+  .fonada-moderna .tabela-fonada thead { display:none; }
+  .fonada-moderna .tabela-fonada tbody { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+  .fonada-moderna .tabela-fonada tbody tr { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; padding:15px; border:1px solid var(--fn-border); border-radius:13px; background:white; }
+  .fonada-moderna .tabela-fonada td { display:block; min-width:0; padding:0; border:0; width:auto; grid-column:auto; }
+  .fonada-moderna .tabela-fonada td::before { display:block; content:attr(data-label); color:var(--fn-muted); font-size:9px; margin-bottom:4px; }
+  .fonada-moderna .tabela-fonada td[data-label="O.S."] { grid-column:1; grid-row:1; }
+  .fonada-moderna .tabela-fonada td[data-label="Pagou"] { grid-column:2; grid-row:1; text-align:right; }
+  .fonada-moderna .tabela-fonada td[data-label="Cliente"] { grid-column:1/-1; grid-row:2; }
+  .fonada-moderna .tabela-fonada td[data-label="Transmissões"] { grid-column:1/-1; grid-row:3; padding:10px 0; border-block:1px solid #edf0f6; }
+  .fonada-moderna .tabela-fonada td[data-label="Venda"] { grid-column:1; grid-row:4; text-align:left; }
+  .fonada-moderna .tabela-fonada td[data-label="Valor"] { grid-column:2; grid-row:4; text-align:right; }
+  .fonada-moderna .tabela-fonada td[data-label="Recall"] { grid-column:1/-1; grid-row:5; }
+}
+
+@media(max-width:600px) {
+  .fonada-navegacao { gap:9px; margin-bottom:12px; }
+  .fonada-abas { width:100%; }
+  .fonada-abas a { flex:1; text-align:center; padding:10px 8px; font-size:11px; }
+  .fonada-filtros { padding:12px; }
+  .fonada-moderna .lista-fonada-busca { grid-template-columns:minmax(0,1fr) auto; }
+  .fonada-moderna .lista-fonada-busca > select { grid-column:1/-1; }
+  .fonada-moderna .tabela-fonada tbody { grid-template-columns:1fr; }
+  .fonada-moderna .operacao-dia-item { grid-template-columns:65px minmax(0,1fr) 17px; }
+  .fonada-moderna .operacao-dia-horario { padding:10px 5px; }
+  .fonada-moderna .operacao-dia-horario strong { font-size:16px; }
+  .fonada-moderna .operacao-dia-corpo { padding:12px; }
+  .fonada-moderna .operacao-dia-infos { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+}
+@media(max-width:400px) { .fonada-moderna .operacao-dia-infos { grid-template-columns:1fr; } }
