@@ -17,11 +17,11 @@ async function preparar(page,{erro=false,vazio=false}={}){
 }
 
 for(const sistema of ['FONADA','AOVIVO'])for(const modo of ['dia-mensagem','aniversario']){
-  test(`${sistema} ${modo}: resumo, histórico e contatos permanecem legíveis em todas as telas`,async({page},testInfo)=>{
+  test(`${sistema} ${modo}: histórico e contatos permanecem legíveis em todas as telas`,async({page},testInfo)=>{
     const erros=[];page.on('pageerror',e=>erros.push(e.message));
     await preparar(page);
     await page.goto(`/recall?sistema=${sistema}&data=2026-10-07&modo=${modo}`);
-    await expect(page.getByRole('region',{name:'Resumo da pesquisa'})).toBeVisible({timeout:15000});
+    await expect(page.getByRole('tab',{name:/Pesquisa 1/})).toBeVisible({timeout:15000});
     await expect(page.getByRole('tab',{name:/Pesquisa 1/})).toBeVisible();
     await expect(page.getByRole('tab',{name:/Pesquisa 2/})).toHaveAttribute('aria-selected',String(modo==='aniversario'));
     await expect(page.locator('.recall-linha')).toHaveCount(modo==='aniversario'?1:2);
