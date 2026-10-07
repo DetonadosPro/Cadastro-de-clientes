@@ -44,10 +44,10 @@ export default function HojeFonada() {
                 <span className="operacao-dia-corpo">
                   <span className="operacao-dia-topo"><span className="carimbo-os carimbo-os-lista">O.S. {p.senha_os || p.id}</span><strong>{p.nome_comprador || 'Cliente não informado'}</strong></span>
                   <span className="operacao-dia-infos">
-                    <InfoCompacto label="Para" valor={ehHoje1 ? p.p1_para : p.p2_para} />
+                    <InfoCompacto label="Para" valor={ehHoje1 ? p.p1_para : p.p2_para} nome />
                     <InfoCompacto label="Tema" valor={ehHoje1 ? p.p1_tema : p.p2_tema} />
                     <InfoCompacto label="Telefone" valor={ehHoje1 ? p.p1_celular : p.p2_celular} />
-                    <InfoCompacto label="Oferece" valor={ehHoje1 ? p.p1_quem_oferece : p.p2_quem_oferece} />
+                    <InfoCompacto label="Oferece" valor={ehHoje1 ? p.p1_quem_oferece : p.p2_quem_oferece} nome />
                   </span>
                 </span>
                 <span className="operacao-dia-abrir" aria-hidden="true">›</span>
@@ -61,8 +61,8 @@ export default function HojeFonada() {
   );
 }
 
-function InfoCompacto({ label, valor }) {
+function InfoCompacto({ label, valor, nome = false }) {
   return (
-    <span className="operacao-dia-info"><small>{label}</small><strong>{valor || '—'}</strong></span>
+    <span className={`operacao-dia-info${nome ? ' operacao-dia-info-nome' : ''}`}><small>{label}</small><strong>{valor || '—'}</strong></span>
   );
 }

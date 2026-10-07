@@ -77,7 +77,7 @@ function LinhaMensagem({ numero, para, dia, horario, bloqueada, situacao }) {
     <div className={`resumo-mensagem ${indisponivel ? 'bloqueada' : ''}`}>
       <span className={`ponto-msg ${indisponivel ? 'bloqueada' : (marcada ? 'usada' : 'livre')}`}>{numero}ª</span>
       <span className="resumo-mensagem-conteudo">
-      <span className="resumo-mensagem-destino">{descricao}</span>
+      <span className={`resumo-mensagem-destino${para && !indisponivel ? ' resumo-mensagem-nome' : ''}`}>{descricao}</span>
       {dia && !indisponivel && (
         <span className="resumo-mensagem-data">
           {dia ? `${dia}${horario ? ` • ${horario}` : ''}` : ''}

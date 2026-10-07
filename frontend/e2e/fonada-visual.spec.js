@@ -1,9 +1,10 @@
 import {test,expect} from '@playwright/test';
 
-async function preparar(page,{vazio=false,erro=false}={}) {
+async function preparar(page,{vazio=false,erro=false,nomesMinusculos=false}={}) {
   await page.addInitScript(()=>{localStorage.setItem('pombo_token','token-simulado');localStorage.setItem('pombo_usuario','QA');sessionStorage.removeItem('ultimoFonadaSelecionado');});
   const pedido={id:101,senha_os:'37001',cliente_id:1,nome_comprador:'MARIA APARECIDA DA SILVA DE OLIVEIRA',comprador_celular:'(34) 9 9999-8888',p1_para:'ANA CLARA (MENSAGEM DE ANIVERSÁRIO DA MÃE)',p1_dia:'07/10/26',p1_horario:'09:30',p1_tema:'ANIVERSÁRIO ESPECIAL',p1_celular:'(34) 9 9999-8888',p1_quem_oferece:'TODA A FAMÍLIA E AMIGOS',data_pedido:'06/10/26',valor:12,pagou:'SIM',recall:'SIM',versao:1,mensagemEmHaver:{status:'DISPONIVEL',dataExpiracao:'06/01/27'}};
   const pedidos=[pedido,{...pedido,id:102,nome_comprador:'JOÃO CARLOS',pagou:'NÃO',recall:'NÃO',mensagemEmHaver:{status:'EXPIRADA',dataExpiracao:'01/10/26'}},{...pedido,id:103,nome_comprador:'LÚCIA',p2_para:'PEDRO',p2_dia:'08/10/26',p2_horario:'18:00',mensagemEmHaver:{status:'UTILIZADA'}}];
+  if(nomesMinusculos)for(const p of pedidos)for(const campo of ['nome_comprador','p1_para','p2_para','p1_quem_oferece'])if(p[campo])p[campo]=p[campo].toLocaleLowerCase('pt-BR');
   await page.route('**/api/**',async route=>{
     const url=new URL(route.request().url());
     if(url.pathname==='/api/fonadas'||url.pathname==='/api/fonadas/hoje') {
@@ -32,6 +33,22 @@ for(const rota of ['/fonada','/fonada/hoje'])test(`${rota}: nomes e detalhes leg
   expect(erros).toEqual([]);
   await page.getByRole('link',{name:rota.endsWith('hoje')?'Todos os pedidos':'Mensagens de hoje',exact:true}).click();
   await expect(page).toHaveURL(rota.endsWith('hoje')?/\/fonada$/:/\/fonada\/hoje$/);
+});
+
+test('nomes de clientes, destinatários e oferecimento permanecem em caixa alta',async({page})=>{
+  await preparar(page,{nomesMinusculos:true});
+  for(const rota of ['/fonada','/fonada/hoje']) {
+    await page.goto(rota);
+    const seletor=rota.endsWith('hoje')?'.operacao-dia-topo > strong,.operacao-dia-info-nome strong':'.lista-fonada-cliente-nome,.resumo-mensagem-nome';
+    await expect(page.locator(seletor).first()).toBeVisible();
+    for(const width of [1600,390]) {
+      await page.setViewportSize({width,height:1000});
+      for(const nome of await page.locator(seletor).all()) {
+        const texto=await nome.textContent();await expect(nome).toHaveCSS('text-transform','uppercase');
+        expect(await nome.innerText()).toBe(texto.toLocaleUpperCase('pt-BR'));
+      }
+    }
+  }
 });
 
 test('todos os campos de pesquisa, limpeza e paginação continuam funcionando',async({page})=>{

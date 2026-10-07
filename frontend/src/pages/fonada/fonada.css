@@ -57,6 +57,10 @@
 .fonada-moderna .operacao-dia-info:nth-child(n) { display:grid; align-content:start; }
 .fonada-moderna .operacao-dia-info small { font-size:10px; font-weight:500; letter-spacing:0; text-transform:none; color:var(--fn-muted); }
 .fonada-moderna .operacao-dia-info strong { font-size:12px; font-weight:550; overflow:visible; white-space:normal; overflow-wrap:anywhere; line-height:1.5; }
+.fonada-moderna .lista-fonada-cliente-nome,
+.fonada-moderna .resumo-mensagem-nome,
+.fonada-moderna .operacao-dia-topo > strong,
+.fonada-moderna .operacao-dia-info-nome strong { text-transform:uppercase; }
 @media(max-width:1000px) {
   .fonada-moderna .lista-fonada-tabela-painel { border:0; border-radius:0; background:transparent; box-shadow:none; }
   .fonada-moderna .tabela-fonada,.fonada-moderna .tabela-fonada tbody { display:block; border:0; background:transparent; }

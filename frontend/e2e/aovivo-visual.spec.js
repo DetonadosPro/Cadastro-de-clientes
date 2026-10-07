@@ -1,9 +1,10 @@
 import {test,expect} from '@playwright/test';
 
-async function preparar(page,{vazio=false,erro=false}={}) {
+async function preparar(page,{vazio=false,erro=false,nomesMinusculos=false}={}) {
   await page.addInitScript(()=>{localStorage.setItem('pombo_token','token-simulado');localStorage.setItem('pombo_usuario','QA');sessionStorage.removeItem('ultimoAoVivoSelecionado');window.impressoesTeste=0;window.print=()=>{window.impressoesTeste++;};});
   const pedido={id:101,numero_os:'27001',cliente_id:1,comprador:'MARIA APARECIDA DA SILVA DE OLIVEIRA',celular:'(34) 9 9999-8888',para:'ANA CLARA (ANIVERSÁRIO DA MÃE)',dia_entrega:'07/10/26',horario_entrega:'18:30',endereco:'RUA DAS FLORES, 123 — CASA DO FUNDO',bairro:'JARDIM UBERABA',referencia:'PERTO DA PRAÇA CENTRAL, PORTÃO AZUL',musica_1:'CANÇÃO ESPECIAL DE ANIVERSÁRIO',musica_2:'MÚSICA PARA TODA A FAMÍLIA',valor:105,pagou:'SIM',pagamento:'PIX',resultado_entrega:'ENTREGUE AUTOMATICAMENTE',versao:1};
   const pedidos=[pedido,{...pedido,id:102,numero_os:'27002',comprador:'JOÃO CARLOS',pagou:'NÃO',pagamento:'PRAZO',resultado_entrega:'NÃO ENTREGUE'},{...pedido,id:103,numero_os:'27003',comprador:'LÚCIA',resultado_entrega:''}];
+  if(nomesMinusculos)for(const p of pedidos)for(const campo of ['comprador','para'])p[campo]=p[campo].toLocaleLowerCase('pt-BR');
   await page.route('**/api/**',async route=>{
     const url=new URL(route.request().url());
     if(url.pathname==='/api/ao-vivo'||url.pathname==='/api/ao-vivo/hoje') {
@@ -36,6 +37,33 @@ for(const rota of ['/ao-vivo','/ao-vivo/hoje'])test(`${rota}: nomes, local e inf
   expect(erros).toEqual([]);
   await page.getByRole('link',{name:rota.endsWith('hoje')?'Todos os pedidos':'Eventos de hoje',exact:true}).click();
   await expect(page).toHaveURL(rota.endsWith('hoje')?/\/ao-vivo$/:/\/ao-vivo\/hoje$/);
+});
+
+test('entrega após o horário, alinhada entre pedidos, e nomes em caixa alta',async({page},testInfo)=>{
+  await preparar(page,{nomesMinusculos:true});await page.goto('/ao-vivo');
+  for(const width of [1600,1280,1024,768,390,320]) {
+    await page.setViewportSize({width,height:1000});
+    const eventos=await page.locator('.lista-aovivo-evento').evaluateAll(els=>els.map(el=>{
+      const data=el.querySelector('.lista-aovivo-evento-data').getBoundingClientRect();
+      const tag=el.querySelector('.tag').getBoundingClientRect();
+      const linha=el.closest('tr').getBoundingClientRect();
+      return {dataFim:data.right,dataCentro:data.y+data.height/2,tagX:tag.x,tagCentro:tag.y+tag.height/2,tagFim:tag.right,linhaFim:linha.right,deslocamento:tag.x-linha.x};
+    }));
+    for(const e of eventos) {
+      expect(e.tagX).toBeGreaterThan(e.dataFim);
+      expect(Math.abs(e.dataCentro-e.tagCentro)).toBeLessThan(1);
+      expect(e.tagFim).toBeLessThanOrEqual(e.linhaFim);
+      expect(Math.abs(e.deslocamento-eventos[0].deslocamento)).toBeLessThan(1);
+    }
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1)).toBe(false);
+    for(const nome of await page.locator('.lista-aovivo-cliente-nome,.lista-aovivo-destino').all()) {
+      const texto=await nome.textContent();await expect(nome).toHaveCSS('text-transform','uppercase');
+      expect(await nome.innerText()).toBe(texto.toLocaleUpperCase('pt-BR'));
+    }
+    if([1600,320].includes(width))await page.screenshot({path:testInfo.outputPath(`entrega-alinhada-${width}.png`),fullPage:true});
+  }
+  await page.goto('/ao-vivo/hoje');
+  for(const nome of await page.locator('.operacao-dia-topo > strong,.operacao-dia-info-nome strong').all())await expect(nome).toHaveCSS('text-transform','uppercase');
 });
 
 test('filtros, limpeza e paginação continuam funcionando',async({page})=>{

@@ -44,7 +44,7 @@ export default function HojeAoVivo() {
                 <span className="operacao-dia-corpo">
                   <span className="operacao-dia-topo"><span className="carimbo-os carimbo-os-lista">O.S. {p.numero_os || p.id}</span><strong>{p.comprador || 'Cliente não informado'}</strong></span>
                   <span className="operacao-dia-infos">
-                    <InfoCompacto label="Para" valor={p.para} />
+                    <InfoCompacto label="Para" valor={p.para} nome />
                     <InfoCompacto label="Local" valor={[p.endereco, p.bairro].filter(Boolean).join(' · ')} />
                     <InfoCompacto label="Referência" valor={p.referencia} />
                     <InfoCompacto label="Celular" valor={p.celular} />
@@ -62,8 +62,8 @@ export default function HojeAoVivo() {
   );
 }
 
-function InfoCompacto({ label, valor }) {
+function InfoCompacto({ label, valor, nome = false }) {
   return (
-    <span className="operacao-dia-info"><small>{label}</small><strong>{valor || '—'}</strong></span>
+    <span className={`operacao-dia-info${nome ? ' operacao-dia-info-nome' : ''}`}><small>{label}</small><strong>{valor || '—'}</strong></span>
   );
 }
