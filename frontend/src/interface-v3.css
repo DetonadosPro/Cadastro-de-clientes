@@ -671,6 +671,8 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--carimbo); }
 .grafico-ponto-interativo:focus circle,.grafico-ponto-interativo:focus rect,.grafico-ponto-interativo:hover circle { filter:drop-shadow(0 2px 4px rgba(20,52,88,.2)); }
 
 /* Densidade compartilhada dos formulários operacionais */
+#celular-destinatario-aovivo { flex:0 1 165px !important; width:165px; max-width:165px !important; }
+#aniversario-destinatario-aovivo { flex:0 1 125px !important; width:125px; max-width:125px !important; }
 .pagina-aovivo-ampliada .secao-aovivo-espacosa.section-box.section-box .form-row input:not([type="checkbox"]):not([type="radio"]),
 .pagina-aovivo-ampliada .secao-aovivo-espacosa.section-box.section-box .form-row select,
 .pagina-aovivo-ampliada .secao-aovivo-espacosa.section-box.section-box .form-row textarea {

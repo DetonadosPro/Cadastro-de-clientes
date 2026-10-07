@@ -36,7 +36,7 @@ test('pedido carregado não consulta o localizador e não mostra o bloco de entr
   await expect(page.getByRole('button',{name:'Salvar',exact:true})).toBeVisible();
 });
 
-test('celular e aniversário do destinatário são salvos e reaparecem ao abrir o pedido',async({page})=>{
+test('celular e aniversário do destinatário são salvos e reaparecem ao abrir o pedido',async({page},testInfo)=>{
   await abrirPedido(page);
   await page.getByRole('textbox',{name:'Celular do destinatário',exact:true}).fill('34999998888');
   await page.getByRole('textbox',{name:'Aniversário do destinatário',exact:true}).fill('2902');
@@ -50,6 +50,10 @@ test('celular e aniversário do destinatário são salvos e reaparecem ao abrir 
   await page.reload();
   await expect(page.getByRole('textbox',{name:'Aniversário do destinatário',exact:true})).toHaveValue('29/02');
   await expect(page.getByRole('textbox',{name:'Celular do destinatário',exact:true})).toHaveValue(enviado.celular_local);
+  for(const width of [1440,390]){
+    await page.setViewportSize({width,height:950});
+    await page.locator('.secao-homenageado-aovivo').screenshot({path:testInfo.outputPath(`homenageado-${width}.png`)});
+  }
   await page.getByRole('textbox',{name:'Aniversário do destinatário',exact:true}).fill('3102');
   await page.getByRole('button',{name:'Salvar',exact:true}).click();
   await expect(page.getByText('O aniversário do destinatário precisa ser uma data válida.',{exact:true})).toBeVisible();

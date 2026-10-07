@@ -594,7 +594,7 @@ export default function FormAoVivo() {
               </div>
               <div className="form-row">
                 <label htmlFor="aniversario-destinatario-aovivo">Aniversário:</label>
-                <input id="aniversario-destinatario-aovivo" aria-label="Aniversário do destinatário" inputMode="numeric" placeholder="dd/mm ou dd/mm/aa" value={dados.aniversario_destinatario || ''} onChange={(e) => setComMascara('aniversario_destinatario', e.target.value, 'data')} />
+                <input id="aniversario-destinatario-aovivo" aria-label="Aniversário do destinatário" inputMode="numeric" placeholder="dd/mm/aa" title="Informe dia e mês, com ano opcional" value={dados.aniversario_destinatario || ''} onChange={(e) => setComMascara('aniversario_destinatario', e.target.value, 'data')} />
               </div>
               <div className="form-row">
                 <label>Oferecimento:</label>
