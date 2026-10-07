@@ -95,19 +95,13 @@ export function Dialogo({ titulo, descricao, onClose, children, className = '', 
   );
 }
 
-export function CabecalhoPagina({ contexto, titulo, descricao, acoes, meta, className = '' }) {
+export function CabecalhoPagina({ acoes, meta }) {
+  if (!acoes && !meta) return null;
   return (
-    <header className={`cabecalho-pagina ${className}`.trim()}>
-      <div className="cabecalho-pagina-conteudo">
-        {contexto && <span className="cabecalho-pagina-contexto">{contexto}</span>}
-        <div className="cabecalho-pagina-titulo-linha">
-          <h1>{titulo}</h1>
-          {meta && <div className="cabecalho-pagina-meta">{meta}</div>}
-        </div>
-        {descricao && <p>{descricao}</p>}
-      </div>
+    <div className="pagina-utilitarios">
+      {meta && <div className="cabecalho-pagina-meta">{meta}</div>}
       {acoes && <div className="cabecalho-pagina-acoes">{acoes}</div>}
-    </header>
+    </div>
   );
 }
 export function AvisoInline({ tom = 'erro', titulo, children, acao, className = '' }) {
