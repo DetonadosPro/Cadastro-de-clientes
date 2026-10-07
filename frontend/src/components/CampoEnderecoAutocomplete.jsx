@@ -29,6 +29,8 @@ function normalizarSugestoes(resposta) {
 export default function CampoEnderecoAutocomplete({ value, numero, onChange, onSelecionar, className = '', id }) {
   const listaId = useId();
   const valorSelecionado = useRef('');
+  const valorDigitado = useRef(null);
+  const focado = useRef(false);
   const [sugestoes, setSugestoes] = useState([]);
   const [buscando, setBuscando] = useState(false);
   const [aberto, setAberto] = useState(false);
@@ -36,7 +38,7 @@ export default function CampoEnderecoAutocomplete({ value, numero, onChange, onS
 
   useEffect(() => {
     const termo = termoDeBuscaEndereco(value);
-    if (termo.length < MINIMO_CARACTERES || value === valorSelecionado.current) {
+    if (value !== valorDigitado.current || termo.length < MINIMO_CARACTERES || value === valorSelecionado.current) {
       setSugestoes([]);
       setAberto(false);
       setBuscando(false);
@@ -51,9 +53,10 @@ export default function CampoEnderecoAutocomplete({ value, numero, onChange, onS
         const resposta = await fetch(url, { signal: controlador.signal });
         if (!resposta.ok) throw new Error('Consulta de endereço indisponível.');
         const encontradas = normalizarSugestoes(await resposta.json());
+        if (controlador.signal.aborted) return;
         setSugestoes(encontradas);
         setIndiceAtivo(-1);
-        setAberto(encontradas.length > 0);
+        setAberto(focado.current && encontradas.length > 0);
       } catch (erro) {
         if (erro.name !== 'AbortError') {
           setSugestoes([]);
@@ -84,6 +87,9 @@ export default function CampoEnderecoAutocomplete({ value, numero, onChange, onS
 
   function aoDigitar(evento) {
     valorSelecionado.current = '';
+    valorDigitado.current = evento.target.value;
+    setSugestoes([]);
+    setAberto(false);
     onChange(evento.target.value);
   }
 
@@ -111,8 +117,8 @@ export default function CampoEnderecoAutocomplete({ value, numero, onChange, onS
         value={value || ''}
         onChange={aoDigitar}
         onKeyDown={aoPressionarTecla}
-        onFocus={() => sugestoes.length > 0 && setAberto(true)}
-        onBlur={() => setTimeout(() => setAberto(false), 150)}
+        onFocus={() => { focado.current = true; if (sugestoes.length > 0) setAberto(true); }}
+        onBlur={() => { focado.current = false; setAberto(false); }}
         className={className}
         placeholder="Digite pelo menos 3 letras da rua"
         autoComplete="off"

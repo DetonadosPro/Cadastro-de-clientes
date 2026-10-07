@@ -179,7 +179,6 @@ export default function FormAoVivo() {
   const [valorRecebimento, setValorRecebimento] = useState('');
   const [formaRecebimento, setFormaRecebimento] = useState('PIX');
   const [salvandoPagamento, setSalvandoPagamento] = useState(false);
-  const [salvandoEntrega, setSalvandoEntrega] = useState(false);
   const [modalPrazo, setModalPrazo] = useState(false);
   const [novoDiaPrazo, setNovoDiaPrazo] = useState('');
   const [observacaoPrazo, setObservacaoPrazo] = useState('');
@@ -470,40 +469,6 @@ export default function FormAoVivo() {
       mostrarToast('Baixa financeira desfeita.');
     } catch (err) {
       mostrarToast(err.message || 'Não foi possível desfazer a baixa.', 'erro');
-    }
-  }
-
-  async function registrarEntrega(entregue) {
-    if (!confirm(`Confirmar que o pedido foi ${entregue ? 'entregue' : 'não entregue'}?`)) return;
-    setSalvandoEntrega(true);
-    try {
-      const resposta = await api.aoVivo.darBaixa(id, entregue, dados.versao);
-      const atualizado = { ...dados, resultado_entrega: resposta.resultado, entregue_por: resposta.entreguePor, versao: resposta.versao };
-      setDados(atualizado);
-      if (rascunhoAoVivo) salvarRascunhoAoVivo(chaveRascunho, atualizado, cliente);
-      mostrarToast('Entrega registrada.');
-    } catch (err) {
-      setErro(err.message);
-      mostrarToast(err.message, 'erro');
-    } finally {
-      setSalvandoEntrega(false);
-    }
-  }
-
-  async function desfazerEntrega() {
-    if (!confirm('Deseja desfazer o registro da entrega?')) return;
-    setSalvandoEntrega(true);
-    try {
-      const resposta = await api.aoVivo.desfazerBaixa(id, dados.versao);
-      const atualizado = { ...dados, resultado_entrega: '', entregue_por: '', versao: resposta.versao };
-      setDados(atualizado);
-      if (rascunhoAoVivo) salvarRascunhoAoVivo(chaveRascunho, atualizado, cliente);
-      mostrarToast('Registro de entrega desfeito.');
-    } catch (err) {
-      setErro(err.message);
-      mostrarToast(err.message, 'erro');
-    } finally {
-      setSalvandoEntrega(false);
     }
   }
 
@@ -863,18 +828,6 @@ export default function FormAoVivo() {
               </button>
             </div>
           </div>
-
-          {editando && (
-            <div className="section-box">
-              <div className="section-title">Entrega</div>
-              <div className="info-linha"><span className="info-label">Situação</span><span className="info-valor">{dados.resultado_entrega || 'Pendente'}</span></div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
-                <button type="button" className="btn-small" disabled={salvandoEntrega} onClick={() => registrarEntrega(true)}>Marcar entregue</button>
-                <button type="button" className="btn-small" disabled={salvandoEntrega} onClick={() => registrarEntrega(false)}>Marcar não entregue</button>
-                {dados.resultado_entrega && <button type="button" className="btn-small" disabled={salvandoEntrega} onClick={desfazerEntrega}>Desfazer entrega</button>}
-              </div>
-            </div>
-          )}
 
           {editando && (
             <div className={`section-box pagamento-aovivo-card ${dados.pagou === 'SIM' ? 'pago' : 'pendente'}`}>
