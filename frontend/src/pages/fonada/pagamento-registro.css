@@ -1,0 +1,35 @@
+/* Recupera somente os cards aprovados, preservando o restante do formulário. */
+.pagina-fonada-ampliada .section-box.pf-resumo-pedido {
+  padding:18px !important; border:1px solid #e0e7f1 !important;
+  border-radius:14px !important; background:#fff !important;
+  box-shadow:0 3px 15px #22345104 !important;
+  color:#253550; text-transform:none;
+}
+.pagina-fonada-ampliada .pf-resumo-pedido .section-title {
+  border:0; margin:0 0 16px; padding:0; font-size:12px;
+  font-weight:650; text-transform:none; color:#253550;
+}
+.pagina-fonada-ampliada .pf-resumo-pedido .info-linha {
+  padding:10px 0; gap:8px; border-color:#edf0f6;
+}
+.pagina-fonada-ampliada .pf-resumo-pedido .info-linha:last-child {
+  border-bottom:0; padding-bottom:0;
+}
+.pagina-fonada-ampliada .pf-resumo-pedido .info-label {
+  color:#6b7c94; font-size:10px !important; font-weight:500; text-transform:none;
+}
+.pagina-fonada-ampliada .pf-resumo-pedido .info-valor {
+  color:#465c79; font-family:inherit; font-size:12px !important;
+  font-weight:550; white-space:normal; overflow-wrap:anywhere; text-transform:none;
+}
+.pagina-fonada-ampliada .pf-pagamento-status { margin:-3px 0 10px; }
+.pagina-fonada-ampliada .pf-pagamento-status .tag {
+  font-family:inherit; font-size:10px; font-weight:550; padding:3px 6px;
+  border-radius:5px; line-height:1.4; white-space:normal; text-transform:none;
+}
+.pagina-fonada-ampliada .pf-pagamento-status .tag.ok {
+  background:#edf9f3; border-color:#cbeadd; color:#238361;
+}
+.pagina-fonada-ampliada .pf-pagamento-status .tag.pendente {
+  background:#fff0f2; border-color:#f0d2d9; color:#b05364;
+}

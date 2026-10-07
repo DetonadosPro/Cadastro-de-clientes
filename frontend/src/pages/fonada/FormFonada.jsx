@@ -9,6 +9,7 @@ import CampoData from '../../components/CampoData.jsx';
 import { AvisoInline, CabecalhoPagina, Dialogo, EstadoCarregando } from '../../components/Interface.jsx';
 import { numeroWhatsAppBrasil } from '../../utils/telefoneWhatsApp.js';
 import { useConfiguracoes } from '../../ConfiguracoesContext.jsx';
+import './pagamento-registro.css';
 
 const VAZIO = {
   senha_os: '', cliente_id: null, data_pedido: '', horario_pedido: '', nascimento: '', tipo: '', recall: 'NÃO', recall_codigo: '',
@@ -881,14 +882,14 @@ export default function FormFonada() {
             </div>
           </div>
 
-          <div className="section-box section-box-somente-leitura">
+          <div className="section-box section-box-somente-leitura pf-resumo-pedido pf-pagamento">
             <div className="section-title">Pagamento</div>
-            <InfoLinha label="Pagamento" valor={dados.pagou === 'SIM' ? 'Pago' : 'A receber'} />
+            <div className="pf-pagamento-status"><span className={`tag ${dados.pagou === 'SIM' ? 'ok' : 'pendente'}`}>{dados.pagou === 'SIM' ? 'Pago' : 'A receber'}</span></div>
             <InfoLinha label="Data do pagamento" valor={dados.data_pagamento} />
             <InfoLinha label="Status" valor={dados.recebi} />
           </div>
 
-          <div className="section-box section-box-somente-leitura">
+          <div className="section-box section-box-somente-leitura pf-resumo-pedido pf-registro">
             <div className="section-title">Registro do pedido</div>
             <div className="info-linha">
               <span className="info-label">Data</span>
