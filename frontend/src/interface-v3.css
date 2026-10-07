@@ -166,9 +166,9 @@ h3 { font-size: 15px; line-height: 1.3; }
 .cabecalho-pagina-meta { display: inline-flex; align-items: center; min-height: 24px; padding: 3px 8px; border: 1px solid #cfdae6; border-radius: 6px; background: var(--superficie); color: #506078; font: 720 10px var(--fonte-mono); white-space: nowrap; }
 .pagina-utilitarios { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:10px; margin-bottom:12px; }
 .pagina-utilitarios > .cabecalho-pagina-meta { margin-right:auto; }
-.historico-tentativas > summary { cursor:pointer; list-style:none; margin-bottom:0; }
+.historico-tentativas > summary { display:flex; align-items:center; justify-content:flex-start; gap:8px; cursor:pointer; list-style:none; margin-bottom:0; }
 .historico-tentativas > summary::-webkit-details-marker { display:none; }
-.historico-tentativas > summary::after { content:'⌄'; margin-left:8px; }
+.historico-tentativas > summary::after { content:'⌄'; margin-left:auto; }
 .historico-tentativas[open] > summary { margin-bottom:12px; }
 .historico-tentativas[open] > summary::after { content:'⌃'; }
 .historico-tentativas > summary:focus-visible { outline:2px solid var(--carimbo); outline-offset:4px; }
