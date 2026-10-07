@@ -50,7 +50,7 @@ test('celular e aniversário do destinatário são salvos e reaparecem ao abrir 
   await page.reload();
   await expect(page.getByRole('textbox',{name:'Aniversário do destinatário',exact:true})).toHaveValue('29/02');
   await expect(page.getByRole('textbox',{name:'Celular do destinatário',exact:true})).toHaveValue(enviado.celular_local);
-  for(const width of [1440,390]){
+  for(const width of [1720,1440,390]){
     await page.setViewportSize({width,height:950});
     await page.locator('.secao-homenageado-aovivo').screenshot({path:testInfo.outputPath(`homenageado-${width}.png`)});
   }
