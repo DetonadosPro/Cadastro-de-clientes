@@ -31,7 +31,7 @@ const CAMPOS = [
   'fixo_local', 'celular_local', 'celular', 'celular2', 'whatsapp',
   'tema_1', 'mensagem_codigo_1', 'tema_2', 'mensagem_codigo_2', 'tema_3', 'mensagem_codigo_3', 'tema_4', 'mensagem_codigo_4',
   'musica_1', 'musica_2', 'musica_3', 'musica_4', 'musica_5', 'musica_6',
-  'aniversario', 'valor', 'pagamento', 'brinde', 'observacoes', 'vendedor_usuario',
+  'aniversario', 'aniversario_destinatario', 'valor', 'pagamento', 'brinde', 'observacoes', 'vendedor_usuario',
 ];
 
 const FILTROS_AOVIVO = {
@@ -376,6 +376,9 @@ router.post('/', async (req, res) => {
     if (dados.valor === undefined || dados.valor === null || !Number.isFinite(Number(dados.valor)) || Number(dados.valor) < 0) {
       return res.status(400).json({ erro: 'Informe um valor válido.' });
     }
+    if (dados.aniversario_destinatario && !dataCurtaValida(/^\d{2}\/\d{2}$/.test(dados.aniversario_destinatario) ? `${dados.aniversario_destinatario}/2000` : dados.aniversario_destinatario)) {
+      return res.status(400).json({ erro: 'Aniversário do destinatário inválido.' });
+    }
     if (dados.dia_entrega && !dataCurtaValida(dados.dia_entrega)) {
       return res.status(400).json({ erro: 'Dia do evento inválido.' });
     }
@@ -435,6 +438,9 @@ router.put('/:id', async (req, res) => {
     }
 
     const dados = req.body;
+    if (dados.aniversario_destinatario && !dataCurtaValida(/^\d{2}\/\d{2}$/.test(dados.aniversario_destinatario) ? `${dados.aniversario_destinatario}/2000` : dados.aniversario_destinatario)) {
+      return res.status(400).json({ erro: 'Aniversário do destinatário inválido.' });
+    }
     if (dados.dia_entrega && !dataCurtaValida(dados.dia_entrega)) {
       return res.status(400).json({ erro: 'Dia do evento inválido.' });
     }

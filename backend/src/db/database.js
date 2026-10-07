@@ -386,6 +386,7 @@ async function iniciarBanco() {
     { tabela: 'fonadas', coluna: 'p1_passada_por', tipo: 'TEXT' },
     { tabela: 'fonadas', coluna: 'p2_passada_por', tipo: 'TEXT' },
     { tabela: 'ao_vivo', coluna: 'entregue_por', tipo: 'TEXT' },
+    { tabela: 'ao_vivo', coluna: 'aniversario_destinatario', tipo: 'TEXT' },
   ];
   for (const { tabela, coluna, tipo } of colunasNovas) {
     await pool.query(`ALTER TABLE ${tabela} ADD COLUMN IF NOT EXISTS ${coluna} ${tipo}`);

@@ -18,7 +18,7 @@ const VAZIO = {
   numero_os: '', cliente_id: null, data_pedido: '', horario_pedido: '', dia_entrega: '', horario_entrega: '',
   para: '', oferecimento: '',
   endereco: '', numero: '', bairro: '', referencia: '',
-  fixo_local: '', celular_local: '',
+  fixo_local: '', celular_local: '', aniversario_destinatario: '',
   tema_1: '', mensagem_codigo_1: '', tema_2: '', mensagem_codigo_2: '',
   tema_3: '', mensagem_codigo_3: '', tema_4: '', mensagem_codigo_4: '',
   musica_1: '', musica_2: '', musica_3: '', musica_4: '', musica_5: '', musica_6: '',
@@ -345,6 +345,10 @@ export default function FormAoVivo() {
       setErro('O dia do evento precisa ser uma data válida.');
       return;
     }
+    if (dados.aniversario_destinatario && !textoParaData(dados.aniversario_destinatario.length === 5 ? `${dados.aniversario_destinatario}/00` : dados.aniversario_destinatario)) {
+      setErro('O aniversário do destinatário precisa ser uma data válida.');
+      return;
+    }
     if (!editando) {
       const diaEvento = textoParaData(dados.dia_entrega);
       if (diaEvento && diaEvento.getTime() < hojeSemHora().getTime()) {
@@ -584,6 +588,14 @@ export default function FormAoVivo() {
                   O dia do evento não pode ser uma data anterior a hoje.
                 </p>
               )}
+              <div className="form-row">
+                <label htmlFor="celular-destinatario-aovivo">Celular:</label>
+                <input id="celular-destinatario-aovivo" aria-label="Celular do destinatário" type="tel" value={dados.celular_local} onChange={(e) => setComMascara('celular_local', e.target.value, 'celular')} />
+              </div>
+              <div className="form-row">
+                <label htmlFor="aniversario-destinatario-aovivo">Aniversário:</label>
+                <input id="aniversario-destinatario-aovivo" aria-label="Aniversário do destinatário" inputMode="numeric" placeholder="dd/mm ou dd/mm/aa" value={dados.aniversario_destinatario || ''} onChange={(e) => setComMascara('aniversario_destinatario', e.target.value, 'data')} />
+              </div>
               <div className="form-row">
                 <label>Oferecimento:</label>
                 <textarea
