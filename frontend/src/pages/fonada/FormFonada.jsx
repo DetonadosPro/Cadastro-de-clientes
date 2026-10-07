@@ -6,10 +6,9 @@ import { useRascunhos } from '../../RascunhosContext.jsx';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData, formatarHorario, formatarCodigoNumerico, formatarValorMonetario, valorMonetarioParaNumero, numeroParaValorMonetario } from '../../mascaras.js';
 import CampoData from '../../components/CampoData.jsx';
-import { AvisoInline, Dialogo, EstadoCarregando } from '../../components/Interface.jsx';
+import { AvisoInline, CabecalhoPagina, Dialogo, EstadoCarregando } from '../../components/Interface.jsx';
 import { numeroWhatsAppBrasil } from '../../utils/telefoneWhatsApp.js';
 import { useConfiguracoes } from '../../ConfiguracoesContext.jsx';
-import './pedido-fonada.css';
 
 const VAZIO = {
   senha_os: '', cliente_id: null, data_pedido: '', horario_pedido: '', nascimento: '', tipo: '', recall: 'NÃO', recall_codigo: '',
@@ -452,7 +451,7 @@ export default function FormFonada() {
   function copiarEntreMensagens(nomesCampos, deMensagem) {
     // Pedidos acima do limite não possuem 2ª mensagem. Além de desabilitar os
     // botões na interface, protege a ação aqui para impedir qualquer cópia.
-    if (deMensagem === 1 && (!segundaMensagemLiberada(dados) || (editando && mensagemEmHaver?.status === 'EXPIRADA') || cliente?.bloqueado)) return;
+    if (deMensagem === 1 && !segundaMensagemLiberada(dados)) return;
     const campos = Array.isArray(nomesCampos) ? nomesCampos : [nomesCampos];
     const origemPrefixo = deMensagem === 1 ? 'p1' : 'p2';
     const destinoPrefixo = deMensagem === 1 ? 'p2' : 'p1';
@@ -630,12 +629,14 @@ export default function FormFonada() {
   const segundaExpirada = editando && mensagemEmHaver?.status === 'EXPIRADA';
 
   return (
-    <div ref={formularioRef} className="form-pagina pagina-fonada-ampliada pedido-fonada-moderno">
-      <div className="pf-identidade">
-        <span className="pf-os">{dados.senha_os ? `O.S. ${dados.senha_os}` : 'Nova O.S.'}</span>
-        <strong>{cliente?.nome || 'Pedido de Fonada'}</strong>
-        <span className="pf-tipo-pedido">{editando ? 'Fonada' : 'Nova Fonada'}</span>
-      </div>
+    <div ref={formularioRef} className="form-pagina pagina-fonada-ampliada">
+      <CabecalhoPagina
+        className="form-cabecalho-pedido"
+        contexto="Pedido · Fonada"
+        titulo={editando ? 'Editar pedido' : 'Novo pedido'}
+        descricao={cliente ? `${cliente.nome} · organize as duas transmissões e as condições de cobrança.` : 'Preencha as transmissões e as condições do pedido.'}
+        meta={dados.senha_os ? `O.S. ${dados.senha_os}` : 'Nova O.S.'}
+      />
       {estaBloqueado && (
         <div className="aviso-bloqueio" style={{ marginBottom: 16 }}>
           <strong>Cliente bloqueado.</strong> Este pedido está travado para edição — só é possível visualizar.
@@ -644,19 +645,19 @@ export default function FormFonada() {
       )}
       <div className={`form-layout ${estaBloqueado ? 'form-bloqueado' : ''}`}>
 
-        <div className="pf-conteudo">
-          <div className="secao-transmissao">
+        <div>
+          <div className="section-box secao-transmissao">
+            <div className="section-title">Transmissão</div>
             <div className="duas-colunas-mensagem">
               <ColunaMensagem
                 numero={1} dados={dados} set={set} setComMascara={setComMascara} onCopiar={copiarEntreMensagens}
-                copiarBloqueado={!segundaLiberada || segundaExpirada || estaBloqueado}
-                bloqueada={estaBloqueado}
+                copiarBloqueado={!segundaLiberada}
                 editando={editando}
                 salvandoBaixa={salvandoBaixa} onDarBaixa={darBaixaMensagem} onNaoAtendeu={abrirRemarcarMensagem}
               />
               <ColunaMensagem
                 numero={2} dados={dados} set={set} setComMascara={setComMascara} onCopiar={copiarEntreMensagens}
-                bloqueada={!segundaLiberada || segundaExpirada || estaBloqueado} editando={editando}
+                bloqueada={!segundaLiberada || segundaExpirada} editando={editando}
                 situacaoMensagem={!segundaLiberada ? { status: 'NAO_CONCEDIDA' } : mensagemEmHaver?.status === 'NAO_CONCEDIDA' ? null : mensagemEmHaver}
                 salvandoBaixa={salvandoBaixa} onDarBaixa={darBaixaMensagem} onNaoAtendeu={abrirRemarcarMensagem}
               />
@@ -664,13 +665,11 @@ export default function FormFonada() {
           </div>
 
           <div className="grade grade-comprador-lateral">
-            <div className="section-box pf-cobranca">
-              <div className="section-title">Cobrança e recall</div>
+            <div className="section-box">
               <div className="form-row">
-                <label>Valor do pedido</label>
+                <label>Valor R$:</label>
                 <input
                   aria-label="Valor do pedido Fonada"
-                  disabled={estaBloqueado}
                   ref={refValor}
                   type="text"
                   inputMode="numeric"
@@ -685,10 +684,9 @@ export default function FormFonada() {
                 />
               </div>
               <div className="form-row">
-                <label>Dia da cobrança</label>
+                <label style={{ minWidth: 'auto' }}>Cob. dia:</label>
                 <CampoData
                   aria-label="Dia da cobrança Fonada"
-                  disabled={estaBloqueado}
                   className="campo-cobranca-fonada"
                   placeholder="dd/mm/aa"
                   value={dados.cobranca}
@@ -700,10 +698,9 @@ export default function FormFonada() {
                 />
               </div>
               <div className="form-row">
-                <label>Período de cobrança</label>
+                <label>Período:</label>
                 <input
                   aria-label="Período de cobrança Fonada"
-                  disabled={estaBloqueado}
                   ref={refPeriodo}
                   value={dados.periodo}
                   onChange={(e) => { set('periodo', e.target.value); setCampoObrigatorioFaltando(null); }}
@@ -714,10 +711,9 @@ export default function FormFonada() {
                 />
               </div>
               <div className="form-row" style={{ marginBottom: 0 }}>
-                <label>Recall</label>
+                <label style={{ minWidth: 'auto' }}>Recall:</label>
                 <select
                   aria-label="Recall do pedido Fonada"
-                  disabled={estaBloqueado}
                   value={dados.recall}
                   onChange={(e) => {
                     const novoValor = e.target.value;
@@ -742,9 +738,9 @@ export default function FormFonada() {
                 </select>
                 <input
                   aria-label="Código de Recall do pedido Fonada"
-                  placeholder="O.S. anterior"
+                  placeholder="00000"
                   value={dados.recall_codigo}
-                  disabled={dados.recall !== 'SIM' || estaBloqueado}
+                  disabled={dados.recall !== 'SIM'}
                   onChange={(e) => set('recall_codigo', formatarCodigoNumerico(e.target.value, 5))}
                   style={{ maxWidth: 90, marginLeft: 4 }}
                 />
@@ -763,7 +759,7 @@ export default function FormFonada() {
               {cliente ? (
                 <>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 4 }}>
-                    <span className="fs-lg pf-cliente-nome" style={{ fontWeight: 700 }}>{cliente.nome}</span>
+                    <span className="fs-lg" style={{ fontWeight: 700 }}>{cliente.nome}</span>
                     <span className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>
                       Nasc.: {cliente.nascimento || '—'}
                     </span>
@@ -826,9 +822,9 @@ export default function FormFonada() {
           )}
         </div>
 
-        <div className="pf-lateral">
+        <div>
           {(idAnterior !== null || idProximo !== null || podeBuscarPaginaAnterior || podeBuscarPaginaProxima) && (
-            <div className="pf-nav-pedidos">
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
               <button
                 type="button"
                 className="btn-action"
@@ -858,11 +854,11 @@ export default function FormFonada() {
             </div>
           )}
 
-          {erroConfiguracoes && <AvisoInline className="pf-erro" tom="erro" titulo="Não foi possível carregar a regra de valor" acao={<button type="button" className="btn secundario" onClick={recarregarConfiguracoes}>Tentar novamente</button>}>{erroConfiguracoes}</AvisoInline>}
-          {erro && <AvisoInline className="pf-erro" tom="erro" titulo="Revise o pedido antes de salvar">{erro}</AvisoInline>}
+          {erroConfiguracoes && <AvisoInline tom="erro" titulo="Não foi possível carregar a regra de valor" acao={<button type="button" className="btn secundario" onClick={recarregarConfiguracoes}>Tentar novamente</button>}>{erroConfiguracoes}</AvisoInline>}
+          {erro && <AvisoInline tom="erro" titulo="Revise o pedido antes de salvar">{erro}</AvisoInline>}
 
-          <div className="section-box actions-grid pf-acoes">
-            <button type="button" className="btn-action destaque" onClick={() => salvar()} disabled={salvando || carregandoConfiguracoes || !!erroConfiguracoes || estaBloqueado}>
+          <div className="section-box actions-grid">
+            <button type="button" className="btn-action destaque" onClick={() => salvar()} disabled={salvando || carregandoConfiguracoes || !!erroConfiguracoes}>
               <IconeSalvar /> {salvando ? 'Salvando...' : 'Salvar'}
             </button>
             <div className="acoes-secundarias-mobile">
@@ -872,7 +868,7 @@ export default function FormFonada() {
                 </button>
               )}
               {editando && (
-                <button type="button" className="btn-action perigo-acao" onClick={apagar} disabled={estaBloqueado}><IconeExcluir /> Excluir</button>
+                <button type="button" className="btn-action perigo-acao" onClick={apagar}><IconeExcluir /> Excluir</button>
               )}
               <button
                 type="button"
@@ -885,14 +881,14 @@ export default function FormFonada() {
             </div>
           </div>
 
-          <div className="section-box section-box-somente-leitura pf-pagamento">
+          <div className="section-box section-box-somente-leitura">
             <div className="section-title">Pagamento</div>
-            <div className="pf-pagamento-status"><span className={`tag ${dados.pagou === 'SIM' ? 'ok' : 'pendente'}`}>{dados.pagou === 'SIM' ? 'Pago' : 'A receber'}</span></div>
+            <InfoLinha label="Pagou" valor={dados.pagou === 'SIM' ? 'Sim' : 'Não'} />
             <InfoLinha label="Data do pagamento" valor={dados.data_pagamento} />
             <InfoLinha label="Status" valor={dados.recebi} />
           </div>
 
-          <div className="section-box section-box-somente-leitura pf-registro">
+          <div className="section-box section-box-somente-leitura">
             <div className="section-title">Registro do pedido</div>
             <div className="info-linha">
               <span className="info-label">Data</span>
@@ -979,76 +975,129 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
   const mostrarBotaoP = numero === 1;
   const diaPreenchido = Boolean(dados[`${p}_dia`]);
   const jaProcessada = Boolean(dados[`${p}_resultado`]);
-  const textoSituacao = situacaoMensagem
-    ? situacaoMensagem.status === 'DISPONIVEL' ? `Disponível até ${situacaoMensagem.dataExpiracao}`
-      : situacaoMensagem.status === 'UTILIZADA' ? 'Utilizada'
-      : situacaoMensagem.status === 'EXPIRADA' ? `Expirada em ${situacaoMensagem.dataExpiracao}`
-      : situacaoMensagem.status === 'NAO_CONCEDIDA' ? 'Não incluída neste valor' : 'Indisponível'
-    : jaProcessada ? 'Passada' : diaPreenchido ? 'Agendada' : 'A preencher';
 
   return (
-    <section className={`coluna-mensagem pf-mensagem ${bloqueada ? 'pf-mensagem-bloqueada' : ''}`} aria-label={`${numero}ª mensagem`}>
+    <div className="coluna-mensagem">
       <div className="coluna-mensagem-titulo">
-        <span className="pf-numero-mensagem" aria-hidden="true">{numero}</span>
-        <strong>{numero}ª mensagem</strong>
-        <span className={`tag ${situacaoMensagem?.status === 'EXPIRADA' ? 'pendente' : bloqueada ? 'neutro' : jaProcessada ? 'ok' : 'aviso'}`}>{textoSituacao}</span>
+        <span className={`bolinha-status ${dados[`${p}_dia`] ? 'usada' : 'livre'}`} /> {numero}ª mensagem
+        {numero === 2 && situacaoMensagem && (
+          <span className={`tag ${situacaoMensagem.status === 'DISPONIVEL' ? 'ok' : situacaoMensagem.status === 'EXPIRADA' ? 'pendente' : 'neutro'}`} style={{ marginLeft: 'auto' }}>
+            {situacaoMensagem.status === 'DISPONIVEL' ? `Disponível até ${situacaoMensagem.dataExpiracao}` : situacaoMensagem.status === 'UTILIZADA' ? 'Utilizada' : situacaoMensagem.status === 'EXPIRADA' ? `Expirada em ${situacaoMensagem.dataExpiracao}` : situacaoMensagem.status === 'NAO_CONCEDIDA' ? 'Segunda mensagem indisponível' : 'Indisponível'}
+          </span>
+        )}
       </div>
-      {situacaoMensagem?.status === 'NAO_CONCEDIDA' && <p className="pf-mensagem-nota">A segunda mensagem não está disponível para este valor.</p>}
+      <div className="form-row linha-tema-numero-fonada">
+        <label>Tema:</label>
+        <input
+          aria-label={`Tema da ${numero}ª mensagem`}
+          value={dados[`${p}_tema`]}
+          onChange={(e) => set(`${p}_tema`, e.target.value)}
+          disabled={bloqueada}
+        />
+        <label style={{ minWidth: 'auto', marginLeft: 6 }}>Nº:</label>
+        <input
+          aria-label={`Número da ${numero}ª mensagem`}
+          value={dados[`${p}_mensagem`]}
+          onChange={(e) => set(`${p}_mensagem`, e.target.value)}
+          disabled={bloqueada}
+          style={{ maxWidth: 56, flex: '0 0 auto' }}
+        />
+        {mostrarBotaoP && (
+          <BotaoP
+            onClick={() => onCopiar(['tema', 'mensagem'], numero)}
+            titulo="Copiar tema/nº para a 2ª mensagem"
+            desabilitado={copiarBloqueado}
+          />
+        )}
+      </div>
       <CampoComP label="Para" nomeCampo="para" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} copiarBloqueado={copiarBloqueado} classeExtra="campo-para-fonada" />
-      <div className="pf-form-row pf-par pf-tema-numero">
-        <CampoMensagem id={`${p}-tema`} label="Tema">
-          <input id={`${p}-tema`} aria-label={`Tema da ${numero}ª mensagem`} value={dados[`${p}_tema`]} onChange={e => set(`${p}_tema`,e.target.value)} disabled={bloqueada} />
-        </CampoMensagem>
-        <CampoMensagem id={`${p}-mensagem`} label="Número">
-          <input id={`${p}-mensagem`} aria-label={`Número da ${numero}ª mensagem`} value={dados[`${p}_mensagem`]} onChange={e => set(`${p}_mensagem`,e.target.value)} disabled={bloqueada} />
-        </CampoMensagem>
-        {mostrarBotaoP && <BotaoP onClick={() => onCopiar(['tema','mensagem'],numero)} titulo="Copiar tema/nº para a 2ª mensagem" desabilitado={copiarBloqueado} />}
+      <div className="form-row linha-fixo-celular">
+        <label>Fixo:</label>
+        <input aria-label={`Telefone fixo da ${numero}ª mensagem`} value={dados[`${p}_fixo`]} onChange={(e) => setComMascara(`${p}_fixo`, e.target.value, 'fixo')} disabled={bloqueada} className="campo-fixo-fonada" style={{ flex: '1 1 100px', minWidth: 90 }} />
+        <label style={{ minWidth: 'auto', marginLeft: 4 }} className="label-cel-fonada">Cel.:</label>
+        <input aria-label={`Celular da ${numero}ª mensagem`} value={dados[`${p}_celular`]} onChange={(e) => setComMascara(`${p}_celular`, e.target.value, 'celular')} disabled={bloqueada} className="campo-celular-fonada" style={{ flex: '1 1 110px', minWidth: 100 }} />
+        {mostrarBotaoP && (
+          <BotaoP
+            onClick={() => onCopiar(['fixo', 'celular'], numero)}
+            titulo="Copiar telefones para a 2ª mensagem"
+            desabilitado={copiarBloqueado}
+          />
+        )}
       </div>
-      <div className="pf-form-row pf-par pf-telefones">
-        <CampoMensagem id={`${p}-fixo`} label="Telefone fixo">
-          <input id={`${p}-fixo`} aria-label={`Telefone fixo da ${numero}ª mensagem`} value={dados[`${p}_fixo`]} onChange={e => setComMascara(`${p}_fixo`,e.target.value,'fixo')} disabled={bloqueada} className="campo-fixo-fonada" inputMode="tel" />
-        </CampoMensagem>
-        <CampoMensagem id={`${p}-celular`} label="Celular">
-          <input id={`${p}-celular`} aria-label={`Celular da ${numero}ª mensagem`} value={dados[`${p}_celular`]} onChange={e => setComMascara(`${p}_celular`,e.target.value,'celular')} disabled={bloqueada} className="campo-celular-fonada" inputMode="tel" />
-        </CampoMensagem>
-        {mostrarBotaoP && <BotaoP onClick={() => onCopiar(['fixo','celular'],numero)} titulo="Copiar telefones para a 2ª mensagem" desabilitado={copiarBloqueado} />}
-      </div>
-      <div className="pf-form-row pf-par pf-dia-horario">
-        <CampoMensagem id={`${p}-dia`} label="Dia da transmissão">
-          <CampoData id={`${p}-dia`} aria-label={`Dia da ${numero}ª mensagem`} placeholder="dd/mm/aa" value={dados[`${p}_dia`]} onChange={v => setComMascara(`${p}_dia`,v,'data')} disabled={bloqueada} />
-        </CampoMensagem>
-        <CampoMensagem id={`${p}-horario`} label="Horário">
-          <input id={`${p}-horario`} aria-label={`Horário da ${numero}ª mensagem`} placeholder="hh:mm" value={dados[`${p}_horario`]} onChange={e => setComMascara(`${p}_horario`,e.target.value,'horario')} disabled={bloqueada} inputMode="numeric" />
-        </CampoMensagem>
-        {mostrarBotaoP && <BotaoP onClick={() => onCopiar(['dia','horario'],numero)} titulo="Copiar dia/horário para a 2ª mensagem" desabilitado={copiarBloqueado} />}
+      <div className="form-row linha-dia-horario-fonada">
+        <label>Dia:</label>
+        <CampoData
+          aria-label={`Dia da ${numero}ª mensagem`}
+          placeholder="dd/mm/aa"
+          value={dados[`${p}_dia`]}
+          onChange={(v) => setComMascara(`${p}_dia`, v, 'data')}
+          disabled={bloqueada}
+          style={{ flex: '0 0 auto', width: 112, minWidth: 0 }}
+        />
+        <label style={{ minWidth: 'auto', marginLeft: 6 }}>Horário:</label>
+        <input
+          aria-label={`Horário da ${numero}ª mensagem`}
+          placeholder="hh:mm"
+          value={dados[`${p}_horario`]}
+          onChange={(e) => setComMascara(`${p}_horario`, e.target.value, 'horario')}
+          disabled={bloqueada}
+          style={{ flex: '0 0 auto', width: 56, minWidth: 0 }}
+        />
+        {mostrarBotaoP && (
+          <BotaoP
+            onClick={() => onCopiar(['dia', 'horario'], numero)}
+            titulo="Copiar dia/horário para a 2ª mensagem"
+            desabilitado={copiarBloqueado}
+          />
+        )}
       </div>
       <CampoComP label="Quem oferece" nomeCampo="quem_oferece" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} copiarBloqueado={copiarBloqueado} classeExtra="campo-quem-oferece" multilinha />
-      <CampoComP label="Resultado" nomeCampo="resultado" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} copiarBloqueado={copiarBloqueado} classeExtra="campo-resultado" />
+      <CampoComP label="Resultado" nomeCampo="resultado" prefixo={p} numero={numero} dados={dados} set={set} onCopiar={onCopiar} mostrarBotaoP={mostrarBotaoP} desabilitado={bloqueada} copiarBloqueado={copiarBloqueado} negrito cor="var(--selo)" classeExtra="campo-resultado" />
+
       {editando && !bloqueada && diaPreenchido && situacaoMensagem?.status !== 'EXPIRADA' && (
-        <div className="pf-entrega">
-          {jaProcessada ? <span className="tag ok">Mensagem passada</span> : (
-            <>
-              <button type="button" className="btn-action perigo-acao" onClick={() => onNaoAtendeu(numero)} disabled={salvandoBaixa === numero} title="Não atendeu"><IconeNaoAtendeuMensagem /> Não atendeu</button>
-              <button type="button" className="btn-action pf-marcar-passada" onClick={() => onDarBaixa(numero)} disabled={salvandoBaixa === numero} title="Marcar passada"><IconeCheckMensagem /> Marcar passada</button>
-            </>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 8, borderTop: '1px dashed var(--papel-alt)' }}>
+          <span className="fs-xs" style={{ color: 'var(--tinta-suave)' }}>
+            {jaProcessada ? 'Situação da entrega' : 'Marcar entrega desta mensagem'}
+          </span>
+          {jaProcessada ? (
+            <span className="tag ok">Passada</span>
+          ) : (
+            <div style={{ display: 'flex', gap: 5 }}>
+              <button
+                type="button"
+                className="btn-action perigo-acao"
+                style={{ width: 30, height: 30, padding: 0 }}
+                onClick={() => onNaoAtendeu(numero)}
+                disabled={salvandoBaixa === numero}
+                title="Não atendeu"
+              >
+                <IconeNaoAtendeuMensagem />
+              </button>
+              <button
+                type="button"
+                className="btn-action"
+                style={{ width: 30, height: 30, padding: 0, background: 'var(--carimbo)', color: 'var(--branco)', borderColor: 'var(--carimbo)' }}
+                onClick={() => onDarBaixa(numero)}
+                disabled={salvandoBaixa === numero}
+                title="Marcar passada"
+              >
+                <IconeCheckMensagem />
+              </button>
+            </div>
           )}
         </div>
       )}
-    </section>
+    </div>
   );
 }
 
-function CampoMensagem({ id, label, children }) {
-  return <div className="pf-campo"><label htmlFor={id}>{label}</label>{children}</div>;
-}
 function CampoComP({ label, nomeCampo, prefixo, numero, dados, set, onCopiar, mostrarBotaoP, desabilitado, copiarBloqueado, negrito, cor, classeExtra, multilinha }) {
   const valor = dados[`${prefixo}_${nomeCampo}`];
   return (
-    <div className={`pf-form-row pf-campo-copiavel ${classeExtra || ''}`}>
-      <label htmlFor={`${prefixo}-${nomeCampo}`}>{label}</label>
+    <div className={`form-row ${classeExtra || ''}`}>
+      <label>{label}:</label>
       {multilinha ? (
         <textarea
-          id={`${prefixo}-${nomeCampo}`}
           aria-label={`${label} da ${numero}ª mensagem`}
           value={valor}
           onChange={(e) => set(`${prefixo}_${nomeCampo}`, e.target.value)}
@@ -1058,7 +1107,6 @@ function CampoComP({ label, nomeCampo, prefixo, numero, dados, set, onCopiar, mo
         />
       ) : (
         <input
-          id={`${prefixo}-${nomeCampo}`}
           aria-label={`${label} da ${numero}ª mensagem`}
           value={valor}
           onChange={(e) => set(`${prefixo}_${nomeCampo}`, e.target.value)}
@@ -1067,7 +1115,7 @@ function CampoComP({ label, nomeCampo, prefixo, numero, dados, set, onCopiar, mo
         />
       )}
       {mostrarBotaoP && (
-        <BotaoP onClick={() => onCopiar(nomeCampo, numero)} titulo={`Copiar ${nomeCampo === 'para' ? 'destinatário' : label.toLowerCase()} para a 2ª mensagem`} desabilitado={copiarBloqueado} />
+        <BotaoP onClick={() => onCopiar(nomeCampo, numero)} titulo="Copiar para a 2ª mensagem" desabilitado={copiarBloqueado} />
       )}
     </div>
   );
@@ -1079,7 +1127,7 @@ function BotaoP({ onClick, titulo, desabilitado }) {
       type="button"
       className="btn-small botao-p-copiar"
       title={desabilitado ? 'Segunda mensagem indisponível para este pedido' : titulo}
-      aria-label={desabilitado ? 'Cópia indisponível para este pedido' : titulo}
+      aria-label={desabilitado ? 'Cópia indisponível para este telefone' : titulo}
       onClick={onClick}
       disabled={desabilitado}
       style={{ flexShrink: 0 }}
