@@ -671,8 +671,17 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--carimbo); }
 .grafico-ponto-interativo:focus circle,.grafico-ponto-interativo:focus rect,.grafico-ponto-interativo:hover circle { filter:drop-shadow(0 2px 4px rgba(20,52,88,.2)); }
 
 /* Densidade compartilhada dos formulários operacionais */
-#celular-destinatario-aovivo { flex:0 1 165px !important; width:165px; max-width:165px !important; }
-#aniversario-destinatario-aovivo { flex:0 1 125px !important; width:125px; max-width:125px !important; }
+#celular-destinatario-aovivo { flex:0 0 135px !important; width:135px; max-width:135px !important; }
+#aniversario-destinatario-aovivo { flex:0 0 62px !important; width:62px; max-width:62px !important; }
+.pagina-aovivo-ampliada .linha-contato-destinatario-aovivo { display:flex; flex-wrap:wrap; gap:6px 8px; }
+.pagina-aovivo-ampliada .linha-contato-destinatario-aovivo > label { min-width:0; flex:0 0 auto; }
+@media(max-width:480px) {
+  .pagina-aovivo-ampliada .linha-contato-destinatario-aovivo { display:grid; grid-template-columns:135px 100px; gap:4px 12px; }
+  .linha-contato-destinatario-aovivo label[for="celular-destinatario-aovivo"] { grid-column:1; grid-row:1; }
+  .linha-contato-destinatario-aovivo label[for="aniversario-destinatario-aovivo"] { grid-column:2; grid-row:1; }
+  #celular-destinatario-aovivo { grid-column:1; grid-row:2; }
+  #aniversario-destinatario-aovivo { grid-column:2; grid-row:2; }
+}
 .pagina-aovivo-ampliada .secao-aovivo-espacosa.section-box.section-box .form-row input:not([type="checkbox"]):not([type="radio"]),
 .pagina-aovivo-ampliada .secao-aovivo-espacosa.section-box.section-box .form-row select,
 .pagina-aovivo-ampliada .secao-aovivo-espacosa.section-box.section-box .form-row textarea {

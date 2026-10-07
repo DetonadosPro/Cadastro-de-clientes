@@ -362,6 +362,7 @@ export default function FormAoVivo() {
       const { numero, ...dadosPersistidos } = dados;
       const payload = {
         ...dadosPersistidos,
+        aniversario_destinatario: (dados.aniversario_destinatario || '').slice(0, 5),
         endereco: enderecoComNumero(dados.endereco, numero),
         valor: valorMonetarioParaNumero(dados.valor),
       };
@@ -588,13 +589,11 @@ export default function FormAoVivo() {
                   O dia do evento não pode ser uma data anterior a hoje.
                 </p>
               )}
-              <div className="form-row">
+              <div className="form-row linha-contato-destinatario-aovivo">
                 <label htmlFor="celular-destinatario-aovivo">Celular:</label>
                 <input id="celular-destinatario-aovivo" aria-label="Celular do destinatário" type="tel" value={dados.celular_local} onChange={(e) => setComMascara('celular_local', e.target.value, 'celular')} />
-              </div>
-              <div className="form-row">
                 <label htmlFor="aniversario-destinatario-aovivo">Aniversário:</label>
-                <input id="aniversario-destinatario-aovivo" aria-label="Aniversário do destinatário" inputMode="numeric" placeholder="dd/mm/aa" title="Informe dia e mês, com ano opcional" value={dados.aniversario_destinatario || ''} onChange={(e) => setComMascara('aniversario_destinatario', e.target.value, 'data')} />
+                <input id="aniversario-destinatario-aovivo" aria-label="Aniversário do destinatário" inputMode="numeric" placeholder="dd/mm" maxLength={5} value={(dados.aniversario_destinatario || '').slice(0, 5)} onChange={(e) => set('aniversario_destinatario', formatarData(e.target.value).slice(0, 5))} />
               </div>
               <div className="form-row">
                 <label>Oferecimento:</label>
