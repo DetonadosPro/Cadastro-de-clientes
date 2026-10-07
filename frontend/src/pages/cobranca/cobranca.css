@@ -74,11 +74,11 @@
 .cobranca-moderna .hoje .grupo-cobranca-urgencia span { color:#906620; background:#fcf5e8; }
 .cobranca-moderna .recebida .grupo-cobranca-urgencia span { color:#287e6c; background:#edf7f2; }
 .cobranca-moderna .grupo-cobranca-cliente strong,.cobranca-moderna .cobranca-aovivo-cliente button { font-size:13px; font-weight:650; color:#304762; text-transform:uppercase; }
-.cobranca-moderna .grupo-cobranca-cliente strong { font-size:18px; line-height:1.35; white-space:normal; overflow-wrap:anywhere; }
+.cobranca-moderna .grupo-cobranca-cliente strong { font-size:14.4px; line-height:1.35; white-space:normal; overflow-wrap:anywhere; }
 .cobranca-moderna .grupo-cobranca-cliente span,.cobranca-moderna .grupo-cobranca-urgencia small,.cobranca-moderna .grupo-cobranca-valor span,.cobranca-moderna .cobranca-aovivo-card small,.cobranca-moderna .cobranca-aovivo-card span:not(.carimbo-os) { font-size:10px; color:#677991; }
 .cobranca-moderna .grupo-cobranca-cliente span { font-size:12px; line-height:1.4; white-space:normal; overflow-wrap:anywhere; }
-.cobranca-moderna .grupo-cobranca-cliente span.cb-fonada-destinatarios { color:#465d7c; font-size:14px; font-weight:550; }
-.cobranca-moderna .pedido-cobranca-datas > .pedido-cobranca-destinatarios { color:#465d7c; font-size:14px; font-weight:600; line-height:1.4; white-space:normal; overflow-wrap:anywhere; }
+.cobranca-moderna .grupo-cobranca-cliente span.cb-fonada-destinatarios { color:#465d7c; font-size:11.2px; font-weight:550; }
+.cobranca-moderna .pedido-cobranca-datas > .pedido-cobranca-destinatarios { color:#465d7c; font-size:11.2px; font-weight:600; line-height:1.4; white-space:normal; overflow-wrap:anywhere; }
 .cobranca-moderna .grupo-cobranca-valor strong,.cobranca-moderna .cobranca-aovivo-valor strong { color:#31435f; font-family:inherit; font-size:15px; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
 .cobranca-moderna .grupo-cobranca-status-impressao { font-size:9px; font-weight:600; letter-spacing:0; text-transform:none; }
 .cobranca-moderna .grupo-cobranca-acoes,.cobranca-moderna .cobranca-aovivo-acoes { display:flex; flex-wrap:wrap; grid-column:auto; gap:6px; justify-content:flex-end; }
@@ -99,9 +99,9 @@
 .cobranca-moderna .cobranca-aovivo-card { grid-template-columns:80px minmax(140px,1fr) 130px 105px; padding:16px; gap:12px; }
 .cobranca-moderna .cobranca-aovivo-os { grid-column:1; grid-row:1/3; align-self:center; }
 .cobranca-moderna .cobranca-aovivo-cliente { grid-column:2; grid-row:1/3; align-self:center; gap:6px; }
-.cobranca-moderna .cobranca-aovivo-cliente button { font-size:18px; line-height:1.35; white-space:normal; overflow-wrap:anywhere; }
+.cobranca-moderna .cobranca-aovivo-cliente button { font-size:14.4px; line-height:1.35; white-space:normal; overflow-wrap:anywhere; }
 .cobranca-moderna .cobranca-aovivo-cliente span { white-space:normal; overflow-wrap:anywhere; line-height:1.4; }
-.cobranca-moderna .cobranca-aovivo-cliente span.cb-aovivo-destinatario { font-size:14px; font-weight:550; color:#465d7c; }
+.cobranca-moderna .cobranca-aovivo-cliente span.cb-aovivo-destinatario { font-size:11.2px; font-weight:550; color:#465d7c; }
 .cobranca-moderna .cobranca-aovivo-data { grid-column:3; grid-row:1; }
 .cobranca-moderna .cobranca-aovivo-valor { grid-column:4; grid-row:1; }
 .cobranca-moderna .cobranca-aovivo-acoes { grid-column:3/-1; grid-row:2; justify-content:flex-end; padding-top:0; }
@@ -172,7 +172,7 @@
   .cobranca-moderna .pedido-cobranca-acoes { grid-column:1/-1; flex-wrap:wrap; }
   .cobranca-moderna .cobranca-aovivo-card { grid-template-columns:65px minmax(0,1fr); padding:14px; gap:13px 10px; }
   .cobranca-moderna .cobranca-aovivo-os,.cobranca-moderna .cobranca-aovivo-cliente { grid-row:1; }
-  .cobranca-moderna .cobranca-aovivo-cliente button { font-size:16px; }
+  .cobranca-moderna .cobranca-aovivo-cliente button { font-size:12.8px; }
   .cobranca-moderna .cobranca-aovivo-data { grid-column:1/-1; grid-row:auto; }
   .cobranca-moderna .cobranca-aovivo-valor { grid-column:1/-1; grid-row:auto; flex-direction:row; justify-content:space-between; align-items:center; border-top:1px solid #edf1f7; padding-top:12px; text-align:left; }
   .cobranca-moderna .cobranca-aovivo-acoes { grid-column:1/-1; grid-row:auto; padding-top:0; justify-content:flex-start; }
