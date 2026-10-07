@@ -3,7 +3,7 @@ import {test,expect} from '@playwright/test';
 async function preparar(page,{erro=false,vazio=false}={}){
   await page.addInitScript(()=>{localStorage.setItem('pombo_token','token-simulado');localStorage.setItem('pombo_usuario','QA');});
   const historico=[{pedidoId:123,os:'2688',mensagem:1,data:'07/10/25',tema:'ANIVERSÁRIO ESPECIAL',texto:'F203'},{pedidoId:122,os:'2000',mensagem:2,data:'07/10/24',tema:'ANIV GERAL',texto:'F100'}];
-  const item={relacaoChave:'relacao-1',clienteId:7,clienteNome:'KATIA EMILLY SILVA',aniversariante:'MÁRCIA HELENA',telefone:'(34) 9 9999-9999',ocasiao:'ANIVERSARIO',historico,ultimoPedido:historico[0],quantidade:2,mensagensEmHaver:[{pedidoId:130,os:'2800',dataExpiracao:'07/01/27'}]};
+  const item={relacaoChave:'relacao-1',clienteId:7,clienteNome:'KATIA EMILLY SILVA DE OLIVEIRA',aniversariante:'MÁRCIA HELENA (NÃO É MAIS - NÃO LIGAR)',telefone:'(34) 9 9999-9999',ocasiao:'ANIVERSARIO',historico,ultimoPedido:historico[0],quantidade:2,mensagensEmHaver:[{pedidoId:130,os:'2800',dataExpiracao:'07/01/27'}]};
   const invertido={...item,relacaoChave:'relacao-2',clienteId:3,clienteNome:'MÁRCIA HELENA',aniversariante:'KATIA EMILLY SILVA',modoFila:'ANIVERSARIO',mensagensEmHaver:[]};
   await page.route('**/api/**',async route=>{
     const caminho=new URL(route.request().url()).pathname;
@@ -25,6 +25,10 @@ for(const sistema of ['FONADA','AOVIVO'])for(const modo of ['dia-mensagem','aniv
     await expect(page.getByRole('tab',{name:/Pesquisa 1/})).toBeVisible();
     await expect(page.getByRole('tab',{name:/Pesquisa 2/})).toHaveAttribute('aria-selected',String(modo==='aniversario'));
     await expect(page.locator('.recall-linha')).toHaveCount(modo==='aniversario'?1:2);
+    if(modo==='dia-mensagem'){
+      await expect(page.locator('.recall-linha').first()).toContainText('KATIA EMILLY SILVA DE OLIVEIRA');
+      await expect(page.locator('.recall-linha').first()).toContainText('MÁRCIA HELENA (NÃO É MAIS - NÃO LIGAR)');
+    }
     await page.locator('.recall-historico-relacao > summary').click();
     await expect(page.locator('.recall-historico-itens button')).toHaveCount(2);
     if(sistema==='AOVIVO'){

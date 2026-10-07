@@ -1,4 +1,10 @@
 /* Recall usa a mesma paleta e densidade da Agenda, Relatórios e Cobrança. */
+.recall-moderna .recall-linha > span:nth-child(2) { min-width:0; }
+.recall-moderna .recall-linha .recall-lista-relacao > span { max-width:100%; overflow:visible; text-overflow:clip; }
+.recall-moderna .recall-historico-conteudo strong,.recall-moderna .recall-historico-conteudo small { overflow:visible; text-overflow:clip; white-space:normal; overflow-wrap:anywhere; }
+.recall-moderna .recall-relacao-titulo > span,.recall-moderna .recall-aniversariante-nome { min-width:0; max-width:100%; }
+.recall-moderna .recall-fontes .recall-pesquisa-texto { min-width:0; overflow-wrap:anywhere; }
+.recall-moderna .recall-links button { max-width:100%; white-space:normal; overflow-wrap:anywhere; }
 .recall-pesquisas-resumo { display:grid; grid-template-columns:minmax(280px,.8fr) minmax(0,1.6fr); gap:12px; align-items:stretch; margin-bottom:20px; }
 .recall-pesquisas-resumo:empty { display:none; }
 .recall-moderna .recall-pesquisas-resumo .recall-fontes.recall-seletor-pesquisas { gap:8px; margin:0; }
