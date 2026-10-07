@@ -671,6 +671,18 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--carimbo); }
 .grafico-ponto-interativo:focus circle,.grafico-ponto-interativo:focus rect,.grafico-ponto-interativo:hover circle { filter:drop-shadow(0 2px 4px rgba(20,52,88,.2)); }
 
 /* Densidade compartilhada dos formulários operacionais */
+.pagina-aovivo-ampliada .secao-homenageado-aovivo .linha-para-dia-aovivo {
+  display:grid;
+  grid-template-columns:max-content minmax(0,1fr) max-content minmax(62px,.65fr);
+  align-items:center;
+  gap:6px 8px;
+}
+.pagina-aovivo-ampliada .linha-para-dia-aovivo > label:first-child { grid-column:1; grid-row:1; }
+.pagina-aovivo-ampliada .linha-para-dia-aovivo .campo-para-aovivo { grid-column:2/-1; grid-row:1; width:100% !important; min-width:0 !important; margin-bottom:0; }
+.pagina-aovivo-ampliada .linha-para-dia-aovivo .label-dia-aovivo { grid-column:1; grid-row:2; margin-left:0 !important; }
+.pagina-aovivo-ampliada .linha-para-dia-aovivo .campo-dia-aovivo { grid-column:2; grid-row:2; width:100% !important; min-width:0 !important; }
+.pagina-aovivo-ampliada .linha-para-dia-aovivo .label-horario-aovivo { grid-column:3; grid-row:2; margin-left:0 !important; }
+.pagina-aovivo-ampliada .linha-para-dia-aovivo .campo-horario-aovivo { grid-column:4; grid-row:2; width:100% !important; min-width:0 !important; }
 #celular-destinatario-aovivo { flex:0 0 135px !important; width:135px; max-width:135px !important; }
 #aniversario-destinatario-aovivo { flex:0 0 62px !important; width:62px; max-width:62px !important; }
 .pagina-aovivo-ampliada .linha-contato-destinatario-aovivo { display:flex; flex-wrap:wrap; gap:6px 8px; }
