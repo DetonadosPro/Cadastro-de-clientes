@@ -728,7 +728,7 @@ export default function Agenda() {
   return (
     <div ref={paginaRef} className={`agenda-v2 agenda-moderna ${alturaPainel !== null ? 'ag-workspace-fixo' : ''}`} style={alturaPainel !== null ? { '--ag-workspace-height': `${alturaPainel}px` } : undefined}>
       <section className="ag-calendar" aria-label="Navegação pelos dias da agenda">
-        <div className="ag-calendar-top"><div className="ag-day-title"><small>{ehHoje ? 'Hoje' : 'Dia selecionado'}</small><h2>{dataExtensa}</h2></div>
+        <div className="ag-calendar-top"><div className="ag-day-title">{ehHoje && <small>Hoje</small>}<h2>{dataExtensa}</h2></div>
           <div className="agenda-controles-v2"><button type="button" className="agenda-seta-dia" onClick={() => selecionarDiaAdjacente(-1)} aria-label="Dia anterior">←</button>
             <CampoData id="ag-data" className="campo-data-agenda" placeholder="dd/mm/aa" value={dataDigitada} onChange={v => {const data = formatarData(v); setDataDigitada(data); if (paraDataSemHora(data)) selecionarDataGarantindoVisibilidade(data);}}/>
             <button type="button" className="agenda-seta-dia" onClick={() => selecionarDiaAdjacente(1)} aria-label="Próximo dia">→</button><button type="button" className="ag-today" onClick={() => selecionarDataGarantindoVisibilidade(hojeFormatado())}>Hoje</button>
