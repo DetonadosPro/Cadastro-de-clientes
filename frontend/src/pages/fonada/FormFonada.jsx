@@ -218,11 +218,23 @@ export default function FormFonada() {
   const [confirmacaoDatasPassadas, setConfirmacaoDatasPassadas] = useState(null);
   const salvandoRef = useRef(false);
   const [erro, setErro] = useState('');
-  // Nome do campo (valor/cobranca/periodo) que está faltando ao tentar
-  // salvar — usado para destacar visualmente qual precisa ser
-  // preenchido, já que CampoData não é um <input> real e não dá para
-  // simplesmente chamar .focus() nele.
+  // Identifica o campo que deve ser corrigido e limpa o destaque ao editar.
   const [campoObrigatorioFaltando, setCampoObrigatorioFaltando] = useState(null);
+  const formularioRef = useRef(null);
+  function apontarCampo(campo, mensagem) {
+    setErro(mensagem);
+    setCampoObrigatorioFaltando(campo);
+    const rotulos = { valor:'Valor do pedido Fonada', cobranca:'Dia da cobrança Fonada', periodo:'Período de cobrança Fonada', p1_dia:'Dia da 1ª mensagem', p2_dia:'Dia da 2ª mensagem' };
+    const raiz = formularioRef.current;
+    raiz?.querySelectorAll('[aria-invalid="true"]').forEach(el => el.removeAttribute('aria-invalid'));
+    const input = raiz?.querySelector(`[aria-label="${rotulos[campo]}"]`);
+    if (input && !input.disabled) {
+      input.setAttribute('aria-invalid', 'true');
+      input.scrollIntoView({ block:'center', behavior:'smooth' });
+      input.focus({ preventScroll:true });
+      input.select?.();
+    }
+  }
   const refValor = useRef(null);
   const refPeriodo = useRef(null);
   const [salvandoBaixa, setSalvandoBaixa] = useState(null);
@@ -407,6 +419,11 @@ export default function FormFonada() {
   }
 
   function set(campo, valor) {
+    if (campo === campoObrigatorioFaltando) {
+      setCampoObrigatorioFaltando(null);
+      setErro('');
+      formularioRef.current?.querySelectorAll('[aria-invalid="true"]').forEach(el => el.removeAttribute('aria-invalid'));
+    }
     const novo = { ...dados, [campo]: valor };
     setDados(novo);
     salvarRascunhoFonada(chaveRascunho, novo, cliente);
@@ -457,6 +474,7 @@ export default function FormFonada() {
     if (!configuracoes || erroConfiguracoes) { setErro('Carregue as configurações antes de salvar.'); return; }
     setErro('');
     setCampoObrigatorioFaltando(null);
+    formularioRef.current?.querySelectorAll('[aria-invalid="true"]').forEach(el => el.removeAttribute('aria-invalid'));
     if (!dados.cliente_id) {
       setErro('Nenhum cliente vinculado a este pedido.');
       return;
@@ -476,21 +494,22 @@ export default function FormFonada() {
     for (const { campo, rotulo } of camposObrigatorios) {
       const valorAtual = String(dados[campo] || '').trim();
       if (!valorAtual) {
-        setErro(`Preencha o campo "${rotulo}" antes de salvar.`);
-        setCampoObrigatorioFaltando(campo);
-        if (campo === 'valor') refValor.current?.focus();
-        if (campo === 'periodo') refPeriodo.current?.focus();
+        apontarCampo(campo, `Preencha o campo "${rotulo}" antes de salvar.`);
         return;
       }
     }
 
+    if (!Number.isFinite(valorMonetarioParaNumero(dados.valor)) || valorMonetarioParaNumero(dados.valor) < 0 || valorMonetarioParaNumero(dados.valor) >= 100) {
+      apontarCampo('valor', 'O valor da Fonada deve estar entre R$ 0,00 e R$ 99,99.');
+      return;
+    }
     for (const { campo, rotulo } of [
       { campo: 'p1_dia', rotulo: 'Dia da 1ª mensagem' },
       { campo: 'p2_dia', rotulo: 'Dia da 2ª mensagem' },
       { campo: 'cobranca', rotulo: 'Dia de cobrança' },
     ]) {
       if (String(dados[campo] || '').trim() && !textoParaData(dados[campo])) {
-        setErro(`${rotulo} precisa ser uma data válida.`);
+        apontarCampo(campo, `${rotulo} precisa ser uma data válida.`);
         return;
       }
     }
@@ -548,7 +567,9 @@ export default function FormFonada() {
         navigate(`/fonada/${novo.id}`, { replace: true, state: recallRelacaoUrl ? { returnTo: `/recall?data=${recallDataUrl}` } : undefined });
       }
     } catch (err) {
-      setErro(err.message);
+      const campo = err.campo || ['p1_dia','p2_dia','cobranca','periodo','valor'].find(c => err.message?.includes(c)) || (/segunda mensagem/i.test(err.message) ? 'p2_dia' : null);
+      if (campo) apontarCampo(campo, err.message);
+      else setErro(err.message);
       mostrarToast('Não foi possível salvar. Tente novamente.', 'erro');
     } finally {
       salvandoRef.current = false;
@@ -608,7 +629,7 @@ export default function FormFonada() {
   const segundaExpirada = editando && mensagemEmHaver?.status === 'EXPIRADA';
 
   return (
-    <div className="form-pagina pagina-fonada-ampliada">
+    <div ref={formularioRef} className="form-pagina pagina-fonada-ampliada">
       <CabecalhoPagina
         className="form-cabecalho-pedido"
         contexto="Pedido · Fonada"

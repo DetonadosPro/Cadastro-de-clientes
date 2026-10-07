@@ -202,21 +202,24 @@ router.post('/', async (req, res) => {
     if (!dados.nome_comprador || !dados.nome_comprador.trim()) {
       return res.status(400).json({ erro: 'O nome do comprador é obrigatório.' });
     }
+    if (Number(dados.valor) >= 100) {
+      return res.status(400).json({ erro:'O valor da Fonada deve ser menor que R$ 100,00.', campo:'valor' });
+    }
     if (dados.valor === undefined || dados.valor === null || !Number.isFinite(Number(dados.valor)) || Number(dados.valor) < 0 || !String(dados.cobranca || '').trim() || !String(dados.periodo || '').trim()) {
       return res.status(400).json({ erro: 'Informe valor, dia de cobrança e período válidos.' });
     }
     for (const campo of ['p1_dia', 'p2_dia', 'cobranca']) {
       if (dados[campo] && !dataCurtaValida(dados[campo])) {
-        return res.status(400).json({ erro: `Data inválida no campo ${campo}.` });
+        return res.status(400).json({ erro: `Data inválida no campo ${campo}.`, campo });
       }
     }
 
     if (!temDireitoSegundaMensagem(dados) && CAMPOS_SEGUNDA_MENSAGEM.some((campo) => String(dados[campo] || '').trim())) {
-      return res.status(409).json({ erro: 'O valor do pedido está acima do limite para a segunda mensagem.' });
+      return res.status(409).json({ erro: 'O valor do pedido está acima do limite para a segunda mensagem.', campo:'valor' });
     }
     if (String(dados.p2_dia || '').trim() || String(dados.p2_resultado || '').trim()) {
       const validacaoP2 = validarDataUsoSegundaMensagem({ ...dados, p2_resultado: '' }, dados.p2_dia);
-      if (!validacaoP2.ok) return res.status(409).json({ erro: validacaoP2.erro });
+      if (!validacaoP2.ok) return res.status(409).json({ erro: validacaoP2.erro, campo:'p2_dia' });
     }
 
     // Vendedor é sempre quem está logado no momento de criar o pedido —
@@ -284,16 +287,19 @@ router.put('/:id', async (req, res) => {
     }
 
     const dados = req.body;
+    if (dados.valor !== undefined && (!Number.isFinite(Number(dados.valor)) || Number(dados.valor) < 0 || Number(dados.valor) >= 100)) {
+      return res.status(400).json({ erro:'O valor da Fonada deve estar entre R$ 0,00 e R$ 99,99.', campo:'valor' });
+    }
     for (const campo of ['p1_dia', 'p2_dia', 'cobranca']) {
       if (dados[campo] && !dataCurtaValida(dados[campo])) {
-        return res.status(400).json({ erro: `Data inválida no campo ${campo}.` });
+        return res.status(400).json({ erro: `Data inválida no campo ${campo}.`, campo });
       }
     }
     if (houveAlteracaoP2(existente, dados)) {
       const pedidoFinal = { ...existente, ...dados };
       const possuiP2 = CAMPOS_SEGUNDA_MENSAGEM.some((campo) => String(pedidoFinal[campo] || '').trim());
       if (possuiP2 && !temDireitoSegundaMensagem(pedidoFinal)) {
-        return res.status(409).json({ erro: 'O valor do pedido está acima do limite para a segunda mensagem.' });
+        return res.status(409).json({ erro: 'O valor do pedido está acima do limite para a segunda mensagem.', campo:'valor' });
       }
       // Correções textuais de uma mensagem já utilizada continuam
       // permitidas. A validação é obrigatória quando a alteração abre,
@@ -302,7 +308,7 @@ router.put('/:id', async (req, res) => {
       const continuaUtilizada = Boolean(String(pedidoFinal.p2_resultado || '').trim());
       if (possuiP2 && (!jaEstavaUtilizada || !continuaUtilizada)) {
         const validacaoP2 = validarDataUsoSegundaMensagem({ ...pedidoFinal, p2_resultado: '' }, pedidoFinal.p2_dia);
-        if (!validacaoP2.ok) return res.status(409).json({ erro: validacaoP2.erro });
+        if (!validacaoP2.ok) return res.status(409).json({ erro: validacaoP2.erro, campo:'p2_dia' });
       }
     }
     const campos = CAMPOS.filter((c) => dados[c] !== undefined);

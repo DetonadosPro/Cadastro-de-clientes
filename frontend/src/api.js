@@ -88,6 +88,7 @@ async function chamar(caminho, opcoes = {}) {
     }
     const erro = new Error(dados.erro || 'Erro ao comunicar com o servidor.');
     erro.status = resposta.status;
+    erro.campo = dados.campo;
     throw erro;
   }
 
