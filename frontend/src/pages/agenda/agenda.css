@@ -22,6 +22,12 @@
 .ag-header-actions { display:flex; gap:9px; }
 .ag-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:10px 16px; border:1px solid #3861ed; border-radius:9px; color:white; background:#3861ed; font-size:12px; font-weight:650; box-shadow:0 3px 7px #3861ed16; }
 .ag-button:hover:not(:disabled) { background:#294dcc; }
+.agenda-moderna .ag-novo-lembrete { min-height:32px; padding:7px 11px; font-size:11px; white-space:nowrap; }
+@media(max-width:540px) {
+  .agenda-moderna .agenda-controles-v2 { display:grid; grid-template-columns:30px minmax(80px,1fr) 30px auto; width:100%; box-sizing:border-box; }
+  .agenda-moderna .agenda-controles-v2 .campo-data-agenda { width:100%; }
+  .agenda-moderna .ag-novo-lembrete { grid-column:1 / -1; justify-self:end; }
+}
 .ag-button.secundario { background:white; color:#60718e; border-color:var(--ag-border); box-shadow:none; }
 .ag-button.secundario:hover { background:#f4f7fc; }
 .ag-calendar { padding:10px 16px; margin-bottom:10px; border:1px solid var(--ag-border); border-radius:12px; background:white; box-shadow:0 4px 20px #24374b03; }

@@ -12,7 +12,7 @@ import { useAtualizacaoTempoReal } from '../../TempoRealContext.jsx';
 import { formatarData, formatarHorario } from '../../mascaras.js';
 import CampoData from '../../components/CampoData.jsx';
 import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
-import { AvisoInline, CabecalhoPagina, Dialogo } from '../../components/Interface.jsx';
+import { AvisoInline, Dialogo } from '../../components/Interface.jsx';
 import { numeroWhatsAppBrasil } from '../../utils/telefoneWhatsApp.js';
 import { agruparMensagensDuplas, itemConcluido, itemExpirado, urgenciaAgenda, ordenarAgenda, buscarNaAgenda, resumoAgenda, agruparTurnos } from '../../utils/agenda.js';
 import './agenda.css';
@@ -727,13 +727,12 @@ export default function Agenda() {
   const temFiltro = Boolean(busca);
   return (
     <div ref={paginaRef} className={`agenda-v2 agenda-moderna ${alturaPainel !== null ? 'ag-workspace-fixo' : ''}`} style={alturaPainel !== null ? { '--ag-workspace-height': `${alturaPainel}px` } : undefined}>
-      <CabecalhoPagina className="agenda-cabecalho-v3" contexto="Seu dia, organizado" titulo="Agenda" descricao="Mensagens, entregas e lembretes. Tudo no seu tempo."
-        acoes={<div className="ag-header-actions"><button type="button" className="ag-button secundario" onClick={() => carregar()} disabled={carregando}>↻ Atualizar</button><button type="button" className="ag-button" onClick={abrirNovoLembrete}>+ Lembrete</button></div>}/>
       <section className="ag-calendar" aria-label="Navegação pelos dias da agenda">
         <div className="ag-calendar-top"><div className="ag-day-title"><small>{ehHoje ? 'Hoje' : 'Dia selecionado'}</small><h2>{dataExtensa}</h2></div>
           <div className="agenda-controles-v2"><button type="button" className="agenda-seta-dia" onClick={() => selecionarDiaAdjacente(-1)} aria-label="Dia anterior">←</button>
             <CampoData id="ag-data" className="campo-data-agenda" placeholder="dd/mm/aa" value={dataDigitada} onChange={v => {const data = formatarData(v); setDataDigitada(data); if (paraDataSemHora(data)) selecionarDataGarantindoVisibilidade(data);}}/>
             <button type="button" className="agenda-seta-dia" onClick={() => selecionarDiaAdjacente(1)} aria-label="Próximo dia">→</button><button type="button" className="ag-today" onClick={() => selecionarDataGarantindoVisibilidade(hojeFormatado())}>Hoje</button>
+            <button type="button" className="ag-button ag-novo-lembrete" onClick={abrirNovoLembrete}>+ Lembrete</button>
           </div>
         </div>
         {dataDigitada !== dataSelecionada && <p className="ag-date-hint" role="status">Informe uma data completa e válida para trocar o dia.</p>}
