@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api.js';
 import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
-import { AvisoInline, CabecalhoPagina, EstadoCarregando, EstadoVazio } from '../../components/Interface.jsx';
+import { AvisoInline, EstadoCarregando, EstadoVazio } from '../../components/Interface.jsx';
+import NavegacaoAoVivo from './NavegacaoAoVivo.jsx';
+import './aovivo.css';
 
 export default function HojeAoVivo() {
   const [dataRef, setDataRef] = useState('');
@@ -23,8 +25,8 @@ export default function HojeAoVivo() {
   }, []);
 
   return (
-    <div className="operacao-dia-pagina">
-      <CabecalhoPagina contexto="Operação diária" titulo="Ao vivo de hoje" descricao="Entregas organizadas por horário, destino e localização." meta={dataRef || null} />
+    <div className="operacao-dia-pagina aovivo-moderna">
+      <NavegacaoAoVivo meta={carregando ? 'Consultando eventos…' : `${dataRef} · ${itens.length} evento${itens.length === 1 ? '' : 's'} hoje`} />
 
       {erro && <AvisoInline tom="erro" titulo="Não foi possível montar a lista">{erro}</AvisoInline>}
 

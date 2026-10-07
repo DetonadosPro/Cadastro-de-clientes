@@ -1,0 +1,98 @@
+/* Estilo somente das listas, preservando os pedidos e as folhas impressas. */
+@media screen {
+.aovivo-moderna { --av-blue:#3861ed; --av-text:#253550; --av-muted:#65748b; --av-border:#e2e8f2; --carimbo:#3861ed; --carimbo-suave:#eef3ff; color:var(--av-text); text-transform:none; }
+.aovivo-moderna :where(button,input,select,a,span,strong,small,p,th,td) { font-family:inherit; text-transform:none; }
+.aovivo-moderna :where(button,input,select,a,tr):focus-visible { outline:3px solid #99b2ff; outline-offset:3px; }
+.aovivo-navegacao { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:18px; }
+.aovivo-abas { display:flex; gap:4px; padding:5px; border:1px solid var(--av-border); border-radius:12px; background:#eef2f8; }
+.aovivo-abas a { padding:10px 17px; border-radius:8px; color:var(--av-muted); text-decoration:none; font-size:12px; font-weight:650; }
+.aovivo-abas a.active { background:white; color:#3157d1; box-shadow:0 2px 6px #23365712; }
+.aovivo-navegacao-acoes { display:flex; align-items:center; flex-wrap:wrap; gap:14px; }
+.aovivo-navegacao-meta { font-size:11px; color:var(--av-muted); font-variant-numeric:tabular-nums; }
+.aovivo-moderna .btn { border-radius:8px; font-size:11px; font-weight:600; }
+.aovivo-moderna .lista-aovivo-acoes-topo .btn { min-height:38px; border-color:#dce5f4; background:white; color:#4868ad; }
+.aovivo-filtros { padding:16px; margin-bottom:18px; border:1px solid var(--av-border); border-radius:14px; background:white; }
+.aovivo-moderna .lista-aovivo-busca { display:grid; grid-template-columns:220px minmax(0,1fr) auto; gap:10px; margin-bottom:12px; }
+.aovivo-moderna .lista-aovivo-busca :is(input,select) { min-height:42px; height:42px; border:1px solid #dce4ef; border-radius:9px; background:#fbfcfe; font-size:12px; color:var(--av-text); }
+.aovivo-moderna .lista-aovivo-campo-busca .busca-input { padding-left:36px; }
+.aovivo-moderna .lista-aovivo-meta { min-height:0; margin:0; gap:10px; flex-wrap:wrap; font-size:10px; color:var(--av-muted); }
+.aovivo-moderna .lista-aovivo-selecionados { color:#3861ed; font-weight:600; }
+.aovivo-moderna input[type=checkbox] { accent-color:#3861ed; width:16px; height:16px; cursor:pointer; }
+.aovivo-moderna .lista-aovivo-tabela-painel { border:1px solid var(--av-border); border-radius:14px; background:white; box-shadow:0 3px 16px #22345104; }
+.aovivo-moderna .tabela-aovivo { width:100%; table-layout:fixed; border-collapse:collapse; }
+.aovivo-moderna .tabela-aovivo th { padding:13px 12px; background:#f8fafd; color:#6b7c94; font-size:10px; font-weight:600; border-bottom:1px solid var(--av-border); }
+.aovivo-moderna .tabela-aovivo th:nth-child(2) { width:8%; }
+.aovivo-moderna .tabela-aovivo th:nth-child(3) { width:23%; }
+.aovivo-moderna .tabela-aovivo th:nth-child(4) { width:18%; }
+.aovivo-moderna .tabela-aovivo th:nth-child(5) { width:29%; }
+.aovivo-moderna .tabela-aovivo th:nth-child(6) { width:18%; }
+.aovivo-moderna .tabela-aovivo td { padding:15px 12px; border-bottom:1px solid #edf0f6; color:#465973; font-size:12px; vertical-align:middle; white-space:normal; overflow-wrap:anywhere; }
+.aovivo-moderna .tabela-aovivo tbody tr { cursor:pointer; transition:background .15s; }
+.aovivo-moderna .tabela-aovivo tbody tr:hover { background:#f8faff; }
+.aovivo-moderna .tabela-aovivo tbody tr.linha-ultimo-selecionado { background:#eef3ff; box-shadow:inset 3px 0 #3861ed; }
+.aovivo-moderna .tabela-aovivo tbody tr:last-child td { border-bottom:0; }
+.aovivo-moderna .lista-aovivo-cliente-nome,.aovivo-moderna .lista-aovivo-destino { color:var(--av-text); font-size:13px; font-weight:650; line-height:1.5; }
+.aovivo-moderna .lista-aovivo-destino { color:#4164a2; }
+.aovivo-moderna .lista-aovivo-detalhe { font-size:11px; line-height:1.5; color:var(--av-muted); margin-top:5px; }
+.aovivo-moderna .lista-aovivo-evento { min-width:0; display:grid; justify-items:start; gap:7px; }
+.aovivo-moderna .lista-aovivo-evento-data { font-size:12px; font-weight:600; white-space:normal; }
+.aovivo-moderna .lista-aovivo-pagamento { flex-wrap:wrap; gap:6px; }
+.aovivo-moderna .lista-aovivo-valor { font-size:13px; font-weight:650; }
+.aovivo-moderna .carimbo-os { padding:5px 7px; border:1px solid #dce5f7; border-radius:7px; background:#f5f8ff; color:#5678b9; font-size:10px; }
+.aovivo-moderna .tag { padding:4px 7px; border-radius:6px; font-size:9px; font-weight:600; white-space:normal; }
+.aovivo-moderna .tag.ok { background:#effaf5; color:#278568; border-color:#cfebdf; }
+.aovivo-moderna .tag.pendente { background:#fff1f2; color:#ae5965; border-color:#f0d5da; }
+.aovivo-moderna .tag.aviso { background:#fff5e6; color:#a77b33; border-color:#f2e2c4; }
+.aovivo-moderna .lista-aovivo-paginacao { padding:14px 0 0; color:var(--av-muted); font-size:11px; }
+.aovivo-moderna .estado-vazio { padding:35px 20px; border:1px dashed var(--av-border); border-radius:14px; background:white; }
+.aovivo-moderna .operacao-dia-lista { gap:12px; }
+.aovivo-moderna .operacao-dia-item { border:1px solid var(--av-border); border-radius:14px; box-shadow:0 3px 14px #21355004; background:white; }
+.aovivo-moderna .operacao-dia-item:hover { border-color:#b8c9f1; background:#fbfcff; }
+.aovivo-moderna .operacao-dia-horario { border-color:#e6edf7; background:#f4f7fe; border-radius:13px 0 0 13px; }
+.aovivo-moderna .operacao-dia-horario strong { color:#3861ed; font-family:inherit; font-size:21px; font-weight:700; }
+.aovivo-moderna .operacao-dia-horario small { font-size:10px; font-weight:500; text-transform:none; }
+.aovivo-moderna .operacao-dia-corpo { gap:13px; padding:16px; }
+.aovivo-moderna .operacao-dia-topo { flex-wrap:wrap; }
+.aovivo-moderna .operacao-dia-topo > strong { font-size:14px; font-weight:650; overflow:visible; white-space:normal; overflow-wrap:anywhere; }
+.aovivo-moderna .operacao-dia-info:nth-child(n) { display:grid; align-content:start; }
+.aovivo-moderna .operacao-dia-info small { font-size:10px; font-weight:500; letter-spacing:0; text-transform:none; color:var(--av-muted); }
+.aovivo-moderna .operacao-dia-info strong { font-size:12px; font-weight:550; overflow:visible; white-space:normal; overflow-wrap:anywhere; line-height:1.5; }
+.aovivo-moderna .operacao-dia-musicas { flex-wrap:wrap; gap:5px 10px; }
+.aovivo-moderna .operacao-dia-musicas small { font-size:10px; font-weight:500; text-transform:none; }
+.aovivo-moderna .operacao-dia-musicas strong { font-size:11px; overflow:visible; white-space:normal; overflow-wrap:anywhere; line-height:1.5; }
+@media(max-width:1000px) {
+  .aovivo-moderna .lista-aovivo-tabela-painel { border:0; border-radius:0; background:transparent; box-shadow:none; }
+  .aovivo-moderna .tabela-aovivo,.aovivo-moderna .tabela-aovivo tbody { display:block; border:0; background:transparent; }
+  .aovivo-moderna .tabela-aovivo thead { display:none; }
+  .aovivo-moderna .tabela-aovivo tbody { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+  .aovivo-moderna .tabela-aovivo tbody tr { display:grid; grid-template-columns:22px minmax(0,1fr); gap:10px; padding:15px; border:1px solid var(--av-border); border-radius:13px; background:white; }
+  .aovivo-moderna .tabela-aovivo td { display:block; min-width:0; padding:0; border:0; width:auto; grid-column:1/-1; position:static; }
+  .aovivo-moderna .tabela-aovivo td::before { display:block; content:attr(data-label); color:var(--av-muted); font-size:9px; margin-bottom:4px; }
+  .aovivo-moderna .tabela-aovivo td[data-label="Selecionar"] { grid-column:1; grid-row:1; }
+  .aovivo-moderna .tabela-aovivo td[data-label="Selecionar"]::before { display:none; }
+  .aovivo-moderna .tabela-aovivo td[data-label="O.S."] { grid-column:2; grid-row:1; }
+  .aovivo-moderna .tabela-aovivo td[data-label="Cliente"] { grid-column:1/-1; grid-row:2; }
+  .aovivo-moderna .tabela-aovivo td[data-label="Evento"] { grid-column:1/-1; grid-row:3; padding-top:10px; border-top:1px solid #edf0f6; }
+  .aovivo-moderna .tabela-aovivo td[data-label="Destino"] { grid-column:1/-1; grid-row:4; }
+  .aovivo-moderna .tabela-aovivo td[data-label="Pagamento"] { display:block; grid-column:1/-1; grid-row:5; padding-top:10px; border-top:1px solid #edf0f6; }
+  .aovivo-moderna .lista-aovivo-evento { display:flex; flex-wrap:wrap; gap:8px; }
+}
+@media(max-width:600px) {
+  .aovivo-navegacao { gap:10px; margin-bottom:12px; }
+  .aovivo-abas { width:100%; }
+  .aovivo-abas a { flex:1; text-align:center; padding:10px 8px; font-size:11px; }
+  .aovivo-navegacao-acoes { width:100%; justify-content:space-between; gap:8px; }
+  .aovivo-moderna .lista-aovivo-acoes-topo { width:auto; }
+  .aovivo-filtros { padding:12px; }
+  .aovivo-moderna .lista-aovivo-busca { grid-template-columns:minmax(0,1fr) auto; }
+  .aovivo-moderna .lista-aovivo-busca > select { grid-column:1/-1; }
+  .aovivo-moderna .lista-aovivo-campo-busca { grid-column:1; }
+  .aovivo-moderna .tabela-aovivo tbody { grid-template-columns:1fr; }
+  .aovivo-moderna .operacao-dia-item { grid-template-columns:65px minmax(0,1fr) 17px; }
+  .aovivo-moderna .operacao-dia-horario { padding:10px 5px; }
+  .aovivo-moderna .operacao-dia-horario strong { font-size:16px; }
+  .aovivo-moderna .operacao-dia-corpo { padding:12px; }
+  .aovivo-moderna .operacao-dia-infos { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+}
+@media(max-width:400px) { .aovivo-moderna .operacao-dia-infos { grid-template-columns:1fr; } }
+}

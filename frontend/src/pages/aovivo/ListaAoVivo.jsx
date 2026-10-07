@@ -4,7 +4,9 @@ import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarData } from '../../mascaras.js';
 import PaginaImpressaoAoVivo from './PaginaImpressaoAoVivo.jsx';
-import { AvisoInline, CabecalhoPagina, EstadoCarregando, EstadoVazio, Paginacao } from '../../components/Interface.jsx';
+import { AvisoInline, EstadoCarregando, EstadoVazio, Paginacao } from '../../components/Interface.jsx';
+import NavegacaoAoVivo from './NavegacaoAoVivo.jsx';
+import './aovivo.css';
 
 function IconeBusca() {
   return (
@@ -254,13 +256,9 @@ export default function ListaAoVivo() {
     : 'Buscar por comprador, destinatário, telefone ou endereço...';
 
   return (
-    <div className="lista-aovivo-pagina">
-      <CabecalhoPagina
-        className="nao-imprimir"
-        contexto="Pedidos"
-        titulo="Ao vivo"
-        descricao="Acompanhe eventos, locais de entrega e pagamentos com leitura rápida."
-        meta={!carregando ? `${total} pedido${total === 1 ? '' : 's'}` : null}
+    <div className="lista-aovivo-pagina aovivo-moderna">
+      <NavegacaoAoVivo
+        meta={carregando ? 'Consultando pedidos…' : `${total} pedido${total === 1 ? '' : 's'}`}
         acoes={<div className="lista-aovivo-acoes-topo">
           <button
             type="button"
@@ -276,7 +274,8 @@ export default function ListaAoVivo() {
         </div>}
       />
 
-      <div className="nao-imprimir lista-aovivo-busca">
+      <div className="aovivo-filtros nao-imprimir">
+      <div className="lista-aovivo-busca">
         <select
           aria-label="Campo de busca de Ao Vivo"
           value={campoFiltro}
@@ -290,6 +289,7 @@ export default function ListaAoVivo() {
         <div className="lista-aovivo-campo-busca">
           <IconeBusca />
           <input
+            aria-label="Buscar pedidos de Ao Vivo"
             type="text"
             placeholder={placeholderBusca}
             value={busca}
@@ -304,8 +304,9 @@ export default function ListaAoVivo() {
         {!carregando && <span>{total} pedido(s) encontrado(s)</span>}
         {selecionados.size > 0 && <span className="lista-aovivo-selecionados">{selecionados.size} selecionado(s)</span>}
       </div>
+      </div>
 
-      {erro && <AvisoInline className="nao-imprimir" tom="erro" titulo="Não foi possível carregar os pedidos">{erro}</AvisoInline>}
+      {erro && <AvisoInline className="nao-imprimir" tom="erro" titulo="Não foi possível carregar os pedidos" acao={<button type="button" className="btn secundario" onClick={() => carregar(buscaUrl,paginaUrl,campoUrl)}>Tentar novamente</button>}>{erro}</AvisoInline>}
 
       {carregando ? (
         <EstadoCarregando className="nao-imprimir" rotulo="Carregando pedidos Ao Vivo…" linhas={7} />
@@ -339,6 +340,9 @@ export default function ListaAoVivo() {
                   <tr
                     key={p.id}
                     id={`aovivo-${p.id}`}
+                    tabIndex={0}
+                    aria-label={`Abrir pedido ${p.numero_os || p.id} de ${p.comprador || 'cliente não informado'}`}
+                    onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.currentTarget.click(); } }}
                     className={ultimoSelecionado === String(p.id) ? 'linha-ultimo-selecionado' : ''}
                     onClick={() => {
                       sessionStorage.setItem('ultimoAoVivoSelecionado', String(p.id));
