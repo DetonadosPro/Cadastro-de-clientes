@@ -7,7 +7,7 @@ function responder(rota, dados) { return rota.fulfill({ status: 200, contentType
 
 test('BTN-096/224: listas de hoje mostram o 51º pedido', async ({ page }) => {
   const pedidosAv = Array.from({ length: 51 }, (_, n) => ({ id: n + 1, numero_os: n + 1, comprador: `QA AO VIVO ${n + 1}`, horario_entrega: '10:00', para: 'QA' }));
-  const pedidosFo = Array.from({ length: 51 }, (_, n) => ({ id: n + 1, senha_os: n + 1, nome_comprador: `QA FONADA ${n + 1}`, p1_dia: dia(), p1_horario: '10:00', p1_para: 'QA' }));
+  const pedidosFo = Array.from({ length: 51 }, (_, n) => ({ id: n + 1, senha_os: n + 1, nome_comprador: `QA FONADA ${n + 1}`, data_pedido: dia(), horario_pedido: '10:00', p1_dia: dia(), p1_horario: '10:00', p1_para: 'QA' }));
   await page.route('**/api/ao-vivo/hoje', (rota) => responder(rota, { data: dia(), pedidos: pedidosAv }));
   await page.route('**/api/fonadas/hoje', (rota) => responder(rota, { data: dia(), fonadas: pedidosFo }));
   await entrar(page);
@@ -17,10 +17,10 @@ test('BTN-096/224: listas de hoje mostram o 51º pedido', async ({ page }) => {
   await expect(page.locator('.operacao-dia-item')).toHaveCount(51);
   registrar('BTN-096', page, '.operacao-dia-lista .lista-mostrar-mais button', 'mostrar mais Ao Vivo', '51º pedido exibido');
   await page.goto('/fonada/hoje');
-  await expect(page.locator('.operacao-dia-item')).toHaveCount(50);
+  await expect(page.locator('.venda-fonada-item')).toHaveCount(50);
   await page.getByRole('button', { name: /Mostrar mais/ }).click();
-  await expect(page.locator('.operacao-dia-item')).toHaveCount(51);
-  registrar('BTN-224', page, '.operacao-dia-lista .lista-mostrar-mais button', 'mostrar mais Fonada', '51º pedido exibido');
+  await expect(page.locator('.venda-fonada-item')).toHaveCount(51);
+  registrar('BTN-224', page, '.vendas-fonada-lista .lista-mostrar-mais button', 'mostrar mais Fonada', '51º pedido exibido');
 });
 
 test('BTN-052/054: Agenda expande mais 50 pendentes e concluídos', async ({ page }) => {

@@ -10,7 +10,7 @@
 
 const express = require('express');
 const { db, pool, reservarProximaOs } = require('../db/database');
-const { agoraBrasilia } = require('../utils/dataHora');
+const { hojeIsoBrasilia } = require('../utils/dataHora');
 const { situacaoSegundaMensagem, validarDataUsoSegundaMensagem, houveAlteracaoP2, temDireitoSegundaMensagem, CAMPOS_SEGUNDA_MENSAGEM } = require('../utils/mensagemEmHaver');
 
 const router = express.Router();
@@ -136,25 +136,24 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/fonadas/hoje
+// GET /api/fonadas/hoje — vendas do dia pela data do pedido, em Brasília.
 router.get('/hoje', async (req, res) => {
   try {
-    const hoje = agoraBrasilia();
-    const dd = String(hoje.getDate()).padStart(2, '0');
-    const mm = String(hoje.getMonth() + 1).padStart(2, '0');
-    const yy = String(hoje.getFullYear()).slice(-2);
-    const hojeStr = `${dd}/${mm}/${yy}`;
+    const [ano, mes, dia] = hojeIsoBrasilia().split('-');
+    const hojeStr = `${dia}/${mes}/${ano.slice(-2)}`;
 
     const resultado = await db.query(`
-      SELECT * FROM fonadas
-      WHERE (p1_dia = $1 OR p2_dia = $1) AND excluido_em IS NULL
-      ORDER BY p1_horario ASC
-    `, [hojeStr]);
+      SELECT f.*, COALESCE(NULLIF(u.nome, ''), NULLIF(f.vendedor_usuario, ''), 'Não informado') AS vendedor_nome
+      FROM fonadas f LEFT JOIN usuarios u ON u.usuario = f.vendedor_usuario
+      WHERE f.data_pedido IN ($1, $2) AND f.excluido_em IS NULL
+      ORDER BY CASE WHEN f.horario_pedido ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$'
+        THEN f.horario_pedido END DESC NULLS LAST, f.id DESC
+    `, [hojeStr, `${dia}/${mes}/${ano}`]);
 
     res.json({ data: hojeStr, fonadas: resultado.rows });
   } catch (erro) {
-    console.error('Erro ao buscar fonadas de hoje:', erro);
-    res.status(500).json({ erro: 'Erro ao buscar fonadas de hoje.' });
+    console.error('Erro ao buscar vendas de Fonada de hoje:', erro);
+    res.status(500).json({ erro: 'Não foi possível consultar as vendas de Fonada de hoje.' });
   }
 });
 

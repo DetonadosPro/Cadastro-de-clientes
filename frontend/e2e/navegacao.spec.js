@@ -18,7 +18,7 @@ test('rotas principais abrem diretamente sem erro de execução', async ({ page 
   const rotas = [
     ['/agenda', 'Agenda'], ['/clientes', 'Clientes'], ['/clientes/novo', 'Novo cliente'],
     ['/clientes/lixeira', 'Lixeira'], ['/fonada', 'Fonada'],
-    ['/fonada/hoje', 'Fonada de hoje'], ['/ao-vivo', 'Ao vivo'],
+    ['/fonada/hoje', 'Vendas de hoje'], ['/ao-vivo', 'Ao vivo'],
     ['/ao-vivo/hoje', 'Ao vivo de hoje'],
     ['/cobranca', 'Cobrança'], ['/recall', 'Recall'], ['/relatorios', 'Relatórios'],
   ];

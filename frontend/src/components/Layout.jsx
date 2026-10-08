@@ -139,7 +139,7 @@ const ROTAS = [
   { teste: /^\/recall/, secao: 'Relacionamento', titulo: 'Recall' },
   { teste: /^\/relatorios/, secao: 'Gestão', titulo: 'Relatórios' },
   { teste: /^\/fonada\/novo/, secao: 'Pedidos · Fonada', titulo: 'Novo pedido' },
-  { teste: /^\/fonada\/hoje/, secao: 'Pedidos · Fonada', titulo: 'Transmissões de hoje' },
+  { teste: /^\/fonada\/hoje/, secao: 'Pedidos · Fonada', titulo: 'Vendas de hoje' },
   { teste: /^\/fonada\/\d+/, secao: 'Pedidos · Fonada', titulo: 'Editar pedido' },
   { teste: /^\/fonada/, secao: 'Pedidos', titulo: 'Fonada' },
   { teste: /^\/ao-vivo\/novo/, secao: 'Pedidos · Ao vivo', titulo: 'Novo pedido' },

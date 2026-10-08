@@ -26,8 +26,8 @@ test('Fonada de hoje abre pedido, registra baixa e remarca tentativa pela interf
       pedidos.push(await pedidoResp.json());
     }
     await page.goto('/fonada/hoje');
-    await expect(page.getByRole('heading', { name: 'Fonada de hoje' })).toBeVisible();
-    await page.getByRole('button', { name: new RegExp(clientes[0].nome) }).click();
+    await expect(page.getByRole('heading', { name: 'Vendas de hoje', exact: true })).toBeVisible();
+    await page.getByRole('link', { name: new RegExp(clientes[0].nome) }).click();
     await expect(page).toHaveURL(new RegExp(`/fonada/${pedidos[0].id}$`));
     await page.getByTitle('Marcar passada').click();
     await expect(page.getByText('BAIXA DADA COM SUCESSO')).toBeVisible();
@@ -35,7 +35,7 @@ test('Fonada de hoje abre pedido, registra baixa e remarca tentativa pela interf
     expect(baixado.p1_resultado).toMatch(/^OK /);
 
     await page.goto('/fonada/hoje');
-    await page.getByRole('button', { name: new RegExp(clientes[1].nome) }).click();
+    await page.getByRole('link', { name: new RegExp(clientes[1].nome) }).click();
     await page.getByTitle('Não atendeu').click();
     await expect(page.getByRole('heading', { name: 'Não atendeu — 1ª mensagem' })).toBeVisible();
     await page.locator('.campo', { hasText: 'Novo dia *' }).locator('input').fill(dia(5));

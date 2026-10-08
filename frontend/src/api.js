@@ -143,7 +143,7 @@ export const api = {
   fonada: {
     listar: (busca = '', pagina = 1, campo = '', opcoes = {}) =>
       chamar(`/fonadas?busca=${encodeURIComponent(busca)}&pagina=${pagina}&campo=${encodeURIComponent(campo)}`, opcoes),
-    hoje: () => chamar('/fonadas/hoje'),
+    hoje: (opcoes = {}) => chamar('/fonadas/hoje', opcoes),
     proximaOs: () => chamar('/fonadas/proxima-os'),
     buscar: (id) => chamar(`/fonadas/${id}`),
     criar: (dados) => chamar('/fonadas', { method: 'POST', body: JSON.stringify(dados) }),
