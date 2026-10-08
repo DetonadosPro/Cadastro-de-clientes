@@ -8,6 +8,7 @@ import { formatarCelular, formatarFixo, formatarData, formatarHorario, formatarC
 import CampoData from '../../components/CampoData.jsx';
 import { AvisoInline, CabecalhoPagina, Dialogo, EstadoCarregando } from '../../components/Interface.jsx';
 import { numeroWhatsAppBrasil } from '../../utils/telefoneWhatsApp.js';
+import { camposMensagemRecall } from '../../utils/pedidoRecall.js';
 import { useConfiguracoes } from '../../ConfiguracoesContext.jsx';
 import './pagamento-registro.css';
 
@@ -280,7 +281,8 @@ export default function FormFonada() {
       if (editando) {
         api.fonada.buscar(id)
           .then((pedido) => { if (ativo) setMensagemEmHaver(pedido.mensagemEmHaver || null); })
-          .catch(() => {});
+          .catch((err) => { if (ativo && location.state?.recallMensagemEmHaver) setErro(err.message); })
+          .finally(() => { if (ativo && location.state?.recallMensagemEmHaver) setCarregando(false); });
         api.agenda.buscarTentativas(id)
           .then((resp) => { if (ativo) setTentativas(resp.tentativas); })
           .catch(() => {});
@@ -293,7 +295,7 @@ export default function FormFonada() {
           } })
           .catch(() => {});
       }
-      setCarregando(false);
+      if (!editando || !location.state?.recallMensagemEmHaver) setCarregando(false);
       return () => { ativo = false; };
     }
     setCliente(null);
@@ -317,12 +319,7 @@ export default function FormFonada() {
             nascimento: respCliente.cliente.nascimento || '',
             recall: recallParaUrl ? 'SIM' : 'NÃO',
             recall_codigo: recallParaUrl ? String(location.state?.recallDadosMensagem?.osAnterior || '') : '',
-            p1_para: recallParaUrl || '',
-            p1_tema: recallParaUrl ? (location.state?.recallDadosMensagem?.tema ?? 'ANIV GERAL') : '',
-            p1_fixo: recallParaUrl ? (location.state?.recallDadosMensagem?.fixo || '') : '',
-            p1_celular: recallParaUrl ? (location.state?.recallDadosMensagem?.celular || '') : '',
-            p1_dia: recallDataUrl && /^\d{4}-\d{2}-\d{2}$/.test(recallDataUrl)
-              ? `${recallDataUrl.slice(8, 10)}/${recallDataUrl.slice(5, 7)}/${recallDataUrl.slice(2, 4)}` : '',
+            ...(recallParaUrl ? camposMensagemRecall(1, recallParaUrl, recallDataUrl, location.state?.recallDadosMensagem) : {}),
           };
           setDados(inicial);
           setCliente(respCliente.cliente);
@@ -357,6 +354,27 @@ export default function FormFonada() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     return () => { ativo = false; };
   }, [chaveRascunho, clienteIdUrl, rascunhoIdUrl]);
+
+  useEffect(() => {
+    if (carregando || carregandoConfiguracoes || !editando || !location.state?.recallMensagemEmHaver) return;
+    // Consome o preenchimento uma única vez, inclusive ao voltar ou recarregar.
+    const { recallMensagemEmHaver, recallDadosMensagem, ...estadoRetorno } = location.state;
+    navigate(`${location.pathname}${location.search}`, { replace: true, state: estadoRetorno });
+    if (!mensagemEmHaver?.disponivel) {
+      mostrarToast('Esta mensagem em haver não está mais disponível. Confira o pedido.', 'erro');
+      return;
+    }
+    const preenchido = { ...dados, recall: 'SIM',
+      ...camposMensagemRecall(2, recallParaUrl, recallDataUrl, recallDadosMensagem),
+    };
+    setDados(preenchido);
+    salvarRascunhoFonada(chaveRascunho, preenchido, cliente, location.search);
+    requestAnimationFrame(() => {
+      const campo = formularioRef.current?.querySelector('[aria-label="Para da 2ª mensagem"]');
+      campo?.scrollIntoView({ block: 'center' });
+      campo?.focus({ preventScroll: true });
+    });
+  }, [carregando, carregandoConfiguracoes, editando, location.state]);
 
   async function darBaixaMensagem(mensagem) {
     setSalvandoBaixa(mensagem);
@@ -550,7 +568,12 @@ export default function FormFonada() {
         }));
         setMensagemEmHaver(atualizado.mensagemEmHaver || null);
         limparRascunhoFonada(chaveRascunho);
-        mostrarToast('Pedido salvo com sucesso.');
+        let recallAtualizado = true;
+        if (recallRelacaoUrl && recallDataUrl) {
+          try { await api.recall.pedidoCriado({ dataReferencia: recallDataUrl, relacaoChave: recallRelacaoUrl, pedidoId: Number(id) }); }
+          catch { recallAtualizado = false; }
+        }
+        mostrarToast(recallAtualizado ? 'Pedido salvo com sucesso.' : 'Pedido salvo. O status do Recall precisa ser conferido.', recallAtualizado ? 'sucesso' : 'aviso');
       } else {
         const novo = await api.fonada.criar(payload);
         let recallAtualizado = true;

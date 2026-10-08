@@ -4,7 +4,7 @@ import { api, getNomeExibicao } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { buildRecallWhatsAppUrl } from '../../utils/mensagemRecall.js';
 import { numeroWhatsAppBrasil } from '../../utils/telefoneWhatsApp.js';
-import { dadosMensagemRecall } from '../../utils/pedidoRecall.js';
+import { dadosMensagemRecall, mensagemEmHaverPrioritaria } from '../../utils/pedidoRecall.js';
 import { AvisoInline, EstadoCarregando } from '../../components/Interface.jsx';
 import RecallAoVivo from './RecallAoVivo.jsx';
 import NavegacaoDatasRecall from '../../components/NavegacaoDatasRecall.jsx';
@@ -56,9 +56,11 @@ function RecallFonada() {
       let cadastro=null;
       if(invertido&&pedido.cliente_id)cadastro=(await api.clientes.buscarCadastro(pedido.cliente_id)).cliente;
       const recallDadosMensagem=dadosMensagemRecall(pedido,selecionado.ultimoPedido.mensagem,modoOrigem,cadastro);
+      const mensagemEmHaver=mensagemEmHaverPrioritaria(selecionado.mensagensEmHaver);
       const q=new URLSearchParams({clienteId:String(selecionado.clienteId),recallPara:selecionado.aniversariante,recallData:data,recallRelacao:selecionado.relacaoChave});
-      navigate(`/fonada/novo?${q}`,{state:{returnTo:urlRetornoFila(),recallDadosMensagem}});
-    } catch(e) { mostrarToast(e.message||'Não foi possível preparar o novo pedido.','erro'); }
+      const destino=mensagemEmHaver?`/fonada/${mensagemEmHaver.pedidoId}`:'/fonada/novo';
+      navigate(`${destino}?${q}`,{state:{returnTo:urlRetornoFila(),recallDadosMensagem,recallMensagemEmHaver:!!mensagemEmHaver}});
+    } catch(e) { mostrarToast(e.message||'Não foi possível preparar o pedido.','erro'); }
     finally { setCriandoPedido(false); }
   }
   const itensAtivos=listaDoModo();
@@ -128,6 +130,6 @@ function Detalhes({item,modoFila,modoWhatsapp,criarPedido,navigate,returnTo,posi
       <div className="recall-links"><button onClick={()=>navigate(`/fonada/${item.ultimoPedido.pedidoId}`,{state:{returnTo}})}>Abrir este pedido</button></div>
     </div>
     <details className="recall-historico-relacao"><summary><span>Histórico da relação</span><em>{item.quantidade} mensagem{item.quantidade!==1?'s':''}</em></summary><div className="recall-historico-itens">{item.historico.map((h)=><button type="button" key={`${h.pedidoId}-${h.mensagem}`} onClick={()=>navigate(`/fonada/${h.pedidoId}`,{state:{returnTo}})}><span className="recall-historico-conteudo"><strong>{h.tema||'Tema não informado'}{h.texto?` · Nº ${h.texto}`:''}</strong><small>{h.data||'Data não informada'}</small></span><em>O.S. {h.os||h.pedidoId}</em><b>›</b></button>)}</div></details>
-    {item.clienteBloqueado?<button className="btn recall-criar" disabled>Cliente bloqueado — novo pedido indisponível</button>:item.clienteId?<button className="btn recall-criar" onClick={criarPedido} disabled={criandoPedido}>{criandoPedido?'Preparando pedido…':'＋ Criar novo pedido'}</button>:<button className="btn recall-criar" onClick={()=>navigate('/clientes/novo',{state:{dadosIniciais:{nome:item.clienteNome,whatsapp:item.telefone||''},returnTo}})}>＋ Cadastrar novo cliente</button>}
+    {item.clienteBloqueado?<button className="btn recall-criar" disabled>Cliente bloqueado — pedido indisponível</button>:item.clienteId?<button className="btn recall-criar" onClick={criarPedido} disabled={criandoPedido}>{criandoPedido?'Preparando pedido…':item.mensagensEmHaver?.length?'Usar mensagem em haver':'＋ Criar novo pedido'}</button>:<button className="btn recall-criar" onClick={()=>navigate('/clientes/novo',{state:{dadosIniciais:{nome:item.clienteNome,whatsapp:item.telefone||''},returnTo}})}>＋ Cadastrar novo cliente</button>}
   </aside>;
 }
