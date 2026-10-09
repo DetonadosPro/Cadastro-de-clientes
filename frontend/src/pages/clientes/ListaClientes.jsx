@@ -1,15 +1,39 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
 import ClienteDrawer from '../../components/ClienteDrawer.jsx';
-import { AvisoInline, CabecalhoPagina, Dialogo, EstadoVazio, Paginacao } from '../../components/Interface.jsx';
+import { AvisoInline, Dialogo, EstadoVazio, Paginacao } from '../../components/Interface.jsx';
+import { numeroWhatsAppBrasil } from '../../utils/telefoneWhatsApp.js';
+import './clientes.css';
 
 const FILTROS_RAPIDOS = [
+  ['', 'Todos'],
   ['pendencia', 'Com cobrança pendente'],
+  ['aniversariantes', 'Aniversariantes de hoje'],
+  ['recentes', 'Novos em 30 dias'],
+  ['sem_pedidos', 'Sem pedidos'],
   ['bloqueados', 'Bloqueados'],
 ];
+
+function iniciais(nome) {
+  const partes = String(nome || '').trim().split(/\s+/).filter(Boolean);
+  return partes.length ? `${partes[0][0]}${partes.length > 1 ? partes.at(-1)[0] : ''}`.toUpperCase() : '?';
+}
+
+function IconeClientes({ tipo, ...props }) {
+  const desenhos = {
+    pessoas: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M22 21v-2a4 4 0 0 0-3-3.87M16 3a4 4 0 0 1 0 8" /><circle cx="9" cy="7" r="4" /></>,
+    pedido: <><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 3h6v4H9zM9 12h6M9 16h4" /></>,
+    pendente: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
+    contato: <><path d="M4 4h16v12H8l-4 4zM8 8h8M8 12h5" /></>,
+    busca: <><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></>,
+    ficha: <><rect x="4" y="3" width="16" height="18" rx="2" /><circle cx="12" cy="9" r="2" /><path d="M8 17v-1a4 4 0 0 1 8 0v1" /></>,
+    whatsapp: <><path d="M21 11.5a9 9 0 0 1-13.4 7.9L3 21l1.6-4.7A9 9 0 1 1 21 11.5Z" /><path d="M8 7.5c0 4 3 7 7 8l1.5-2-3-1-1 1a7 7 0 0 1-3-3l1-1-1-3z" /></>,
+  };
+  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>{desenhos[tipo]}</svg>;
+}
 
 const CAMPOS_MESCLA = [
   ['nome', 'Nome'], ['nascimento', 'Nascimento'], ['whatsapp', 'WhatsApp'], ['celular', 'Celular'],
@@ -272,11 +296,15 @@ export default function ListaClientes() {
   function aplicarFiltroRapido(valor) {
     const novaSituacao = situacao === valor ? '' : valor;
     setSituacao(novaSituacao);
-    setCarregando(true);
     setSearchParams(
       montarParams(busca, telefone, aniversario, novaSituacao, 1, ordenarPorUrl, direcaoUrl),
       { replace: true }
     );
+  }
+
+  function limparFiltros() {
+    setBusca(''); setTelefone(''); setAniversario(''); setSituacao('');
+    setSearchParams(montarParams('', '', '', '', 1, ordenarPorUrl, direcaoUrl), { replace: true });
   }
 
   function alternarSelecao(clienteId) {
@@ -381,15 +409,28 @@ export default function ListaClientes() {
     abrirComparacao(origem, clienteDestino, clienteDestino.id);
   }
 
+  const temFiltros = Boolean(buscaUrl || telefoneUrl || aniversarioUrl || situacaoUrl);
+  const pedidosNaPagina = itens.reduce((s, c) => s + Number(c.total_fonada || 0) + Number(c.total_aovivo || 0), 0);
+  const pendentesNaPagina = itens.filter(c => Number(c.valor_pendente || 0) > 0);
+  const valorPendenteNaPagina = pendentesNaPagina.reduce((s, c) => s + Number(c.valor_pendente), 0);
+  const semContatoNaPagina = itens.filter(c => ![c.whatsapp, c.celular, c.fixo].some(valorUtil)).length;
+
   return (
-    <div className="clientes-workspace">
-      <CabecalhoPagina
-        contexto="Relacionamento"
-        titulo="Clientes"
-        descricao="Encontre contatos, identifique pendências e abra o histórico sem perder o contexto da lista."
-        meta={!carregando ? `${total} cliente${total === 1 ? '' : 's'}` : null}
-        acoes={<button type="button" className="btn secundario" onClick={alternarDuplicatas} aria-expanded={duplicatasAbertas}>Revisar duplicatas</button>}
-      />
+    <div className="clientes-workspace clientes-renovada">
+      <header className="clientes-cabecalho">
+        <div className="clientes-cabecalho-texto"><span className="clientes-eyebrow">Sua carteira de contatos</span><h1>Clientes<span className="clientes-titulo-ponto">.</span></h1><p>Busque contatos, confira pendências e consulte o histórico.</p></div>
+        <div className="clientes-cabecalho-acoes">
+          <button type="button" className="btn secundario" onClick={alternarDuplicatas} aria-expanded={duplicatasAbertas}>Revisar duplicatas</button>
+          <Link className="btn" to="/clientes/novo"><IconeMais /> Cadastrar cliente</Link>
+        </div>
+      </header>
+
+      <section className="clientes-indicadores" aria-label="Resumo da lista de clientes" aria-busy={carregando}>
+        <div className="clientes-indicador destaque"><span className="clientes-indicador-icone"><IconeClientes tipo="pessoas" /></span><span>{temFiltros ? 'Clientes encontrados' : 'Clientes cadastrados'}</span><strong>{carregando ? '—' : total.toLocaleString('pt-BR')}</strong><small>{temFiltros ? 'De acordo com os filtros aplicados' : 'Sua base de clientes'}</small></div>
+        <div className="clientes-indicador"><span className="clientes-indicador-icone"><IconeClientes tipo="pedido" /></span><span>Pedidos na página</span><strong>{carregando ? '—' : pedidosNaPagina.toLocaleString('pt-BR')}</strong><small>Histórico dos {itens.length} clientes exibidos</small></div>
+        <div className="clientes-indicador atencao"><span className="clientes-indicador-icone"><IconeClientes tipo="pendente" /></span><span>Pendências na página</span><strong>{carregando ? '—' : formatarReais(valorPendenteNaPagina)}</strong><small>{pendentesNaPagina.length} cliente{pendentesNaPagina.length === 1 ? '' : 's'} com cobrança pendente</small></div>
+        <div className="clientes-indicador"><span className="clientes-indicador-icone"><IconeClientes tipo="contato" /></span><span>Sem contato na página</span><strong>{carregando ? '—' : semContatoNaPagina}</strong><small>Cadastros que precisam de um telefone</small></div>
+      </section>
 
       {duplicatasAbertas && buscandoDuplicatas && <p role="status">Consultando possíveis duplicatas…</p>}
       {duplicatasAbertas && erroDuplicatas && <AvisoInline titulo={erroDuplicatas} acao={<button className="btn-small" onClick={buscarSugestoes}>Tentar novamente</button>} />}
@@ -451,8 +492,8 @@ export default function ListaClientes() {
 
       <section className="clientes-filtros" aria-label="Busca e filtros de clientes">
         <div className="filtros-cabecalho">
-          <div><strong>Localizar clientes</strong></div>
-          {(busca || telefone || aniversario || situacao) && <button type="button" className="btn-small" onClick={() => { setBusca(''); setTelefone(''); setAniversario(''); setSituacao(''); }}>Limpar tudo</button>}
+          <div><IconeClientes tipo="busca" /><strong>Encontre seu cliente</strong></div>
+          {(busca || telefone || aniversario || situacao) && <button type="button" className="btn-small" onClick={limparFiltros}>Limpar tudo</button>}
         </div>
         <div className="clientes-filtros-rapidos">
           {FILTROS_RAPIDOS.map(([valor, rotulo]) => (
@@ -466,12 +507,15 @@ export default function ListaClientes() {
         </div>
       </section>
 
+      <div className="clientes-lista-cabecalho">
+      <div className="clientes-status" role="status" aria-live="polite">{carregando ? 'Atualizando clientes…' : erro ? (itens.length ? 'Os resultados anteriores foram mantidos.' : 'Tente carregar a lista novamente.') : <><strong>{total.toLocaleString('pt-BR')} cliente{total === 1 ? '' : 's'}</strong><span>{itens.length ? `${(paginaUrl - 1) * porPagina + 1}–${(paginaUrl - 1) * porPagina + itens.length} de ${total.toLocaleString('pt-BR')}` : 'Nenhum resultado'} · página {paginaUrl} de {totalPaginas}</span></>}</div>
       <div className="clientes-ordenacao-mobile">
         <label htmlFor="ordenacao-clientes">Ordenar por</label>
-        <select id="ordenacao-clientes" value={ordenarPorUrl} onChange={(evento) => setSearchParams(montarParams(busca, telefone, aniversario, situacao, 1, evento.target.value, direcaoUrl), { replace: true })}>
+        <select id="ordenacao-clientes" value={ordenarPorUrl} onChange={(evento) => setSearchParams(montarParams(busca, telefone, aniversario, situacao, 1, evento.target.value, ['nome'].includes(evento.target.value) ? 'asc' : 'desc'), { replace: true })}>
           <option value="nome">Nome</option><option value="ultimo_pedido">Último pedido</option><option value="total_pedidos">Pedidos</option><option value="valor_pendente">Pendente</option>
         </select>
         <button type="button" className="btn secundario" aria-label={direcaoUrl === 'asc' ? 'Mudar para ordem decrescente' : 'Mudar para ordem crescente'} onClick={() => aoClicarOrdenacao(ordenarPorUrl)}>{direcaoUrl === 'asc' ? '↑' : '↓'}</button>
+      </div>
       </div>
 
       {selecionados.size > 0 && (
@@ -486,7 +530,6 @@ export default function ListaClientes() {
       {erro && <AvisoInline tom="erro" titulo="Não foi possível atualizar os clientes" acao={<button className="btn-small" onClick={() => carregar(buscaUrl, paginaUrl, ordenarPorUrl, direcaoUrl, { telefone: telefoneUrl, aniversario: aniversarioUrl, situacao: situacaoUrl })}>Tentar novamente</button>}>{erro}</AvisoInline>}
       {mesclando && <p className="fs-sm" style={{ color: 'var(--tinta-suave)' }}>Mesclando clientes...</p>}
 
-      <div className="clientes-status" role="status" aria-live="polite">{carregando ? 'Atualizando clientes…' : erro ? (itens.length ? 'Os resultados anteriores foram mantidos.' : 'Tente carregar a lista novamente.') : `${total.toLocaleString('pt-BR')} clientes · página ${paginaUrl} de ${totalPaginas}`}</div>
       {carregando && itens.length === 0 ? (
         <SkeletonClientes />
       ) : itens.length === 0 && !erro ? (
@@ -494,13 +537,13 @@ export default function ListaClientes() {
           titulo="Nenhum cliente encontrado"
           descricao={busca || telefone || aniversario || situacao ? 'Revise os filtros ou limpe a busca para ver outros cadastros.' : 'Cadastre o primeiro cliente para começar.'}
           acao={busca || telefone || aniversario || situacao
-            ? <button className="btn secundario" onClick={() => { setBusca(''); setTelefone(''); setAniversario(''); setSituacao(''); }}>Limpar filtros</button>
+            ? <button className="btn secundario" onClick={limparFiltros}>Limpar filtros</button>
             : <button className="btn" onClick={() => navigate('/clientes/novo')}><IconeMais /> Novo cliente</button>}
         />
       ) : (
         <>
           <div className={`painel clientes-resultados ${carregando ? 'atualizando' : ''}`} aria-busy={carregando} inert={carregando ? '' : undefined} style={{ padding: 0, overflow: 'hidden' }}>
-            <div style={{ overflowX: 'auto' }}>
+            <div className="clientes-tabela-scroll">
               <table className="tabela-lista tabela-clientes">
                 <thead>
                   <tr>
@@ -515,10 +558,11 @@ export default function ListaClientes() {
                     </th>
                     <th aria-sort={ordenarPorUrl === 'nome' ? (direcaoUrl === 'asc' ? 'ascending' : 'descending') : 'none'}><button type="button" className="tabela-ordenar" onClick={() => aoClicarOrdenacao('nome')}>Nome{indicadorOrdenacao('nome', ordenarPorUrl, direcaoUrl)}</button></th>
                     <th>Contato</th>
-                    <th>Bairro</th>
+                    <th>Localização</th>
                     <th aria-sort={ordenarPorUrl === 'ultimo_pedido' ? (direcaoUrl === 'asc' ? 'ascending' : 'descending') : 'none'}><button type="button" className="tabela-ordenar" onClick={() => aoClicarOrdenacao('ultimo_pedido')}>Último pedido{indicadorOrdenacao('ultimo_pedido', ordenarPorUrl, direcaoUrl)}</button></th>
                     <th style={{textAlign:'center'}} aria-sort={ordenarPorUrl === 'total_pedidos' ? (direcaoUrl === 'asc' ? 'ascending' : 'descending') : 'none'}><button type="button" className="tabela-ordenar" onClick={() => aoClicarOrdenacao('total_pedidos')}>Pedidos{indicadorOrdenacao('total_pedidos', ordenarPorUrl, direcaoUrl)}</button></th>
                     <th style={{textAlign:'right'}} aria-sort={ordenarPorUrl === 'valor_pendente' ? (direcaoUrl === 'asc' ? 'ascending' : 'descending') : 'none'}><button type="button" className="tabela-ordenar" onClick={() => aoClicarOrdenacao('valor_pendente')}>Pendente{indicadorOrdenacao('valor_pendente', ordenarPorUrl, direcaoUrl)}</button></th>
+                    <th><span className="clientes-sr-only">Ações</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -533,7 +577,7 @@ export default function ListaClientes() {
                       onDrop={(e) => aoSoltar(e, c)}
                       onClick={() => aoClicarLinha(c)}
                       className={
-                        (selecionados.has(c.id) ? 'selecionado ' : '') + (arrastandoId === c.id ? 'linha-arrastando ' : '') +
+                        (selecionados.has(c.id) ? 'selecionado ' : '') + (c.bloqueado ? 'cliente-bloqueado ' : '') + (arrastandoId === c.id ? 'linha-arrastando ' : '') +
                         (sobreId === c.id ? 'linha-soltar-aqui' : '')
                       }
                     >
@@ -546,21 +590,20 @@ export default function ListaClientes() {
                         />
                       </td>
                       <td style={{ fontWeight: 700 }} data-label="Nome">
-                        <span className="alca-arrastar" title="Arraste para mesclar com outro cliente"><IconeAlca /></span>
-                        <button type="button" className="cliente-nome-abrir" onClick={(evento) => { evento.stopPropagation(); aoClicarLinha(c); }}>{c.nome?.trim() || `Cliente sem nome (ID ${c.id})`}</button>
-                        {![c.whatsapp, c.celular, c.fixo].some(valorUtil) && <span className="cliente-contato-tipo">Contato não informado</span>}
+                        <div className="cliente-identidade"><span className="cliente-avatar" aria-hidden="true">{iniciais(c.nome)}</span><div><button type="button" className="cliente-nome-abrir" onClick={(evento) => { evento.stopPropagation(); aoClicarLinha(c); }}>{c.nome?.trim() || `Cliente sem nome (ID ${c.id})`}</button><div className="cliente-metadados"><span>#{c.id}</span>{nascimentoValido(c.nascimento) && <span>Nasc. {c.nascimento}</span>}{c.bloqueado && <span className="cliente-selo-bloqueado">Bloqueado</span>}</div></div><span className="alca-arrastar" title="Arraste para mesclar com outro cliente"><IconeAlca /></span></div>
                       </td>
                       <td data-label="Contato">
-                        <strong className="cliente-contato-principal">{valorUtil(c.whatsapp) || valorUtil(c.celular) || valorUtil(c.fixo) || '—'}</strong>
-                        {valorUtil(c.whatsapp) && <span className="cliente-contato-tipo">WhatsApp</span>}
+                        <strong className="cliente-contato-principal">{valorUtil(c.whatsapp) || valorUtil(c.celular) || valorUtil(c.fixo) || 'Não informado'}</strong>
+                        <span className={`cliente-contato-tipo ${![c.whatsapp, c.celular, c.fixo].some(valorUtil) ? 'sem-contato' : ''}`}>{valorUtil(c.whatsapp) ? 'WhatsApp' : valorUtil(c.celular) ? 'Celular' : valorUtil(c.fixo) ? 'Telefone fixo' : 'Complete o cadastro'}</span>
                       </td>
-                      <td data-label="Bairro">{valorUtil(c.bairro) || '—'}</td>
+                      <td data-label="Bairro"><span className="cliente-localizacao">{valorUtil(c.bairro) || 'Bairro não informado'}</span>{valorUtil(c.endereco) && <small className="cliente-endereco">{c.endereco}</small>}</td>
                       <td data-label="Último pedido">{c.ultimo_pedido_data || 'Sem pedidos'}</td>
                       <td style={{ textAlign: 'center' }} data-label="Pedidos">
                         <span className="contagem-pedidos">{Number(c.total_fonada || 0) + Number(c.total_aovivo || 0)}</span>
                         <span className="cliente-contagem-detalhe">{c.total_fonada || 0} fonada · {c.total_aovivo || 0} ao vivo</span>
                       </td>
-                      <td style={{ textAlign: 'right', fontWeight: 700 }} data-label="Pendente">{Number(c.valor_pendente || 0) > 0 ? formatarReais(c.valor_pendente) : '—'}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 700 }} data-label="Pendente"><span className={Number(c.valor_pendente || 0) > 0 ? 'cliente-pendencia' : 'cliente-em-dia'}>{Number(c.valor_pendente || 0) > 0 ? formatarReais(c.valor_pendente) : 'Em dia'}</span></td>
+                      <td data-label="Ações" onClick={e => e.stopPropagation()}><div className="cliente-acoes-linha">{numeroWhatsAppBrasil(c.whatsapp) && <a className="cliente-whatsapp" href={`https://wa.me/${numeroWhatsAppBrasil(c.whatsapp)}`} target="_blank" rel="noreferrer" aria-label={`Abrir WhatsApp de ${c.nome}`} title="Abrir WhatsApp"><IconeClientes tipo="whatsapp" /></a>}<Link className="cliente-ficha-link" to={`/clientes/${c.id}`} aria-label={`Ver ficha de ${c.nome}`}><IconeClientes tipo="ficha" /> <span>Ficha</span></Link></div></td>
                     </tr>
                   ))}
                 </tbody>
@@ -619,9 +662,6 @@ export default function ListaClientes() {
 }
 
 const estilos = {
-  cabecalho: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
-  paginacao: { display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, marginTop: 20 },
-  colunaOrdenavel: { cursor: 'pointer', userSelect: 'none' },
   avisoDuplicata: {
     borderLeft: '4px solid var(--aviso)',
     background: 'var(--aviso-suave)',
