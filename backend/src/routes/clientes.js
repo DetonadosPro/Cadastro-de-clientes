@@ -299,7 +299,7 @@ router.get('/', async (req, res) => {
         LIMIT 1
       ) ultimo ON TRUE
       ${paginarAntes ? '' : where}
-      ORDER BY ${colunaOrdenacao} ${direcao}, c.nome ASC, c.id ASC
+      ORDER BY ${colunaOrdenacao} ${direcao} NULLS LAST, c.nome ASC, c.id ASC
       ${paginarAntes ? '' : `LIMIT $${idxLimit} OFFSET $${idxOffset}`}
     `, [...params, porPagina, offset]);
 
