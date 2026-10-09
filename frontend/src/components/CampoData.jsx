@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 const NOMES_MES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const NOMES_DIA_SEMANA = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
@@ -49,6 +49,33 @@ export default function CampoData({ value, onChange, placeholder, style, disable
   const [aberto, setAberto] = useState(false);
   const [mesVisivel, setMesVisivel] = useState(() => textoParaData(value) || new Date());
   const raizRef = useRef(null);
+  const calendarioRef = useRef(null);
+
+  useLayoutEffect(() => {
+    if (!aberto) return;
+    const raiz = raizRef.current;
+    const calendario = calendarioRef.current;
+    function posicionar() {
+      const origem = raiz.getBoundingClientRect().left + raiz.clientLeft;
+      const margem = 12;
+      const limite = document.documentElement.clientWidth - calendario.offsetWidth - margem;
+      const esquerda = Math.min(Math.max(origem, margem), Math.max(margem, limite));
+      calendario.style.left = `${esquerda - origem}px`;
+    }
+    // Ajusta antes de exibir, preservando o alinhamento com o campo
+    // enquanto houver espaço e recuando quando chegar à borda da tela.
+    posicionar();
+    const observador = new ResizeObserver(posicionar);
+    observador.observe(raiz);
+    observador.observe(calendario);
+    window.addEventListener('resize', posicionar);
+    window.addEventListener('scroll', posicionar, true);
+    return () => {
+      observador.disconnect();
+      window.removeEventListener('resize', posicionar);
+      window.removeEventListener('scroll', posicionar, true);
+    };
+  }, [aberto]);
 
   useEffect(() => {
     if (!aberto) return;
@@ -110,7 +137,7 @@ export default function CampoData({ value, onChange, placeholder, style, disable
       </button>
 
       {aberto && (
-        <div className="calendario-popover">
+        <div ref={calendarioRef} className="calendario-popover">
           <div className="calendario-cabecalho">
             <button type="button" onClick={() => setMesVisivel(new Date(mesVisivel.getFullYear(), mesVisivel.getMonth() - 1, 1))} aria-label="Mês anterior">‹</button>
             <span>{NOMES_MES[mesVisivel.getMonth()]} de {mesVisivel.getFullYear()}</span>

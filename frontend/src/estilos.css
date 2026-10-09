@@ -2264,6 +2264,7 @@ button.nav-grupo-titulo {
   box-shadow: 0 8px 24px rgba(28, 27, 25, 0.16);
   padding: 10px;
   width: 232px;
+  max-width: calc(100vw - 24px);
 }
 .calendario-cabecalho {
   display: flex;

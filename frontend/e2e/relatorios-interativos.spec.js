@@ -45,6 +45,48 @@ test('comparação nomeia meses, mostra vencedor e inverte valores e base percen
   await expect(page.locator('.rel-conclusion-change strong')).toHaveText('-37,5%');
   await expect(page.locator('.rel-conclusion-change span')).toHaveText('Agosto de 2026 em relação a Setembro de 2026');
 });
+
+test('calendários dos quatro campos ficam inteiros dentro da tela e acompanham o redimensionamento', async ({ page }, testInfo) => {
+  test.setTimeout(60000);
+  await preparar(page);
+  for (const width of [1750, 1440, 1024, 768, 390, 320]) {
+    await page.setViewportSize({ width, height: 1000 });
+    for (const id of ['rel-inicio', 'rel-fim', 'rel-inicio-ref', 'rel-fim-ref']) {
+      await page.locator(`#${id}`).locator('..').getByRole('button', { name: 'Escolher no calendário' }).click();
+      const calendario = page.locator('.calendario-popover');
+      await expect(calendario).toBeVisible();
+      await expect.poll(async () => {
+        const box = await calendario.boundingBox();
+        const largura = await page.evaluate(() => document.documentElement.clientWidth);
+        return box.x >= 11 && box.x + box.width <= largura - 11;
+      }, { message: `Calendário cortado: ${id}, ${width}px` }).toBe(true);
+      await expect(calendario.getByRole('button', { name: 'Próximo mês' })).toBeVisible();
+      // O último dia da grade também deve receber cliques, sem ficar
+      // encoberto pela borda ou por um contêiner que corte o calendário.
+      await calendario.locator('.calendario-dia').last().scrollIntoViewIfNeeded();
+      expect(await calendario.locator('.calendario-dia').last().evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        return el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+      })).toBe(true);
+      if (width === 1750 && id === 'rel-fim-ref') await page.screenshot({ path: testInfo.outputPath('calendario-direita-1750.png') });
+      await page.keyboard.press('Escape');
+      await expect(calendario).toHaveCount(0);
+    }
+  }
+  await page.setViewportSize({ width: 1750, height: 1000 });
+  await page.locator('#rel-fim-ref').locator('..').getByRole('button', { name: 'Escolher no calendário' }).click();
+  await page.setViewportSize({ width: 390, height: 1000 });
+  const calendario = page.locator('.calendario-popover');
+  await expect.poll(async () => {
+    const box = await calendario.boundingBox();
+    return box.x >= 11 && box.x + box.width <= 379;
+  }).toBe(true);
+  await calendario.getByRole('button', { name: 'Próximo mês' }).click();
+  await expect(calendario.locator('.calendario-cabecalho > span')).toHaveText('Setembro de 2026');
+  await calendario.getByRole('button', { name: '15', exact: true }).click();
+  await expect(page.locator('#rel-fim-ref')).toHaveValue('15/09/26');
+  await expect(calendario).toHaveCount(0);
+});
 test('hover resume os meses; clique abre modalidades e legenda controla séries',async({page})=>{
   await preparar(page);
   const grafico=page.getByRole('region',{name:'Evolução das vendas'});
