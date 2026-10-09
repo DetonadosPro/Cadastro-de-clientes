@@ -345,7 +345,7 @@ export default function FichaCliente() {
       <div className="ficha-cliente-visao-geral">
       <div className="section-box ficha-cliente-dados">
         <div className="section-title">
-          <span>Dados do cliente</span>
+          <strong>{cliente.nome}</strong>
           {!editando && <div className="acoes-dados-cliente">
             <button type="button" className="btn-small" onClick={iniciarEdicao} style={{ gap: 5 }}><IconeEditar /> Editar</button>
             {cliente.bloqueado
