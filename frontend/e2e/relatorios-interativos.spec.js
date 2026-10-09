@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 
 const URL_RELATORIO='/relatorios?inicio=01%2F09%2F26&fim=30%2F09%2F26&inicioB=01%2F08%2F26&fimB=31%2F08%2F26';
 const br = n => `R$ ${n.toLocaleString('pt-BR',{minimumFractionDigits:2})}`;
@@ -154,6 +155,47 @@ test('paginação de pedidos não altera os totais dos gráficos',async({page})=
   await page.getByRole('button',{name:'Anterior',exact:true}).click();
   await expect(page.locator('.rel-table-scroll tbody tr')).toHaveCount(50);
 });
+
+for (const [aba,titulo,grafico] of [['Vendas','Vendas do período','Evolução das vendas'],['Recebimentos','Recebimentos do período','Evolução dos recebimentos']]) {
+  test(`registros de ${aba.toLowerCase()} vêm antes dos gráficos, fechados e com tabela responsiva`,async({page},testInfo)=>{
+    await preparar(page);
+    if(aba==='Recebimentos')await page.getByRole('button',{name:aba,exact:true}).click();
+    const registros=page.locator('.rel-records-financeiro');
+    await expect(registros.locator('summary')).toContainText(titulo);
+    await expect(registros).not.toHaveAttribute('open');
+    expect(await registros.evaluate(el=>Boolean(el.compareDocumentPosition(document.querySelector('.rel-chart'))&Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+    await expect(page.getByRole('region',{name:grafico,exact:true})).toBeVisible();
+    await registros.locator('summary').focus();
+    await page.keyboard.press('Enter');
+    await expect(registros).toHaveAttribute('open','');
+    await expect(registros.locator('tbody tr')).toHaveCount(50);
+    await expect(registros).toContainText('Cliente de exemplo 1');
+    await expect(registros.locator('.rel-records-totals')).toContainText('R$ 8.000,00');
+    await page.getByRole('group',{name:'Período dos registros'}).getByRole('button',{name:'Agosto de 2026',exact:true}).click();
+    await expect(registros.locator('.rel-records-totals')).toContainText('R$ 5.000,00');
+    await expect(registros.locator('.rel-orders-table .rel-order-link').first()).toHaveText('2000');
+    await page.getByRole('group',{name:'Período dos registros'}).getByRole('button',{name:'Setembro de 2026',exact:true}).click();
+    await page.getByRole('combobox',{name:'Pedidos por página'}).selectOption('100');
+    await expect(registros.locator('tbody tr')).toHaveCount(80);
+    await page.getByRole('combobox',{name:'Pedidos por página'}).selectOption('50');
+    await expect(registros.locator('tbody tr')).toHaveCount(50);
+    for(const width of [1600,1024,390,320]) {
+      await page.setViewportSize({width,height:1000});
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1),`Transbordamento em ${width}px`).toBe(false);
+      if(width===1600||width===390) {
+        await registros.locator('summary').evaluate(el=>el.scrollIntoView({block:'center'}));
+        await page.screenshot({path:testInfo.outputPath(`registros-${aba}-${width}.png`)});
+      }
+      if(width===1600||width===320) {
+        const acessibilidade=await new AxeBuilder({page}).include('.rel-records-financeiro').withTags(['wcag2a','wcag2aa']).analyze();
+        expect(acessibilidade.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)}))).toEqual([]);
+      }
+    }
+    await registros.locator('summary').click();
+    await expect(registros).not.toHaveAttribute('open');
+    await expect(registros.locator('table')).toHaveCount(0);
+  });
+}
 test('referência zerada não cria percentual infinito',async({page})=>{
   await preparar(page,{zero:true});
   await expect(page.locator('.rel-conclusion-change strong')).toHaveText('—');

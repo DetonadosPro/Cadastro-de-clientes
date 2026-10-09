@@ -211,3 +211,80 @@
 @media(max-width:420px) { .rel-kpis { grid-template-columns:1fr; gap:10px; } .rel-kpi { display:grid; grid-template-columns:1fr auto; align-items:center; gap:8px; padding:16px; } .rel-kpi > span { min-height:0; margin:0; } .rel-kpi > strong { font-size:24px; text-align:right; } .rel-kpi-comparison,.rel-kpi > small { grid-column:1/-1; margin:0; } .rel-kpi-comparison { flex-direction:row; } .rel-kpi-comparison em { display:none; } .rel-conclusion-text h3 { font-size:15px; } .rel-conclusion-icon { flex-basis:30px; width:30px; height:30px; font-size:18px; } .rel-conclusion-change { padding-left:0; } .rel-donuts.comparando { flex-wrap:wrap; } .rel-financial-strip { grid-template-columns:1fr; } .rel-financial-strip > div { display:flex; align-items:center; gap:12px; justify-content:space-between; } .rel-financial-strip span { margin:0; max-width:55%; } .rel-financial-strip strong { white-space:nowrap; } .rel-bar-series { flex-wrap:wrap; gap:5px; } .rel-bar-series > small { flex-basis:100%; width:100%; } .rel-bar-series b { width:90px; flex-basis:90px; } .rel-results-heading h2 { font-size:21px; } }
 @media(prefers-reduced-motion:reduce) { .relatorios-modernos * { animation:none!important; transition:none!important; } }
 @media print { .rel-navigation,.rel-period-picker,.rel-chart-hint,.rel-metric-selector,.rel-flow-selector,.rel-tooltip { display:none!important; } .rel-chart,.rel-kpi,.rel-comparison-conclusion { break-inside:avoid; box-shadow:none; } }
+
+.rel-records-financeiro { margin:0 0 22px; border-color:#d4e0ef; border-radius:15px; overflow:hidden; box-shadow:0 3px 12px #23456a08; }
+.rel-records-financeiro summary { padding:18px 20px; gap:14px; background:linear-gradient(100deg,#f6f9ff,#fff 65%); }
+.rel-records-financeiro summary:hover { background:#f1f6fd; }
+.rel-records-financeiro .rel-records-icon { display:grid; place-items:center; width:43px; height:43px; flex-shrink:0; border-radius:12px; background:#e5efff; color:#3563ad; }
+.rel-records-heading { flex:1; min-width:0; }
+.rel-records-financeiro summary .rel-records-heading strong { color:#263e60; font-size:15px; }
+.rel-records-financeiro summary .rel-records-heading > span { font-size:11px; color:#5e728e; }
+.rel-records-financeiro .rel-records-totals { text-align:right; margin-right:15px; flex-shrink:0; }
+.rel-records-financeiro summary .rel-records-totals strong { font-size:17px; color:#274d80; font-variant-numeric:tabular-nums; }
+.rel-records-financeiro summary .rel-records-totals > span { font-size:11px; color:#5e728e; margin-top:3px; }
+.rel-records-financeiro summary .rel-records-toggle { display:flex; align-items:center; gap:10px; color:#3a6094; font-size:11px; font-weight:650; flex-shrink:0; }
+.rel-records-chevron { display:inline-block; font-size:23px; line-height:1; transition:transform .15s; }
+.rel-records[open] .rel-records-chevron { transform:rotate(180deg); }
+.rel-records-financeiro .rel-records-content { padding:18px 20px 20px; }
+.rel-records-financeiro .rel-records-tabs button { font-size:11px; min-height:36px; color:#536a8b; }
+.rel-records-financeiro .rel-records-tabs button[aria-pressed="true"] { color:#2d559e; }
+.rel-records-financeiro .rel-table-tools { gap:16px; margin-bottom:15px; font-size:11px; color:#526a89; }
+.rel-table-count { margin-right:auto; }
+.rel-table-count strong,.rel-table-count small { display:block; }
+.rel-table-count strong { color:#344f73; font-size:12px; font-weight:650; }
+.rel-table-count small { font-size:11px; color:#5e728e; margin-top:4px; }
+.rel-table-pagination { display:flex; gap:10px; align-items:center; }
+.rel-records-financeiro .rel-table-tools button,.rel-records-financeiro .rel-table-tools select { font-size:11px; min-height:35px; border-radius:8px; padding:6px 11px; color:#3e5e86; }
+.rel-records-financeiro .rel-table-tools button:not(:disabled):hover { background:#eef4fc; }
+.rel-orders-scroll { border-color:#dce5f1; border-radius:11px; }
+.rel-orders-table { min-width:760px; }
+.rel-orders-table th { color:#526b8d; font-size:11px; background:#f5f8fc; font-weight:650; }
+.rel-orders-table td { font-size:12px; color:#3e5778; }
+.rel-orders-table th,.rel-orders-table td { padding:13px 15px; }
+.rel-orders-table th:nth-child(6),.rel-orders-table td:nth-child(6) { text-align:right; }
+.rel-orders-table td.rel-record-client { white-space:normal; min-width:180px; max-width:350px; line-height:1.5; overflow-wrap:anywhere; }
+.rel-record-client strong { color:#294467; font-size:12.5px; font-weight:650; }
+.rel-orders-table .rel-table-money { color:#24466f; font-size:12.5px; }
+.rel-orders-table .rel-order-link { min-height:32px; padding:5px 9px; border:1px solid #d6e4f7; border-radius:7px; font-size:11px; color:#315fa3; }
+.rel-order-link:hover { background:#ddeaff; }
+.rel-record-system,.rel-record-payment { display:inline-flex; align-items:center; border-radius:6px; padding:4px 7px; font-size:10px; font-weight:650; }
+.rel-record-system.fonada { color:#315e9b; background:#edf3ff; }
+.rel-record-system.aovivo { color:#755197; background:#f3edfa; }
+.rel-record-payment.pago { color:#21674d; background:#e8f6ef; }
+.rel-record-payment.pendente { color:#955515; background:#fff3e4; }
+@media(max-width:850px) {
+  .rel-records-financeiro .rel-records-toggle-text { display:none; }
+  .rel-records-financeiro .rel-records-totals { margin-right:0; }
+}
+@media(max-width:700px) {
+  .rel-records-financeiro summary { display:grid; grid-template-columns:36px minmax(0,1fr) 22px; gap:10px; padding:15px; }
+  .rel-records-financeiro .rel-records-icon { width:36px; height:36px; border-radius:10px; }
+  .rel-records-financeiro summary .rel-records-heading strong { font-size:13px; }
+  .rel-records-financeiro summary .rel-records-heading > span { font-size:10px; }
+  .rel-records-financeiro summary .rel-records-toggle { grid-column:3; grid-row:1; }
+  .rel-records-financeiro summary .rel-records-totals { grid-column:2; grid-row:2; display:flex; flex-wrap:wrap; align-items:center; gap:9px; text-align:left; }
+  .rel-records-financeiro summary .rel-records-totals strong { font-size:15px; }
+  .rel-records-financeiro summary .rel-records-totals > span { font-size:10px; margin:0; }
+  .rel-records-financeiro .rel-records-content { padding:14px 12px; }
+  .rel-records-financeiro .rel-table-tools { gap:12px; }
+  .rel-records-financeiro .rel-table-count { flex:1 1 100%; }
+  .rel-records-financeiro .rel-table-tools label { margin-right:auto; }
+  .rel-records-financeiro .rel-table-tools button,.rel-records-financeiro .rel-table-tools select { min-height:40px; padding:6px 9px; }
+  .rel-table-pagination { gap:7px; }
+  .rel-orders-table { min-width:0; display:block; }
+  .rel-orders-table thead { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+  .rel-orders-table tbody { display:block; }
+  .rel-orders-table tbody tr { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px 12px; padding:14px; border-bottom:1px solid #e5ebf4; }
+  .rel-orders-table tbody tr:last-child { border-bottom:0; }
+  .rel-orders-table tbody td { padding:0; border:0; min-width:0; white-space:normal; text-align:left; }
+  .rel-orders-table td.rel-record-client { grid-column:1; grid-row:1; min-width:0; max-width:none; }
+  .rel-orders-table td[data-label="O.S."] { grid-column:2; grid-row:1; text-align:right; }
+  .rel-orders-table td[data-label="Data"] { grid-column:1; grid-row:2; font-size:11px; }
+  .rel-orders-table td[data-label="Data"]::before { content:'Data: '; color:#5e728e; }
+  .rel-orders-table td[data-label="Modalidade"] { grid-column:2; grid-row:2; text-align:right; }
+  .rel-orders-table td[data-label="Forma"] { grid-column:1; grid-row:3; font-size:11px; }
+  .rel-orders-table td[data-label="Forma"]::before { content:'Forma: '; color:#5e728e; }
+  .rel-orders-table td.rel-table-money { grid-column:2; grid-row:3; text-align:right; font-size:14px; }
+  .rel-orders-table td[data-label="Pagamento"] { grid-column:1 / -1; grid-row:4; }
+  .rel-orders-table .rel-order-link { min-height:36px; }
+}

@@ -71,10 +71,11 @@ function ConteudoRelatorio({tipo,sistema,inicio,fim,inicioB,fimB,comparando}) {
     {comparado && <ConclusaoComparacao principal={principal} comparado={comparado} a={a} b={b} tipo={tipo} nomes={nomes}/>}
     <div className="rel-kpis"><Indicador titulo={tipo==='recebimentos'?'Total recebido':'Total vendido'} valor={a.valor} anterior={b?.valor} moeda destaque nomes={nomes}/><Indicador titulo={quantidadeNome} valor={a.quantidade} anterior={b?.quantidade} nomes={nomes}/><Indicador titulo={tipo==='recebimentos'?'Valor médio recebido':'Ticket médio'} valor={a.ticket} anterior={b?.ticket} moeda nomes={nomes}/></div>
     <div className="rel-interaction-zone" inert={carregando?'':undefined} key={chave}>
+      {tipo!=='desempenho' && <DetalhesRelatorio principal={principal} comparado={comparado} tipo={tipo} nomes={nomes}/>}
       {tipo==='vendas' && <GraficosVendas principal={principal} comparado={comparado} nomes={nomes}/>}
       {tipo==='recebimentos' && <GraficosRecebimentos principal={principal} comparado={comparado} nomes={nomes}/>}
       {tipo==='desempenho' && <GraficosEquipe principal={principal} comparado={comparado} nomes={nomes}/>}
-      <DetalhesRelatorio principal={principal} comparado={comparado} tipo={tipo} nomes={nomes}/>
+      {tipo==='desempenho' && <DetalhesRelatorio principal={principal} comparado={comparado} tipo={tipo} nomes={nomes}/>}
     </div>
   </div>;
 }
@@ -109,12 +110,40 @@ function GraficosEquipe({principal,comparado,nomes}) {
 function DetalhesRelatorio({principal,comparado,tipo,nomes}) {
   const [aberto,setAberto]=useState(false),[periodo,setPeriodo]=useState('principal');
   const escolhido=periodo==='comparado'&&comparado?comparado:principal;
-  return <details className="rel-records" onToggle={e=>setAberto(e.currentTarget.open)}><summary><div><strong>{tipo==='desempenho'?'Consultar números da equipe':'Consultar pedidos do relatório'}</strong><span>Abra para conferir os registros que compõem os resultados.</span></div><span aria-hidden="true">⌄</span></summary>{aberto && <div className="rel-records-content">{comparado && <div className="rel-records-tabs"><button type="button" aria-pressed={periodo==='principal'} onClick={()=>setPeriodo('principal')}>{nomes.principal}</button><button type="button" aria-pressed={periodo==='comparado'} onClick={()=>setPeriodo('comparado')}>{nomes.comparado}</button></div>}{tipo==='desempenho'?<TabelaEquipe dados={escolhido}/>:<PedidosPeriodo key={`${escolhido.inicio}|${escolhido.fim}`} dados={escolhido} tipo={tipo}/>}</div>}</details>;
+  const financeiro=tipo!=='desempenho';
+  const resumo=financeiro?resumoRelatorio(escolhido,tipo):null;
+  return <details className={`rel-records ${financeiro?'rel-records-financeiro':''}`} onToggle={e=>setAberto(e.currentTarget.open)}>
+    <summary>
+      {financeiro && <span className="rel-records-icon" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11M13 13h4M13 16h4"/></svg></span>}
+      <div className="rel-records-heading"><strong>{tipo==='desempenho'?'Consultar números da equipe':tipo==='recebimentos'?'Recebimentos do período':'Vendas do período'}</strong><span>{financeiro?`${tipo==='recebimentos'?'Confira de quem recebeu':'Confira quem comprou'} · ${periodo==='comparado'?nomes.comparado:nomes.principal}`:'Abra para conferir os registros que compõem os resultados.'}</span></div>
+      {financeiro && <div className="rel-records-totals"><strong>{dinheiro(resumo.valor)}</strong><span>{numero(escolhido.itensTotal??resumo.quantidade)} {tipo==='recebimentos'?'recebimentos':'vendas'}</span></div>}
+      <span className="rel-records-toggle">{financeiro && <span className="rel-records-toggle-text">{aberto?'Recolher':'Ver registros'}</span>}<span className="rel-records-chevron" aria-hidden="true">⌄</span></span>
+    </summary>
+    {aberto && <div className="rel-records-content">{comparado && <div className="rel-records-tabs" role="group" aria-label="Período dos registros"><button type="button" aria-pressed={periodo==='principal'} onClick={()=>setPeriodo('principal')}>{nomes.principal}</button><button type="button" aria-pressed={periodo==='comparado'} onClick={()=>setPeriodo('comparado')}>{nomes.comparado}</button></div>}{tipo==='desempenho'?<TabelaEquipe dados={escolhido}/>:<PedidosPeriodo key={`${escolhido.inicio}|${escolhido.fim}`} dados={escolhido} tipo={tipo}/>}</div>}
+  </details>;
 }
 function PedidosPeriodo({dados,tipo}) {
   const [pagina,setPagina]=useState(1),[limite,setLimite]=useState(50),[resposta,setResposta]=useState(dados),[erro,setErro]=useState(''),[carregando,setCarregando]=useState(false),[tentativa,setTentativa]=useState(0);
   const navegar=useNavigate(),atual=useRef(0);
   useEffect(()=>{const id=++atual.current;if(pagina===1&&limite===50&&!tentativa){setResposta(dados);setCarregando(false);setErro('');return;}setCarregando(true);setErro('');api.relatorios[tipo](dados.inicio,dados.fim,dados.sistema,{pagina,limite}).then(r=>{if(id===atual.current)setResposta(r);}).catch(e=>{if(id===atual.current)setErro(e.message);}).finally(()=>{if(id===atual.current)setCarregando(false);});return()=>{atual.current++;};},[pagina,limite,tentativa,dados,tipo]);
-  return <div aria-busy={carregando}>{erro && <AvisoInline tom="erro" titulo="Não foi possível carregar os pedidos" acao={<button type="button" className="btn secundario" onClick={()=>setTentativa(t=>t+1)}>Tentar novamente</button>}>{erro}</AvisoInline>}<div className="rel-table-tools"><span>{numero(resposta.itensTotal||0)} registros no período</span><label>Por página <select aria-label="Pedidos por página" value={limite} disabled={carregando} onChange={e=>{setPagina(1);setLimite(Number(e.target.value));}}>{[50,100,200,500].map(n=><option key={n}>{n}</option>)}</select></label><button type="button" disabled={carregando||pagina<=1} onClick={()=>setPagina(p=>p-1)}>Anterior</button><span>{resposta.pagina||1} / {resposta.totalPaginas||1}</span><button type="button" disabled={carregando||pagina>=(resposta.totalPaginas||1)} onClick={()=>setPagina(p=>p+1)}>Próxima</button></div><div className="rel-table-scroll" inert={carregando?'':undefined}><table><thead><tr><th>Data</th><th>O.S.</th><th>Cliente</th><th>Modalidade</th><th>Forma</th><th>{tipo==='recebimentos'?'Recebido':'Vendido'}</th><th>Pagamento</th></tr></thead><tbody>{(resposta.itens||[]).map(item=><tr key={`${item.sistema}-${item.id}`}><td>{item.data}</td><td><button type="button" className="rel-order-link" onClick={()=>navegar(item.sistema==='FONADA'?`/fonada/${item.id}`:`/ao-vivo/${item.id}`,{state:{returnTo:`/relatorios${window.location.search}`}})}>{item.os}</button></td><td>{item.nome}</td><td>{item.sistema==='FONADA'?'Fonada':'Ao Vivo'}</td><td>{item.forma}</td><td className="rel-table-money">{dinheiro(item.valor)}</td><td><span className={`tag ${item.statusPagamento==='SIM'?'ok':'pendente'}`}>{item.statusPagamento==='SIM'?'Pago':'Pendente'}</span></td></tr>)}</tbody></table>{!(resposta.itens||[]).length && <p className="rel-chart-empty">Nenhum pedido neste período.</p>}</div></div>;
+  const itens=resposta.itens||[],total=resposta.itensTotal||0;
+  const primeira=itens.length?((resposta.pagina||1)-1)*limite+1:0;
+  return <div aria-busy={carregando}>
+    {erro && <AvisoInline tom="erro" titulo="Não foi possível carregar os pedidos" acao={<button type="button" className="btn secundario" onClick={()=>setTentativa(t=>t+1)}>Tentar novamente</button>}>{erro}</AvisoInline>}
+    <div className="rel-table-tools">
+      <div className="rel-table-count" role="status"><strong>{carregando?'Atualizando registros…':`${numero(total)} registros no período`}</strong><small>{itens.length?`${primeira}–${primeira+itens.length-1} exibidos`:'Nenhum registro'}</small></div>
+      <label>Por página <select aria-label="Pedidos por página" value={limite} disabled={carregando} onChange={e=>{setPagina(1);setLimite(Number(e.target.value));}}>{[50,100,200,500].map(n=><option key={n}>{n}</option>)}</select></label>
+      <div className="rel-table-pagination"><button type="button" disabled={carregando||pagina<=1} onClick={()=>setPagina(p=>p-1)}>Anterior</button><span>{resposta.pagina||1} / {resposta.totalPaginas||1}</span><button type="button" disabled={carregando||pagina>=(resposta.totalPaginas||1)} onClick={()=>setPagina(p=>p+1)}>Próxima</button></div>
+    </div>
+    <div className="rel-table-scroll rel-orders-scroll" inert={carregando?'':undefined}><table className="rel-orders-table"><thead><tr><th>{tipo==='recebimentos'?'Data do recebimento':'Data da venda'}</th><th>O.S.</th><th>Cliente</th><th>Modalidade</th><th>Forma</th><th>{tipo==='recebimentos'?'Recebido':'Vendido'}</th><th>Pagamento</th></tr></thead><tbody>{itens.map(item=><tr key={`${item.sistema}-${item.id}`}>
+      <td data-label="Data">{item.data}</td>
+      <td data-label="O.S."><button type="button" className="rel-order-link" title="Abrir pedido" onClick={()=>navegar(item.sistema==='FONADA'?`/fonada/${item.id}`:`/ao-vivo/${item.id}`,{state:{returnTo:`/relatorios${window.location.search}`}})}>{item.os}</button></td>
+      <td data-label="Cliente" className="rel-record-client"><strong>{item.nome||'Cliente não informado'}</strong></td>
+      <td data-label="Modalidade"><span className={`rel-record-system ${item.sistema==='FONADA'?'fonada':'aovivo'}`}>{item.sistema==='FONADA'?'Fonada':'Ao Vivo'}</span></td>
+      <td data-label="Forma">{item.forma||'Não informada'}</td>
+      <td data-label={tipo==='recebimentos'?'Recebido':'Vendido'} className="rel-table-money">{dinheiro(item.valor)}</td>
+      <td data-label="Pagamento"><span className={`rel-record-payment ${item.statusPagamento==='SIM'?'pago':'pendente'}`}>{item.statusPagamento==='SIM'?(tipo==='recebimentos'?'Recebido':'Pago'):'Pendente'}</span></td>
+    </tr>)}</tbody></table>{!itens.length && <p className="rel-chart-empty">{tipo==='recebimentos'?'Nenhum recebimento':'Nenhuma venda'} neste período.</p>}</div>
+  </div>;
 }
 function TabelaEquipe({dados}) {return <div className="rel-table-scroll"><table><thead><tr><th>Pessoa</th><th>Vendas</th><th>Valor vendido</th><th>Ticket médio</th><th>Participação</th><th>Fonada</th><th>Ao Vivo</th></tr></thead><tbody>{(dados.funcionarios||[]).map(f=><tr key={f.usuario}><td><strong>{f.usuario}</strong></td><td>{numero(f.vendasTotal)}</td><td className="rel-table-money">{dinheiro(f.valorVendidoTotal)}</td><td>{dinheiro(f.ticketMedio)}</td><td>{numero(f.participacaoPercentual)}%</td><td>{numero(f.vendasFonada)}</td><td>{numero(f.vendasAoVivo)}</td></tr>)}</tbody></table>{!dados.funcionarios?.length&&<p className="rel-chart-empty">Nenhuma venda atribuída à equipe neste período.</p>}</div>;}
