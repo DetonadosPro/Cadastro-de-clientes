@@ -6,7 +6,7 @@
 
 const express = require('express');
 const { db, pool, reservarProximaOs } = require('../db/database');
-const { agoraBrasilia, formatarDataBrasilia } = require('../utils/dataHora');
+const { agoraBrasilia, formatarDataBrasilia, registroPedidoBrasilia } = require('../utils/dataHora');
 
 // Data + hora atual (Brasília) formatada como texto único, no mesmo
 // padrão usado no histórico de tentativas da Fonada — ex: "21/08/26 14:32".
@@ -347,7 +347,7 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const dados = { ...req.body };
+    const dados = { ...req.body, ...registroPedidoBrasilia() };
 
     if (dados.cliente_id) {
       if (!/^[1-9]\d*$/.test(String(dados.cliente_id)) || Number(dados.cliente_id) > 2147483647) {
@@ -444,7 +444,8 @@ router.put('/:id', async (req, res) => {
     if (dados.dia_entrega && !dataCurtaValida(dados.dia_entrega)) {
       return res.status(400).json({ erro: 'Dia do evento inválido.' });
     }
-    const campos = CAMPOS.filter((c) => dados[c] !== undefined);
+    // O registro da venda permanece o mesmo ao editar a entrega.
+    const campos = CAMPOS.filter((c) => !['data_pedido', 'horario_pedido'].includes(c) && dados[c] !== undefined);
     if (campos.length === 0) return res.status(400).json({ erro: 'Nenhum campo para atualizar.' });
     if (!Number.isSafeInteger(dados.versao) || dados.versao < 1) {
       return res.status(400).json({ erro: 'A versão do pedido é obrigatória para salvar.' });

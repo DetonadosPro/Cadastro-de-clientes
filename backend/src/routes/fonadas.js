@@ -10,7 +10,7 @@
 
 const express = require('express');
 const { db, pool, reservarProximaOs } = require('../db/database');
-const { hojeIsoBrasilia } = require('../utils/dataHora');
+const { hojeIsoBrasilia, registroPedidoBrasilia } = require('../utils/dataHora');
 const { situacaoSegundaMensagem, validarDataUsoSegundaMensagem, houveAlteracaoP2, temDireitoSegundaMensagem, CAMPOS_SEGUNDA_MENSAGEM } = require('../utils/mensagemEmHaver');
 
 const router = express.Router();
@@ -171,7 +171,7 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    const dados = { ...req.body };
+    const dados = { ...req.body, ...registroPedidoBrasilia() };
 
     if (dados.cliente_id) {
       if (!/^[1-9]\d*$/.test(String(dados.cliente_id)) || Number(dados.cliente_id) > 2147483647) {
@@ -310,7 +310,8 @@ router.put('/:id', async (req, res) => {
         if (!validacaoP2.ok) return res.status(409).json({ erro: validacaoP2.erro, campo:'p2_dia' });
       }
     }
-    const campos = CAMPOS.filter((c) => dados[c] !== undefined);
+    // A edição da mensagem não muda quando a venda foi registrada.
+    const campos = CAMPOS.filter((c) => !['data_pedido', 'horario_pedido'].includes(c) && dados[c] !== undefined);
     if (campos.length === 0) return res.status(400).json({ erro: 'Nenhum campo para atualizar.' });
     if (!Number.isSafeInteger(dados.versao) || dados.versao < 1) {
       return res.status(400).json({ erro: 'A versão do pedido é obrigatória para salvar.' });

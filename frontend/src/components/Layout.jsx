@@ -23,7 +23,7 @@ function rotaDoRascunho(prefixoRota, rascunho) {
 function nomeDoRascunho(rascunho) {
   const cliente = rascunho.cliente?.nome || rascunho.dados.nome || 'Novo cliente';
   if (rascunho.chave.startsWith('editar-')) return `${cliente} · pedido ${rascunho.dados.senha_os || rascunho.dados.numero_os || rascunho.chave.slice(7)}`;
-  return `${cliente} · ${new Date(rascunho.criadoEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+  return `${cliente} · ${new Date(rascunho.criadoEm).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })}`;
 }
 
 // Ícones do menu — traço fino (1.6px), 18x18, sem preenchimento sólido,

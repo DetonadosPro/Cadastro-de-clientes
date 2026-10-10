@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { dataHoraBrasilia } from '../utils/dataHoraBrasilia.js';
 
 export default function RelogioAgenda() {
   const [agora, setAgora] = useState(new Date());
@@ -6,11 +7,10 @@ export default function RelogioAgenda() {
     const intervalo = setInterval(() => setAgora(new Date()), 1000);
     return () => clearInterval(intervalo);
   }, []);
-  const hh = String(agora.getHours()).padStart(2, '0');
-  const mm = String(agora.getMinutes()).padStart(2, '0');
+  const { horario } = dataHoraBrasilia(agora);
   return (
-    <time className="workspace-relogio" aria-label={`Hora atual: ${hh}:${mm}`}>
-      {hh}:{mm}
+    <time className="workspace-relogio" aria-label={`Hora de Brasília: ${horario}`}>
+      {horario}
     </time>
   );
 }

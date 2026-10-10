@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useSmartBack } from '../../hooks/useSmartBack.js';
 import { api } from '../../api.js';
+import { dataHoraBrasilia as dataHoraAtual } from '../../utils/dataHoraBrasilia.js';
 import { useRascunhos } from '../../RascunhosContext.jsx';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData, formatarHorario, formatarCodigoNumerico, formatarValorMonetario, valorMonetarioParaNumero, numeroParaValorMonetario } from '../../mascaras.js';
@@ -22,22 +23,11 @@ const VAZIO = {
 
 const CAMPOS_COPIAVEIS = ['tema', 'mensagem', 'para', 'fixo', 'celular', 'dia', 'horario', 'quem_oferece', 'resultado'];
 
-function dataHoraAtual() {
-  const agora = new Date();
-  const dd = String(agora.getDate()).padStart(2, '0');
-  const mm = String(agora.getMonth() + 1).padStart(2, '0');
-  const aa = String(agora.getFullYear()).slice(-2);
-  const hh = String(agora.getHours()).padStart(2, '0');
-  const min = String(agora.getMinutes()).padStart(2, '0');
-  return { data: `${dd}/${mm}/${aa}`, horario: `${hh}:${min}` };
-}
-
 // Data de hoje sem componente de hora, para comparar com outras datas
 // "no nível do dia" (sem hora atrapalhar a comparação).
 function hojeSemHora() {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
+  const [dia, mes, ano] = dataHoraAtual().data.split('/').map(Number);
+  return new Date(2000 + ano, mes - 1, dia);
 }
 
 // Converte "dd/mm/aa" para Date, ou null se incompleta/inválida —
