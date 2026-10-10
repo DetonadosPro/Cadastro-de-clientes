@@ -13,7 +13,7 @@
 const express = require('express');
 const { db, pool, unaccentEstaDisponivel } = require('../db/database');
 const { formatarDataBrasilia } = require('../utils/dataHora');
-const { situacaoSegundaMensagem } = require('../utils/mensagemEmHaver');
+const { situacaoSegundaMensagem, dataBrParaDate } = require('../utils/mensagemEmHaver');
 
 const router = express.Router();
 router.param('id', (req, res, next, id) => {
@@ -577,6 +577,8 @@ router.get('/:id/resumo', async (req, res) => {
         COUNT(*)::integer AS total_pedidos,
         COUNT(*) FILTER (WHERE tipo = 'Fonada')::integer AS total_fonada,
         COUNT(*) FILTER (WHERE tipo = 'Ao vivo')::integer AS total_aovivo,
+        COUNT(*) FILTER (WHERE COALESCE(pagou, '') != 'SIM')::integer AS pedidos_pendentes,
+        COALESCE(SUM(valor), 0) AS total_comprado,
         COALESCE(SUM(valor) FILTER (WHERE COALESCE(pagou, '') != 'SIM'), 0) AS valor_pendente
       FROM (
         SELECT 'Fonada' AS tipo, valor, pagou FROM fonadas WHERE cliente_id = $1 AND excluido_em IS NULL
@@ -587,14 +589,14 @@ router.get('/:id/resumo', async (req, res) => {
 
     const recentesResultado = await db.query(`
       SELECT * FROM (
-        SELECT id, 'Fonada' AS tipo, senha_os AS os, data_pedido, valor,
+        SELECT id, 'Fonada' AS tipo, senha_os AS os, data_pedido, valor, pagou,
                '/fonada/' || id AS rota, criado_em,
                CASE WHEN data_pedido ~ '^\\d{2}/\\d{2}/(\\d{2}|\\d{4})$'
                     THEN TO_DATE(data_pedido, CASE WHEN length(data_pedido) = 8 THEN 'DD/MM/YY' ELSE 'DD/MM/YYYY' END)
                     ELSE criado_em::date END AS data_compra_ordem
         FROM fonadas WHERE cliente_id = $1 AND excluido_em IS NULL
         UNION ALL
-        SELECT id, 'Ao vivo' AS tipo, numero_os AS os, data_pedido, valor,
+        SELECT id, 'Ao vivo' AS tipo, numero_os AS os, data_pedido, valor, pagou,
                '/ao-vivo/' || id AS rota, criado_em,
                CASE WHEN data_pedido ~ '^\\d{2}/\\d{2}/(\\d{2}|\\d{4})$'
                     THEN TO_DATE(data_pedido, CASE WHEN length(data_pedido) = 8 THEN 'DD/MM/YY' ELSE 'DD/MM/YYYY' END)
@@ -615,6 +617,7 @@ router.get('/:id/resumo', async (req, res) => {
     `, [req.params.id]);
 
     const mensagensEmHaver = haverResultado.rows.flatMap((pedido) => {
+      if (String(pedido.p2_dia || '').trim()) return [];
       const situacao = situacaoSegundaMensagem(pedido);
       return situacao.disponivel ? [{
         id: pedido.id,
@@ -626,7 +629,7 @@ router.get('/:id/resumo', async (req, res) => {
         status: situacao.status,
         rota: `/fonada/${pedido.id}`,
       }] : [];
-    });
+    }).sort((a, b) => (dataBrParaDate(a.dataExpiracao)?.getTime() ?? Infinity) - (dataBrParaDate(b.dataExpiracao)?.getTime() ?? Infinity) || a.id - b.id);
 
     res.json({
       cliente,
