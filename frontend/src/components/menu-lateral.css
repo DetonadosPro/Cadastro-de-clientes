@@ -1,0 +1,124 @@
+.menu-renovado { --sidebar-aberta: 254px; --sidebar-compacta: 76px; }
+.menu-renovado .sidebar-renovada {
+  --ml-texto: #d4e0ef;
+  --ml-suave: #a2b6d1;
+  --ml-linha: #ffffff14;
+  width: var(--sidebar-aberta);
+  height: 100dvh;
+  padding: 16px 13px 12px;
+  background: linear-gradient(160deg, #122c4c, #0d213c 65%, #102641);
+  border-right: 1px solid #132e50;
+  box-shadow: 8px 0 28px #1026410a;
+  color: var(--ml-texto);
+  text-transform: none;
+  isolation: isolate;
+}
+.sidebar-renovada *, .sidebar-renovada *::before, .sidebar-renovada *::after { box-sizing: border-box; }
+.sidebar-renovada [hidden] { display: none !important; }
+.sidebar-renovada button { font: inherit; cursor: pointer; letter-spacing: 0; }
+.sidebar-renovada button, .sidebar-renovada a { -webkit-tap-highlight-color: transparent; }
+.sidebar-renovada button:focus-visible, .sidebar-renovada a:focus-visible { outline: 2px solid #b8d4ff; outline-offset: 3px; }
+.sidebar-renovada svg { flex-shrink: 0; }
+.sidebar-renovada .ml-marca { display: flex; align-items: center; gap: 10px; padding: 2px 2px 20px; flex-shrink: 0; }
+.sidebar-renovada .ml-logo { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 12px; background: #dce9ff; color: #214b86; box-shadow: 0 4px 14px #030e2133; flex-shrink: 0; }
+.sidebar-renovada .ml-logo svg { width: 24px; height: 24px; }
+.sidebar-renovada .ml-marca-texto { min-width: 0; flex: 1; display: grid; gap: 3px; line-height: 1.2; }
+.sidebar-renovada .ml-marca-texto strong { color: #fff; font-size: 14px; font-weight: 800; letter-spacing: -.3px; white-space: nowrap; }
+.sidebar-renovada .ml-marca-texto small { color: var(--ml-suave); font-size: 10px; white-space: nowrap; }
+.sidebar-renovada .ml-controle { display: grid; place-items: center; width: 28px; height: 32px; padding: 0; border: 1px solid transparent; border-radius: 8px; background: transparent; color: #adbfda; flex-shrink: 0; }
+.sidebar-renovada .ml-controle svg { width: 18px; height: 18px; }
+.sidebar-renovada .ml-controle:hover { color: #fff; background: #ffffff12; border-color: #ffffff15; }
+.sidebar-renovada .ml-atalhos { display: grid; gap: 9px; padding-bottom: 19px; flex-shrink: 0; }
+.sidebar-renovada .ml-busca, .sidebar-renovada .ml-novo { display: flex; align-items: center; gap: 9px; width: 100%; min-height: 41px; padding: 9px 11px; border: 1px solid #8cb0e129; border-radius: 10px; background: #ffffff06; color: #c8d8ee; font-size: 12px; font-weight: 600; text-align: left; }
+.sidebar-renovada .ml-busca > span, .sidebar-renovada .ml-novo > span { flex: 1; }
+.sidebar-renovada kbd { color: #c8d8ee; background: #ffffff0a; border: 1px solid #ffffff18; box-shadow: none; font-family: inherit; font-size: 9px; font-weight: 500; height: 20px; min-width: 20px; padding: 2px 4px; }
+.sidebar-renovada .ml-busca:hover { background: #ffffff10; border-color: #91b6e455; color: #fff; }
+.sidebar-renovada .ml-novo { background: #d8e6ff; color: #173e74; border-color: #d8e6ff; font-weight: 750; }
+.sidebar-renovada .ml-novo:hover { background: #eef4ff; border-color: #eef4ff; }
+.sidebar-renovada .ml-novo kbd { color: #244c84; background: #bfd3f5; border-color: #b4caf0; }
+.sidebar-renovada .ml-navegacao { display: block; flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 0 4px 6px; margin: 0 -4px; scrollbar-width: thin; scrollbar-color: #58728f77 transparent; }
+.sidebar-renovada .ml-grupo { margin-bottom: 15px; }
+.sidebar-renovada .ml-grupo-titulo { display: block; color: #9db3d0; font-size: 10px; font-weight: 650; text-transform: uppercase; letter-spacing: 1.3px; padding: 0 12px 7px; }
+.sidebar-renovada .ml-link { position: relative; width: 100%; min-height: 43px; display: flex; align-items: center; gap: 11px; border: 1px solid transparent; border-radius: 10px; margin: 2px 0; padding: 9px 12px; background: transparent; color: var(--ml-texto); text-align: left; text-decoration: none; font-size: 13px; font-weight: 550; line-height: 1.4; transition: background 120ms ease, color 120ms ease; }
+.sidebar-renovada .ml-link:hover { background: #a1c2f013; color: #fff; }
+.sidebar-renovada .ml-icone { display: grid; place-items: center; color: #acbfdb; flex: 0 0 20px; }
+.sidebar-renovada .ml-link .ml-texto { flex: 1; min-width: 0; }
+.sidebar-renovada .ml-link.ml-ativo { background: #e6efff; border-color: #e6efff; color: #1e467e; box-shadow: 0 2px 9px #081a2f26; font-weight: 750; }
+.sidebar-renovada .ml-ativo .ml-icone { color: #2a5b9e; }
+.sidebar-renovada .ml-selecionado { width: 5px; height: 5px; border-radius: 50%; background: #396db5; flex-shrink: 0; }
+.sidebar-renovada .ml-alerta { width: 8px; height: 8px; flex-shrink: 0; border-radius: 50%; outline: 3px solid #ffffff0a; }
+.sidebar-renovada .ml-alerta.vermelho { background: #ff8b91; }
+.sidebar-renovada .ml-alerta.laranja { background: #ffc56e; }
+.sidebar-renovada .ml-ativo .ml-alerta.vermelho { background: #b62a40; }
+.sidebar-renovada .ml-ativo .ml-alerta.laranja { background: #986119; }
+.sidebar-renovada .ml-vendas:not(.ml-ativo) { background: #96b9f20d; border-color: #96b9f20e; }
+.sidebar-renovada .ml-vendas:not(.ml-ativo) .ml-icone { color: #a9ccff; }
+.sidebar-renovada .ml-rascunhos { border-top: 1px solid var(--ml-linha); padding-top: 8px; }
+.sidebar-renovada .ml-rascunhos-toggle { font-size: 12px; }
+.sidebar-renovada .ml-contador { display: grid; place-items: center; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 7px; font-size: 10px; font-weight: 750; background: #ffffff12; color: #b8c9df; }
+.sidebar-renovada .ml-tem-rascunho { color: #ffe1a8; background: #d1953029; }
+.sidebar-renovada .ml-seta { flex: 0 0 auto !important; }
+.sidebar-renovada .ml-seta svg { width: 14px; height: 14px; transition: transform 120ms ease; }
+.sidebar-renovada .ml-girada svg { transform: rotate(90deg); }
+.sidebar-renovada #menu-rascunhos { padding: 5px 0 9px; }
+.sidebar-renovada #menu-rascunhos > p { color: #c1cfe3; font-size: 11px; line-height: 1.6; margin: 6px 12px; }
+.sidebar-renovada .ml-rascunho { display: flex; align-items: center; gap: 5px; background: #ffffff06; border: 1px solid #ffffff12; border-radius: 10px; padding: 4px 6px 4px 11px; margin: 5px 0; }
+.sidebar-renovada .ml-rascunho > a { display: block; flex: 1; min-width: 0; padding: 7px 0; text-decoration: none; color: #e6edf8; }
+.sidebar-renovada .ml-rascunho > a:hover strong { text-decoration: underline; }
+.sidebar-renovada .ml-rascunho small { display: block; color: #e8c486; font-size: 10px; margin-bottom: 2px; }
+.sidebar-renovada .ml-rascunho strong { display: block; font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sidebar-renovada .ml-rascunho > button { width: 30px; height: 34px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 7px; background: transparent; color: #b3c4db; flex-shrink: 0; }
+.sidebar-renovada .ml-rascunho > button:hover { background: #fff0dd12; color: #ffe1a8; }
+.sidebar-renovada .ml-rascunho > button svg { width: 15px; height: 15px; }
+.sidebar-renovada .ml-rodape { border-top: 1px solid var(--ml-linha); padding-top: 9px; flex-shrink: 0; }
+.sidebar-renovada .ml-utilidades { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; padding-bottom: 8px; }
+.sidebar-renovada .ml-utilidades .ml-link { justify-content: center; gap: 6px; padding: 8px 3px; min-height: 36px; font-size: 10px; font-weight: 600; color: #b7c9e1; }
+.sidebar-renovada .ml-utilidades .ml-link .ml-texto { flex: 0 1 auto; }
+.sidebar-renovada .ml-utilidades .ml-icone, .sidebar-renovada .ml-utilidades svg { width: 16px; height: 16px; flex-basis: 16px; }
+.sidebar-renovada .ml-utilidades .ml-ativo { color: #1e467e; }
+.sidebar-renovada .ml-utilidades .ml-selecionado { display: none; }
+.sidebar-renovada .ml-usuario { display: flex; align-items: center; gap: 9px; padding: 10px 8px; border: 1px solid #ffffff14; border-radius: 12px; background: #ffffff08; }
+.sidebar-renovada .ml-avatar { display: grid; place-items: center; width: 33px; height: 33px; background: #304866; color: #e5efff; border-radius: 10px; font-size: 13px; font-weight: 750; flex-shrink: 0; }
+.sidebar-renovada .ml-usuario > div { min-width: 0; flex: 1; }
+.sidebar-renovada .ml-usuario small { display: block; color: #a5bad6; font-size: 9px; margin-bottom: 3px; }
+.sidebar-renovada .ml-usuario strong { display: block; color: #f1f6ff; font-size: 12px; font-weight: 750; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sidebar-renovada .ml-sair { display: grid; place-items: center; width: 30px; height: 34px; background: transparent; border: 0; border-radius: 8px; padding: 0; color: #afc2dd; flex-shrink: 0; }
+.sidebar-renovada .ml-sair svg { width: 18px; height: 18px; }
+.sidebar-renovada .ml-sair:hover { background: #ffffff12; color: #fff; }
+@media (min-width: 901px) {
+  .menu-renovado .sidebar-renovada.compacta { width: var(--sidebar-compacta); padding: 13px 10px 10px; }
+  .sidebar-renovada.compacta .ml-texto, .sidebar-renovada.compacta .ml-grupo-titulo { display: none; }
+  .sidebar-renovada.compacta .ml-marca { flex-direction: column; gap: 8px; padding-bottom: 15px; }
+  .sidebar-renovada.compacta .ml-controle { width: 38px; height: 30px; }
+  .sidebar-renovada.compacta .ml-atalhos { padding-bottom: 10px; }
+  .sidebar-renovada.compacta .ml-busca, .sidebar-renovada.compacta .ml-novo, .sidebar-renovada.compacta .ml-link { justify-content: center; padding: 10px 0; min-height: 43px; }
+  .sidebar-renovada.compacta .ml-grupo + .ml-grupo { border-top: 1px solid var(--ml-linha); padding-top: 10px; }
+  .sidebar-renovada.compacta .ml-grupo { margin-bottom: 10px; }
+  .sidebar-renovada.compacta .ml-alerta { position: absolute; top: 8px; right: 9px; width: 6px; height: 6px; }
+  .sidebar-renovada.compacta .ml-selecionado { display: none; }
+  .sidebar-renovada.compacta .ml-contador { position: absolute; top: 3px; right: 0; min-width: 16px; height: 16px; padding: 0 3px; font-size: 9px; }
+  .sidebar-renovada.compacta .ml-utilidades { grid-template-columns: 1fr; gap: 0; padding-bottom: 7px; }
+  .sidebar-renovada.compacta .ml-utilidades .ml-link { min-height: 38px; }
+  .sidebar-renovada.compacta .ml-utilidades .ml-icone, .sidebar-renovada.compacta .ml-utilidades svg { width: 20px; height: 20px; flex-basis: 20px; }
+  .sidebar-renovada.compacta .ml-usuario { flex-direction: column; gap: 5px; padding: 8px 0 3px; }
+  .sidebar-renovada.compacta .ml-sair { width: 36px; height: 32px; }
+}
+@media (max-width: 900px) {
+  .menu-renovado .sidebar-renovada, .menu-renovado .sidebar-renovada.compacta { position: fixed; top: 0; left: 0; width: min(320px, calc(100vw - 26px)); max-width: none; height: 100dvh; padding: max(16px, env(safe-area-inset-top)) 16px max(12px, env(safe-area-inset-bottom)); z-index: 200; }
+  .menu-renovado .sidebar-renovada:not(.aberto) { pointer-events: none; }
+  .sidebar-renovada .ml-marca { padding-bottom: 15px; }
+  .sidebar-renovada .ml-controle { width: 44px; height: 44px; border-color: #ffffff18; }
+  .sidebar-renovada .ml-controle svg { width: 20px; height: 20px; }
+  .sidebar-renovada .ml-link, .sidebar-renovada .ml-busca, .sidebar-renovada .ml-novo { min-height: 44px; }
+  .sidebar-renovada .ml-utilidades .ml-link { min-height: 42px; font-size: 11px; }
+  .sidebar-renovada .ml-sair { width: 40px; height: 40px; }
+  .sidebar-renovada .ml-rascunho > button { width: 40px; height: 40px; }
+  .menu-renovado .ml-overlay { z-index: 190; background: #081a2e88; backdrop-filter: blur(3px); }
+  .menu-renovado .layout-topbar { min-height: 56px; background: #122c4c; }
+  body.menu-mobile-aberto .menu-renovado .layout-hamburguer { position: static; }
+  body.menu-mobile-aberto { overflow: hidden; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .menu-renovado .sidebar-renovada, .sidebar-renovada .ml-link, .sidebar-renovada .ml-seta svg { transition: none; }
+}
+@media print { .menu-renovado .sidebar-renovada, .menu-renovado .ml-overlay { display: none !important; } }
