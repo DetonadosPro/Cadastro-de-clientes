@@ -6,38 +6,11 @@ import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
 import CampoEnderecoAutocomplete from '../../components/CampoEnderecoAutocomplete.jsx';
 import { enderecoComNumero, separarEnderecoNumero } from '../../enderecoAutocomplete.js';
-import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
-import { AvisoInline, CabecalhoPagina, Dialogo, EstadoCarregando } from '../../components/Interface.jsx';
-import { filtrarPedidosPorMesDaMensagem, MESES, mensagensDoPedidoNoMes } from '../../utils/filtroMesMensagens.js';
+import { useListaIncremental } from '../../components/ListaIncremental.jsx';
+import { AvisoInline, Dialogo, EstadoCarregando } from '../../components/Interface.jsx';
+import { filtrarHistorico, resumoFicha } from '../../utils/fichaCliente.js';
+import FichaClienteVisao from './FichaClienteVisao.jsx';
 import { numeroWhatsAppBrasil } from '../../utils/telefoneWhatsApp.js';
-
-function IconeVoltar() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M19 12H5M12 19l-7-7 7-7" />
-    </svg>
-  );
-}
-function IconeEditar() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 20h9" />
-      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-    </svg>
-  );
-}
-function IconeWhatsAppAntigo() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M20.5 11.5a8.5 8.5 0 1 1-12.6 7.4L3 20.5l1.6-4.7A8.5 8.5 0 0 1 20.5 11.5Z" />
-      <path d="M8.1 7.8c.3-.7.7-.7 1-.7h.4c.2 0 .4.1.5.4l.8 1.8c.1.3.1.5-.1.7l-.6.8c-.2.2-.1.4 0 .6.7 1.2 1.7 2.1 2.9 2.7.2.1.4.1.6-.1l.8-1c.2-.2.4-.3.7-.2l1.8.9c.3.1.4.3.4.5 0 .3-.2 1.5-1 2.1-.6.5-1.4.8-2.3.6-1.1-.2-2.6-.8-4.4-2.4-1.5-1.4-2.5-3.1-2.8-4.2-.3-1 0-1.9.3-2.5Z" />
-    </svg>
-  );
-}
-
-function IconeWhatsApp() {
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20.5 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.6-4.7A8.5 8.5 0 1 1 20.5 11.5Z" /><path d="M8.1 7.8c.3-.7.7-.7 1-.7h.4c.2 0 .4.1.5.4l.8 1.8c.1.3.1.5-.1.7l-.6.8c-.2.2-.1.4 0 .6.7 1.2 1.7 2.1 2.9 2.7.2.1.4.1.6-.1l.8-1c.2-.2.4-.3.7-.2l1.8.9c.3.1.4.3.4.5 0 .3-.2 1.5-1 2.1-.6.5-1.4.8-2.3.6-1.1-.2-2.6-.8-4.4-2.4-1.5-1.4-2.5-3.1-2.8-4.2-.3-1 0-1.9.3-2.5Z" /></svg>;
-}
 
 function valorUtil(valor) {
   const texto = String(valor || '').trim();
@@ -53,37 +26,6 @@ function nascimentoValido(valor) {
   return mes >= 1 && mes <= 12 && dia >= 1 && dia <= new Date(ano, mes, 0).getDate();
 }
 
-function dataBrParaNumero(valor) {
-  const partes = String(valor || '').match(/^(\d{2})\/(\d{2})\/(\d{2}|\d{4})$/);
-  if (!partes) return null;
-  const ano = Number(partes[3].length === 2 ? `20${partes[3]}` : partes[3]);
-  return Date.UTC(ano, Number(partes[2]) - 1, Number(partes[1]));
-}
-
-function DataMensagemFonada({ numero, dia, resultado, situacao }) {
-  let texto = '';
-  if (resultado) texto = `passada em ${dia || 'data não informada'}`;
-  else if (dia) texto = `agendada para ${dia}`;
-  else if (numero === 2 && situacao?.status === 'DISPONIVEL') texto = `em haver até ${situacao.dataExpiracao || 'data não informada'}`;
-  else if (numero === 2 && situacao?.status === 'EXPIRADA') texto = `em haver expirou em ${situacao.dataExpiracao || 'data não informada'}`;
-  else if (numero === 2 && situacao?.status === 'INDETERMINADA') texto = 'em haver · verificar data';
-  return texto ? <small className="historico-mensagem-data-inline"> · {texto}</small> : null;
-}
-
-function StatusMensagemFonada({ numero, dia, resultado, situacao }) {
-  let texto = 'Sem data';
-  let transmitida = false;
-  if (resultado) {
-    texto = 'Transmitida';
-    transmitida = true;
-  } else if (dia) texto = 'Agendada';
-  else if (numero === 2 && situacao?.status === 'DISPONIVEL') texto = 'Em haver';
-  else if (numero === 2 && situacao?.status === 'EXPIRADA') texto = 'Expirada';
-  else if (numero === 2 && situacao?.status === 'INDETERMINADA') texto = 'Em haver';
-  else if (numero === 2 && situacao?.status === 'NAO_CONCEDIDA') texto = 'Não disponível';
-  return <span className={`historico-situacao ${transmitida ? 'transmitida' : ''}`}><strong>{numero}ª:</strong> {texto}</span>;
-}
-
 function linkWhatsApp(numero) {
   const digitos = numeroWhatsAppBrasil(numero);
   if (!digitos) return null;
@@ -93,7 +35,7 @@ function linkWhatsApp(numero) {
 export default function FichaCliente() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const voltarHistorico = useSmartBack('/clientes');
   const { mostrarToast } = useToast();
 
@@ -111,9 +53,36 @@ export default function FichaCliente() {
   const [salvandoBloqueio, setSalvandoBloqueio] = useState(false);
   const [mesMensagens, setMesMensagens] = useState(() => searchParams.get('mes') || '');
   const [pedidoSelecionado, setPedidoSelecionado] = useState(() => searchParams.get('pedido') || '');
-  const pedidosFonadaFiltrados = filtrarPedidosPorMesDaMensagem(pedidosFonada, mesMensagens);
-  const listaFonada = useListaIncremental(pedidosFonadaFiltrados, `${id}:fonada:${mesMensagens}`);
-  const listaAoVivo = useListaIncremental(pedidosAoVivo, `${id}:aovivo`);
+  const [busca, setBusca] = useState(() => searchParams.get('busca') || '');
+  const [pagamento, setPagamento] = useState(() => searchParams.get('pagamento') || '');
+  const [ordem, setOrdem] = useState(() => searchParams.get('ordem') || 'recentes');
+  const filtros = { busca, pagamento, ordem, mes: mesMensagens };
+  const pedidosFonadaFiltrados = filtrarHistorico(pedidosFonada, 'fonada', filtros);
+  const pedidosAoVivoFiltrados = filtrarHistorico(pedidosAoVivo, 'aovivo', filtros);
+  const listaFonada = useListaIncremental(pedidosFonadaFiltrados, `${id}:fonada:${mesMensagens}:${busca}:${pagamento}:${ordem}`);
+  const listaAoVivo = useListaIncremental(pedidosAoVivoFiltrados, `${id}:aovivo:${busca}:${pagamento}:${ordem}`);
+
+  function atualizarFiltro(campo, valor) {
+    ({ busca: setBusca, pagamento: setPagamento, ordem: setOrdem, mes: setMesMensagens })[campo](valor);
+    setPedidoSelecionado('');
+    setSearchParams(atuais => { const params = new URLSearchParams(atuais); valor ? params.set(campo, valor) : params.delete(campo); params.delete('pedido'); return params; }, { replace: true });
+  }
+
+  function mudarAba(tipo) {
+    setAba(tipo); setPedidoSelecionado('');
+    setSearchParams(atuais => { const params = new URLSearchParams(atuais); params.set('aba', tipo); params.delete('pedido'); return params; }, { replace: true });
+  }
+
+  function limparFiltros() {
+    setBusca(''); setPagamento(''); setMesMensagens(''); setPedidoSelecionado('');
+    setSearchParams(atuais => { const params = new URLSearchParams(atuais); ['busca', 'pagamento', 'mes', 'pedido'].forEach(c => params.delete(c)); return params; }, { replace: true });
+  }
+
+  async function copiarContato(telefone) {
+    try { await navigator.clipboard.writeText(telefone); mostrarToast('Telefone copiado.'); }
+    catch { mostrarToast('Não foi possível copiar. Selecione o telefone para copiar.', 'erro'); }
+  }
+
 
   function carregar() {
     setCarregando(true);
@@ -121,8 +90,8 @@ export default function FichaCliente() {
     api.clientes.buscar(id)
       .then((resp) => {
         setCliente(resp.cliente);
-        setPedidosFonada(resp.pedidosFonada);
-        setPedidosAoVivo(resp.pedidosAoVivo);
+        setPedidosFonada(resp.pedidosFonada || []);
+        setPedidosAoVivo(resp.pedidosAoVivo || []);
       })
       .catch((err) => setErro(err.message))
       .finally(() => setCarregando(false));
@@ -135,7 +104,7 @@ export default function FichaCliente() {
 
   useEffect(() => {
     if (carregando || !pedidoSelecionado) return undefined;
-    const pedidosDaAba = aba === 'aovivo' ? pedidosAoVivo : pedidosFonadaFiltrados;
+    const pedidosDaAba = aba === 'aovivo' ? pedidosAoVivoFiltrados : pedidosFonadaFiltrados;
     const listaDaAba = aba === 'aovivo' ? listaAoVivo : listaFonada;
     const indice = pedidosDaAba.findIndex((pedido) => String(pedido.id) === String(pedidoSelecionado));
     if (indice >= listaDaAba.itensVisiveis.length) {
@@ -149,10 +118,14 @@ export default function FichaCliente() {
   }, [carregando, pedidoSelecionado, aba, listaFonada.itensVisiveis.length, listaAoVivo.itensVisiveis.length]);
 
   function abrirPedido(tipo, pedidoId) {
-    const parametros = new URLSearchParams();
+    const parametros = new URLSearchParams(searchParams);
     parametros.set('aba', tipo);
     parametros.set('pedido', String(pedidoId));
     if (tipo === 'fonada' && mesMensagens) parametros.set('mes', mesMensagens);
+    const filtrados = tipo === 'fonada' ? pedidosFonadaFiltrados : pedidosAoVivoFiltrados;
+    if (!filtrados.some(p => String(p.id) === String(pedidoId))) {
+      ['busca', 'pagamento', 'mes'].forEach(campo => parametros.delete(campo));
+    }
     const retorno = `/clientes/${id}?${parametros.toString()}`;
 
     // Atualiza a entrada atual antes de abrir o pedido. Assim, tanto o
@@ -269,109 +242,23 @@ export default function FichaCliente() {
   }
 
   if (carregando) return <EstadoCarregando rotulo="Carregando a ficha do cliente…" linhas={7} />;
-  if (erro) return <AvisoInline tom="erro" titulo="Não foi possível abrir a ficha" acao={<button type="button" className="btn secundario" onClick={voltar}>Voltar aos clientes</button>}>{erro}</AvisoInline>;
+  if (erro) return <AvisoInline tom="erro" titulo="Não foi possível abrir a ficha" acao={<><button type="button" className="btn secundario" onClick={carregar}>Tentar novamente</button><button type="button" className="btn secundario" onClick={voltar}>Voltar aos clientes</button></>}>{erro}</AvisoInline>;
   if (!cliente) return null;
 
-  const totalFonada = pedidosFonada.reduce((soma, p) => soma + (p.valor || 0), 0);
-  const totalAoVivo = pedidosAoVivo.reduce((soma, p) => soma + (p.valor || 0), 0);
-  const totalGeral = totalFonada + totalAoVivo;
-  const totalPedidos = pedidosFonada.length + pedidosAoVivo.length;
-  const valorPendente = pedidosFonada
-    .filter((p) => p.pagou !== 'SIM' && valorUtil(p.cobranca))
-    .reduce((soma, p) => soma + Number(p.valor || 0), 0)
-    + pedidosAoVivo
-      .filter((p) => p.pagou !== 'SIM' && String(p.pagamento || '').toUpperCase().includes('PRAZO'))
-      .reduce((soma, p) => soma + Number(p.valor || 0), 0);
-  const todosPedidos = [...pedidosFonada, ...pedidosAoVivo];
-  const ultimoPedido = todosPedidos
-    .map((p) => p.data_pedido).filter((data) => dataBrParaNumero(data) != null)
-    .sort((a, b) => dataBrParaNumero(b) - dataBrParaNumero(a))[0];
-  const hojeUtc = Date.UTC(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
-  const proximaCobranca = pedidosFonada
-    .map((p) => p.cobranca_reagendada || p.cobranca)
-    .filter((data) => dataBrParaNumero(data) != null && dataBrParaNumero(data) >= hojeUtc)
-    .sort((a, b) => dataBrParaNumero(a) - dataBrParaNumero(b))[0];
-  const whatsappLink = linkWhatsApp(cliente.whatsapp || cliente.celular);
-  const cadastroIncompleto = ![cliente.whatsapp, cliente.celular, cliente.fixo].some(valorUtil);
+  const resumo = resumoFicha(pedidosFonada, pedidosAoVivo);
+  const whatsappLink = [cliente.whatsapp, cliente.celular].map(linkWhatsApp).find(Boolean);
 
-  function formatarReais(v) {
-    return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  }
-
-  return (
-    <div className="form-pagina">
-      <CabecalhoPagina
-        contexto="Ficha do cliente"
-        titulo={<span className="ficha-cliente-titulo"><span>{cliente.nome}</span>{cliente.bloqueado && <span className="tag pendente">Bloqueado</span>}{cadastroIncompleto && <span className="tag aviso">Contato não informado</span>}</span>}
-        descricao={`Cliente desde ${new Date(cliente.criado_em).toLocaleDateString('pt-BR')} · ${totalPedidos} pedido${totalPedidos === 1 ? '' : 's'} registrado${totalPedidos === 1 ? '' : 's'}`}
-        acoes={<div className="acoes-ficha-cliente">
-          <div className="acoes-pedido-cliente"><button className="btn" onClick={novoPedidoFonada}>Nova fonada</button><button className="btn btn-tonal" onClick={novoPedidoAoVivo}>Novo ao vivo</button></div>
-          {whatsappLink && <a className="btn-small cobranca-whatsapp whatsapp-mobile-ficha" href={whatsappLink} target="_blank" rel="noreferrer" aria-label="Abrir WhatsApp" title="Abrir WhatsApp"><IconeWhatsApp /></a>}
-          <button className="btn secundario" onClick={() => navigate(`/cobranca?nome=${encodeURIComponent(cliente.nome)}`)}>Ver cobrança</button>
-          <button className="btn secundario" onClick={voltar} style={{ gap: 6 }}>
-            <IconeVoltar /> Voltar
-          </button>
-        </div>}
-      />
-
-      {cliente.bloqueado && (
-        <div className="aviso-bloqueio">
-          <strong>Cliente bloqueado.</strong> Não é possível criar ou editar pedidos dele em nenhuma tela do sistema.
-          {cliente.bloqueio_motivo && <> Motivo: {cliente.bloqueio_motivo}</>}
-        </div>
-      )}
-
-      {mostrandoBloqueio && (
-        <Dialogo titulo={`Bloquear ${cliente.nome}`} descricao="O bloqueio impede novos pedidos e alterações em Fonada, Ao vivo, Cobrança e Agenda até que o cliente seja desbloqueado." onClose={() => setMostrandoBloqueio(false)}>
-            <div className="campo">
-              <label>Motivo (opcional)</label>
-              <input
-                value={motivoBloqueio}
-                onChange={(e) => setMotivoBloqueio(e.target.value)}
-                placeholder="Ex: não pagou, pediu para não ligarem mais..."
-              />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
-              <button type="button" className="btn secundario" onClick={() => setMostrandoBloqueio(false)}>
-                Cancelar
-              </button>
-              <button type="button" className="btn perigo" onClick={confirmarBloqueio} disabled={salvandoBloqueio}>
-                {salvandoBloqueio ? 'Bloqueando...' : 'Confirmar bloqueio'}
-              </button>
-            </div>
-        </Dialogo>
-      )}
-
-      <div className="ficha-cliente-visao-geral">
-      <div className="section-box ficha-cliente-dados">
-        <div className="section-title">
-          <strong>{cliente.nome}</strong>
-          {!editando && <div className="acoes-dados-cliente">
-            <button type="button" className="btn-small" onClick={iniciarEdicao} style={{ gap: 5 }}><IconeEditar /> Editar</button>
-            {cliente.bloqueado
-              ? <button type="button" className="btn-small" onClick={desbloquear}>Desbloquear</button>
-              : <button type="button" className="btn-small" onClick={() => setMostrandoBloqueio(true)}>Bloquear</button>}
-            <button type="button" className="btn-small perigo" onClick={excluirCliente}>Excluir</button>
-          </div>}
-        </div>
-
-        {!editando ? (
-          <div className="ficha-informacoes-grupos">
-            <section><h2>Identificação e contato</h2><div className="grade grade-2">
-            <Info label="Nascimento" valor={nascimentoValido(cliente.nascimento) ? cliente.nascimento : ''} />
-            <Info label="Telefone fixo" valor={valorUtil(cliente.fixo)} />
-            <Info label="WhatsApp" valor={valorUtil(cliente.whatsapp)} />
-            <Info label="Celular" valor={valorUtil(cliente.celular)} />
-            </div></section>
-            <section><h2>Endereço e referência</h2><div className="grade grade-2">
-            <Info label="Endereço" valor={valorUtil(cliente.endereco)} />
-            <Info label="Complemento" valor={valorUtil(cliente.complemento)} />
-            <Info label="Bairro" valor={valorUtil(cliente.bairro)} />
-            <Info label="Referência" valor={valorUtil(cliente.referencia)} />
-            </div></section>
-          </div>
-        ) : (
-          <>
+  return <>
+    <FichaClienteVisao cliente={cliente} resumo={resumo} pedidosFonada={pedidosFonada} pedidosAoVivo={pedidosAoVivo}
+      nascimento={nascimentoValido(cliente.nascimento) ? cliente.nascimento : ''} whatsappLink={whatsappLink}
+      historico={{ aba, filtros, atualizarFiltro, mudarAba, limpar: limparFiltros, abrirPedido,
+        lista: aba === 'aovivo' ? listaAoVivo : listaFonada,
+        pedidos: aba === 'aovivo' ? pedidosAoVivoFiltrados : pedidosFonadaFiltrados, selecionado: pedidoSelecionado }}
+      acoes={{ novaFonada: novoPedidoFonada, novoAoVivo: novoPedidoAoVivo, voltar,
+        editar: iniciarEdicao, copiarContato, verCobranca: () => navigate(`/cobranca?nome=${encodeURIComponent(cliente.nome)}`),
+        bloquear: () => setMostrandoBloqueio(true), desbloquear, excluir: excluirCliente }} />
+    {editando && <Dialogo titulo="Editar cliente" descricao="Atualize os dados de contato e as informações do cadastro." onClose={() => { if (!salvando) setEditando(false); }} className="fc-dialogo-edicao">
+      <form onSubmit={evento => { evento.preventDefault(); if (!salvando) salvarEdicao(); }}>
             <div className="grade grade-2">
               <div className="campo">
                 <label htmlFor="editar-nome">Nome</label>
@@ -430,207 +317,33 @@ export default function FichaCliente() {
               </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
-              <button type="button" className="btn secundario" onClick={() => setEditando(false)}>Cancelar</button>
-              <button type="button" className="btn" onClick={salvarEdicao} disabled={salvando}>
+              <button type="button" className="btn secundario" disabled={salvando} onClick={() => setEditando(false)}>Cancelar</button>
+              <button type="submit" className="btn" disabled={salvando}>
                 {salvando ? 'Salvando...' : 'Salvar'}
               </button>
             </div>
-          </>
-        )}
-      </div>
-
-      <div className="section-box ficha-cliente-resumo">
-        <div className="section-title">Resumo do cliente</div>
-        <div className="resumo-operacional-cliente">
-          <CartaoIndicador label="Último pedido" valor={ultimoPedido || 'Sem pedidos'} />
-          <CartaoIndicador label="Total de pedidos" valor={String(totalPedidos)} detalhe={`${pedidosFonada.length} fonada · ${pedidosAoVivo.length} ao vivo`} />
-          <CartaoIndicador label="Total gasto" valor={formatarReais(totalGeral)} />
-          <CartaoIndicador label="Valor pendente" valor={formatarReais(valorPendente)} destaque={valorPendente > 0} />
-          <CartaoIndicador label="Próxima cobrança" valor={proximaCobranca || 'Nenhuma'} />
-        </div>
-      </div>
-      </div>
-
-      <div className="section-box" style={{ padding: 0, overflow: 'hidden' }}>
-        <div className="abas-cliente">
-          <button
-            type="button"
-            className={`aba-cliente-botao ${aba === 'fonada' ? 'ativa' : ''}`}
-            onClick={() => { setAba('fonada'); setPedidoSelecionado(''); }}
-          >
-            Fonada <span className="aba-contagem">{pedidosFonada.length}</span>
-          </button>
-          <button
-            type="button"
-            className={`aba-cliente-botao ${aba === 'aovivo' ? 'ativa' : ''}`}
-            onClick={() => { setAba('aovivo'); setPedidoSelecionado(''); }}
-          >
-            Ao vivo <span className="aba-contagem">{pedidosAoVivo.length}</span>
-          </button>
-        </div>
-
-        <div style={{ padding: 16 }}>
-          {aba === 'fonada' && (
-            <>
-              {pedidosFonada.length > 0 && (
-                <div className="historico-filtro-mes">
-                  <div className="historico-filtro-mes-campo">
-                    <label htmlFor="filtro-mes-mensagem">Mês da mensagem</label>
-                    <select
-                      id="filtro-mes-mensagem"
-                      value={mesMensagens}
-                      onChange={(evento) => { setMesMensagens(evento.target.value); setPedidoSelecionado(''); }}
-                    >
-                      <option value="">Todos os meses</option>
-                      {MESES.map((mes, indice) => <option key={mes} value={indice + 1}>{mes}</option>)}
-                    </select>
-                  </div>
-                  {mesMensagens && (
-                    <div className="historico-filtro-mes-resultado" role="status">
-                      <strong>{pedidosFonadaFiltrados.length}</strong>
-                      <span>pedido{pedidosFonadaFiltrados.length === 1 ? '' : 's'} com mensagem em {MESES[Number(mesMensagens) - 1]}</span>
-                      <button type="button" onClick={() => setMesMensagens('')}>Limpar filtro</button>
-                    </div>
-                  )}
-                </div>
-              )}
-              {pedidosFonada.length === 0 ? (
-                <p className="fs-sm" style={{ color: 'var(--tinta-suave)', textAlign: 'center', padding: '20px 0' }}>
-                  Nenhum pedido de mensagem fonada ainda.
-                </p>
-              ) : pedidosFonadaFiltrados.length === 0 ? (
-                <div className="historico-filtro-vazio">
-                  <strong>Nenhuma mensagem em {MESES[Number(mesMensagens) - 1]}</strong>
-                  <span>Este cliente não possui 1ª ou 2ª mensagem registrada nesse mês.</span>
-                  <button type="button" className="btn secundario" onClick={() => setMesMensagens('')}>Ver todos os pedidos</button>
-                </div>
-              ) : (
-                <div style={{ overflowX: 'auto' }}>
-                  <div className="fs-xs" style={{ display: 'flex', gap: 14, marginBottom: 10, color: 'var(--tinta-suave)' }}>
-                    <span><span className="bolinha-status usada" /> MARCADA</span>
-                    <span><span className="bolinha-status livre" /> DISPONÍVEL</span>
-                  </div>
-                  <table className="tabela-lista">
-                    <thead>
-                      <tr>
-                        <th>O.S.</th>
-                        <th>Data</th>
-                        <th>Destinatários</th>
-                        <th>Situação</th>
-                        <th>Pagamento</th>
-                        <th>Cobrança</th>
-                        <th style={{ textAlign: 'right' }}>Valor</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {listaFonada.itensVisiveis.map((p) => {
-                        const mensagensNoMes = mensagensDoPedidoNoMes(p, mesMensagens);
-                        return (
-                        <tr
-                          key={p.id}
-                          data-pedido-id={p.id}
-                          className={`${mesMensagens ? 'historico-pedido-filtrado ' : ''}${String(pedidoSelecionado) === String(p.id) ? 'historico-pedido-selecionado' : ''}`.trim()}
-                          onClick={() => abrirPedido('fonada', p.id)}
-                        >
-                          <td><span className="carimbo-os carimbo-os-lista">{p.senha_os || p.id}</span></td>
-                          <td>{p.data_pedido || '—'}</td>
-                          <td>
-                            <span className={`historico-destinatario ${mensagensNoMes.includes(1) ? 'no-mes' : ''}`}>
-                              <strong>1ª:</strong> {mensagensNoMes.includes(1) && <span className="historico-seta-mes" aria-label={`Primeira mensagem em ${MESES[Number(mesMensagens) - 1]}`}>→</span>} {valorUtil(p.p1_para) || '—'}
-                              <DataMensagemFonada numero={1} dia={p.p1_dia} resultado={p.p1_resultado} />
-                            </span>
-                            {(valorUtil(p.p2_para) || p.mensagemEmHaver?.concedida) && <span className={`historico-destinatario ${mensagensNoMes.includes(2) ? 'no-mes' : ''}`}>
-                              <strong>2ª:</strong> {mensagensNoMes.includes(2) && <span className="historico-seta-mes" aria-label={`Segunda mensagem em ${MESES[Number(mesMensagens) - 1]}`}>→</span>} {valorUtil(p.p2_para) || 'Ainda não utilizada'}
-                              <DataMensagemFonada numero={2} dia={p.p2_dia} resultado={p.p2_resultado} situacao={p.mensagemEmHaver} />
-                            </span>}
-                          </td>
-                          <td>
-                            <StatusMensagemFonada numero={1} dia={p.p1_dia} resultado={p.p1_resultado} />
-                            {(valorUtil(p.p2_para) || p.mensagemEmHaver?.concedida) && <StatusMensagemFonada numero={2} dia={p.p2_dia} resultado={p.p2_resultado} situacao={p.mensagemEmHaver} />}
-                          </td>
-                          <td><span className={`tag ${p.pagou === 'SIM' ? 'ok' : 'pendente'}`}>{p.pagou === 'SIM' ? 'Recebido' : 'Pendente'}</span><span className="historico-cliente-secundario">{p.periodo || 'Presencial'}</span></td>
-                          <td>{p.cobranca_reagendada || p.cobranca || '—'}</td>
-                          <td style={{ textAlign: 'right' }}>{p.valor != null ? formatarReais(p.valor) : '—'}</td>
-                        </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                  <BotaoMostrarMais temMais={listaFonada.temMais} restantes={listaFonada.restantes} onClick={listaFonada.mostrarMais} />
-                </div>
-              )}
-            </>
-          )}
-
-          {aba === 'aovivo' && (
-            <>
-              {pedidosAoVivo.length === 0 ? (
-                <p className="fs-sm" style={{ color: 'var(--tinta-suave)', textAlign: 'center', padding: '20px 0' }}>
-                  Nenhum pedido de mensagem ao vivo ainda.
-                </p>
-              ) : (
-                <div style={{ overflowX: 'auto' }}>
-                  <table className="tabela-lista">
-                    <thead>
-                      <tr>
-                        <th>O.S.</th>
-                        <th>Data</th>
-                        <th>Entrega</th>
-                        <th>Para</th>
-                        <th>Situação</th>
-                        <th>Pagamento</th>
-                        <th style={{ textAlign: 'right' }}>Valor</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {listaAoVivo.itensVisiveis.map((p) => (
-                        <tr
-                          key={p.id}
-                          data-pedido-id={p.id}
-                          className={String(pedidoSelecionado) === String(p.id) ? 'historico-pedido-selecionado' : ''}
-                          onClick={() => abrirPedido('aovivo', p.id)}
-                        >
-                          <td><span className="carimbo-os carimbo-os-lista">{p.numero_os || p.id}</span></td>
-                          <td>{p.data_pedido || '—'}</td>
-                          <td>{p.dia_entrega || '—'}</td>
-                          <td>{p.para || '—'}</td>
-                          <td><span className="tag neutro">{p.dia_entrega ? 'Agendado' : 'Sem data'}</span></td>
-                          <td><span className={`tag ${p.pagou === 'SIM' ? 'ok' : 'pendente'}`}>{p.pagou === 'SIM' ? 'Recebido' : 'A receber'}</span><span className="historico-cliente-secundario">{valorUtil(p.pagamento) || 'Presencial'}</span></td>
-                          <td style={{ textAlign: 'right' }}>{p.valor != null ? formatarReais(p.valor) : '—'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  <BotaoMostrarMais temMais={listaAoVivo.temMais} restantes={listaAoVivo.restantes} onClick={listaAoVivo.mostrarMais} />
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+      </form>
+    </Dialogo>}
+    {mostrandoBloqueio && (
+        <Dialogo titulo={`Bloquear ${cliente.nome}`} descricao="O bloqueio impede novos pedidos e alterações em Fonada, Ao vivo, Cobrança e Agenda até que o cliente seja desbloqueado." onClose={() => setMostrandoBloqueio(false)}>
+            <div className="campo">
+              <label htmlFor="fc-motivo-bloqueio">Motivo (opcional)</label>
+              <input
+                id="fc-motivo-bloqueio"
+                value={motivoBloqueio}
+                onChange={(e) => setMotivoBloqueio(e.target.value)}
+                placeholder="Ex: não pagou, pediu para não ligarem mais..."
+              />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+              <button type="button" className="btn secundario" onClick={() => setMostrandoBloqueio(false)}>
+                Cancelar
+              </button>
+              <button type="button" className="btn perigo" onClick={confirmarBloqueio} disabled={salvandoBloqueio}>
+                {salvandoBloqueio ? 'Bloqueando...' : 'Confirmar bloqueio'}
+              </button>
+            </div>
+        </Dialogo>
+    )}
+  </>;
 }
-
-function Info({ label, valor }) {
-  return (
-    <div className="ficha-cliente-info">
-      <div className="info-label">{label}</div>
-      <div className="info-valor">{valor || '—'}</div>
-    </div>
-  );
-}
-
-function CartaoIndicador({ label, valor, detalhe, destaque }) {
-  return (
-    <div className={`cartao-valor ${destaque ? 'destaque' : ''}`}>
-      <div className="cartao-valor-label">{label}</div>
-      <div className="cartao-valor-numero">{valor}</div>
-      {detalhe && <div className="historico-cliente-secundario">{detalhe}</div>}
-    </div>
-  );
-}
-
-const estilos = {
-  cabecalho: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 },
-};

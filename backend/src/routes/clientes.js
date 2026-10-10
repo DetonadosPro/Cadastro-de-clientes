@@ -650,7 +650,7 @@ router.get('/:id', async (req, res) => {
     if (req.query.historico === 'nao') return res.json({ cliente });
 
     const pedidosFonadaResultado = await db.query(`
-      SELECT id, senha_os, data_pedido, p1_dia, p1_para, p1_fixo, p1_celular, p1_resultado, p1_passada_por,
+      SELECT id, senha_os, data_pedido, p1_dia, p1_horario, p1_para, p1_fixo, p1_celular, p1_resultado, p1_passada_por,
              p2_dia, p2_para, p2_tema, p2_mensagem, p2_fixo, p2_celular, p2_horario,
              p2_quem_oferece, p2_resultado, p2_passada_por,
              valor, pagou, cobranca, cobranca_reagendada, periodo, data_pagamento, status, criado_em
@@ -658,7 +658,7 @@ router.get('/:id', async (req, res) => {
     `, [req.params.id]);
 
     const pedidosAoVivoResultado = await db.query(`
-      SELECT id, numero_os, data_pedido, dia_entrega, para, valor, pagamento, pagou, data_pagou,
+      SELECT id, numero_os, data_pedido, dia_entrega, horario_entrega, resultado_entrega, para, valor, pagamento, pagou, data_pagou, data_cobranca,
              criado_em
       FROM ao_vivo WHERE cliente_id = $1 AND excluido_em IS NULL ORDER BY id DESC
     `, [req.params.id]);
