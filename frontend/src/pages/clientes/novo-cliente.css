@@ -1,0 +1,116 @@
+.novo-cliente-workspace { max-width: 1360px; margin-inline: auto; }
+.novo-cliente-header-actions { display: flex; align-items: center; gap: 18px; }
+.novo-cliente-draft { display: flex; align-items: center; gap: 7px; font-size: 11px; color: #4d6b60; }
+.novo-cliente-draft svg { width: 17px; height: 17px; }
+.novo-cliente-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(290px, .48fr); gap: 24px; align-items: start; }
+.novo-cliente-main, .novo-cliente-aside { display: grid; gap: 18px; min-width: 0; }
+.novo-cliente-aside { position: sticky; top: 20px; }
+.novo-cliente-workspace .novo-cliente-section { padding: 24px; }
+.novo-cliente-workspace .admin-card-title { margin-bottom: 22px; }
+.novo-cliente-step { margin-left: auto; color: #4b6485; font-size: 10px; font-weight: 800; background: #f1f5fb; padding: 7px 8px; border-radius: 7px; }
+.novo-cliente-fields { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 20px; }
+.novo-cliente-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.novo-cliente-workspace .campo { min-width: 0; width: auto; }
+.novo-cliente-identity { grid-template-columns: minmax(0, 1fr) 165px; }
+.novo-cliente-contacts { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; }
+.novo-cliente-workspace .campo small { display: block; font-size: 11px; line-height: 1.6; color: #5c6c83; margin-top: 8px; }
+.novo-cliente-workspace .campo input { font-size: 14px; font-weight: 500; }
+.novo-cliente-workspace #novo-nome { font-size: 16px; font-weight: 600; }
+.novo-cliente-contact-note { display: flex; align-items: center; justify-content: space-between; gap: 14px; border-top: 1px solid #e5ebf3; margin-top: 21px; padding-top: 16px; color: #5c6c83; font-size: 11px; line-height: 1.7; }
+.novo-cliente-workspace .novo-cliente-address { padding: 0; }
+.novo-cliente-address-toggle { display: flex; align-items: center; gap: 13px; width: 100%; padding: 23px 24px; border: 0; background: transparent; border-radius: 18px; cursor: pointer; text-align: left; color: #243650; }
+.novo-cliente-address-toggle:hover { background: #f7faff; }
+.novo-cliente-address-toggle > span:nth-child(2) { flex: 1; min-width: 0; }
+.novo-cliente-address-toggle strong { display: block; font-size: 16px; line-height: 1.5; }
+.novo-cliente-address-toggle small { display: block; margin-top: 4px; color: #5c6c83; font-size: 12px; line-height: 1.6; }
+.novo-cliente-toggle-symbol { font-size: 24px; color: #4974a9; width: 28px; flex-shrink: 0; text-align: center; }
+.novo-cliente-address-fields { padding: 0 24px 24px; }
+.novo-cliente-address-line { display: grid; grid-template-columns: minmax(0, 1fr) 105px; gap: 16px; }
+.novo-cliente-address-line.detalhes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.novo-cliente-workspace .campo textarea { width: 100%; min-height: 80px; padding: 12px 14px; font-size: 14px; line-height: 1.7; font-family: inherit; color: #243650; background: #fbfcff; border: 1px solid #bfcde0; border-radius: 10px; resize: vertical; text-transform: none !important; }
+.novo-cliente-address-help { color: #5c6c83; font-size: 11px; line-height: 1.7; }
+.novo-cliente-savebar { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 22px 0 5px; }
+.novo-cliente-savebar > div:first-child { display: grid; gap: 5px; font-size: 12px; line-height: 1.6; }
+.novo-cliente-savebar span { color: #5c6c83; font-size: 11px; }
+.novo-cliente-savebar > div:last-child { display: flex; gap: 10px; }
+.novo-cliente-savebar .btn { min-height: 44px; }
+.novo-cliente-preview { background: linear-gradient(145deg, #14365e, #244c7a); padding: 24px; border-radius: 18px; color: #fff; border: 1px solid #204979; }
+.novo-cliente-preview-top { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 28px; }
+.novo-cliente-preview-top h2 { font-size: 12px; font-weight: 700; color: #e7effb; }
+.novo-cliente-preview-top > span { font-size: 9px; line-height: 1.6; background: #ffffff13; border: 1px solid #ffffff30; color: #e2edfd; border-radius: 20px; padding: 5px 9px; }
+.novo-cliente-preview-person { display: flex; align-items: center; gap: 13px; margin-bottom: 26px; }
+.novo-cliente-avatar { display: grid; place-items: center; width: 48px; height: 48px; flex-shrink: 0; border-radius: 15px; background: #cbe0ff; color: #214e85; font-size: 16px; font-weight: 800; }
+.novo-cliente-preview-person h3 { color: #fff; font-size: 17px; line-height: 1.5; overflow-wrap: anywhere; }
+.novo-cliente-preview-person p { color: #c8dcf6; font-size: 10px; line-height: 1.7; margin-top: 5px; }
+.novo-cliente-preview-info { margin: 0; }
+.novo-cliente-preview-info > div { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 5px 12px; padding: 12px 0; border-bottom: 1px solid #ffffff24; font-size: 11px; line-height: 1.7; }
+.novo-cliente-preview-info dt { color: #c9dcf5; }
+.novo-cliente-preview-info dd { margin: 0; color: #fff; font-weight: 600; overflow-wrap: anywhere; }
+.novo-cliente-preview-info dd.vazio { color: #c8dcf6; font-weight: 400; }
+.novo-cliente-preview-address { display: flex; align-items: flex-start; gap: 12px; margin-top: 23px; font-size: 12px; line-height: 1.8; }
+.novo-cliente-preview-address > svg { flex-shrink: 0; color: #bed6f4; margin-top: 2px; }
+.novo-cliente-preview-address strong { display: block; font-size: 12px; overflow-wrap: anywhere; }
+.novo-cliente-preview-address span, .novo-cliente-preview-address p { display: block; color: #cfdef2; font-size: 11px; overflow-wrap: anywhere; }
+.novo-cliente-preview-address p { border-top: 1px solid #ffffff25; padding-top: 10px; margin-top: 10px; white-space: pre-wrap; }
+.novo-cliente-checklist { padding: 23px; border: 1px solid #d7e1ee; background: #fff; border-radius: 16px; }
+.novo-cliente-checklist h2 { font-size: 13px; margin-bottom: 20px; }
+.novo-cliente-checklist ul { display: grid; gap: 19px; list-style: none; margin: 0; padding: 0; }
+.novo-cliente-checklist li { display: flex; align-items: flex-start; gap: 11px; color: #566e8c; }
+.novo-cliente-checklist li > svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
+.novo-cliente-checklist li.completo > svg { color: #287255; }
+.novo-cliente-checklist strong { display: block; color: #3e536d; font-size: 11px; line-height: 1.6; }
+.novo-cliente-checklist small { display: block; color: #5c6c83; font-size: 10px; line-height: 1.7; margin-top: 3px; }
+.novo-cliente-draft-note { display: flex; align-items: flex-start; gap: 10px; color: #5c6c83; padding: 2px 9px; }
+.novo-cliente-draft-note svg { flex-shrink: 0; width: 18px; height: 18px; margin-top: 2px; }
+.novo-cliente-draft-note p { font-size: 11px; line-height: 1.8; }
+.novo-cliente-duplicates { padding: 22px; border: 1px solid #e8d2a7; border-left: 4px solid #c48a2c; border-radius: 14px; background: #fff9ec; outline-offset: 3px; }
+.novo-cliente-duplicates:focus-visible { outline: 3px solid #779bd0; }
+.novo-cliente-duplicates-heading { display: flex; align-items: flex-start; gap: 13px; }
+.novo-cliente-duplicates-heading > span { border-radius: 50%; color: #815215; background: #fae7be; display: grid; place-items: center; width: 26px; height: 26px; flex-shrink: 0; font-weight: 800; }
+.novo-cliente-duplicates h2 { font-size: 15px; color: #74521f; line-height: 1.6; }
+.novo-cliente-duplicates p { color: #7c6542; font-size: 12px; line-height: 1.8; margin-top: 5px; }
+.novo-cliente-candidates { display: grid; gap: 10px; margin: 18px 0; }
+.novo-cliente-candidates article { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 14px 16px; background: #fff; border: 1px solid #e8dfcc; border-radius: 10px; min-width: 0; }
+.novo-cliente-candidates strong { font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.novo-cliente-candidates span { display: block; margin-top: 4px; color: #5c6c83; font-size: 11px; line-height: 1.8; }
+.novo-cliente-duplicate-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+@media (max-width: 1180px) {
+  .novo-cliente-layout { grid-template-columns: minmax(0, 1fr) 290px; gap: 18px; }
+  .novo-cliente-contacts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .novo-cliente-contacts > .campo:last-child { grid-column: 1 / -1; }
+  .novo-cliente-preview { padding: 20px; }
+  .novo-cliente-identity { grid-template-columns: 1fr; }
+  .novo-cliente-contact-note { align-items: flex-start; flex-direction: column; gap: 9px; }
+  .novo-cliente-savebar { align-items: stretch; flex-direction: column; }
+  .novo-cliente-savebar > div:last-child { justify-content: flex-end; }
+}
+@media (max-width: 950px) {
+  .novo-cliente-layout { grid-template-columns: 1fr; }
+  .novo-cliente-aside { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+  .novo-cliente-draft-note { grid-column: 1 / -1; }
+  .novo-cliente-identity { grid-template-columns: minmax(0, 1fr) 165px; }
+  .novo-cliente-contacts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .novo-cliente-contacts > .campo:last-child { grid-column: auto; }
+}
+@media (max-width: 700px) {
+  .novo-cliente-workspace .novo-cliente-section { padding: 20px; }
+  .novo-cliente-workspace .novo-cliente-address { padding: 0; }
+  .novo-cliente-header-actions { width: 100%; justify-content: space-between; }
+  .novo-cliente-identity, .novo-cliente-contacts, .novo-cliente-aside { grid-template-columns: 1fr; }
+  .novo-cliente-workspace .campo input, .novo-cliente-workspace .campo textarea { font-size: 16px; }
+  .novo-cliente-fields { gap: 18px; }
+  .novo-cliente-workspace .admin-card-title h2, .novo-cliente-address-toggle strong { font-size: 15px; }
+  .novo-cliente-workspace .admin-card-title p, .novo-cliente-address-toggle small { font-size: 11px; }
+  .novo-cliente-address-toggle { padding: 20px; gap: 11px; }
+  .novo-cliente-address-fields { padding: 0 20px 20px; }
+  .novo-cliente-address-line { grid-template-columns: minmax(0, 1fr) 86px; gap: 11px; }
+  .novo-cliente-address-line.detalhes { grid-template-columns: 1fr; gap: 18px; }
+  .novo-cliente-savebar { padding: 8px 0 3px; }
+  .novo-cliente-savebar .btn { flex: 1; padding-inline: 13px; }
+  .novo-cliente-aside { gap: 15px; }
+  .novo-cliente-preview { padding: 23px; }
+  .novo-cliente-duplicates { padding: 18px; }
+  .novo-cliente-candidates article { flex-wrap: wrap; }
+  .novo-cliente-candidates article .btn { width: 100%; }
+  .novo-cliente-duplicate-actions .btn { width: 100%; }
+}

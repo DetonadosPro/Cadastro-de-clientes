@@ -10,6 +10,9 @@ export default function IconeAdministracao({tipo,...props}) {
     busca:<><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></>,
     excluir:<><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></>,
     salvo:<><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></>,
+    cliente:<><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></>,
+    contato:<><path d="M4 4h16v12H8l-4 4zM8 8h8M8 12h5"/></>,
+    endereco:<><path d="M20 10c0 6-8 11-8 11S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/></>,
   };
   return <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>{caminhos[tipo]}</svg>;
 }
