@@ -9,7 +9,7 @@ export function ConfiguracoesProvider({ children }) {
   async function recarregar() {
     if (!getToken()) { setConfiguracoes(null); setCarregando(false); return; }
     setCarregando(true);
-    try { setConfiguracoes(await api.configuracoes.buscar()); setErro(''); }
+    try { const atuais=await api.configuracoes.buscar(); setConfiguracoes(atuais); setErro(''); return atuais; }
     catch (e) { setErro(e.message); }
     finally { setCarregando(false); }
   }

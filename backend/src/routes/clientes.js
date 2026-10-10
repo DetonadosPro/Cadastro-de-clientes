@@ -321,10 +321,22 @@ router.get('/lixeira', async (req, res) => {
     let where = 'WHERE c.excluido_em IS NOT NULL';
     let params = [];
     if (busca) {
-      where += ' AND c.nome LIKE $1';
+      where += ` AND ${condicaoTexto('c.nome', 1)}`;
       params = [`%${busca}%`];
     }
 
+    if (['com_pedidos', 'sem_pedidos'].includes(req.query.situacao)) {
+      const possuiPedidos = `(EXISTS (SELECT 1 FROM fonadas f WHERE f.cliente_id=c.id AND f.excluido_em IS NOT NULL)
+        OR EXISTS (SELECT 1 FROM ao_vivo a WHERE a.cliente_id=c.id AND a.excluido_em IS NOT NULL))`;
+      where += ` AND ${req.query.situacao === 'sem_pedidos' ? 'NOT ' : ''}${possuiPedidos}`;
+    }
+    const ordens = {
+      recentes: 'c.excluido_em DESC, c.id DESC',
+      antigos: 'c.excluido_em ASC, c.id ASC',
+      nome: 'c.nome ASC, c.id ASC',
+    };
+    const ordem = Object.hasOwn(ordens, req.query.ordenarPor)
+      ? ordens[req.query.ordenarPor] : ordens.recentes;
     const totalResultado = await db.query(`SELECT COUNT(*) as n FROM clientes c ${where}`, params);
     const total = parseInt(totalResultado.rows[0].n, 10);
 
@@ -335,7 +347,7 @@ router.get('/lixeira', async (req, res) => {
         (SELECT COUNT(*) FROM fonadas WHERE cliente_id = c.id AND excluido_em IS NOT NULL) as total_fonada,
         (SELECT COUNT(*) FROM ao_vivo WHERE cliente_id = c.id AND excluido_em IS NOT NULL) as total_aovivo
       FROM clientes c ${where}
-      ORDER BY excluido_em DESC
+      ORDER BY ${ordem}
       LIMIT $${idxLimit} OFFSET $${idxOffset}
     `, [...params, porPagina, offset]);
 

@@ -181,8 +181,12 @@ export const api = {
       if (extras.porPagina) params.set('porPagina', String(extras.porPagina));
       return chamar(`/clientes?${params.toString()}`, { signal: extras.signal });
     },
-    listarLixeira: (busca = '', pagina = 1) =>
-      chamar(`/clientes/lixeira?busca=${encodeURIComponent(busca)}&pagina=${pagina}`),
+    listarLixeira: (busca = '', pagina = 1, extras = {}) => {
+      const params=new URLSearchParams({busca,pagina:String(pagina)});
+      if(extras.situacao)params.set('situacao',extras.situacao);
+      if(extras.ordenarPor)params.set('ordenarPor',extras.ordenarPor);
+      return chamar(`/clientes/lixeira?${params.toString()}`,{signal:extras.signal});
+    },
     buscar: (id) => chamar(`/clientes/${id}`),
     buscarCadastro: (id) => chamar(`/clientes/${id}?historico=nao`),
     buscarResumo: (id) => chamar(`/clientes/${id}/resumo`),

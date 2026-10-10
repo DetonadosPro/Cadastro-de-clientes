@@ -365,7 +365,7 @@ export default function Layout() {
 
             <button
               type="button"
-              className={`nav-item-destaque ${location.pathname.startsWith('/clientes') ? 'ativo' : ''}`}
+              className={`nav-item-destaque ${location.pathname.startsWith('/clientes') && location.pathname !== '/clientes/lixeira' ? 'ativo' : ''}`}
               onClick={irParaClientes}
               aria-label="Clientes"
               title="Clientes"
