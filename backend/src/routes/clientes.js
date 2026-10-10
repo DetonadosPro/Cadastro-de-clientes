@@ -14,6 +14,7 @@ const express = require('express');
 const { db, pool, unaccentEstaDisponivel } = require('../db/database');
 const { formatarDataBrasilia } = require('../utils/dataHora');
 const { situacaoSegundaMensagem, dataBrParaDate } = require('../utils/mensagemEmHaver');
+const { DATA_PEDIDO_ORDENACAO_SQL } = require('../utils/dataPedidoSql');
 
 const router = express.Router();
 router.param('id', (req, res, next, id) => {
@@ -591,19 +592,15 @@ router.get('/:id/resumo', async (req, res) => {
       SELECT * FROM (
         SELECT id, 'Fonada' AS tipo, senha_os AS os, data_pedido, valor, pagou,
                '/fonada/' || id AS rota, criado_em,
-               CASE WHEN data_pedido ~ '^\\d{2}/\\d{2}/(\\d{2}|\\d{4})$'
-                    THEN TO_DATE(data_pedido, CASE WHEN length(data_pedido) = 8 THEN 'DD/MM/YY' ELSE 'DD/MM/YYYY' END)
-                    ELSE criado_em::date END AS data_compra_ordem
+               ${DATA_PEDIDO_ORDENACAO_SQL} AS data_compra_ordem
         FROM fonadas WHERE cliente_id = $1 AND excluido_em IS NULL
         UNION ALL
         SELECT id, 'Ao vivo' AS tipo, numero_os AS os, data_pedido, valor, pagou,
                '/ao-vivo/' || id AS rota, criado_em,
-               CASE WHEN data_pedido ~ '^\\d{2}/\\d{2}/(\\d{2}|\\d{4})$'
-                    THEN TO_DATE(data_pedido, CASE WHEN length(data_pedido) = 8 THEN 'DD/MM/YY' ELSE 'DD/MM/YYYY' END)
-                    ELSE criado_em::date END AS data_compra_ordem
+               ${DATA_PEDIDO_ORDENACAO_SQL} AS data_compra_ordem
         FROM ao_vivo WHERE cliente_id = $1 AND excluido_em IS NULL
       ) compras
-      ORDER BY data_compra_ordem DESC, criado_em DESC, id DESC
+      ORDER BY data_compra_ordem DESC NULLS LAST, criado_em DESC, id DESC
       LIMIT 5
     `, [req.params.id]);
 
