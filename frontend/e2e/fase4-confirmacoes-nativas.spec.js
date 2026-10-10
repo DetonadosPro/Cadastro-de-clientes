@@ -177,7 +177,7 @@ test('MODAL-004: confirmação nativa de exclusão de lembrete', async ({ page, 
   } finally { await request.delete(`/api/agenda/lembretes/${id}`, { headers }); }
 });
 
-test('MODAL-023: confirmação nativa de remoção de usuário', async ({ page, request }) => {
+test('MODAL-023: diálogo de confirmação de remoção de usuário', async ({ page, request }) => {
   test.skip(!isolado || !process.env.QA_E2E_MASTER_PASSWORD, 'Exige banco QA e senha mestra QA.');
   const segredo = process.env.QA_E2E_MASTER_PASSWORD;
   const headers = { 'x-senha-mestra': segredo };
@@ -189,18 +189,20 @@ test('MODAL-023: confirmação nativa de remoção de usuário', async ({ page, 
   expect(id).toBeTruthy();
   try {
     await page.goto('/gerenciar-usuarios');
-    await page.getByLabel('Senha mestra').fill(segredo);
+    await page.getByLabel('Senha mestra', { exact: true }).fill(segredo);
     await page.getByRole('button', { name: 'Entrar', exact: true }).click();
-    const linha = page.getByRole('row').filter({ hasText: usuario });
+    const linha = page.getByRole('article').filter({ hasText: usuario });
     await expect(linha).toBeVisible();
-    const remover = linha.getByRole('button', { name: 'Remover' });
-    await decidir(page, remover, 'Remover o usuário', false);
+    const remover = linha.getByRole('button', { name: /^Remover/ });
+    await remover.click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Cancelar', exact: true }).click();
     await expect(linha).toBeVisible();
-    registrar('MODAL-023', page, 'abrir/cancelar', 'usuário permaneceu na tabela');
-    await decidir(page, remover, 'Remover o usuário', true);
+    registrar('MODAL-023', page, 'abrir/cancelar', 'usuário permaneceu na lista');
+    await remover.click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Remover conta', exact: true }).click();
     await expect(linha).toHaveCount(0);
     const restantes = await (await request.get('/api/auth/usuarios', { headers })).json();
     expect(restantes.usuarios.some((item) => item.id === id)).toBe(false);
-    registrar('MODAL-023', page, 'abrir/aceitar', 'usuário removido da tabela e da API');
+    registrar('MODAL-023', page, 'abrir/aceitar', 'usuário removido da lista e da API');
   } finally { await request.delete(`/api/auth/usuarios/${id}`, { headers }); }
 });

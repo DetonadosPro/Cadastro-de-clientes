@@ -18,12 +18,12 @@ async function tabAte(page, seletor, limite = 100) {
 
 test('login e navegação principal funcionam somente com teclado', async ({ page }) => {
   await page.goto('/login');
-  await expect(page.getByLabel('Usuário')).toBeFocused();
+  await expect(page.getByLabel('Usuário', { exact: true })).toBeFocused();
   await page.keyboard.type(usuario);
   await page.keyboard.press('Tab');
-  await expect(page.getByLabel('Senha')).toBeFocused();
+  await expect(page.getByLabel('Senha', { exact: true })).toBeFocused();
   await page.keyboard.type(senha);
-  await page.keyboard.press('Tab');
+  await tabAte(page, '.acesso-submit', 8);
   await expect(page.getByRole('button', { name: 'Entrar', exact: true })).toBeFocused();
   await page.keyboard.press('Enter');
   await page.waitForURL('**/agenda');
@@ -49,8 +49,8 @@ test('controles do conteúdo são alcançáveis e têm foco visível em todas as
   test.skip(!isolado, 'Exige banco QA isolado.');
   test.setTimeout(180000);
   await page.goto('/login');
-  await page.getByLabel('Usuário').fill(usuario);
-  await page.getByLabel('Senha').fill(senha);
+  await page.getByLabel('Usuário', { exact: true }).fill(usuario);
+  await page.getByLabel('Senha', { exact: true }).fill(senha);
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
   await page.waitForURL('**/agenda');
   const headers = { Authorization: `Bearer ${await page.evaluate(() => localStorage.getItem('pombo_token'))}` };

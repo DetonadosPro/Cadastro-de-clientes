@@ -20,8 +20,8 @@ try {
     await pagina.goto(`${baseURL}/login`);
     await pagina.waitForTimeout(800);
     await pagina.screenshot({ path: resolve(pasta, `${nome}-login.png`), fullPage: true });
-    await pagina.getByLabel('Usuário').fill(usuario);
-    await pagina.getByLabel('Senha').fill(senha);
+    await pagina.getByLabel('Usuário', { exact: true }).fill(usuario);
+    await pagina.getByLabel('Senha', { exact: true }).fill(senha);
     await pagina.getByRole('button', { name: 'Entrar', exact: true }).click();
     await pagina.waitForURL('**/agenda');
     await pagina.getByRole('heading', { name: 'Agenda' }).waitFor();

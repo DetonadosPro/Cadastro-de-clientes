@@ -84,7 +84,7 @@ export function Dialogo({ titulo, descricao, onClose, children, className = '', 
         tabIndex={-1}
         onMouseDown={(evento) => evento.stopPropagation()}
       >
-        <header className="dialogo-cabecalho">
+        <header className="dialogo-cabecalho" role="presentation">
           <div><h2 id={tituloId}>{titulo}</h2>{descricao && <p id={descricaoId}>{descricao}</p>}</div>
           <BotaoIcone rotulo={rotuloFechar} onClick={onClose}>×</BotaoIcone>
         </header>

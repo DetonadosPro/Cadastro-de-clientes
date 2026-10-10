@@ -123,7 +123,7 @@ test('BTN-231/232: recarga de erro e estado vazio de usuários', async ({ page }
     ? rota.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ erro: 'Falha QA' }) })
     : rota.fulfill({ status: 200, contentType: 'application/json', body: '{"usuarios":[]}' }));
   await page.goto('/gerenciar-usuarios');
-  await page.getByLabel('Senha mestra').fill(segredoTeste);
+  await page.getByLabel('Senha mestra', { exact: true }).fill(segredoTeste);
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Tentar novamente' })).toBeVisible();
   falhar = false;

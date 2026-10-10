@@ -6,8 +6,8 @@ import AxeBuilder from '@axe-core/playwright';
 
 test('login inválido não abre o sistema', async ({ page }) => {
   await page.goto('/login');
-  await page.getByLabel('Usuário').fill(usuario);
-  await page.getByLabel('Senha').fill('SENHA_QA_INCORRETA');
+  await page.getByLabel('Usuário', { exact: true }).fill(usuario);
+  await page.getByLabel('Senha', { exact: true }).fill('SENHA_QA_INCORRETA');
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
   await expect(page).toHaveURL(/\/login$/);
   await expect(page.getByText('Usuário ou senha inválidos.')).toBeVisible();

@@ -34,11 +34,11 @@ router.post('/login', async (req, res) => {
   try {
     const { usuario, senha } = req.body;
 
-    if (!usuario || !senha) {
+    if (typeof usuario !== 'string' || !usuario.trim() || typeof senha !== 'string' || !senha) {
       return res.status(400).json({ erro: 'Informe usuário e senha.' });
     }
 
-    const resultado = await db.query('SELECT * FROM usuarios WHERE usuario ILIKE $1', [usuario]);
+    const resultado = await db.query('SELECT * FROM usuarios WHERE LOWER(usuario) = LOWER($1)', [usuario.trim()]);
     const linha = resultado.rows[0];
 
     if (!linha) {
@@ -102,7 +102,7 @@ router.post('/usuarios', exigirSenhaMestra, async (req, res) => {
   try {
     const { usuario, senha, nome, data_nascimento } = req.body;
 
-    if (!usuario || !senha) {
+    if (typeof usuario !== 'string' || !usuario.trim() || typeof senha !== 'string' || !senha.trim()) {
       return res.status(400).json({ erro: 'Informe usuário e senha.' });
     }
     if (senha.length < 12) {
@@ -112,7 +112,7 @@ router.post('/usuarios', exigirSenhaMestra, async (req, res) => {
       return res.status(400).json({ erro: 'Informe uma data de nascimento válida.' });
     }
 
-    const existente = await db.query('SELECT id FROM usuarios WHERE usuario ILIKE $1', [usuario]);
+    const existente = await db.query('SELECT id FROM usuarios WHERE LOWER(usuario) = LOWER($1)', [usuario.trim()]);
     if (existente.rows.length > 0) {
       return res.status(409).json({ erro: 'Esse usuário já existe.' });
     }
@@ -120,13 +120,33 @@ router.post('/usuarios', exigirSenhaMestra, async (req, res) => {
     const senha_hash = await bcrypt.hash(senha, 10);
     await db.query(
       'INSERT INTO usuarios (usuario, senha_hash, nome, data_nascimento) VALUES ($1, $2, $3, $4)',
-      [usuario, senha_hash, nome || null, data_nascimento || null]
+      [usuario.trim(), senha_hash, nome || null, data_nascimento || null]
     );
 
     res.status(201).json({ ok: true });
   } catch (erro) {
     console.error('Erro ao criar usuário:', erro);
     res.status(500).json({ erro: 'Erro ao criar usuário.' });
+  }
+});
+
+// PUT /api/auth/usuarios/:id/senha — mantém a conta e troca a senha de acesso.
+router.put('/usuarios/:id/senha', exigirSenhaMestra, async (req, res) => {
+  try {
+    if (!/^[1-9]\d*$/.test(req.params.id) || Number(req.params.id) > 2147483647) {
+      return res.status(400).json({ erro: 'ID de usuário inválido.' });
+    }
+    const { senha } = req.body;
+    if (typeof senha !== 'string' || !senha.trim() || senha.length < 12) {
+      return res.status(400).json({ erro: 'A senha deve ter pelo menos 12 caracteres.' });
+    }
+    const senha_hash = await bcrypt.hash(senha, 10);
+    const resultado = await db.query('UPDATE usuarios SET senha_hash = $1 WHERE id = $2 RETURNING id', [senha_hash, req.params.id]);
+    if (!resultado.rows.length) return res.status(404).json({ erro: 'Usuário não encontrado.' });
+    res.json({ ok: true });
+  } catch (erro) {
+    console.error('Erro ao redefinir senha:', erro);
+    res.status(500).json({ erro: 'Erro ao redefinir senha.' });
   }
 });
 

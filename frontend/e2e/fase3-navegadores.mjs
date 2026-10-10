@@ -26,8 +26,8 @@ for (const [motorNome, motor, opcoes] of motores) {
       pagina.on('pageerror', (erro) => erros.push(erro.message));
       try {
         await pagina.goto(`${origem}/login`);
-        await pagina.getByLabel('Usuário').fill('QA_AUDITOR');
-        await pagina.getByLabel('Senha').fill('QA_TESTE_2026!');
+        await pagina.getByLabel('Usuário', { exact: true }).fill('QA_AUDITOR');
+        await pagina.getByLabel('Senha', { exact: true }).fill('QA_TESTE_2026!');
         await pagina.getByRole('button', { name: 'Entrar', exact: true }).click();
         await pagina.waitForURL('**/agenda');
         const token = await pagina.evaluate(() => localStorage.getItem('pombo_token'));

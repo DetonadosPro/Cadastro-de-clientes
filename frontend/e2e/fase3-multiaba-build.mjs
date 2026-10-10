@@ -27,8 +27,8 @@ const esperarSse = async (esperado) => {
 };
 try {
   await abas[0].goto(`${origem}/login`);
-  await abas[0].getByLabel('Usuário').fill('QA_AUDITOR');
-  await abas[0].getByLabel('Senha').fill('QA_TESTE_2026!');
+  await abas[0].getByLabel('Usuário', { exact: true }).fill('QA_AUDITOR');
+  await abas[0].getByLabel('Senha', { exact: true }).fill('QA_TESTE_2026!');
   await abas[0].getByRole('button', { name: 'Entrar', exact: true }).click();
   await abas[0].waitForURL('**/agenda');
   token = await abas[0].evaluate(() => localStorage.getItem('pombo_token'));
@@ -45,8 +45,8 @@ try {
   for (const pagina of abas) {
     if (await pagina.evaluate(() => localStorage.getItem('pombo_token')) !== null) throw new Error('Token permaneceu em outra aba.');
   }
-  await abas[0].getByLabel('Usuário').fill('QA_AUDITOR');
-  await abas[0].getByLabel('Senha').fill('QA_TESTE_2026!');
+  await abas[0].getByLabel('Usuário', { exact: true }).fill('QA_AUDITOR');
+  await abas[0].getByLabel('Senha', { exact: true }).fill('QA_TESTE_2026!');
   await abas[0].getByRole('button', { name: 'Entrar', exact: true }).click();
   await Promise.all(abas.map((pagina) => pagina.waitForURL('**/agenda')));
   const aposLogin = await esperarSse(base + 5);

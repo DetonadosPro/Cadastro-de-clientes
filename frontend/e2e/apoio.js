@@ -6,8 +6,8 @@ export const isolado = process.env.QA_E2E_ISOLATED_DB === '1';
 
 export async function entrar(page, credenciais = { usuario, senha }) {
   await page.goto('/login');
-  await page.getByLabel('Usuário').fill(credenciais.usuario);
-  await page.getByLabel('Senha').fill(credenciais.senha);
+  await page.getByLabel('Usuário', { exact: true }).fill(credenciais.usuario);
+  await page.getByLabel('Senha', { exact: true }).fill(credenciais.senha);
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
   await page.waitForURL('**/agenda');
   await page.getByRole('heading', { name: 'Agenda' }).waitFor();

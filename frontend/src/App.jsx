@@ -1,7 +1,7 @@
 import React, { lazy, Suspense } from 'react';
 import { EstadoCarregando } from './components/Interface.jsx';
-import { Routes, Route, Navigate, Link } from 'react-router-dom';
-import { getUsuarioLogado } from './api.js';
+import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
+import { getUsuarioLogado, getToken } from './api.js';
 const Login = lazy(() => import('./pages/Login.jsx'));
 const GerenciarUsuarios = lazy(() => import('./pages/GerenciarUsuarios.jsx'));
 import Layout from './components/Layout.jsx';
@@ -22,8 +22,9 @@ const Recall = lazy(() => import('./pages/recall/Recall.jsx'));
 const Configuracoes = lazy(() => import('./pages/Configuracoes.jsx'));
 
 function RotaProtegida({ children }) {
+  const location = useLocation();
   const usuario = getUsuarioLogado();
-  if (!usuario) return <Navigate to="/login" replace />;
+  if (!usuario || !getToken()) return <Navigate to="/login" replace state={{ retorno: location.pathname + location.search + location.hash }} />;
   return children;
 }
 

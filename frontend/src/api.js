@@ -72,7 +72,7 @@ async function chamar(caminho, opcoes = {}) {
   const dados = await resposta.json().catch(() => ({}));
 
   if (!resposta.ok) {
-    if (resposta.status === 401) {
+    if (resposta.status === 401 && !caminho.startsWith('/auth/')) {
       limparSessao();
       // Sessão expirada (token inválido/vencido) — manda de volta pro
       // login em vez de deixar a pessoa numa tela travada fazendo
@@ -83,7 +83,8 @@ async function chamar(caminho, opcoes = {}) {
       // Evita redirecionar de novo se já está no login (ex: senha
       // errada ao tentar entrar, que também retorna 401).
       if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
-        window.location.href = '/login';
+        const parametros = new URLSearchParams({ motivo: 'sessao-expirada', retorno: window.location.pathname + window.location.search + window.location.hash });
+        window.location.replace(`/login?${parametros}`);
       }
     }
     const erro = new Error(dados.erro || 'Erro ao comunicar com o servidor.');
@@ -113,7 +114,9 @@ async function chamarComSenhaMestra(caminho, senhaMestra, opcoes = {}) {
   const dados = await resposta.json().catch(() => ({}));
 
   if (!resposta.ok) {
-    throw new Error(dados.erro || 'Erro ao comunicar com o servidor.');
+    const erro = new Error(dados.erro || 'Erro ao comunicar com o servidor.');
+    erro.status = resposta.status;
+    throw erro;
   }
 
   return dados;
@@ -137,6 +140,8 @@ export const api = {
       chamarComSenhaMestra('/auth/usuarios', senhaMestra, { method: 'POST', body: JSON.stringify(dados) }),
     remover: (senhaMestra, id) =>
       chamarComSenhaMestra(`/auth/usuarios/${id}`, senhaMestra, { method: 'DELETE' }),
+    redefinirSenha: (senhaMestra, id, senha) =>
+      chamarComSenhaMestra(`/auth/usuarios/${id}/senha`, senhaMestra, { method: 'PUT', body: JSON.stringify({ senha }) }),
   },
 
   // ---------- Mensagem fonada (telefone) ----------

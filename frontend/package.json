@@ -10,6 +10,7 @@
     "test:relatorios": "playwright test --config=playwright.relatorios.config.js",
     "test:agenda": "playwright test --config=playwright.agenda.config.js",
     "test:cobranca": "playwright test --config=playwright.cobranca.config.js",
+    "test:acesso": "playwright test --config=playwright.acesso.config.js",
     "test:e2e": "playwright test",
     "preview": "vite preview"
   },
