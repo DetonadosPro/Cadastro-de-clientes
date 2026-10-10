@@ -80,6 +80,21 @@ test('busca, situação, vendedor e ordenação combinam sem alterar os totais d
   await expect(resumo).toContainText('R$ 42,00');
 });
 
+test('mensagens para passar hoje de vendas antigas não aparecem nem entram nos totais', async ({ page }) => {
+  const estado = await preparar(page);
+  estado.lista = [...vendas,
+    { ...venda, id: 900, nome_comprador: 'VENDA ANTIGA PRIMEIRA', data_pedido: '06/10/26', p1_dia: '07/10/26', valor: 80 },
+    { ...venda, id: 901, nome_comprador: 'VENDA ANTIGA SEGUNDA', data_pedido: '01/10/26', p2_dia: '07/10/26', valor: 90 },
+    { ...venda, id: 902, nome_comprador: 'VENDA HOJE ENVIO FUTURO', data_pedido: '07/10/2026', p1_dia: '20/10/26', valor: 10 },
+  ];
+  await page.getByRole('button', { name: 'Atualizar vendas' }).click();
+  await expect(page.locator('.venda-fonada-item')).toHaveCount(4);
+  await expect(page.locator('#venda-fonada-900')).toHaveCount(0);
+  await expect(page.locator('#venda-fonada-901')).toHaveCount(0);
+  await expect(page.locator('#venda-fonada-902')).toContainText('Venda 07/10/2026');
+  await expect(page.locator('.vendas-fonada-indicador').nth(1)).toContainText('R$ 52,00');
+});
+
 test('lista compacta funciona em telas grandes e pequenas e mantém informações legíveis', async ({ page }, testInfo) => {
   const erros = []; page.on('pageerror', (err) => erros.push(err.message));
   await preparar(page);

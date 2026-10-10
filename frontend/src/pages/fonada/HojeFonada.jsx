@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../../api.js';
 import { BotaoMostrarMais, useListaIncremental } from '../../components/ListaIncremental.jsx';
 import { AvisoInline, EstadoCarregando, EstadoVazio } from '../../components/Interface.jsx';
-import { filtrarVendasFonada, formatarReais, resumirVendasFonada, vendaQuitada, vendaRecall } from '../../utils/vendasFonada.js';
+import { filtrarVendasFonada, formatarReais, resumirVendasFonada, vendaQuitada, vendaRecall, vendasFonadaDoDia } from '../../utils/vendasFonada.js';
 import NavegacaoFonada from './NavegacaoFonada.jsx';
 import './fonada.css';
 import './vendas-hoje.css';
@@ -36,7 +36,7 @@ export default function HojeFonada() {
       if (controle.signal.aborted) return;
       setDataRef(resposta.data);
       dataRefAtual.current = resposta.data;
-      setItens(resposta.fonadas || []);
+      setItens(vendasFonadaDoDia(resposta.fonadas || [], resposta.data));
       setAtualizadoEm(new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }).format(new Date()));
     } catch (err) {
       if (!controle.signal.aborted) setErro(err.message);
@@ -97,7 +97,7 @@ export default function HojeFonada() {
   return <div className="fonada-moderna vendas-fonada-pagina">
     <NavegacaoFonada>{carregando ? 'Consultando vendas…' : dataRef ? `${dataRef} · dia de Brasília` : 'Consulta indisponível'}</NavegacaoFonada>
     <header className="vendas-fonada-intro">
-      <div><span className="vendas-fonada-eyebrow">Conferência diária</span><h1>Vendas de hoje</h1><p>Pedidos vendidos hoje, com os valores e a situação de pagamento à vista.</p></div>
+      <div><span className="vendas-fonada-eyebrow">Conferência diária</span><h1>Vendas de hoje</h1><p>Somente pedidos vendidos hoje. A data marcada para passar a mensagem não altera esta lista.</p></div>
       <button type="button" className="btn secundario vendas-fonada-atualizar" onClick={() => carregar()} disabled={atualizando}>
         <span aria-hidden="true">↻</span> {atualizando ? 'Atualizando…' : 'Atualizar vendas'}
       </button>
@@ -159,7 +159,7 @@ function LinhaVenda({ pedido, selecionada, onAbrir }) {
   const quitada = vendaQuitada(pedido);
   const telefone = pedido.comprador_celular || pedido.comprador_whatsapp || pedido.comprador_fixo;
   return <Link id={`venda-fonada-${pedido.id}`} className={`venda-fonada-item ${selecionada ? 'selecionada' : ''}`} to={`/fonada/${pedido.id}`} state={{ returnTo: '/fonada/hoje' }} onClick={onAbrir} aria-label={`Abrir venda O.S. ${pedido.senha_os || pedido.id} de ${pedido.nome_comprador || 'cliente não informado'}`}>
-    <span className="venda-fonada-registro"><strong>{pedido.horario_pedido || '—'}</strong><span>O.S. {pedido.senha_os || pedido.id}</span></span>
+    <span className="venda-fonada-registro"><strong>{pedido.horario_pedido || '—'}</strong><span>O.S. {pedido.senha_os || pedido.id}</span><small>Venda {pedido.data_pedido}</small></span>
     <span className="venda-fonada-cliente"><strong>{pedido.nome_comprador || 'Cliente não informado'}</strong>{telefone && <span>{telefone}</span>}<small>Venda por {pedido.vendedor_nome || pedido.vendedor_usuario || 'não informado'}</small></span>
     <span className="venda-fonada-mensagem"><strong>{pedido.p1_para || 'Destinatário não informado'}</strong><span>{pedido.p1_tema || 'Tema não informado'}{pedido.p1_mensagem ? ` · Nº ${pedido.p1_mensagem}` : ''}</span>{pedido.p1_dia && <small>Envio {pedido.p1_dia}{pedido.p1_horario ? ` às ${pedido.p1_horario}` : ''}</small>}{pedido.p2_para && <small className="venda-fonada-segunda">2ª: {pedido.p2_para}{pedido.p2_dia ? ` · ${pedido.p2_dia}` : ''}</small>}</span>
     <span className="venda-fonada-pagamento"><span className={`venda-fonada-selo ${quitada ? 'quitada' : 'aberta'}`}>{quitada ? 'Quitada' : 'A receber'}</span><small>{quitada ? (pedido.data_pagamento ? `Pago em ${pedido.data_pagamento}` : 'Pagamento confirmado') : (pedido.cobranca ? `Cobrar ${pedido.cobranca}` : 'Cobrança sem data')}</small>{pedido.periodo && <small>{pedido.periodo}</small>}</span>

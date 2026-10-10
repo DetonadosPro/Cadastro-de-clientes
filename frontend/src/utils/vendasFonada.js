@@ -5,6 +5,20 @@ export const vendaQuitada = (pedido) => String(pedido.pagou || '').trim().toUppe
 export const vendaRecall = (pedido) => String(pedido.recall || '').trim().toUpperCase() === 'SIM';
 export const chaveVendedor = (pedido) => String(pedido.vendedor_usuario || '').trim() || '__sem_vendedor__';
 
+function diaVenda(valor) {
+  const partes = String(valor || '').trim().match(/^(\d{2})\/(\d{2})\/(\d{2}|\d{4})$/);
+  if (!partes) return '';
+  const [, dia, mes, ano] = partes;
+  return `${ano.length === 2 ? `20${ano}` : ano}-${mes}-${dia}`;
+}
+
+export function vendasFonadaDoDia(pedidos = [], data) {
+  const dia = diaVenda(data);
+  if (!dia) return [];
+  // A data de envio (primeira ou segunda mensagem) não define uma venda.
+  return pedidos.filter(pedido => !pedido.excluido_em && diaVenda(pedido.data_pedido) === dia);
+}
+
 function centavos(pedido) {
   const numero = Number(pedido.valor);
   return Number.isFinite(numero) && numero >= 0 ? Math.round(numero * 100) : 0;

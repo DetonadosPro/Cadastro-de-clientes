@@ -1,6 +1,22 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { filtrarVendasFonada, resumirVendasFonada } from '../src/utils/vendasFonada.js';
+import { filtrarVendasFonada, resumirVendasFonada, vendasFonadaDoDia } from '../src/utils/vendasFonada.js';
+
+test('conferência diária exclui mensagens de hoje vendidas antes e soma apenas vendas deste dia', () => {
+  const lista = [
+    { id: 1, data_pedido: '10/10/26', p1_dia: '15/10/26', valor: 12 },
+    { id: 2, data_pedido: '10/10/2026', p2_dia: '20/10/26', valor: 20 },
+    { id: 3, data_pedido: '09/10/26', p1_dia: '10/10/26', valor: 40 },
+    { id: 4, data_pedido: '08/10/26', p2_dia: '10/10/26', valor: 50 },
+    { id: 5, p1_dia: '10/10/26', valor: 30 },
+    { id: 6, data_pedido: '10/10/26', excluido_em: '2026-10-10', valor: 10 },
+  ];
+  const resultado = vendasFonadaDoDia(lista, '10/10/26');
+  assert.deepEqual(resultado.map(p => p.id), [1, 2]);
+  assert.equal(resumirVendasFonada(resultado).total, 32);
+  assert.deepEqual(vendasFonadaDoDia(lista, ''), []);
+  assert.equal(lista.length, 6);
+});
 
 const vendas = [
   { id: 1, cliente_id: 7, nome_comprador: 'MÁRCIA', senha_os: '0010', comprador_celular: '(34) 9 9999-1111', valor: '12.10', pagou: 'SIM', recall: 'SIM', horario_pedido: '09:00', vendedor_usuario: 'ana', vendedor_nome: 'Ana' },
