@@ -427,7 +427,6 @@ export default function ListaClientes() {
         </section>
         <div className="clientes-cabecalho-acoes">
           <button type="button" className="btn secundario" onClick={alternarDuplicatas} aria-expanded={duplicatasAbertas}>Revisar duplicatas</button>
-          <Link className="btn" to="/clientes/novo"><IconeMais /> Cadastrar cliente</Link>
         </div>
       </div>
 
