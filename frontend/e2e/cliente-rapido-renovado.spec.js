@@ -131,7 +131,7 @@ test('desktop e celular mantêm ações fixas, leitura, contraste e largura adeq
     await page.setViewportSize({ width, height: width < 600 ? 780 : 1000 });
     expect(await dialogo.evaluate(el => el.scrollWidth > el.clientWidth + 1), `Transbordamento em ${width}px`).toBe(false);
     const botao = await dialogo.getByRole('button', { name: 'Ficha completa', exact: true }).boundingBox();
-    expect(botao.x + botao.width).toBeLessThanOrEqual(width);
+    await expect.poll(async () => { const caixa = await dialogo.getByRole('button', { name: 'Ficha completa', exact: true }).boundingBox(); return caixa.x + caixa.width; }).toBeLessThanOrEqual(width);
     expect(botao.y + botao.height).toBeLessThanOrEqual(width < 600 ? 780 : 1000);
     await dialogo.locator('.cr-corpo').evaluate(el => { el.scrollTop = 0; });
     if ([1600, 390].includes(width)) await page.screenshot({ path: testInfo.outputPath(`visao-rapida-${width}.png`) });

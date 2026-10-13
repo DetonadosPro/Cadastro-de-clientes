@@ -123,6 +123,7 @@ export default function ClienteDrawer({ clienteId, onFechar, onNavegar }) {
               </div>
             </section>
             {bloqueado && <div className="cr-alerta" role="status"><strong>Novos pedidos indisponíveis</strong><span>{textoInformado(cliente.bloqueio_motivo) || 'Consulte a ficha para revisar o bloqueio.'}</span></div>}
+            <div className="cr-resumo-linha">
             <section className="cr-contato" aria-label="Contato do cliente">
               <div className="cr-contato-linha">
                 <div className="cr-contato-principal"><span>{principal?.[0] || 'Contato'}</span>{principal ? <a href={`tel:+${numeroWhatsAppBrasil(principal[1])}`} aria-label={`Ligar para ${principal[1]}`}>{principal[1]}</a> : <strong>Nenhum telefone válido</strong>}</div>
@@ -133,13 +134,14 @@ export default function ClienteDrawer({ clienteId, onFechar, onNavegar }) {
                   {!principal && <button type="button" className="cr-botao cr-completar-contato" onClick={abrirFicha}>Completar contato<Icone tipo="seta" /></button>}
                 </div>
               </div>
-              <span className="cr-copia-status" role="status">{avisoCopia}</span>
-              <details className="cr-contatos-detalhes"><summary>Todos os contatos</summary><dl>{contatos.map(([label, valor]) => <div key={label}><dt>{label}</dt><dd>{numeroWhatsAppBrasil(valor) ? <a href={`tel:+${numeroWhatsAppBrasil(valor)}`}>{valor}</a> : textoInformado(valor) || 'Não informado'}</dd></div>)}</dl></details>
             </section>
             <section className="cr-metricas" aria-label="Resumo de todo o histórico">
               <Metrica titulo="Saldo pendente" valor={reais(pendente)} alerta={pendente > 0} detalhe={Number(resumo.pedidos_pendentes) > 0 ? `${resumo.pedidos_pendentes} pedido(s) · Ver cobrança` : pendente > 0 ? 'Ver cobrança' : 'Tudo em dia'} onClick={pendente > 0 || Number(resumo.pedidos_pendentes) > 0 ? () => onNavegar(`/cobranca?nome=${encodeURIComponent(cliente.nome)}&avNome=${encodeURIComponent(cliente.nome)}`) : undefined} />
               <Metrica titulo="Última compra" valor={ultima?.data_pedido || '—'} detalhe={ultima ? `${ultima.tipo} · O.S. ${ultima.os || ultima.id}` : quantidade ? 'Data não informada' : 'Sem pedidos ainda'} onClick={ultima ? () => onNavegar(ultima.rota) : undefined} />
             </section>
+            </div>
+            <span className="cr-copia-status" role="status">{avisoCopia}</span>
+            <details className="cr-contatos-detalhes"><summary>Todos os contatos</summary><dl>{contatos.map(([label, valor]) => <div key={label}><dt>{label}</dt><dd>{numeroWhatsAppBrasil(valor) ? <a href={`tel:+${numeroWhatsAppBrasil(valor)}`}>{valor}</a> : textoInformado(valor) || 'Não informado'}</dd></div>)}</dl></details>
             <section className="cr-secao cr-haver" aria-labelledby="cr-haver-titulo">
               <div className="cr-secao-topo"><h3 id="cr-haver-titulo"><Icone tipo="mensagem" />Mensagens em haver<span className="cr-contagem">{haver.length}</span></h3></div>
               {haver.length ? <><p className="cr-secao-legenda">Use primeiro a que está mais perto de vencer.</p><div id="cr-haver-lista" className="cr-haver-lista">{(mostrarHaver ? haver : haver.slice(0, 3)).map((mensagem, index) => <button type="button" key={mensagem.id} className={index === 0 ? 'cr-haver-primeira' : ''} aria-label={`Abrir 2ª mensagem da O.S. ${mensagem.os || mensagem.id}`} onClick={() => onNavegar(mensagem.rota)}>
