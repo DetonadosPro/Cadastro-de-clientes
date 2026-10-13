@@ -14,7 +14,7 @@ const { hojeIsoBrasilia, registroPedidoBrasilia } = require('../utils/dataHora')
 const { situacaoSegundaMensagem, validarDataUsoSegundaMensagem, houveAlteracaoP2, temDireitoSegundaMensagem, CAMPOS_SEGUNDA_MENSAGEM } = require('../utils/mensagemEmHaver');
 
 const router = express.Router();
-const { consumirCreditos, uuidValido, falha } = require('../utils/creditosFonada');
+const { consumirCreditos, devolverCreditos, uuidValido, falha } = require('../utils/creditosFonada');
 const { dataCurtaValida } = require('../utils/validarDataCurta');
 router.param('id', (req, res, next, id) => {
   if (!/^[1-9]\d*$/.test(id)) return res.status(400).json({ erro: 'ID de pedido inválido.' });
@@ -178,7 +178,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const dados = { ...req.body, ...registroPedidoBrasilia() };
-    if (dados.creditos_usados !== undefined && ![0, 1, 2].includes(dados.creditos_usados)) return res.status(400).json({ erro: 'Selecione uma ou duas mensagens para usar créditos.' });
+    if (dados.creditos_usados !== undefined && ![0, 1].includes(dados.creditos_usados)) return res.status(400).json({ erro: 'Cada novo pedido utiliza um crédito, incluindo a segunda mensagem.' });
     dados.creditos_usados = dados.creditos_usados || 0;
     if (dados.creditos_usados) {
       if (!dados.cliente_id || !uuidValido(dados.credito_operacao)) return res.status(400).json({ erro: 'Cliente e identificação do uso de créditos são obrigatórios.' });
@@ -363,14 +363,23 @@ router.put('/:id', async (req, res) => {
 });
 
 router.delete('/:id', async (req, res) => {
-  const client = await pool.connect();
+  let client;
   try {
-    const existente = await client.query('SELECT id FROM fonadas WHERE id = $1', [req.params.id]);
+    client = await pool.connect();
+    await client.query('BEGIN');
+    const existente = await client.query('SELECT * FROM fonadas WHERE id = $1', [req.params.id]);
     if (existente.rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ erro: 'Registro não encontrado.' });
     }
-
-    await client.query('BEGIN');
+    const inicial = existente.rows[0];
+    if (inicial.cliente_id) await client.query('SELECT id FROM clientes WHERE id = $1 FOR UPDATE', [inicial.cliente_id]);
+    const pedido = (await client.query('SELECT * FROM fonadas WHERE id = $1 FOR UPDATE', [req.params.id])).rows[0];
+    if (!pedido || pedido.cliente_id !== inicial.cliente_id) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ erro: 'Pedido removido ou transferido. Recarregue antes de excluir.' });
+    }
+    await devolverCreditos(client, pedido, req.usuario?.usuario || 'SISTEMA');
     // O histórico de tentativas ("não atendeu") referencia o pedido
     // por chave estrangeira — sem apagar essas linhas primeiro, o
     // Postgres recusa apagar a fonada com um erro de violação de
@@ -382,11 +391,11 @@ router.delete('/:id', async (req, res) => {
 
     res.json({ ok: true });
   } catch (erro) {
-    await client.query('ROLLBACK');
+    if (client) await client.query('ROLLBACK');
     console.error('Erro ao apagar fonada:', erro);
     res.status(500).json({ erro: 'Erro ao apagar registro.' });
   } finally {
-    client.release();
+    client?.release();
   }
 });
 

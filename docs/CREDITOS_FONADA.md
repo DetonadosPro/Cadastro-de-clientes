@@ -1,10 +1,10 @@
 # Créditos de Fonada
 
-Na ficha do cliente, **Adicionar créditos** registra a quantidade de mensagens compradas, o valor total pago e a forma de pagamento. O saldo e o histórico ficam na carteira, e a visão rápida mostra um atalho quando há saldo disponível.
+Na ficha do cliente, **Adicionar créditos** registra a quantidade de créditos comprados, o valor total pago e a forma de pagamento. O saldo e o histórico ficam na carteira, e a visão rápida mostra um atalho quando há saldo disponível.
 
-- Cada crédito vale uma mensagem, exclusivamente de Fonada, sem vencimento.
-- Na nova Fonada, **Usar créditos** permite custear uma ou duas mensagens. Duas mensagens consomem dois créditos; não há segunda mensagem gratuita nessa modalidade.
-- O desconto é definitivo ao salvar. Editar, transmitir, desfazer a transmissão, reagendar ou excluir o pedido não altera o saldo novamente.
+- Cada crédito vale um pedido com duas mensagens, exclusivamente de Fonada, sem vencimento.
+- Na nova Fonada, **Usar créditos** custeia o pedido inteiro com um crédito, incluindo sua segunda mensagem em haver sem vencimento.
+- O desconto ocorre ao criar o pedido. Editar, transmitir, desfazer a transmissão e reagendar não descontam novamente. Excluir um pedido pago com crédito devolve o crédito uma única vez, com uma movimentação de estorno; pedidos comuns não devolvem créditos.
 - A quantidade de créditos de um pedido salvo não muda. Para usar mais créditos, cria-se outro pedido.
 - O pacote entra uma vez em vendas, recebimentos, desempenho da equipe e resumo diário, na data do registro em Brasília. As mensagens custeadas pelo pacote não entram como novas vendas.
 - Compras e usos conservam data, horário, operador e referência do pedido. O histórico de uso sobrevive à exclusão do pedido.

@@ -26,10 +26,11 @@ async function preparar(page, { saldo = 0, perderResposta = false } = {}) {
     if (url.pathname === '/api/fonadas' && req.method() === 'POST') {
       const dados = req.postDataJSON();
       estado.carteira.saldo -= dados.creditos_usados; estado.carteira.usados += dados.creditos_usados;
-      const pedido = { ...dados, id: 11, versao: 1, data_pedido: '13/10/26', horario_pedido: '09:35', mensagemEmHaver: { concedida: dados.creditos_usados === 2, disponivel: dados.creditos_usados === 2, status: dados.creditos_usados === 2 ? 'DISPONIVEL' : 'NAO_CONCEDIDA', semValidade: true, dataExpiracao: null } };
+      const pedido = { ...dados, id: 11, versao: 1, data_pedido: '13/10/26', horario_pedido: '09:35', mensagemEmHaver: { concedida: dados.creditos_usados > 0, disponivel: dados.creditos_usados > 0, status: dados.creditos_usados > 0 ? 'DISPONIVEL' : 'NAO_CONCEDIDA', semValidade: true, dataExpiracao: null } };
       estado.pedidos.push(pedido); return route.fulfill({ status: 201, json: pedido });
     }
     if (url.pathname === '/api/fonadas/11') {
+      if (req.method() === 'DELETE') { estado.carteira.saldo += estado.pedidos[0].creditos_usados; estado.pedidos = []; return route.fulfill({ json: { ok: true } }); }
       if (req.method() === 'PUT') { estado.edicoes.push(req.postDataJSON()); estado.pedidos[0] = { ...estado.pedidos[0], ...req.postDataJSON(), versao: 2 }; }
       return route.fulfill({ json: estado.pedidos[0] });
     }
@@ -39,43 +40,47 @@ async function preparar(page, { saldo = 0, perderResposta = false } = {}) {
   return estado;
 }
 
-test('pacote pago vira saldo, duas mensagens usam dois créditos e edição não desconta novamente', async ({ page }) => {
+test('pacote pago vira saldo, duas mensagens usam um crédito e edição não desconta novamente', async ({ page }) => {
   const estado = await preparar(page);
   await page.goto('/clientes/1');
   await page.getByRole('button', { name: 'Adicionar créditos', exact: true }).click();
   const dialogo = page.getByRole('dialog');
-  await expect(dialogo.getByLabel('Quantidade de mensagens')).toHaveValue('6');
+  await expect(dialogo.getByLabel('Quantidade de créditos')).toHaveValue('6');
   await dialogo.getByLabel('Valor total pago').fill('7200');
-  await expect(dialogo.locator('.credito-previa')).toContainText('R$ 12,00 por mensagem');
+  await expect(dialogo.locator('.credito-previa')).toContainText('R$ 12,00 por pedido');
   const acessibilidade = await new AxeBuilder({ page }).include('.dialogo-creditos').analyze();
   expect(acessibilidade.violations).toEqual([]);
   await page.screenshot({ path: 'test-results/creditos-comprar-desktop.png' });
   await dialogo.getByRole('button', { name: 'Confirmar pacote pago' }).click();
   await expect(dialogo).not.toBeVisible();
-  await expect(page.locator('.carteira-topo')).toContainText('6 mensagens disponíveis');
+  await expect(page.locator('.carteira-topo')).toContainText('6 pedidos disponíveis');
   await expect(page.locator('.fc-metrica').first()).toContainText('R$ 72,00');
   await page.getByRole('button', { name: 'Usar crédito →' }).click();
   const usar = page.getByRole('checkbox', { name: 'Usar créditos de Fonada' });
   await expect(usar).toBeChecked();
-  await expect(page.getByLabel('Tema da 2ª mensagem')).toBeDisabled();
+  await expect(page.getByLabel('Tema da 2ª mensagem')).toBeEnabled();
   await expect(page.getByLabel('Dia da cobrança Fonada')).toHaveCount(0);
-  await page.getByLabel('Mensagens com créditos').selectOption('2');
   await expect(page.getByLabel('Tema da 2ª mensagem')).toBeEnabled();
   await expect(page.getByText('Crédito sem vencimento', { exact: true })).toBeVisible();
   await page.getByLabel('Para da 1ª mensagem').fill('ANA');
   await page.getByLabel('Para da 2ª mensagem').fill('JOÃO');
   await page.getByRole('button', { name: 'Salvar', exact: true }).click();
   await expect(page).toHaveURL(/\/fonada\/11$/);
-  await expect(page.locator('.fonada-creditos')).toContainText('PAGO COM 2 CRÉDITO(S)');
-  expect(estado.pedidos).toHaveLength(1); expect(estado.carteira.saldo).toBe(4);
-  expect(estado.pedidos[0]).toMatchObject({ valor: 0, pagou: 'SIM', periodo: 'CRÉDITOS', creditos_usados: 2 });
+  await expect(page.locator('.fonada-creditos')).toContainText('PAGO COM 1 CRÉDITO(S)');
+  expect(estado.pedidos).toHaveLength(1); expect(estado.carteira.saldo).toBe(5);
+  expect(estado.pedidos[0]).toMatchObject({ valor: 0, pagou: 'SIM', periodo: 'CRÉDITOS', creditos_usados: 1 });
   await page.getByLabel('Para da 1ª mensagem').fill('ANA MARIA');
   await page.getByRole('button', { name: 'Salvar', exact: true }).click();
   await expect.poll(() => estado.edicoes.length).toBe(1);
-  expect(estado.carteira.saldo).toBe(4);
+  expect(estado.carteira.saldo).toBe(5);
   await page.getByRole('button', { name: 'Voltar', exact: true }).click();
   await expect(page).toHaveURL(/\/clientes\/1$/);
-  await expect(page.locator('.carteira-topo')).toContainText('4 mensagens disponíveis');
+  await expect(page.locator('.carteira-topo')).toContainText('5 pedidos disponíveis');
+  await page.getByRole('button', { name: 'Abrir pedido 100', exact: true }).click();
+  page.once('dialog', d => d.accept());
+  await page.getByRole('button', { name: 'Excluir', exact: true }).click();
+  await expect(page).toHaveURL(/\/clientes\/1$/);
+  await expect(page.locator('.carteira-topo')).toContainText('6 pedidos disponíveis');
 });
 
 test('resposta perdida permite conferir a mesma compra sem duplicar e mantém dados bloqueados', async ({ page }) => {
@@ -86,7 +91,7 @@ test('resposta perdida permite conferir a mesma compra sem duplicar e mantém da
   await dialogo.getByLabel('Valor total pago').fill('7200');
   await dialogo.getByRole('button', { name: 'Confirmar pacote pago' }).click();
   await expect(dialogo.getByRole('alert')).toContainText('Não foi possível conectar');
-  await expect(dialogo.getByLabel('Quantidade de mensagens')).toBeDisabled();
+  await expect(dialogo.getByLabel('Quantidade de créditos')).toBeDisabled();
   await dialogo.getByRole('button', { name: 'Conferir e concluir compra' }).click();
   await expect(dialogo).not.toBeVisible();
   expect(estado.compras).toHaveLength(2);
@@ -95,7 +100,7 @@ test('resposta perdida permite conferir a mesma compra sem duplicar e mantém da
 });
 
 test('saldo insuficiente impede consumo e carteira permanece compacta no celular e acessível', async ({ page }) => {
-  const estado = await preparar(page, { saldo: 1 });
+  const estado = await preparar(page, { saldo: 0 });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/clientes/1');
   await page.locator('.carteira-fonada').scrollIntoViewIfNeeded();
@@ -103,8 +108,7 @@ test('saldo insuficiente impede consumo e carteira permanece compacta no celular
   const acessibilidade = await new AxeBuilder({ page }).include('.carteira-fonada').analyze();
   expect(acessibilidade.violations).toEqual([]);
   await page.screenshot({ path: 'test-results/creditos-carteira-mobile.png' });
-  await page.getByRole('button', { name: 'Usar crédito →' }).click();
-  await page.getByLabel('Mensagens com créditos').selectOption('2');
+  await page.goto('/fonada/novo?clienteId=1&usarCredito=1');
   await page.getByRole('button', { name: 'Salvar', exact: true }).click();
   await expect(page.getByText('Saldo de créditos insuficiente.', { exact: false })).toBeVisible();
   expect(estado.pedidos).toHaveLength(0);

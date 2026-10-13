@@ -109,7 +109,7 @@ export default function FormFonada() {
   const { id } = useParams();
   const { configuracoes, erro: erroConfiguracoes, carregando: carregandoConfiguracoes, recarregar: recarregarConfiguracoes } = useConfiguracoes();
   function segundaMensagemLiberada(dados) {
-    if (dados.creditos_usados > 0) return dados.creditos_usados === 2;
+    if (dados.creditos_usados > 0) return true;
     return !!configuracoes && String(dados.valor || '').trim() !== '' && Math.round(valorMonetarioParaNumero(dados.valor) * 100) <= Math.round(configuracoes.limite_segunda_mensagem * 100);
   }
   const [searchParams] = useSearchParams();
@@ -617,7 +617,7 @@ export default function FormFonada() {
   }
 
   async function apagar() {
-    if (!confirm(dados.creditos_usados ? 'Excluir este pedido? Os créditos foram descontados definitivamente ao salvar e não serão devolvidos.' : 'Tem certeza que deseja excluir este pacote? Essa ação não pode ser desfeita.')) return;
+    if (!confirm(dados.creditos_usados ? 'Excluir este pedido? O crédito usado neste pedido será devolvido ao saldo.' : 'Tem certeza que deseja excluir este pacote? Essa ação não pode ser desfeita.')) return;
     try {
       await api.fonada.apagar(id);
       if (cliente) navigate(`/clientes/${cliente.id}`);
@@ -685,10 +685,9 @@ export default function FormFonada() {
       {(!editando || dados.creditos_usados > 0) && <div className="fonada-creditos">
         {editando ? <strong>PAGO COM {dados.creditos_usados} CRÉDITO(S) · SEM VENCIMENTO</strong> : <>
           <label><input type="checkbox" checked={dados.creditos_usados > 0} disabled={!carteira || estaBloqueado} onChange={e => selecionarCreditos(e.target.checked ? 1 : 0)} />Usar créditos de Fonada</label>
-          {dados.creditos_usados > 0 && <select aria-label="Mensagens com créditos" value={dados.creditos_usados} onChange={e => selecionarCreditos(Number(e.target.value))}><option value={1}>1 mensagem · 1 crédito</option><option value={2}>2 mensagens · 2 créditos</option></select>}
           <strong>{carteira ? `${Number(carteira.saldo || 0)} disponíveis` : 'Consultando saldo…'}</strong><button type="button" className="btn-small" onClick={() => carregarCreditos(dados.cliente_id)}>Atualizar saldo</button>
         </>}
-        <small>{editando ? 'Alterar ou reagendar não desconta novamente.' : dados.creditos_usados ? `Desconto definitivo ao salvar. Saldo restante: ${Math.max(0, Number(carteira?.saldo || 0) - dados.creditos_usados)}. Sem nova cobrança.` : 'Cada crédito vale uma mensagem, sem vencimento.'}</small>
+        <small>{editando ? 'Alterar ou reagendar não desconta novamente.' : dados.creditos_usados ? `1 crédito ao salvar o pedido, com a segunda mensagem incluída. Saldo restante: ${Math.max(0, Number(carteira?.saldo || 0) - dados.creditos_usados)}. Sem nova cobrança.` : 'Cada crédito vale um pedido com duas mensagens, sem vencimento.'}</small>
         {erroCreditos && <><span role="alert">{erroCreditos}</span><button type="button" className="btn-small" onClick={() => carregarCreditos(dados.cliente_id)}>Consultar novamente</button></>}
       </div>}
       <div className={`form-layout ${estaBloqueado ? 'form-bloqueado' : ''}`}>
@@ -706,7 +705,7 @@ export default function FormFonada() {
               <ColunaMensagem
                 numero={2} dados={dados} set={set} setComMascara={setComMascara} onCopiar={copiarEntreMensagens}
                 bloqueada={!segundaLiberada || segundaExpirada} editando={editando}
-                situacaoMensagem={dados.creditos_usados === 2 ? { status: dados.p2_resultado ? 'UTILIZADA' : 'DISPONIVEL', semValidade: true } : !segundaLiberada ? { status: 'NAO_CONCEDIDA' } : mensagemEmHaver?.status === 'NAO_CONCEDIDA' ? null : mensagemEmHaver}
+                situacaoMensagem={dados.creditos_usados > 0 ? { status: dados.p2_resultado ? 'UTILIZADA' : 'DISPONIVEL', semValidade: true } : !segundaLiberada ? { status: 'NAO_CONCEDIDA' } : mensagemEmHaver?.status === 'NAO_CONCEDIDA' ? null : mensagemEmHaver}
                 salvandoBaixa={salvandoBaixa} onDarBaixa={darBaixaMensagem} onNaoAtendeu={abrirRemarcarMensagem}
               />
             </div>
@@ -722,7 +721,7 @@ export default function FormFonada() {
                   type="text"
                   inputMode="numeric"
                   className="input-valor-destaque"
-                  value={dados.creditos_usados ? `${dados.creditos_usados} MSG` : dados.valor}
+                  value={dados.creditos_usados ? `${dados.creditos_usados} CRÉD.` : dados.valor}
                   readOnly={dados.creditos_usados > 0}
                   onChange={(e) => { set('valor', formatarValorMonetario(e.target.value)); setCampoObrigatorioFaltando(null); }}
                   placeholder="0,00"

@@ -142,7 +142,7 @@ export default function ClienteDrawer({ clienteId, onFechar, onNavegar }) {
               <Metrica titulo="Última compra" valor={ultima?.data_pedido || '—'} detalhe={ultima ? `${ultima.tipo} · O.S. ${ultima.os || ultima.id}` : quantidade ? 'Data não informada' : 'Sem pedidos ainda'} onClick={ultima ? () => onNavegar(ultima.rota) : undefined} />
             </section>
             </div>
-            {Number(dados?.creditos?.saldo) > 0 && <button type="button" className="cr-carteira" onClick={() => onNavegar(`/fonada/novo?clienteId=${cliente.id}&usarCredito=1`)} disabled={bloqueado}><span><strong>{dados.creditos.saldo} crédito(s) de Fonada</strong><small>Sem vencimento · usar uma mensagem</small></span><Icone tipo="seta" /></button>}
+            {Number(dados?.creditos?.saldo) > 0 && <button type="button" className="cr-carteira" onClick={() => onNavegar(`/fonada/novo?clienteId=${cliente.id}&usarCredito=1`)} disabled={bloqueado}><span><strong>{dados.creditos.saldo} crédito(s) de Fonada</strong><small>Pedido com segunda mensagem · sem vencimento</small></span><Icone tipo="seta" /></button>}
             <span className="cr-copia-status" role="status">{avisoCopia}</span>
             <details className="cr-contatos-detalhes"><summary>Todos os contatos</summary><dl>{contatos.map(([label, valor]) => <div key={label}><dt>{label}</dt><dd>{numeroWhatsAppBrasil(valor) ? <a href={`tel:+${numeroWhatsAppBrasil(valor)}`}>{valor}</a> : textoInformado(valor) || 'Não informado'}</dd></div>)}</dl></details>
             <section className="cr-secao cr-haver" aria-labelledby="cr-haver-titulo">

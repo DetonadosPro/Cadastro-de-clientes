@@ -13,6 +13,12 @@ async function criarEstruturaCreditos(banco) {
     operacao UUID NOT NULL UNIQUE, criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`);
   await banco.query('CREATE INDEX IF NOT EXISTS idx_creditos_fonada_cliente ON creditos_fonada(cliente_id, id DESC)');
+  await banco.query(`ALTER TABLE creditos_fonada
+    DROP CONSTRAINT IF EXISTS creditos_fonada_tipo_check,
+    DROP CONSTRAINT IF EXISTS creditos_fonada_check,
+    ADD CONSTRAINT creditos_fonada_tipo_check CHECK (tipo IN ('COMPRA', 'USO', 'ESTORNO')),
+    ADD CONSTRAINT creditos_fonada_check CHECK ((tipo IN ('COMPRA', 'ESTORNO') AND quantidade > 0) OR (tipo = 'USO' AND quantidade < 0))`);
+  await banco.query('ALTER TABLE creditos_fonada ADD COLUMN IF NOT EXISTS uso_estornado_id INTEGER UNIQUE REFERENCES creditos_fonada(id)');
   // A venda é o pacote pago. A mensagem custeada por crédito não vende novamente.
   await banco.query(`CREATE OR REPLACE VIEW financeiro_fonada AS
     SELECT f.id, f.cliente_id, f.nome_comprador, f.senha_os, f.valor::numeric AS valor,
@@ -32,7 +38,7 @@ function uuidValido(valor) { return typeof valor === 'string' && /^[0-9a-f]{8}-[
 async function carteira(banco, clienteId, historico = true) {
   const resumo = (await banco.query(`SELECT COALESCE(SUM(quantidade), 0)::integer AS saldo,
     COALESCE(SUM(quantidade) FILTER (WHERE tipo = 'COMPRA'), 0)::integer AS comprados,
-    COALESCE(-SUM(quantidade) FILTER (WHERE tipo = 'USO'), 0)::integer AS usados,
+    COALESCE(-SUM(quantidade) FILTER (WHERE tipo IN ('USO', 'ESTORNO')), 0)::integer AS usados,
     COALESCE(SUM(valor) FILTER (WHERE tipo = 'COMPRA'), 0)::float AS valor_comprado,
     COUNT(*) FILTER (WHERE tipo = 'COMPRA')::integer AS compras,
     (SELECT row_to_json(compra) FROM (SELECT id, quantidade, data_pedido, horario_pedido
@@ -45,7 +51,7 @@ async function carteira(banco, clienteId, historico = true) {
 }
 
 async function comprarCreditos(banco, clienteId, dados, usuario) {
-  if (!Number.isInteger(dados.quantidade) || dados.quantidade < 1 || dados.quantidade > 10000) throw falha('Informe de 1 a 10.000 mensagens.', 400);
+  if (!Number.isInteger(dados.quantidade) || dados.quantidade < 1 || dados.quantidade > 10000) throw falha('Informe de 1 a 10.000 créditos.', 400);
   if (typeof dados.valor !== 'number' || !Number.isFinite(dados.valor) || dados.valor <= 0 || dados.valor > 9999999.99 || Math.abs(dados.valor * 100 - Math.round(dados.valor * 100)) > 0.000001) throw falha('Informe o valor total pago pelo pacote, com até duas casas decimais.', 400);
   if (!['PIX', 'DINHEIRO', 'DEPÓSITO', 'DÉBITO', 'CRÉDITO'].includes(dados.forma)) throw falha('Selecione a forma de pagamento.', 400);
   if (!uuidValido(dados.operacao)) throw falha('Identificação da compra inválida. Reabra o formulário.', 400);
@@ -73,4 +79,15 @@ async function consumirCreditos(banco, pedido, usuario) {
     [pedido.cliente_id, pedido.nome_comprador, -pedido.creditos_usados, pedido.data_pedido, pedido.horario_pedido, usuario, pedido.id, pedido.senha_os, pedido.credito_operacao]);
 }
 
-module.exports = { criarEstruturaCreditos, carteira, comprarCreditos, consumirCreditos, uuidValido, falha };
+async function devolverCreditos(banco, pedido, usuario) {
+  if (!pedido.creditos_usados || !pedido.cliente_id) return;
+  const registro = registroPedidoBrasilia();
+  await banco.query(`INSERT INTO creditos_fonada (cliente_id, nome_cliente, tipo, quantidade, data_pedido,
+      horario_pedido, usuario, pedido_id, senha_os, operacao, uso_estornado_id)
+    SELECT m.cliente_id, m.nome_cliente, 'ESTORNO', -m.quantidade, $2, $3, $4, m.pedido_id, m.senha_os, $5, m.id
+    FROM creditos_fonada m WHERE m.pedido_id = $1 AND m.tipo = 'USO'
+    ON CONFLICT (uso_estornado_id) DO NOTHING`,
+    [pedido.id, registro.data_pedido, registro.horario_pedido, usuario, require('node:crypto').randomUUID()]);
+}
+
+module.exports = { criarEstruturaCreditos, carteira, comprarCreditos, consumirCreditos, devolverCreditos, uuidValido, falha };

@@ -71,7 +71,7 @@ async function executar() {
       esperados.configuracoes_sistema = JSON.parse(JSON.stringify((await pool.query('SELECT * FROM configuracoes_sistema ORDER BY id')).rows));
     }
     if (!esperados.creditos_fonada && esperados.fonadas.some(p => p.creditos_usados > 0)) throw new Error('O backup contém uso de créditos, mas falta o histórico da carteira.');
-    esperados.creditos_fonada ||= [];
+    esperados.creditos_fonada = (esperados.creditos_fonada || []).map(m => ({ ...m, uso_estornado_id: m.uso_estornado_id ?? null }));
     esperados.fonadas = esperados.fonadas.map(p => ({ ...p, creditos_usados: p.creditos_usados ?? 0, credito_operacao: p.credito_operacao ?? null }));
     esperados.configuracoes_sistema = esperados.configuracoes_sistema.map((linha) => ({ ...linha, meses_mensagem_em_haver: linha.meses_mensagem_em_haver ?? 3 }));
     esperados.recall_registros = esperados.recall_registros.map((linha) => ({ ...linha, pedido_novo_ao_vivo_id: linha.pedido_novo_ao_vivo_id ?? null }));
