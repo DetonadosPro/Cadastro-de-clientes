@@ -21,12 +21,11 @@
 .fc-hero-acoes { display:flex; align-items:center; gap:8px; flex-shrink:0; flex-wrap:wrap; }
 .ficha-renovada .fc-hero-acoes .btn { min-height:40px; padding:10px 14px; font-size:12px; white-space:nowrap; }
 .fc-botao-voltar { display:inline-flex; align-items:center; justify-content:center; gap:6px; border:0; color:var(--fc-muted); background:transparent; font-size:12px !important; padding:10px; min-height:40px; }
-.fc-metricas { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:20px; }
-.fc-metrica { display:flex; flex-direction:column; justify-content:center; gap:10px; min-width:0; padding:21px; background:#fff; border:1px solid var(--fc-border); border-radius:15px; text-align:left; color:var(--fc-text); }
-.fc-metrica-topo { display:flex; align-items:center; justify-content:space-between; gap:8px; color:var(--fc-muted); font-size:12px; font-weight:650; }
-.fc-metrica-topo svg { color:#6e87a7; flex-shrink:0; }
-.fc-metrica > strong { font-size:26px; font-weight:750; letter-spacing:-.7px; line-height:1.25; overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
-.fc-metrica > small { color:var(--fc-muted); font-size:11px; line-height:1.5; }
+.fc-metricas { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin-bottom:14px; }
+.fc-metrica { position:relative; display:flex; flex-direction:column; justify-content:center; gap:3px; min-width:0; padding:10px 12px; background:#fff; border:1px solid var(--fc-border); border-radius:10px; text-align:left; color:var(--fc-text); }
+.fc-metrica-topo { display:flex; align-items:center; justify-content:space-between; gap:8px; color:var(--fc-muted); font-size:11px; font-weight:650; }
+.fc-metrica-topo svg { color:#6e87a7; flex-shrink:0; width:15px; height:15px; }
+.fc-metrica > strong { font-size:20px; font-weight:750; letter-spacing:-.5px; line-height:1.2; overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
 .fc-metrica.principal { background:linear-gradient(115deg,#204f8e,#2b61ac); border-color:#285d9f; color:white; }
 .fc-metrica.principal .fc-metrica-topo, .fc-metrica.principal small, .fc-metrica.principal svg { color:#e1edff; }
 .fc-metrica.atencao { background:#fffaf3; border-color:#ecd8b5; }
@@ -43,25 +42,19 @@ button.fc-metrica:hover { border-color:#91aacf; box-shadow:0 3px 12px #1e3c6b0c;
 .fc-badge.azul { color:#2d5da1; background:#edf3fc; }
 .fc-badge.aviso { color:#86500c; background:#fff3df; }
 .fc-badge.perigo { color:#a13449; background:#ffedf1; }
-.fc-atendimento-grade { display:grid; grid-template-columns:1fr 1fr; gap:20px; padding:0 20px 20px; }
-.fc-atendimento h3 { font-size:12px; font-weight:700; color:var(--fc-text); margin-bottom:7px; }
-.fc-haver > p { font-size:11px; color:var(--fc-muted); line-height:1.6; }
-.fc-haver-itens { display:grid; gap:7px; margin-top:11px; }
-.fc-haver-itens button { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:11px 12px; border:1px solid #d8e5f7; border-radius:9px; background:#f7faff; color:#2d5793; text-align:left; }
+.fc-haver { padding:12px 14px; }
+.fc-haver-topo { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:4px 12px; }
+.fc-haver-topo h2 { display:flex; align-items:center; gap:8px; color:var(--fc-text); font-size:12px; font-weight:700; }
+.fc-haver-topo > span { color:var(--fc-muted); font-size:10px; }
+.fc-haver-itens { display:flex; flex-wrap:wrap; gap:7px; margin-top:8px; }
+.fc-haver-itens button { display:flex; align-items:center; gap:8px; padding:7px 9px; min-height:34px; min-width:0; max-width:100%; border:1px solid #dce5ef; border-radius:7px; background:#fafbfd; color:#2d5793; text-align:left; }
 .fc-haver-itens button:hover { background:#edf4ff; border-color:#aec8ec; }
-.fc-haver-itens button strong { display:block; font-size:12px; }
-.fc-haver-itens button small { display:block; color:var(--fc-muted); margin-top:5px; font-size:11px; }
-.fc-agendamentos { padding-left:20px; border-left:1px solid #e6edf4; }
-.fc-agendamentos ul { list-style:none; padding:0; margin:0; }
-.fc-agendamentos li + li { border-top:1px solid #edf1f6; }
-.fc-agendamentos button { display:flex; justify-content:space-between; gap:8px; width:100%; padding:9px 0; border:0; background:transparent; text-align:left; color:var(--fc-text); }
-.fc-agendamentos button:hover strong { color:var(--fc-blue); text-decoration:underline; }
-.fc-agendamentos button > span:first-child { min-width:0; }
-.fc-agendamentos strong { display:block; font-size:12px; font-weight:650; overflow-wrap:anywhere; }
-.fc-agendamentos small { display:block; margin-top:5px; font-size:10px; color:var(--fc-muted); line-height:1.5; }
-.fc-agendamento-data { font-size:11px; text-align:right; flex-shrink:0; font-variant-numeric:tabular-nums; }
-.fc-agendamento-data.atrasada small { color:#9a570e; }
-.fc-vazio-curto { color:var(--fc-muted); font-size:12px; line-height:1.7; padding:13px 0 5px; }
+.fc-haver-itens button.fc-haver-primeira { background:#edf4ff; border-color:#a7c1e8; }
+.fc-haver-itens button strong { font-size:11px; overflow-wrap:anywhere; }
+.fc-haver-itens button small { color:var(--fc-muted); font-size:10px; overflow-wrap:anywhere; }
+.fc-haver-itens button svg { width:14px; height:14px; flex-shrink:0; margin-left:2px; }
+.fc-haver-mais summary { color:var(--fc-blue); font-size:11px; cursor:pointer; padding:7px 0 0; }
+.fc-haver-vazio { color:var(--fc-muted); font-size:11px; line-height:1.5; padding-top:5px; }
 .fc-historico-total { color:var(--fc-muted); font-size:11px; white-space:nowrap; }
 .fc-abas { display:flex; gap:7px; padding:0 20px 15px; }
 .fc-abas button { display:flex; align-items:center; gap:10px; padding:9px 13px; border:1px solid transparent; border-radius:8px; color:var(--fc-muted); background:#f6f8fb; font-size:12px; min-height:39px; }
@@ -164,8 +157,6 @@ button.fc-metrica:hover { border-color:#91aacf; box-shadow:0 3px 12px #1e3c6b0c;
   .fc-tabela th:nth-child(2) { width:37%; }
   .fc-tabela th:nth-child(3) { width:26%; }
   .fc-tabela th:last-child { width:15%; }
-  .fc-metrica { padding:17px; }
-  .fc-metrica > strong { font-size:23px; }
 }
 @media (max-width:1150px) {
   .fc-workspace { grid-template-columns:1fr; }
@@ -184,12 +175,8 @@ button.fc-metrica:hover { border-color:#91aacf; box-shadow:0 3px 12px #1e3c6b0c;
   .fc-hero-acoes { width:100%; max-width:none; justify-content:flex-start; }
   .fc-meta { font-size:10px; }
   .fc-metricas { grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
-  .fc-metrica { padding:14px; gap:8px; }
-  .fc-metrica-topo { font-size:11px; }
-  .fc-metrica > strong { font-size:21px; }
-  .fc-metrica > small { font-size:10px; }
-  .fc-atendimento-grade { grid-template-columns:1fr; gap:17px; }
-  .fc-agendamentos { border-left:0; border-top:1px solid #e6edf4; padding:17px 0 0; }
+  .fc-metrica { padding:9px 10px; }
+  .fc-haver-itens button { min-height:40px; }
   .fc-filtros { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .fc-filtros .fc-busca { grid-column:1/-1; }
   .fc-filtros > label:last-child { grid-column:1/-1; }
@@ -211,7 +198,6 @@ button.fc-metrica:hover { border-color:#91aacf; box-shadow:0 3px 12px #1e3c6b0c;
   .fc-dialogo-edicao .grade-2, .fc-dialogo-edicao .grade-3 { grid-template-columns:1fr; }
 }
 @media (max-width:380px) {
-  .fc-metrica { padding:11px; }
   .fc-metrica-topo svg { display:none; }
   .fc-metrica > strong { font-size:19px; }
   .fc-mensagem { grid-template-columns:21px minmax(0,1fr); }

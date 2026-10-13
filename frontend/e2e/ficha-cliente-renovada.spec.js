@@ -50,7 +50,7 @@ test('visão geral mostra saldo completo, haver por vencimento e contatos úteis
   await expect(page.locator('.fc-cobranca')).toContainText('12/10/26');
   await expect(page.locator('.fc-haver-itens button')).toHaveCount(2);
   await expect(page.locator('.fc-haver-itens button').first()).toContainText('110');
-  await expect(page.locator('.fc-agendamentos')).not.toContainText('MARCOS');
+  await expect(page.locator('.fc-agendamentos')).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Abrir WhatsApp', exact: true })).toHaveAttribute('href', 'https://api.whatsapp.com/send?phone=5534999991111');
   await page.getByRole('button', { name: 'Abrir 2ª mensagem da O.S. 110' }).click();
   await expect(page).toHaveURL(/\/fonada\/11$/);

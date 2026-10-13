@@ -24,16 +24,16 @@ function Icone({ tipo, ...props }) {
 
 function Metrica({ label, valor, detalhe, icone, tom = '', acao }) {
   const Tag = acao ? 'button' : 'div';
-  return <Tag className={`fc-metrica ${tom}`} {...(acao ? { type: 'button', onClick: acao } : {})}>
-    <span className="fc-metrica-topo">{label}<Icone tipo={icone} /></span><strong>{valor}</strong><small>{detalhe}</small>
+  return <Tag className={`fc-metrica ${tom}`} title={detalhe} {...(acao ? { type: 'button', onClick: acao } : {})}>
+    <span className="fc-metrica-topo">{label}<Icone tipo={icone} /></span><strong>{valor}</strong><small className="sr-only">{detalhe}</small>
   </Tag>;
 }
 
 function Badge({ children, tom = 'neutro' }) { return <span className={`fc-badge ${tom}`}>{children}</span>; }
 
-function MensagemEmHaver({ pedido, bloqueado, onAbrir }) {
-  return <button type="button" onClick={() => onAbrir('fonada', pedido.id)} disabled={Boolean(bloqueado)} aria-label={`Abrir 2ª mensagem da O.S. ${pedido.senha_os || pedido.id}`}>
-    <span><strong>O.S. {pedido.senha_os || pedido.id}</strong><small>Disponível até {pedido.mensagemEmHaver.dataExpiracao || 'data a confirmar'}</small></span><Icone tipo="seta" />
+function MensagemEmHaver({ pedido, bloqueado, onAbrir, primeira = false }) {
+  return <button type="button" className={primeira ? 'fc-haver-primeira' : undefined} title={primeira ? 'Próxima a vencer · Abrir segunda mensagem' : 'Abrir segunda mensagem'} onClick={() => onAbrir('fonada', pedido.id)} disabled={Boolean(bloqueado)} aria-label={`Abrir 2ª mensagem da O.S. ${pedido.senha_os || pedido.id}`}>
+    <strong>O.S. {pedido.senha_os || pedido.id}</strong><small>Até {pedido.mensagemEmHaver.dataExpiracao || 'data a confirmar'}</small><Icone tipo="seta" />
   </button>;
 }
 
@@ -78,11 +78,9 @@ export default function FichaClienteVisao({ cliente, resumo, pedidosFonada, pedi
     </section>
     <div className="fc-workspace">
       <div className="fc-conteudo">
-        <section className="fc-atendimento fc-painel" aria-labelledby="fc-atendimento-titulo"><div className="fc-titulo-painel"><div><span className="fc-eyebrow">Agora, no atendimento</span><h2 id="fc-atendimento-titulo">O que precisa de atenção</h2></div><Badge tom={resumo.emHaver.length ? 'azul' : 'ok'}>{resumo.emHaver.length} em haver</Badge></div>
-          <div className="fc-atendimento-grade">
-            <div className="fc-haver"><h3>Mensagens em haver</h3>{resumo.emHaver.length ? <><p>A próxima a vencer aparece primeiro.</p><div className="fc-haver-itens">{resumo.emHaver.slice(0, 3).map(p => <MensagemEmHaver key={p.id} pedido={p} bloqueado={cliente.bloqueado} onAbrir={abrirPedido} />)}</div>{resumo.emHaver.length > 3 && <details className="fc-haver-mais"><summary>Ver mais {resumo.emHaver.length - 3} mensagem(ns)</summary><div className="fc-haver-itens">{resumo.emHaver.slice(3).map(p => <MensagemEmHaver key={p.id} pedido={p} bloqueado={cliente.bloqueado} onAbrir={abrirPedido} />)}</div></details>}</> : <p className="fc-vazio-curto">Nenhuma mensagem disponível em haver.</p>}</div>
-            <div className="fc-agendamentos"><h3>Mensagens e entregas agendadas</h3>{resumo.agendamentos.length ? <ul>{resumo.agendamentos.slice(0, 3).map(p => <li key={`${p.modalidade}-${p.id}-${p.numero || 0}`}><button type="button" onClick={() => abrirPedido(p.modalidade, p.id)}><span><strong>{p.para || 'Destinatário a definir'}</strong><small>{p.modalidade === 'fonada' ? `${p.numero}ª mensagem` : 'Ao vivo'} · O.S. {p.os}</small></span><span className={`fc-agendamento-data ${dataPedidoNumero(p.data) < resumo.hoje ? 'atrasada' : ''}`}>{p.data}<small>{p.naoEntregue ? 'Não entregue' : dataPedidoNumero(p.data) < resumo.hoje ? 'Sem confirmação' : p.horario || 'Horário a definir'}</small></span></button></li>)}</ul> : <p className="fc-vazio-curto">Nenhum agendamento aguardando confirmação.</p>}</div>
-          </div>
+        <section className="fc-haver fc-painel" aria-labelledby="fc-haver-titulo">
+          <div className="fc-haver-topo"><h2 id="fc-haver-titulo">Mensagens em haver <Badge tom={resumo.emHaver.length ? 'azul' : 'neutro'}>{resumo.emHaver.length}</Badge></h2>{resumo.emHaver.length > 0 && <span>Próxima a vencer primeiro</span>}</div>
+          {resumo.emHaver.length ? <><div className="fc-haver-itens">{resumo.emHaver.slice(0, 3).map((p, i) => <MensagemEmHaver key={p.id} pedido={p} bloqueado={cliente.bloqueado} onAbrir={abrirPedido} primeira={i === 0} />)}</div>{resumo.emHaver.length > 3 && <details className="fc-haver-mais"><summary>Ver mais {resumo.emHaver.length - 3} mensagem(ns)</summary><div className="fc-haver-itens">{resumo.emHaver.slice(3).map(p => <MensagemEmHaver key={p.id} pedido={p} bloqueado={cliente.bloqueado} onAbrir={abrirPedido} />)}</div></details>}</> : <p className="fc-haver-vazio">Nenhuma mensagem disponível em haver.</p>}
         </section>
         <section className="fc-historico fc-painel" aria-labelledby="fc-historico-titulo">
           <div className="fc-titulo-painel"><div><span className="fc-eyebrow">Relacionamento</span><h2 id="fc-historico-titulo">Histórico de pedidos</h2></div><span className="fc-historico-total">{resumo.total} no total</span></div>
