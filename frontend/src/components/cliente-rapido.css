@@ -73,6 +73,8 @@
 .cliente-rapido .cr-metrica-centralizada { display:flex; flex-direction:column; justify-content:center; text-align:center; }
 .cliente-rapido .cr-metrica-centralizada > span { justify-content:center; }
 .cliente-rapido .cr-metrica-centralizada > span svg { display:none; }
+.cliente-rapido .cr-metricas .cr-metrica { display:flex; flex-direction:column; justify-content:flex-start; }
+.cliente-rapido .cr-metricas .cr-metrica > strong { display:flex; flex:1; align-items:center; justify-content:center; text-align:center; }
 .cliente-rapido .cr-secao { margin-bottom: 22px; }
 .cliente-rapido .cr-secao-topo { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 10px; }
 .cliente-rapido .cr-secao-topo h3 { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 750; }
