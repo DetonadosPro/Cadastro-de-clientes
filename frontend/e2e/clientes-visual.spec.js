@@ -45,7 +45,7 @@ async function preparar(page, { muitos=false, vazio=false, erro=false }={}) {
 
 test('resumo distingue toda a base dos totais da página e mostra bloqueio e contato ausente', async({page})=>{
   await preparar(page);
-  await expect(page.getByRole('heading',{name:'Clientes.'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Clientes',exact:true})).toHaveClass('clientes-sr-only');
   const cards=page.locator('.clientes-indicador');
   await expect(cards.nth(0)).toContainText('3');
   await expect(cards.nth(1)).toContainText('18');

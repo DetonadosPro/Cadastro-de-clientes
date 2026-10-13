@@ -417,20 +417,19 @@ export default function ListaClientes() {
 
   return (
     <div className="clientes-workspace clientes-renovada">
-      <header className="clientes-cabecalho">
-        <div className="clientes-cabecalho-texto"><span className="clientes-eyebrow">Sua carteira de contatos</span><h1>Clientes<span className="clientes-titulo-ponto">.</span></h1><p>Busque contatos, confira pendências e consulte o histórico.</p></div>
+      <h1 className="clientes-sr-only">Clientes</h1>
+      <div className="clientes-topo-compacto">
+        <section className="clientes-indicadores" aria-label="Resumo da lista de clientes" aria-busy={carregando}>
+          <div className="clientes-indicador destaque" title={temFiltros ? 'De acordo com os filtros aplicados' : 'Sua base de clientes'}><span className="clientes-indicador-icone"><IconeClientes tipo="pessoas" /></span><span>{temFiltros ? 'Clientes encontrados' : 'Clientes cadastrados'}</span><strong>{carregando ? '—' : total.toLocaleString('pt-BR')}</strong><small className="clientes-sr-only">{temFiltros ? 'De acordo com os filtros aplicados' : 'Sua base de clientes'}</small></div>
+          <div className="clientes-indicador" title={`Histórico dos ${itens.length} clientes exibidos`}><span className="clientes-indicador-icone"><IconeClientes tipo="pedido" /></span><span>Pedidos na página</span><strong>{carregando ? '—' : pedidosNaPagina.toLocaleString('pt-BR')}</strong><small className="clientes-sr-only">Histórico dos {itens.length} clientes exibidos</small></div>
+          <div className="clientes-indicador atencao" title={`${pendentesNaPagina.length} cliente${pendentesNaPagina.length === 1 ? '' : 's'} com cobrança pendente`}><span className="clientes-indicador-icone"><IconeClientes tipo="pendente" /></span><span>Pendências na página</span><strong>{carregando ? '—' : formatarReais(valorPendenteNaPagina)}</strong><small className="clientes-sr-only">{pendentesNaPagina.length} cliente{pendentesNaPagina.length === 1 ? '' : 's'} com cobrança pendente</small></div>
+          <div className="clientes-indicador" title="Cadastros que precisam de um telefone"><span className="clientes-indicador-icone"><IconeClientes tipo="contato" /></span><span>Sem contato na página</span><strong>{carregando ? '—' : semContatoNaPagina}</strong><small className="clientes-sr-only">Cadastros que precisam de um telefone</small></div>
+        </section>
         <div className="clientes-cabecalho-acoes">
           <button type="button" className="btn secundario" onClick={alternarDuplicatas} aria-expanded={duplicatasAbertas}>Revisar duplicatas</button>
           <Link className="btn" to="/clientes/novo"><IconeMais /> Cadastrar cliente</Link>
         </div>
-      </header>
-
-      <section className="clientes-indicadores" aria-label="Resumo da lista de clientes" aria-busy={carregando}>
-        <div className="clientes-indicador destaque"><span className="clientes-indicador-icone"><IconeClientes tipo="pessoas" /></span><span>{temFiltros ? 'Clientes encontrados' : 'Clientes cadastrados'}</span><strong>{carregando ? '—' : total.toLocaleString('pt-BR')}</strong><small>{temFiltros ? 'De acordo com os filtros aplicados' : 'Sua base de clientes'}</small></div>
-        <div className="clientes-indicador"><span className="clientes-indicador-icone"><IconeClientes tipo="pedido" /></span><span>Pedidos na página</span><strong>{carregando ? '—' : pedidosNaPagina.toLocaleString('pt-BR')}</strong><small>Histórico dos {itens.length} clientes exibidos</small></div>
-        <div className="clientes-indicador atencao"><span className="clientes-indicador-icone"><IconeClientes tipo="pendente" /></span><span>Pendências na página</span><strong>{carregando ? '—' : formatarReais(valorPendenteNaPagina)}</strong><small>{pendentesNaPagina.length} cliente{pendentesNaPagina.length === 1 ? '' : 's'} com cobrança pendente</small></div>
-        <div className="clientes-indicador"><span className="clientes-indicador-icone"><IconeClientes tipo="contato" /></span><span>Sem contato na página</span><strong>{carregando ? '—' : semContatoNaPagina}</strong><small>Cadastros que precisam de um telefone</small></div>
-      </section>
+      </div>
 
       {duplicatasAbertas && buscandoDuplicatas && <p role="status">Consultando possíveis duplicatas…</p>}
       {duplicatasAbertas && erroDuplicatas && <AvisoInline titulo={erroDuplicatas} acao={<button className="btn-small" onClick={buscarSugestoes}>Tentar novamente</button>} />}
