@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { BotaoMostrarMais } from '../../components/ListaIncremental.jsx';
 import { MESES, mensagensDoPedidoNoMes } from '../../utils/filtroMesMensagens.js';
 import { dataPedidoNumero, textoInformado, valorPedido, somarValores, dataCobrancaPedido } from '../../utils/fichaCliente.js';
@@ -18,6 +18,8 @@ function Icone({ tipo, ...props }) {
     seta: <path d="M5 12h14m-5-5 5 5-5 5" />,
     local: <><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="3" /></>,
     editar: <><path d="M12 20h9M16 3l5 5L7 22H2v-5Z" /></>,
+    mensagem: <path d="M4 4h16v12H8l-4 4Z" />,
+    abaixo: <path d="m7 10 5 5 5-5" />,
   };
   return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>{linhas[tipo] || linhas.pessoa}</svg>;
 }
@@ -35,6 +37,38 @@ function MensagemEmHaver({ pedido, bloqueado, onAbrir, primeira = false }) {
   return <button type="button" className={primeira ? 'fc-haver-primeira' : undefined} title={primeira ? 'Próxima a vencer · Abrir segunda mensagem' : 'Abrir segunda mensagem'} onClick={() => onAbrir('fonada', pedido.id)} disabled={Boolean(bloqueado)} aria-label={`Abrir 2ª mensagem da O.S. ${pedido.senha_os || pedido.id}`}>
     <strong>O.S. {pedido.senha_os || pedido.id}</strong><small>Até {pedido.mensagemEmHaver.dataExpiracao || 'data a confirmar'}</small><Icone tipo="seta" />
   </button>;
+}
+
+function MensagensEmHaver({ pedidos, bloqueado, onAbrir }) {
+  const painelRef = useRef(null);
+  useEffect(() => {
+    if (!pedidos.length) return undefined;
+    const fecharFora = e => {
+      if (painelRef.current?.open && !painelRef.current.contains(e.target)) painelRef.current.open = false;
+    };
+    const fecharEscape = e => {
+      if (e.key !== 'Escape' || !painelRef.current?.open) return;
+      const focoDentro = painelRef.current.contains(document.activeElement);
+      painelRef.current.open = false;
+      if (focoDentro) { e.preventDefault(); painelRef.current.querySelector('summary')?.focus(); }
+    };
+    document.addEventListener('pointerdown', fecharFora);
+    document.addEventListener('keydown', fecharEscape);
+    return () => {
+      document.removeEventListener('pointerdown', fecharFora);
+      document.removeEventListener('keydown', fecharEscape);
+    };
+  }, [pedidos.length]);
+
+  if (!pedidos.length) return <span className="fc-haver-sem" title="Nenhuma segunda mensagem disponível">Sem haver</span>;
+  const primeira = pedidos[0];
+  return <details ref={painelRef} className="fc-haver">
+    <summary aria-label={`${pedidos.length} mensagens em haver, ver senhas e vencimentos`} title={`Próxima a vencer: O.S. ${primeira.senha_os || primeira.id} · ${primeira.mensagemEmHaver.dataExpiracao || 'data a confirmar'}`}><Icone tipo="mensagem" /><span>Em haver</span><Badge tom="azul">{pedidos.length}</Badge><Icone tipo="abaixo" /></summary>
+    <div className="fc-haver-popover" role="region" aria-labelledby="fc-haver-titulo">
+      <h3 id="fc-haver-titulo">Mensagens em haver</h3><p>Próxima a vencer primeiro</p>
+      <div className="fc-haver-itens">{pedidos.map((p, i) => <MensagemEmHaver key={p.id} pedido={p} bloqueado={bloqueado} onAbrir={onAbrir} primeira={i === 0} />)}</div>
+    </div>
+  </details>;
 }
 
 function Mensagem({ pedido, numero, mes }) {
@@ -78,13 +112,9 @@ export default function FichaClienteVisao({ cliente, resumo, pedidosFonada, pedi
     </section>
     <div className="fc-workspace">
       <div className="fc-conteudo">
-        <section className="fc-haver fc-painel" aria-labelledby="fc-haver-titulo">
-          <div className="fc-haver-topo"><h2 id="fc-haver-titulo">Mensagens em haver <Badge tom={resumo.emHaver.length ? 'azul' : 'neutro'}>{resumo.emHaver.length}</Badge></h2>{resumo.emHaver.length > 0 && <span>Próxima a vencer primeiro</span>}</div>
-          {resumo.emHaver.length ? <><div className="fc-haver-itens">{resumo.emHaver.slice(0, 3).map((p, i) => <MensagemEmHaver key={p.id} pedido={p} bloqueado={cliente.bloqueado} onAbrir={abrirPedido} primeira={i === 0} />)}</div>{resumo.emHaver.length > 3 && <details className="fc-haver-mais"><summary>Ver mais {resumo.emHaver.length - 3} mensagem(ns)</summary><div className="fc-haver-itens">{resumo.emHaver.slice(3).map(p => <MensagemEmHaver key={p.id} pedido={p} bloqueado={cliente.bloqueado} onAbrir={abrirPedido} />)}</div></details>}</> : <p className="fc-haver-vazio">Nenhuma mensagem disponível em haver.</p>}
-        </section>
         <section className="fc-historico fc-painel" aria-labelledby="fc-historico-titulo">
           <div className="fc-titulo-painel"><div><span className="fc-eyebrow">Relacionamento</span><h2 id="fc-historico-titulo">Histórico de pedidos</h2></div><span className="fc-historico-total">{resumo.total} no total</span></div>
-          <div className="fc-abas" role="group" aria-label="Modalidade dos pedidos">{[['fonada', 'Fonada', pedidosFonada.length], ['aovivo', 'Ao vivo', pedidosAoVivo.length]].map(([tipo, label, total]) => <button type="button" key={tipo} aria-pressed={aba === tipo} onClick={() => mudarAba(tipo)}>{label}<span>{total}</span></button>)}</div>
+          <div className="fc-pedidos-barra"><div className="fc-abas" role="group" aria-label="Modalidade dos pedidos">{[['fonada', 'Fonada', pedidosFonada.length], ['aovivo', 'Ao vivo', pedidosAoVivo.length]].map(([tipo, label, total]) => <button type="button" key={tipo} aria-pressed={aba === tipo} onClick={() => mudarAba(tipo)}>{label}<span>{total}</span></button>)}</div><MensagensEmHaver pedidos={resumo.emHaver} bloqueado={cliente.bloqueado} onAbrir={abrirPedido} /></div>
           <div className="fc-filtros"><label className="fc-busca"><span>Buscar no histórico</span><div><Icone tipo="busca" /><input value={filtros.busca} onChange={e => atualizarFiltro('busca', e.target.value)} placeholder="O.S., destinatário ou data" /></div></label>
             <label><span>Pagamento</span><select aria-label="Pagamento" value={filtros.pagamento} onChange={e => atualizarFiltro('pagamento', e.target.value)}><option value="">Todos</option><option value="pendentes">A receber</option><option value="recebidos">Recebidos</option></select></label>
             {aba === 'fonada' && <label><span>Mês da mensagem</span><select aria-label="Mês da mensagem" value={filtros.mes} onChange={e => atualizarFiltro('mes', e.target.value)}><option value="">Todos os meses</option>{MESES.map((m, i) => <option key={m} value={i + 1}>{m}</option>)}</select></label>}

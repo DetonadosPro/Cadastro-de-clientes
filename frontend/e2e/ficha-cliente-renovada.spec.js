@@ -48,10 +48,20 @@ test('visão geral mostra saldo completo, haver por vencimento e contatos úteis
   await expect(metricas.nth(2)).toContainText('R$ 112,00');
   await expect(metricas.nth(3)).toContainText('10/10/26');
   await expect(page.locator('.fc-cobranca')).toContainText('12/10/26');
+  const haver = page.locator('.fc-haver > summary');
+  await expect(page.locator('.fc-haver-popover')).not.toBeVisible();
+  await haver.click();
   await expect(page.locator('.fc-haver-itens button')).toHaveCount(2);
   await expect(page.locator('.fc-haver-itens button').first()).toContainText('110');
   await expect(page.locator('.fc-agendamentos')).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Abrir WhatsApp', exact: true })).toHaveAttribute('href', 'https://api.whatsapp.com/send?phone=5534999991111');
+  await page.keyboard.press('Escape');
+  await expect(haver).toBeFocused();
+  await expect(page.locator('.fc-haver-popover')).not.toBeVisible();
+  await haver.click();
+  await page.getByRole('heading', { name: cliente.nome, exact: true }).click();
+  await expect(page.locator('.fc-haver-popover')).not.toBeVisible();
+  await haver.click();
   await page.getByRole('button', { name: 'Abrir 2ª mensagem da O.S. 110' }).click();
   await expect(page).toHaveURL(/\/fonada\/11$/);
   expect(estado.escritas).toEqual([]);
@@ -112,6 +122,7 @@ test('ficha vazia, bloqueio e erro de consulta oferecem ações claras', async (
 });
 
 test('desktop e celular preservam leitura, navegação por teclado e contraste', async ({ page }, testInfo) => {
+  test.setTimeout(60000);
   const erros = []; page.on('pageerror', erro => erros.push(erro.message));
   await preparar(page);
   await expect(page.locator('.fc-historico')).toBeVisible();
@@ -124,6 +135,14 @@ test('desktop e celular preservam leitura, navegação por teclado e contraste',
       const resultado = await new AxeBuilder({ page }).include('.ficha-renovada').withTags(['wcag2a', 'wcag2aa']).analyze();
       expect(resultado.violations.map(v => ({ id: v.id, nodes: v.nodes.map(n => n.target) }))).toEqual([]);
     }
+    await page.locator('.fc-haver > summary').click();
+    const painel = page.locator('.fc-haver-popover');
+    await expect(painel).toBeVisible();
+    const caixa = await painel.boundingBox();
+    expect(caixa.x).toBeGreaterThanOrEqual(0);
+    expect(caixa.x + caixa.width).toBeLessThanOrEqual(width);
+    if ([1600, 390].includes(width)) await page.screenshot({ path: testInfo.outputPath(`ficha-haver-${width}.png`) });
+    await page.keyboard.press('Escape');
   }
   await page.getByRole('button', { name: 'Abrir pedido 120', exact: true }).focus();
   await page.keyboard.press('Enter');
