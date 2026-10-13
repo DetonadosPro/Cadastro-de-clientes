@@ -23,9 +23,9 @@ function Icone({ tipo }) {
   return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{linhas[tipo]}</svg>;
 }
 
-function Metrica({ titulo, valor, detalhe, alerta, centralizada, onClick }) {
+function Metrica({ titulo, valor, detalhe, alerta, onClick }) {
   const Tag = onClick ? 'button' : 'div';
-  return <Tag className={`cr-metrica${alerta ? ' cr-metrica-alerta' : ''}${centralizada ? ' cr-metrica-centralizada' : ''}`} title={detalhe} {...(onClick ? { type: 'button', onClick } : {})}>
+  return <Tag className={`cr-metrica${alerta ? ' cr-metrica-alerta' : ''}`} title={detalhe} {...(onClick ? { type: 'button', onClick } : {})}>
     <span>{titulo}{onClick && <Icone tipo="seta" />}</span><strong>{valor}</strong><small className="cr-sr-only">{detalhe}</small>
   </Tag>;
 }
@@ -137,7 +137,7 @@ export default function ClienteDrawer({ clienteId, onFechar, onNavegar }) {
               </div>
             </section>
             <section className="cr-metricas" aria-label="Resumo de todo o histórico">
-              <Metrica titulo="Saldo pendente" centralizada valor={reais(pendente)} alerta={pendente > 0} detalhe={Number(resumo.pedidos_pendentes) > 0 ? `${resumo.pedidos_pendentes} pedido(s) · Ver cobrança` : pendente > 0 ? 'Ver cobrança' : 'Tudo em dia'} onClick={pendente > 0 || Number(resumo.pedidos_pendentes) > 0 ? () => onNavegar(`/cobranca?nome=${encodeURIComponent(cliente.nome)}&avNome=${encodeURIComponent(cliente.nome)}`) : undefined} />
+              <Metrica titulo="Saldo pendente" valor={reais(pendente)} alerta={pendente > 0} detalhe={Number(resumo.pedidos_pendentes) > 0 ? `${resumo.pedidos_pendentes} pedido(s) · Ver cobrança` : pendente > 0 ? 'Ver cobrança' : 'Tudo em dia'} onClick={pendente > 0 || Number(resumo.pedidos_pendentes) > 0 ? () => onNavegar(`/cobranca?nome=${encodeURIComponent(cliente.nome)}&avNome=${encodeURIComponent(cliente.nome)}`) : undefined} />
               <Metrica titulo="Última compra" valor={ultima?.data_pedido || '—'} detalhe={ultima ? `${ultima.tipo} · O.S. ${ultima.os || ultima.id}` : quantidade ? 'Data não informada' : 'Sem pedidos ainda'} onClick={ultima ? () => onNavegar(ultima.rota) : undefined} />
             </section>
             </div>
