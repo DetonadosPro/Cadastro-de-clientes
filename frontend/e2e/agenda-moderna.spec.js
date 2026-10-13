@@ -39,8 +39,9 @@ async function preparar(page,opcoes={}) {
       mutacoes.push({url:url.pathname,body});
       if(opcoes.conflito)return route.fulfill({status:409,json:{erro:'Pedido alterado por outra pessoa. Recarregue antes de tentar novamente.'}});
       const id=Number(url.pathname.split('/')[4]),mensagens=body.mensagens||[body.mensagem];
-      estado.fonada=estado.fonada.map(f=>f.pedidoId===id&&mensagens.includes(f.mensagem)?{...f,passada:!url.pathname.endsWith('desfazer-baixa'),resultado:url.pathname.endsWith('desfazer-baixa')?null:'OK',versao:f.versao+1}:f);
-      if(url.pathname.endsWith('nao-atendeu'))estado.fonada=estado.fonada.filter(f=>!(f.pedidoId===id&&mensagens.includes(f.mensagem)));
+      if(url.pathname.endsWith('nao-atendeu')) {
+        estado.fonada=estado.fonada.map(f=>f.pedidoId===id&&mensagens.includes(f.mensagem)?{...f,dia:body.remarcadoDia,horario:body.remarcadoHorario,versao:f.versao+1}:f).filter(f=>f.dia===HOJE);
+      } else estado.fonada=estado.fonada.map(f=>f.pedidoId===id&&mensagens.includes(f.mensagem)?{...f,passada:!url.pathname.endsWith('desfazer-baixa'),resultado:url.pathname.endsWith('desfazer-baixa')?null:'OK',versao:f.versao+1}:f);
       return route.fulfill({json:{ok:true}});
     }
     if(url.pathname==='/api/configuracoes')return route.fulfill({json:{limite_segunda_mensagem:12,meses_mensagem_em_haver:3,versao:1}});
@@ -52,6 +53,27 @@ async function preparar(page,opcoes={}) {
   return {estado,mutacoes};
 }
 const linha=(page,texto)=>page.locator('.linha-agenda').filter({hasText:texto});
+
+for(const width of [1440,390]) {
+  for(const cenario of [{nome:'troca para o primeiro após adiar no mesmo dia',dia:HOJE,hora:'11:20',primeiro:'José'}, {nome:'mantém o pedido quando continua em primeiro',dia:HOJE,hora:'08:50',primeiro:'Marília'}, {nome:'seleciona o primeiro após mudar para outro dia',dia:'06/10/26',hora:'11:20',primeiro:'José'}]) {
+    test(`reagendamento ${cenario.nome} em ${width}px`,async({page})=>{
+      await page.setViewportSize({width,height:900});
+      const {mutacoes}=await preparar(page);
+      await page.getByRole('button',{name:'Fonada 5',exact:true}).click();
+      await linha(page,'Marília').click();
+      await page.getByRole('button',{name:'Não atendeu',exact:true}).click();
+      const modal=page.getByRole('dialog',{name:/^Não atendeu/});
+      await modal.getByPlaceholder('dd/mm/aa').fill(cenario.dia);
+      await modal.getByPlaceholder('hh:mm').fill(cenario.hora);
+      await modal.getByRole('button',{name:'Registrar e remarcar',exact:true}).click();
+      await expect(modal).toHaveCount(0);
+      await expect(linha(page,cenario.primeiro)).toHaveAttribute('aria-pressed','true');
+      await expect(page.locator('.agenda-detalhe-fonada')).toContainText(cenario.primeiro);
+      await expect.poll(()=>new URL(page.url()).searchParams.get('item')).toBe(cenario.primeiro==='José'?'2-1':'1-1');
+      expect(mutacoes[0].body).toMatchObject({remarcadoDia:cenario.dia,remarcadoHorario:cenario.hora,versao:7});
+    });
+  }
+}
 
 test('resumo, horários e mensagens agrupadas representam o dia completo',async({page},testInfo)=>{
   await page.setViewportSize({width:1440,height:1000});
@@ -133,7 +155,9 @@ test('remarcação mantém o pedido agrupado e exige novo horário',async({page}
   expect(mutacoes).toHaveLength(0);
   await modal.getByPlaceholder('hh:mm').fill('11:20');
   await modal.getByRole('button',{name:'Registrar e remarcar as 2',exact:true}).click();
-  await expect(linha(page,'José')).toHaveCount(0);
+  await expect(linha(page,'José')).toHaveCount(1);
+  await expect(linha(page,'José')).toContainText('11:20');
+  await expect(linha(page,'Marília')).toHaveAttribute('aria-pressed','true');
   expect(mutacoes[0].body).toMatchObject({mensagens:[1,2],remarcadoDia:HOJE,remarcadoHorario:'11:20',versao:7});
 });
 test('conflito de outro operador não altera o andamento nem simula uma baixa',async({page})=>{

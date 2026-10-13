@@ -170,6 +170,7 @@ export default function Agenda() {
   // Item selecionado na lista compacta — chave única por tipo+id, já
   // que fonada usa pedidoId+mensagem e ao vivo usa só id.
   const [chaveSelecionada, setChaveSelecionada] = useState(itemUrl || null);
+  const priorizarAposRemarcacaoRef = useRef(false);
   const detalhesRef = useRef(null);
   useLayoutEffect(() => {
     if (detalhesRef.current) detalhesRef.current.scrollTop = 0;
@@ -202,7 +203,7 @@ export default function Agenda() {
     setCarregando(false);
   }, [ehHoje, agendaHojeCarregada, fonadaHoje, aoVivoHoje, lembretesHoje]);
 
-  function carregar(data = dataSelecionada) {
+  function carregar(data = dataSelecionada, { priorizarPrimeiro = false } = {}) {
     const idRequisicao = ++requisicaoAgendaRef.current;
     if (!paraDataSemHora(data)) { setErro('Informe uma data completa e válida.'); setCarregando(false); return; }
     setCarregando(true);
@@ -214,6 +215,7 @@ export default function Agenda() {
         setFonada(resp.fonada);
         setAoVivo(resp.aoVivo);
         setLembretes(resp.lembretes || []);
+        if (priorizarPrimeiro) priorizarAposRemarcacaoRef.current = true;
       })
       .catch((err) => {
         if (idRequisicao === requisicaoAgendaRef.current) setErro(err.message);
@@ -535,7 +537,7 @@ export default function Agenda() {
         )
       );
       setItemRemarcarAberto(null);
-      carregar();
+      carregar(dataSelecionada, { priorizarPrimeiro: true });
     } catch (err) {
       mostrarToast(err.message || 'Não foi possível registrar.', 'erro');
     } finally {
@@ -614,6 +616,14 @@ export default function Agenda() {
     // podemos interpretar esse estado transitório como item removido,
     // senão a chave restaurada é apagada antes dos dados chegarem.
     if (carregando) return;
+    // Só após a resposta atualizada do reagendamento: a seleção segue
+    // a prioridade recalculada, mesmo se a mensagem ainda estiver na lista.
+    if (priorizarAposRemarcacaoRef.current) {
+      priorizarAposRemarcacaoRef.current = false;
+      const primeiro = itensPendentes.find(item => !itemExpirado(item)) || itensPendentes[0];
+      setChaveSelecionada(primeiro ? chaveDoItem(primeiro) : null);
+      return;
+    }
     if (listaAtual.length === 0) {
       setChaveSelecionada(null);
       return;
