@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
@@ -113,6 +113,10 @@ function indicadorOrdenacao(coluna, ordenarPorAtivo, direcaoAtiva) {
 
 export default function ListaClientes() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const parametrosRetorno = new URLSearchParams(searchParams);
+  parametrosRetorno.delete('cliente');
+  const origemListaClientes = { url: `/clientes${parametrosRetorno.size ? `?${parametrosRetorno}` : ''}`, chave: location.key };
 
   const buscaUrl = searchParams.get('busca') || '';
   const telefoneUrl = searchParams.get('telefone') || '';
@@ -177,6 +181,16 @@ export default function ListaClientes() {
   }, []);
 
   useEffect(() => () => consultaRef.current?.abort(), []);
+
+  useEffect(() => {
+    const posicao = location.state?.restaurarRolagemClientes;
+    if (carregando || !Number.isFinite(posicao)) return undefined;
+    const quadro = requestAnimationFrame(() => {
+      const conteudo = document.querySelector('.layout-conteudo');
+      if (conteudo) conteudo.scrollTop = posicao;
+    });
+    return () => cancelAnimationFrame(quadro);
+  }, [carregando, location.key, location.state]);
 
   useEffect(() => {
     setBusca(buscaUrl);
@@ -370,7 +384,7 @@ export default function ListaClientes() {
   }
 
   const fecharDrawer = useCallback(() => { setClienteDrawerId(null); setSearchParams((atuais) => { const novos = new URLSearchParams(atuais); novos.delete('cliente'); return novos; }, { replace: true }); }, [setSearchParams]);
-  const navegarDoDrawer = useCallback((rota) => { navigate(rota); }, [navigate]);
+  const navegarDoDrawer = rota => navigate(rota, { state: { origemListaClientes } });
 
   function aoIniciarArrasto(e, cliente) {
     setArrastandoId(cliente.id);
@@ -601,7 +615,7 @@ export default function ListaClientes() {
                         <span className="cliente-contagem-detalhe">{c.total_fonada || 0} fonada · {c.total_aovivo || 0} ao vivo</span>
                       </td>
                       <td style={{ textAlign: 'right', fontWeight: 700 }} data-label="Pendente"><span className={Number(c.valor_pendente || 0) > 0 ? 'cliente-pendencia' : 'cliente-em-dia'}>{Number(c.valor_pendente || 0) > 0 ? formatarReais(c.valor_pendente) : 'Em dia'}</span></td>
-                      <td data-label="Ações" onClick={e => e.stopPropagation()}><div className="cliente-acoes-linha">{numeroWhatsAppBrasil(c.whatsapp) && <a className="cliente-whatsapp" href={`https://wa.me/${numeroWhatsAppBrasil(c.whatsapp)}`} target="_blank" rel="noreferrer" aria-label={`Abrir WhatsApp de ${c.nome}`} title="Abrir WhatsApp"><IconeClientes tipo="whatsapp" /></a>}<Link className="cliente-ficha-link" to={`/clientes/${c.id}`} aria-label={`Ver ficha de ${c.nome}`}><IconeClientes tipo="ficha" /> <span>Ficha</span></Link></div></td>
+                      <td data-label="Ações" onClick={e => e.stopPropagation()}><div className="cliente-acoes-linha">{numeroWhatsAppBrasil(c.whatsapp) && <a className="cliente-whatsapp" href={`https://wa.me/${numeroWhatsAppBrasil(c.whatsapp)}`} target="_blank" rel="noreferrer" aria-label={`Abrir WhatsApp de ${c.nome}`} title="Abrir WhatsApp"><IconeClientes tipo="whatsapp" /></a>}<Link className="cliente-ficha-link" to={`/clientes/${c.id}`} state={{ origemListaClientes }} aria-label={`Ver ficha de ${c.nome}`}><IconeClientes tipo="ficha" /> <span>Ficha</span></Link></div></td>
                     </tr>
                   ))}
                 </tbody>

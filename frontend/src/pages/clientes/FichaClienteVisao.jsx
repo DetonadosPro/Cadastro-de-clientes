@@ -80,8 +80,7 @@ function Mensagem({ pedido, numero, mes }) {
   if (numero === 2 && !passada && !dia) status = ({ DISPONIVEL: 'Em haver', EXPIRADA: 'Expirada', NAO_CONCEDIDA: 'Não disponível', INDETERMINADA: 'Verificar data' })[situacao?.status] || status;
   return <div className={`fc-mensagem ${noMes ? 'no-mes' : ''}`}>
     <span className="fc-numero-mensagem">{numero}ª</span>
-    <div><strong>{textoInformado(pedido[`p${numero}_para`]) || (numero === 2 ? 'A definir' : 'Não informado')}{passada && <small className="fc-data-passada" title="Data e horário registrados na transmissão">{dataHoraTransmissao(passada) || 'Sem data registrada'}</small>}</strong>
-      {!passada && <small>{dia ? `${dia}${pedido[`p${numero}_horario`] ? ` · ${pedido[`p${numero}_horario`]}` : ''}` : situacao?.dataExpiracao && numero === 2 ? `Prazo: ${situacao.dataExpiracao}` : 'Data não informada'}</small>}</div>
+    <div><strong>{textoInformado(pedido[`p${numero}_para`]) || (numero === 2 ? 'A definir' : 'Não informado')}<small className="fc-data-passada" title={passada ? 'Data e horário registrados na transmissão' : 'Data e horário do agendamento'}>{passada ? dataHoraTransmissao(passada) || 'Sem data registrada' : dia ? `${dia}${pedido[`p${numero}_horario`] ? ` · ${pedido[`p${numero}_horario`]}` : ''}` : situacao?.dataExpiracao && numero === 2 ? `Prazo: ${situacao.dataExpiracao}` : 'Data não informada'}</small></strong></div>
     <Badge tom={passada ? 'ok' : status === 'Expirada' ? 'neutro' : 'azul'}>{status}</Badge>
   </div>;
 }

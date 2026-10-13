@@ -256,7 +256,7 @@ export default function Layout() {
     // Preserve a posição nessas mudanças; voltar pelo histórico ainda restaura.
     const preservar = location.pathname === '/agenda' && rotaRolagemRef.current === location.pathname && tipoNavegacao === 'REPLACE';
     rotaRolagemRef.current = location.pathname;
-    const salvo = preservar ? elemento.scrollTop : Number(sessionStorage.getItem(chave) || 0);
+    const salvo = preservar ? elemento.scrollTop : Number((location.pathname === '/clientes' ? location.state?.restaurarRolagemClientes : undefined) ?? sessionStorage.getItem(chave) ?? 0);
     // A troca de página pode reduzir o documento e zerar scrollTop antes do
     // cleanup. Guarde a última posição observada enquanto a página existia.
     let posicao = salvo;

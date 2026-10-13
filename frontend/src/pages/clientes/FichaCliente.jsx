@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom';
 import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
@@ -34,6 +34,7 @@ function linkWhatsApp(numero) {
 export default function FichaCliente() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { mostrarToast } = useToast();
 
@@ -129,7 +130,7 @@ export default function FichaCliente() {
     // Atualiza a entrada atual antes de abrir o pedido. Assim, tanto o
     // botão Voltar da tela quanto o voltar do navegador restauram o mesmo
     // contexto da ficha, inclusive a linha que originou a navegação.
-    navigate(retorno, { replace: true });
+    navigate(retorno, { replace: true, state: location.state });
     navigate(`/${tipo === 'fonada' ? 'fonada' : 'ao-vivo'}/${pedidoId}`, { state: { returnTo: retorno } });
   }
 
@@ -220,7 +221,13 @@ export default function FichaCliente() {
   }
 
   function voltar() {
-    navigate('/clientes');
+    const origem = location.state?.origemListaClientes;
+    if (origem?.url === '/clientes' || origem?.url?.startsWith('/clientes?')) {
+      const parametros = new URLSearchParams(origem.url.split('?')[1]);
+      parametros.delete('cliente');
+      const rolagem = Number(sessionStorage.getItem(`pombo-scroll:${origem.chave}`) || 0);
+      navigate(`/clientes${parametros.size ? `?${parametros}` : ''}`, { state: { restaurarRolagemClientes: rolagem } });
+    } else navigate('/clientes');
   }
 
   async function excluirCliente() {

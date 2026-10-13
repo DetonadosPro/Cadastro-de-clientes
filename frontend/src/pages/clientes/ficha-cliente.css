@@ -44,7 +44,7 @@ button.fc-metrica:hover { border-color:#91aacf; box-shadow:0 3px 12px #1e3c6b0c;
 .fc-badge.perigo { color:#a13449; background:#ffedf1; }
 .ficha-renovada .fc-historico, .ficha-renovada .fc-historico :is(button,input,select,option) { text-transform:uppercase; }
 .fc-historico > .fc-titulo-painel { flex-wrap:wrap; }
-.fc-pedidos-barra { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:0 20px 15px; }
+.fc-pedidos-barra { display:flex; align-items:center; justify-content:flex-start; gap:12px; padding:0 20px 15px; }
 .fc-haver { position:relative; }
 .fc-haver > summary { display:flex; align-items:center; gap:6px; padding:5px 8px; min-height:32px; border:1px solid #6eaa86; border-radius:7px; background:#dcf1e4; color:#205c43; box-shadow:0 2px 8px #245f461c; font-size:10px; font-weight:750; cursor:pointer; list-style:none; white-space:nowrap; }
 .fc-haver > summary::-webkit-details-marker { display:none; }
@@ -52,7 +52,7 @@ button.fc-metrica:hover { border-color:#91aacf; box-shadow:0 3px 12px #1e3c6b0c;
 .fc-haver > summary .fc-badge { padding:1px 5px; background:#245f46; color:white; }
 .fc-haver > summary:hover, .fc-haver[open] > summary { background:#ccebd8; border-color:#44815e; }
 .fc-haver[open] > summary > svg:last-child { transform:rotate(180deg); }
-.fc-haver-popover { position:absolute; right:0; top:calc(100% + 8px); z-index:30; width:min(320px,calc(100vw - 64px)); max-height:min(300px,50dvh); overflow-y:auto; padding:12px; background:#edf8f2; border:1px solid #a0cdb3; border-radius:10px; box-shadow:0 10px 32px #17365b26; }
+.fc-haver-popover { position:absolute; left:0; top:calc(100% + 8px); z-index:30; width:min(320px,calc(100vw - 64px)); max-height:min(300px,50dvh); overflow-y:auto; padding:12px; background:#edf8f2; border:1px solid #a0cdb3; border-radius:10px; box-shadow:0 10px 32px #17365b26; }
 .fc-haver-popover h3 { color:#205c43; font-size:12px; font-weight:700; }
 .fc-haver-popover p { color:var(--fc-muted); font-size:10px; margin-top:3px; }
 .fc-haver-itens { display:grid; gap:7px; margin-top:9px; }
@@ -187,6 +187,9 @@ button.fc-metrica:hover { border-color:#91aacf; box-shadow:0 3px 12px #1e3c6b0c;
   .fc-haver > summary > svg { display:none; }
   .fc-haver > summary { gap:5px; padding-inline:6px; }
   .fc-pedidos-barra { gap:6px; padding-inline:16px; }
+  .fc-pedidos-barra { position:relative; }
+  .fc-haver { position:static; }
+  .fc-haver-popover { left:16px; right:auto; top:calc(100% - 7px); width:calc(100% - 32px); }
   .fc-abas { gap:5px; }
   .fc-abas button { padding:8px; gap:6px; font-size:11px; }
   .fc-filtros { grid-template-columns:repeat(2,minmax(0,1fr)); }

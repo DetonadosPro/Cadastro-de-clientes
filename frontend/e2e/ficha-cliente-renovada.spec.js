@@ -17,7 +17,7 @@ async function preparar(page, opcoes = {}) {
   await page.addInitScript(() => { localStorage.setItem('pombo_token', 'simulado'); localStorage.setItem('pombo_usuario', 'QA'); localStorage.setItem('pombo_nome', 'Operador de exemplo'); });
   await page.route('**/api/**', async route => {
     const req = route.request(), url = new URL(req.url());
-    if (url.pathname === '/api/clientes') return route.fulfill({ json: { clientes: [estado.cliente], total: 1 } });
+    if (url.pathname === '/api/clientes') return route.fulfill({ json: { clientes: opcoes.listaLonga ? Array.from({ length: 30 }, (_, i) => ({ ...estado.cliente, id: i + 1, nome: i ? `CLIENTE ${i + 1}` : estado.cliente.nome })) : [estado.cliente], total: opcoes.listaLonga ? 90 : 1 } });
     if (url.pathname === '/api/clientes/1/resumo') return route.fulfill({ json: { cliente: estado.cliente, resumo: { total_pedidos: 6 }, ultimasCompras: [], mensagensEmHaver: [] } });
     if (url.pathname === '/api/clientes/1' && req.method() === 'GET') {
       if (estado.erro) return route.fulfill({ status: 500, json: { erro: 'Consulta indisponível.' } });
@@ -51,8 +51,10 @@ test('visão geral mostra saldo completo, haver por vencimento e contatos úteis
   await expect(metricas.nth(3)).toContainText('10/10/26');
   await expect(page.locator('.fc-cobranca')).toContainText('12/10/26');
   const transmitida = page.locator('[data-pedido-id="11"]');
-  await expect(transmitida.locator('.fc-data-passada')).toHaveText('10/07/26 · 12:01');
-  await expect(transmitida.locator('.fc-data-passada')).toHaveCSS('display', 'inline');
+  await expect(transmitida.locator('.fc-data-passada').first()).toHaveText('10/07/26 · 12:01');
+  await expect(transmitida.locator('.fc-data-passada').first()).toHaveCSS('display', 'inline');
+  await expect(page.locator('[data-pedido-id="12"] .fc-data-passada')).toHaveText('11/10/26 · 10:30');
+  await expect(page.locator('[data-pedido-id="12"] .fc-data-passada')).toHaveCSS('display', 'inline');
   await expect(transmitida).not.toContainText('11:30');
   await expect(page.locator('.fc-tabela .fc-pagamento small')).toHaveCount(0);
   const haver = page.locator('.fc-haver > summary');
@@ -100,13 +102,34 @@ test('histórico mantém busca, filtros e pedido selecionado ao voltar e recarre
   await expect(page.locator('.fc-tabela .fc-pagamento')).toContainText('PRAZO - DIA 12/10/26 - MP - PIX');
 });
 
-test('voltar da ficha abre a lista sem reabrir a visão rápida', async ({ page }) => {
-  await preparar(page, { url: '/clientes?busca=MARIA&cliente=1' });
+test('voltar da ficha restaura filtros, página e rolagem sem reabrir a visão rápida', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 800 });
+  await preparar(page, { listaLonga: true, url: '/clientes?busca=MARIA&pagina=3&ordenarPor=ultimo_pedido&direcao=desc&cliente=1' });
+  await expect(page.locator('.tabela-clientes tbody tr')).toHaveCount(30);
+  const rolagem = await page.locator('.layout-conteudo').evaluate(el => { el.scrollTop = 600; return el.scrollTop; });
+  expect(rolagem).toBeGreaterThan(0);
   await page.getByRole('dialog', { name: 'Resumo do cliente' }).getByRole('button', { name: 'Ficha completa', exact: true }).click();
   await expect(page).toHaveURL(/\/clientes\/1$/);
+  await page.reload();
   await page.getByRole('button', { name: 'Voltar', exact: true }).click();
-  await expect(page).toHaveURL(/\/clientes$/);
+  await expect(page.getByLabel('Nome', { exact: true })).toHaveValue('MARIA');
+  await expect(page.getByLabel('Ordenar por', { exact: true })).toHaveValue('ultimo_pedido');
+  expect(new URL(page.url()).searchParams.get('pagina')).toBe('3');
+  expect(new URL(page.url()).searchParams.get('direcao')).toBe('desc');
+  await expect.poll(() => page.locator('.layout-conteudo').evaluate(el => el.scrollTop)).toBeCloseTo(rolagem, 0);
   await expect(page.getByRole('dialog', { name: 'Resumo do cliente' })).toHaveCount(0);
+});
+
+test('retorno direto da ficha conserva a busca e o retorno de um pedido conserva a origem da lista', async ({ page }) => {
+  await preparar(page, { url: '/clientes?busca=MARIA&telefone=34999991111' });
+  await page.getByRole('link', { name: `Ver ficha de ${cliente.nome}` }).click();
+  await page.getByRole('button', { name: 'Abrir pedido 120', exact: true }).click();
+  await page.getByRole('button', { name: 'Voltar', exact: true }).click();
+  await expect(page).toHaveURL(/\/clientes\/1\?/);
+  await page.getByRole('button', { name: 'Voltar', exact: true }).click();
+  await expect(page.getByLabel('Nome', { exact: true })).toHaveValue('MARIA');
+  expect(new URL(page.url()).searchParams.get('telefone')).toBe('34999991111');
+  expect(new URL(page.url()).searchParams.has('cliente')).toBe(false);
 });
 
 test('edição preserva campos e versão; cancelamento e consulta não escrevem', async ({ page }) => {
