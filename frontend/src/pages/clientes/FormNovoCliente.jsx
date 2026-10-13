@@ -57,8 +57,6 @@ function FormularioNovoCliente() {
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState('');
   const [duplicados, setDuplicados] = useState(null);
-  const [enderecoAberto, setEnderecoAberto] = useState(() =>
-    ['endereco', 'numero', 'complemento', 'bairro', 'referencia'].some(campo => dados[campo]?.trim()));
   const [fase, setFase] = useState('');
   const duplicadosRef = useRef(null);
   const nomeRef = useRef(null);
@@ -225,11 +223,9 @@ function FormularioNovoCliente() {
             <div className="novo-cliente-contact-note"><span>O celular é o mesmo do WhatsApp?</span><button type="button" className="btn-small" disabled={salvando || !dados.whatsapp || dados.celular === dados.whatsapp} onClick={() => set('celular', dados.whatsapp)}>Usar WhatsApp no celular</button></div>
           </section>
 
-          <section className={`admin-card novo-cliente-section novo-cliente-address ${enderecoAberto ? 'aberto' : ''}`}>
-            <button type="button" className="novo-cliente-address-toggle" aria-expanded={enderecoAberto} aria-controls="novo-endereco-campos" onClick={() => setEnderecoAberto(atual => !atual)}>
-              <span className="admin-icon"><Icone tipo="endereco"/></span><span><strong>Endereço e referência</strong><small>{enderecoPreenchido ? 'Endereço adicionado · confira ou complete os dados' : 'Opcional · acrescente agora ou complete depois'}</small></span><span className="novo-cliente-toggle-symbol" aria-hidden="true">{enderecoAberto ? '−' : '+'}</span>
-            </button>
-            {enderecoAberto && <fieldset id="novo-endereco-campos" className="novo-cliente-fields novo-cliente-address-fields" disabled={salvando}>
+          <section className="admin-card novo-cliente-section novo-cliente-address" aria-labelledby="novo-endereco-titulo">
+            <div className="admin-card-title"><span className="admin-icon"><Icone tipo="endereco"/></span><div><h2 id="novo-endereco-titulo">Endereço e referência</h2><p>Opcional · preencha os dados que tiver.</p></div><span className="novo-cliente-step">03</span></div>
+            <fieldset id="novo-endereco-campos" className="novo-cliente-fields novo-cliente-address-fields" disabled={salvando}>
               <legend className="novo-cliente-sr">Endereço e referência do cliente</legend>
               <div className="novo-cliente-address-line">
                 <div className="campo"><label htmlFor="novo-endereco">Endereço</label><CampoEnderecoAutocomplete id="novo-endereco" value={dados.endereco} numero={dados.numero} onChange={valor => set('endereco', valor)} onSelecionar={selecionarEndereco}/></div>
@@ -238,7 +234,7 @@ function FormularioNovoCliente() {
               <div className="novo-cliente-address-line detalhes"><div className="campo"><label htmlFor="novo-bairro">Bairro</label><input id="novo-bairro" autoComplete="address-level3" value={dados.bairro} onChange={e => set('bairro', e.target.value)}/></div><div className="campo"><label htmlFor="novo-complemento">Complemento</label><input id="novo-complemento" placeholder="Apartamento, bloco, casa…" value={dados.complemento} onChange={e => set('complemento', e.target.value)}/></div></div>
               <div className="campo"><label htmlFor="novo-referencia">Referência</label><textarea id="novo-referencia" rows="2" placeholder="O que ajuda a encontrar o endereço?" value={dados.referencia} onChange={e => set('referencia', e.target.value)}/></div>
               <p className="novo-cliente-address-help">As sugestões de rua são de Uberaba/MG. Você também pode digitar qualquer endereço.</p>
-            </fieldset>}
+            </fieldset>
           </section>
 
           <footer className="novo-cliente-savebar">

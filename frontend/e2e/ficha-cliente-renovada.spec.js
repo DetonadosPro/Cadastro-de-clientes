@@ -3,7 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 
 const cliente = { id: 1, nome: 'MARIA APARECIDA DE OLIVEIRA', nascimento: '27/08/90', whatsapp: '(34) 9 9999-1111', celular: '(34) 9 9999-1111', fixo: '(34) 3333-2222', endereco: 'RUA DAS FLORES, 120', bairro: 'CENTRO', complemento: 'CASA 2', referencia: 'PORTÃO AZUL', criado_em: '2026-08-20T14:10:20Z', versao: 2 };
 const fonada = [
-  { id: 11, senha_os: '110', data_pedido: '10/07/26', p1_para: 'JOSÉ', p1_dia: '10/07/26', p1_resultado: 'OK', pagou: 'SIM', periodo: 'PIX', valor: 12, mensagemEmHaver: { disponivel: true, concedida: true, status: 'DISPONIVEL', dataExpiracao: '10/10/2026' } },
+  { id: 11, senha_os: '110', data_pedido: '10/07/26', p1_para: 'JOSÉ', p1_dia: '10/07/26', p1_horario: '11:30', p1_resultado: 'OK - VICTOR - 10/07/26 - 12:01 HS', pagou: 'SIM', periodo: 'PIX', valor: 12, mensagemEmHaver: { disponivel: true, concedida: true, status: 'DISPONIVEL', dataExpiracao: '10/10/2026' } },
   { id: 12, senha_os: '120', data_pedido: '09/10/26', p1_para: 'ANA', p1_dia: '11/10/26', p1_horario: '10:30', pagou: '', valor: 20 },
   { id: 13, senha_os: '130', data_pedido: '08/10/26', p1_para: 'PAULO', p1_dia: '08/10/26', p1_resultado: 'OK', pagou: 'SIM', cobranca: '11/10/26', valor: 40 },
   { id: 14, senha_os: '140', data_pedido: '10/08/26', p1_para: 'JOSÉ', p1_dia: '10/08/26', p1_resultado: 'OK', p2_para: 'CLARA', p2_dia: '11/10/26', p2_horario: '12:00', cobranca: '09/10/26', pagou: '', valor: 12, mensagemEmHaver: { disponivel: true, concedida: true, status: 'DISPONIVEL', dataExpiracao: '10/11/2026' } },
@@ -17,6 +17,8 @@ async function preparar(page, opcoes = {}) {
   await page.addInitScript(() => { localStorage.setItem('pombo_token', 'simulado'); localStorage.setItem('pombo_usuario', 'QA'); localStorage.setItem('pombo_nome', 'Operador de exemplo'); });
   await page.route('**/api/**', async route => {
     const req = route.request(), url = new URL(req.url());
+    if (url.pathname === '/api/clientes') return route.fulfill({ json: { clientes: [estado.cliente], total: 1 } });
+    if (url.pathname === '/api/clientes/1/resumo') return route.fulfill({ json: { cliente: estado.cliente, resumo: { total_pedidos: 6 }, ultimasCompras: [], mensagensEmHaver: [] } });
     if (url.pathname === '/api/clientes/1' && req.method() === 'GET') {
       if (estado.erro) return route.fulfill({ status: 500, json: { erro: 'Consulta indisponível.' } });
       return route.fulfill({ json: { cliente: estado.cliente, pedidosFonada: opcoes.vazio ? [] : fonada, pedidosAoVivo: opcoes.vazio ? [] : aoVivo } });
@@ -48,6 +50,11 @@ test('visão geral mostra saldo completo, haver por vencimento e contatos úteis
   await expect(metricas.nth(2)).toContainText('R$ 112,00');
   await expect(metricas.nth(3)).toContainText('10/10/26');
   await expect(page.locator('.fc-cobranca')).toContainText('12/10/26');
+  const transmitida = page.locator('[data-pedido-id="11"]');
+  await expect(transmitida.locator('.fc-data-passada')).toHaveText('10/07/26 · 12:01');
+  await expect(transmitida.locator('.fc-data-passada')).toHaveCSS('display', 'inline');
+  await expect(transmitida).not.toContainText('11:30');
+  await expect(page.locator('.fc-tabela .fc-pagamento small')).toHaveCount(0);
   const haver = page.locator('.fc-haver > summary');
   await expect(page.locator('.fc-haver-popover')).not.toBeVisible();
   await haver.click();
@@ -90,6 +97,16 @@ test('histórico mantém busca, filtros e pedido selecionado ao voltar e recarre
   await page.getByRole('button', { name: 'Limpar filtros', exact: true }).click();
   await page.getByRole('button', { name: /Ao vivo\s*1/, exact: true }).click();
   await expect(page.locator('.fc-tabela')).toContainText('Entregue');
+  await expect(page.locator('.fc-tabela .fc-pagamento')).toContainText('PRAZO - DIA 12/10/26 - MP - PIX');
+});
+
+test('voltar da ficha abre a lista sem reabrir a visão rápida', async ({ page }) => {
+  await preparar(page, { url: '/clientes?busca=MARIA&cliente=1' });
+  await page.getByRole('dialog', { name: 'Resumo do cliente' }).getByRole('button', { name: 'Ficha completa', exact: true }).click();
+  await expect(page).toHaveURL(/\/clientes\/1$/);
+  await page.getByRole('button', { name: 'Voltar', exact: true }).click();
+  await expect(page).toHaveURL(/\/clientes$/);
+  await expect(page.getByRole('dialog', { name: 'Resumo do cliente' })).toHaveCount(0);
 });
 
 test('edição preserva campos e versão; cancelamento e consulta não escrevem', async ({ page }) => {

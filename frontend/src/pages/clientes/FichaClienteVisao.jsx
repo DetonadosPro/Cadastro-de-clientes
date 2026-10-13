@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { BotaoMostrarMais } from '../../components/ListaIncremental.jsx';
 import { MESES, mensagensDoPedidoNoMes } from '../../utils/filtroMesMensagens.js';
-import { dataPedidoNumero, textoInformado, valorPedido, somarValores, dataCobrancaPedido } from '../../utils/fichaCliente.js';
+import { dataPedidoNumero, textoInformado, valorPedido, somarValores, dataCobrancaPedido, dataHoraTransmissao } from '../../utils/fichaCliente.js';
 import { numeroWhatsAppBrasil } from '../../utils/telefoneWhatsApp.js';
 import './ficha-cliente.css';
 
@@ -80,8 +80,8 @@ function Mensagem({ pedido, numero, mes }) {
   if (numero === 2 && !passada && !dia) status = ({ DISPONIVEL: 'Em haver', EXPIRADA: 'Expirada', NAO_CONCEDIDA: 'Não disponível', INDETERMINADA: 'Verificar data' })[situacao?.status] || status;
   return <div className={`fc-mensagem ${noMes ? 'no-mes' : ''}`}>
     <span className="fc-numero-mensagem">{numero}ª</span>
-    <div><strong>{textoInformado(pedido[`p${numero}_para`]) || (numero === 2 ? 'A definir' : 'Não informado')}</strong>
-      <small>{dia ? `${dia}${pedido[`p${numero}_horario`] ? ` · ${pedido[`p${numero}_horario`]}` : ''}` : situacao?.dataExpiracao && numero === 2 ? `Prazo: ${situacao.dataExpiracao}` : 'Data não informada'}</small></div>
+    <div><strong>{textoInformado(pedido[`p${numero}_para`]) || (numero === 2 ? 'A definir' : 'Não informado')}{passada && <small className="fc-data-passada" title="Data e horário registrados na transmissão">{dataHoraTransmissao(passada) || 'Sem data registrada'}</small>}</strong>
+      {!passada && <small>{dia ? `${dia}${pedido[`p${numero}_horario`] ? ` · ${pedido[`p${numero}_horario`]}` : ''}` : situacao?.dataExpiracao && numero === 2 ? `Prazo: ${situacao.dataExpiracao}` : 'Data não informada'}</small>}</div>
     <Badge tom={passada ? 'ok' : status === 'Expirada' ? 'neutro' : 'azul'}>{status}</Badge>
   </div>;
 }
@@ -124,7 +124,7 @@ export default function FichaClienteVisao({ cliente, resumo, pedidosFonada, pedi
           {pedidos.length ? <><div className="fc-tabela-scroll"><table className="fc-tabela"><caption className="sr-only">Pedidos de {aba === 'fonada' ? 'Fonada' : 'Ao vivo'} do cliente</caption><thead><tr><th>Pedido / compra</th><th>{aba === 'fonada' ? 'Mensagens' : 'Entrega'}</th><th>Pagamento</th><th>Valor</th></tr></thead><tbody>{lista.itensVisiveis.map(p => <tr key={p.id} data-pedido-id={p.id} className={String(selecionado) === String(p.id) ? 'selecionado' : ''}>
             <td className="fc-pedido"><button type="button" onClick={() => abrirPedido(aba, p.id)} aria-label={`Abrir pedido ${p.senha_os || p.numero_os || p.id}`}><strong>#{p.senha_os || p.numero_os || p.id}</strong><Icone tipo="seta" /></button><small>Compra · {p.data_pedido || 'Não informada'}</small></td>
             <td className="fc-mensagens">{aba === 'fonada' ? <><Mensagem pedido={p} numero={1} mes={filtros.mes} />{(textoInformado(p.p2_para) || textoInformado(p.p2_dia) || textoInformado(p.p2_resultado) || p.mensagemEmHaver?.concedida) && <Mensagem pedido={p} numero={2} mes={filtros.mes} />}</> : <div className="fc-entrega"><strong>{p.para || 'Não informado'}</strong><small>{p.dia_entrega || 'Data não informada'}{p.horario_entrega && ` · ${p.horario_entrega}`}</small><Badge tom={String(p.resultado_entrega || '').startsWith('ENTREGUE') ? 'ok' : 'azul'}>{p.resultado_entrega ? String(p.resultado_entrega).startsWith('ENTREGUE') ? 'Entregue' : 'Não entregue' : p.dia_entrega ? 'Agendado' : 'Sem data'}</Badge></div>}</td>
-            <td className="fc-pagamento"><Badge tom={p.pagou === 'SIM' ? 'ok' : 'aviso'}>{p.pagou === 'SIM' ? 'Recebido' : 'A receber'}</Badge><small>{textoInformado(aba === 'fonada' ? p.periodo : p.pagamento) || 'Forma não informada'}</small>{p.pagou !== 'SIM' && dataPedidoNumero(dataCobrancaPedido(p, aba)) != null && <small>Cobrança · {dataCobrancaPedido(p, aba)}</small>}</td><td className="fc-valor"><strong>{reais(valorPedido(p))}</strong></td>
+            <td className="fc-pagamento"><Badge tom={p.pagou === 'SIM' ? 'ok' : 'aviso'}>{p.pagou === 'SIM' ? 'Recebido' : 'A receber'}</Badge>{aba === 'aovivo' && <><small>{textoInformado(p.pagamento) || 'Forma não informada'}</small>{p.pagou !== 'SIM' && dataPedidoNumero(dataCobrancaPedido(p, aba)) != null && <small>Cobrança · {dataCobrancaPedido(p, aba)}</small>}</>}</td><td className="fc-valor"><strong>{reais(valorPedido(p))}</strong></td>
           </tr>)}</tbody></table></div><BotaoMostrarMais temMais={lista.temMais} restantes={lista.restantes} onClick={lista.mostrarMais} /></> : <div className="fc-estado-vazio"><Icone tipo="agenda" /><h3>{temFiltros ? 'Nenhum pedido com esses filtros' : 'O histórico começa aqui'}</h3><p>{temFiltros ? 'Tente outra busca ou veja todos os pedidos desta modalidade.' : `Este cliente ainda não tem pedidos de ${aba === 'fonada' ? 'Fonada' : 'Ao vivo'}.`}</p><button type="button" className="btn secundario" onClick={temFiltros ? historico.limpar : aba === 'fonada' ? acoes.novaFonada : acoes.novoAoVivo} disabled={!temFiltros && Boolean(cliente.bloqueado)}>{temFiltros ? 'Ver todos os pedidos' : 'Criar primeiro pedido'}</button></div>}
         </section>
       </div>

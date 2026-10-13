@@ -40,7 +40,6 @@ async function preencher(page) {
   await page.getByLabel('WhatsApp', { exact: true }).fill('34999991111');
   await page.getByRole('button', { name: 'Usar WhatsApp no celular', exact: true }).click();
   await page.getByLabel('Telefone fixo', { exact: true }).fill('3433332222');
-  await page.getByRole('button', { name: /Endereço e referência/ }).click();
   await page.getByLabel('Nº', { exact: true }).fill('120');
   await page.getByLabel('Endereço', { exact: true }).fill('Rua das');
   await page.getByRole('option', { name: /Rua das Flores/ }).click();
@@ -56,8 +55,6 @@ test('cadastro completo mantém campos, prévia, autocomplete e cria apenas uma 
   await expect(page.locator('.novo-cliente-preview')).toContainText('Rua das Flores, 120');
   await expect(page.locator('.novo-cliente-preview')).toContainText('PORTÃO AZUL');
   await expect(page.getByLabel('Celular', { exact: true })).toHaveValue('(34) 9 9999-1111');
-  await page.getByRole('button', { name: /Endereço e referência/ }).click();
-  await page.getByRole('button', { name: /Endereço e referência/ }).click();
   await expect(page.getByLabel('Complemento', { exact: true })).toHaveValue('CASA 2');
   await page.getByRole('button', { name: 'Salvar cliente', exact: true }).evaluate(botao => { botao.click(); botao.click(); });
   await expect(page).toHaveURL(/\/clientes\/100$/);
@@ -131,7 +128,7 @@ test('rascunho retorna com contatos e endereço aberto, sem gravar ao sair', asy
   await page.getByRole('link', { name: /↻ MARIA APARECIDA DE OLIVEIRA/ }).click();
   await expect(page.getByLabel('Nome *', { exact: true })).toHaveValue('MARIA APARECIDA DE OLIVEIRA');
   await expect(page.getByLabel('Referência', { exact: true })).toHaveValue('PORTÃO AZUL\nAO LADO DA PRAÇA');
-  await expect(page.getByRole('button', { name: /Endereço e referência/ })).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByLabel('Endereço', { exact: true })).toBeVisible();
   expect(estado.escritas).toHaveLength(0);
 });
 

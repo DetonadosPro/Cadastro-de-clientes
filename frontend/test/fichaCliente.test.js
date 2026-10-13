@@ -1,6 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { resumoFicha, filtrarHistorico, dataPedidoNumero } from '../src/utils/fichaCliente.js';
+import { resumoFicha, filtrarHistorico, dataPedidoNumero, dataHoraTransmissao } from '../src/utils/fichaCliente.js';
+
+test('transmissão usa o registro atual ou legado sem inventar data ou horário ausentes', () => {
+  assert.equal(dataHoraTransmissao('OK OPERADOR 13/10/26 15:54'), '13/10/26 · 15:54');
+  assert.equal(dataHoraTransmissao('OK - VICTOR - 10/07/26 - 12:01 HS'), '10/07/26 · 12:01');
+  assert.equal(dataHoraTransmissao('PASSADA EM 11/10/2025'), '11/10/2025');
+  assert.equal(dataHoraTransmissao('OK'), '');
+  assert.equal(dataHoraTransmissao('OK OPERADOR 31/02/26 12:01'), '');
+});
 
 test('saldo inclui pedido sem cobrança e próxima cobrança exclui os já recebidos', () => {
   const resumo = resumoFicha([

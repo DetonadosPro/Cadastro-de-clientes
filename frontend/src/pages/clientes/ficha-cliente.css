@@ -46,21 +46,21 @@ button.fc-metrica:hover { border-color:#91aacf; box-shadow:0 3px 12px #1e3c6b0c;
 .fc-historico > .fc-titulo-painel { flex-wrap:wrap; }
 .fc-pedidos-barra { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:0 20px 15px; }
 .fc-haver { position:relative; }
-.fc-haver > summary { display:flex; align-items:center; gap:6px; padding:5px 8px; min-height:32px; border:1px solid #c4d6ef; border-radius:7px; background:#f0f5ff; color:#285a9e; font-size:10px; font-weight:700; cursor:pointer; list-style:none; white-space:nowrap; }
+.fc-haver > summary { display:flex; align-items:center; gap:6px; padding:5px 8px; min-height:32px; border:1px solid #6eaa86; border-radius:7px; background:#dcf1e4; color:#205c43; box-shadow:0 2px 8px #245f461c; font-size:10px; font-weight:750; cursor:pointer; list-style:none; white-space:nowrap; }
 .fc-haver > summary::-webkit-details-marker { display:none; }
 .fc-haver > summary > svg { width:14px; height:14px; }
-.fc-haver > summary .fc-badge { padding:1px 5px; background:#dce9fc; }
-.fc-haver[open] > summary { background:#e4edfc; border-color:#94b4e0; }
+.fc-haver > summary .fc-badge { padding:1px 5px; background:#245f46; color:white; }
+.fc-haver > summary:hover, .fc-haver[open] > summary { background:#ccebd8; border-color:#44815e; }
 .fc-haver[open] > summary > svg:last-child { transform:rotate(180deg); }
-.fc-haver-popover { position:absolute; right:0; top:calc(100% + 8px); z-index:30; width:min(320px,calc(100vw - 64px)); max-height:min(300px,50dvh); overflow-y:auto; padding:12px; background:white; border:1px solid #cbd9ec; border-radius:10px; box-shadow:0 10px 32px #17365b26; }
-.fc-haver-popover h3 { color:var(--fc-text); font-size:12px; font-weight:700; }
+.fc-haver-popover { position:absolute; right:0; top:calc(100% + 8px); z-index:30; width:min(320px,calc(100vw - 64px)); max-height:min(300px,50dvh); overflow-y:auto; padding:12px; background:#edf8f2; border:1px solid #a0cdb3; border-radius:10px; box-shadow:0 10px 32px #17365b26; }
+.fc-haver-popover h3 { color:#205c43; font-size:12px; font-weight:700; }
 .fc-haver-popover p { color:var(--fc-muted); font-size:10px; margin-top:3px; }
 .fc-haver-itens { display:grid; gap:7px; margin-top:9px; }
-.fc-haver-itens button { display:flex; align-items:center; gap:8px; padding:8px 9px; min-height:36px; min-width:0; width:100%; border:1px solid #dce5ef; border-radius:7px; background:#fafbfd; color:#2d5793; text-align:left; }
-.fc-haver-itens button:hover { background:#edf4ff; border-color:#aec8ec; }
-.fc-haver-itens button.fc-haver-primeira { background:#edf4ff; border-color:#a7c1e8; }
+.fc-haver-itens button { display:flex; align-items:center; gap:8px; padding:8px 9px; min-height:36px; min-width:0; width:100%; border:1px solid #c6e1d3; border-radius:7px; background:#fbfefc; color:#205c43; text-align:left; }
+.fc-haver-itens button:hover { background:#d4ecdf; border-color:#5f9f7d; }
+.fc-haver-itens button.fc-haver-primeira { background:#dcf2e5; border-color:#83bea1; }
 .fc-haver-itens button strong { font-size:11px; overflow-wrap:anywhere; }
-.fc-haver-itens button small { color:var(--fc-muted); font-size:10px; overflow-wrap:anywhere; }
+.fc-haver-itens button small { color:#405c4e; font-size:10px; overflow-wrap:anywhere; }
 .fc-haver-itens button svg { width:14px; height:14px; flex-shrink:0; margin-left:auto; }
 .fc-haver-sem { color:var(--fc-muted); font-size:10px; white-space:nowrap; }
 .fc-historico-total { color:var(--fc-muted); font-size:11px; white-space:nowrap; }
@@ -104,6 +104,7 @@ button.fc-metrica:hover { border-color:#91aacf; box-shadow:0 3px 12px #1e3c6b0c;
 .fc-mensagem.no-mes .fc-numero-mensagem { color:#245da5; background:#e5efff; box-shadow:0 0 0 1px #b7cfed; }
 .fc-mensagem strong, .fc-entrega > strong { display:block; font-size:12px; font-weight:650; line-height:1.5; }
 .fc-mensagem small, .fc-entrega > small { display:block; font-size:10px; color:var(--fc-muted); margin-top:4px; line-height:1.6; }
+.fc-mensagem .fc-data-passada { display:inline; margin:0 0 0 6px; font-weight:400; }
 .fc-mensagem .fc-badge { font-size:9px; padding:3px 5px; }
 .fc-entrega .fc-badge { margin-top:7px; }
 .fc-pagamento > small { display:block; margin-top:6px; color:var(--fc-muted); font-size:10px; line-height:1.5; }

@@ -20,6 +20,14 @@ export function valorPedido(pedido) {
   return Number.isFinite(valor) ? valor : 0;
 }
 
+export function dataHoraTransmissao(resultado) {
+  const texto = String(resultado || '');
+  const data = texto.match(/\b(\d{2}\/\d{2}\/(?:\d{4}|\d{2}))\b/);
+  if (!data || dataPedidoNumero(data[1]) == null) return '';
+  const horario = texto.slice(data.index + data[0].length).match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
+  return `${data[1]}${horario ? ` · ${horario[1].padStart(2, '0')}:${horario[2]}` : ''}`;
+}
+
 export function somarValores(pedidos) {
   return pedidos.reduce((total, pedido) => total + Math.round(valorPedido(pedido) * 100), 0) / 100;
 }

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { useSmartBack } from '../../hooks/useSmartBack.js';
 import { api } from '../../api.js';
 import { useToast } from '../../ToastContext.jsx';
 import { formatarCelular, formatarFixo, formatarData } from '../../mascaras.js';
@@ -36,7 +35,6 @@ export default function FichaCliente() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const voltarHistorico = useSmartBack('/clientes');
   const { mostrarToast } = useToast();
 
   const [cliente, setCliente] = useState(null);
@@ -222,7 +220,7 @@ export default function FichaCliente() {
   }
 
   function voltar() {
-    voltarHistorico();
+    navigate('/clientes');
   }
 
   async function excluirCliente() {
