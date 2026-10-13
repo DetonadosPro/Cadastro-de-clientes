@@ -194,6 +194,8 @@ export const api = {
     },
     buscar: (id) => chamar(`/clientes/${id}`),
     buscarCadastro: (id) => chamar(`/clientes/${id}?historico=nao`),
+    creditos: (id) => chamar(`/clientes/${id}/creditos`),
+    comprarCreditos: (id, dados) => chamar(`/clientes/${id}/creditos`, { method: 'POST', body: JSON.stringify(dados) }),
     buscarResumo: (id) => chamar(`/clientes/${id}/resumo`),
     criar: (dados) => chamar('/clientes', { method: 'POST', body: JSON.stringify(dados) }),
     atualizar: (id, dados) => chamar(`/clientes/${id}`, { method: 'PUT', body: JSON.stringify(dados) }),

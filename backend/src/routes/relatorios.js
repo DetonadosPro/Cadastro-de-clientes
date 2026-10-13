@@ -39,6 +39,9 @@ function formaPagamento(periodo) {
     .replace(/[\u0300-\u036f]/g, '');
   if (texto.includes('PIX')) return 'PIX';
   if (texto.includes('DEPOSITO')) return 'DEPÓSITO';
+  if (texto === 'DINHEIRO') return 'DINHEIRO';
+  if (texto === 'DEBITO') return 'DÉBITO';
+  if (texto === 'CREDITO') return 'CRÉDITO';
   return 'PRESENCIAL';
 }
 
@@ -263,8 +266,8 @@ router.get('/vendas', async (req, res) => {
     if (sistema === 'FONADA' || sistema === 'TODOS') {
       const limites = limitesConsulta(inicio, fim, periodoAnterior);
       const fonadasResultado = await db.query(`
-        SELECT id, valor, periodo, data_pedido, recall, pagou, nome_comprador, senha_os
-        FROM fonadas
+        SELECT id, rota, tipo_registro, valor, periodo, data_pedido, recall, pagou, nome_comprador, senha_os
+        FROM financeiro_fonada
         WHERE excluido_em IS NULL
           AND ${chaveDataSql('data_pedido')} BETWEEN $1 AND $2
       `, limites);
@@ -297,7 +300,7 @@ router.get('/vendas', async (req, res) => {
 
       for (const l of noPeriodo) {
         itensDetalhados.push({
-          id: l.id, sistema: 'FONADA', os: l.senha_os || l.id,
+          id: l.id, rota: l.rota, tipoRegistro: l.tipo_registro, sistema: 'FONADA', os: l.senha_os || l.id,
           nome: l.nome_comprador || '—', valor: valorNumero(l.valor),
           forma: formaPagamento(l.periodo), data: l.data_pedido,
           statusPagamento: statusPagamento(l.pagou),
@@ -405,8 +408,8 @@ router.get('/recebimentos', async (req, res) => {
     if (sistema === 'FONADA' || sistema === 'TODOS') {
       const limites = limitesConsulta(inicio, fim, periodoAnterior);
       const fonadasResultado = await db.query(`
-        SELECT id, valor, periodo, data_pagamento, pagou, nome_comprador, senha_os
-        FROM fonadas
+        SELECT id, rota, tipo_registro, valor, periodo, data_pagamento, pagou, nome_comprador, senha_os
+        FROM financeiro_fonada
         WHERE excluido_em IS NULL AND pagou = 'SIM' AND data_pagamento IS NOT NULL
           AND ${chaveDataSql('data_pagamento')} BETWEEN $1 AND $2
       `, limites);
@@ -431,7 +434,7 @@ router.get('/recebimentos', async (req, res) => {
 
       for (const l of noPeriodo) {
         itensDetalhados.push({
-          id: l.id, sistema: 'FONADA', os: l.senha_os || l.id,
+          id: l.id, rota: l.rota, tipoRegistro: l.tipo_registro, sistema: 'FONADA', os: l.senha_os || l.id,
           nome: l.nome_comprador || '—', valor: valorNumero(l.valor),
           forma: formaPagamento(l.periodo), data: l.data_pagamento,
           statusPagamento: statusPagamento(l.pagou),
@@ -508,7 +511,7 @@ router.get('/recebimentos', async (req, res) => {
     if (sistema === 'FONADA' || sistema === 'TODOS') {
       const limites = limitesConsulta(inicio, fim);
       const fonadasVendidasResultado = await db.query(`
-        SELECT valor, data_pedido, pagou FROM fonadas
+        SELECT valor, data_pedido, pagou FROM financeiro_fonada
         WHERE excluido_em IS NULL
           AND ${chaveDataSql('data_pedido')} BETWEEN $1 AND $2
       `, limites);
@@ -619,7 +622,7 @@ router.get('/desempenho', async (req, res) => {
       const limites = limitesConsulta(inicio, fim, periodoAnterior);
       const fonadasResultado = await db.query(`
         SELECT valor, data_pedido, vendedor_usuario
-        FROM fonadas WHERE excluido_em IS NULL
+        FROM financeiro_fonada WHERE excluido_em IS NULL
           AND ${chaveDataSql('data_pedido')} BETWEEN $1 AND $2
       `, limites);
 

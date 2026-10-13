@@ -256,7 +256,7 @@ router.get('/', async (req, res) => {
     const recebidasInicio = String(req.query.recebidasInicio || '').trim();
     const recebidasFim = String(req.query.recebidasFim || '').trim();
 
-    const condicoes = ['excluido_em IS NULL'];
+    const condicoes = ['excluido_em IS NULL', 'creditos_usados = 0'];
     const params = [];
 
     if (cobrarDia) {
@@ -369,9 +369,10 @@ router.put('/:id/baixa', async (req, res) => {
     const versao = req.body.versao;
     if (versao !== undefined && (!Number.isInteger(versao) || versao < 1)) return res.status(400).json({ erro: 'Versão do pedido inválida.' });
 
-    const existenteResultado = await db.query('SELECT id, cliente_id FROM fonadas WHERE id = $1', [req.params.id]);
+    const existenteResultado = await db.query('SELECT id, cliente_id, creditos_usados FROM fonadas WHERE id = $1', [req.params.id]);
     if (existenteResultado.rows.length === 0) return res.status(404).json({ erro: 'Pedido não encontrado.' });
 
+    if (existenteResultado.rows[0].creditos_usados > 0) return res.status(409).json({ erro: 'Este pedido usa créditos e não possui nova cobrança.' });
     const clienteId = existenteResultado.rows[0].cliente_id;
     if (clienteId) {
       const clienteResultado = await db.query('SELECT bloqueado FROM clientes WHERE id = $1', [clienteId]);
@@ -419,7 +420,7 @@ router.put('/:id/desfazer-baixa', async (req, res) => {
     const resultado = await db.query(`
       UPDATE fonadas
       SET pagou = 'NÃO', recebi = NULL, data_pagamento = NULL, atualizado_em = NOW(), versao = versao + 1
-      WHERE id = $1 AND excluido_em IS NULL AND pagou = 'SIM' AND versao = $2
+      WHERE id = $1 AND excluido_em IS NULL AND creditos_usados = 0 AND pagou = 'SIM' AND versao = $2
       RETURNING id, versao
     `, [req.params.id, versao]);
     if (resultado.rows.length) return res.json({ ok: true, versao: resultado.rows[0].versao });
@@ -463,13 +464,14 @@ router.put('/acoes/marcar-impressos', async (req, res) => {
 
 async function bloquearLote(client, ids, versoes) {
   const bloqueados = await client.query(`
-    SELECT f.id, f.versao, f.excluido_em, c.bloqueado
+    SELECT f.id, f.versao, f.excluido_em, f.creditos_usados, c.bloqueado
     FROM fonadas f LEFT JOIN clientes c ON c.id = f.cliente_id
     WHERE f.id = ANY($1::int[]) ORDER BY f.id FOR UPDATE OF f
   `, [ids]);
   if (bloqueados.rows.length !== ids.length || bloqueados.rows.some((item) => item.excluido_em)) {
     return { status: 409, erro: 'A seleção mudou. Atualize a cobrança antes de continuar.' };
   }
+  if (bloqueados.rows.some((item) => item.creditos_usados > 0)) return { status: 409, erro: 'Pedidos com créditos não possuem nova cobrança.' };
   if (bloqueados.rows.some((item) => item.bloqueado)) {
     return { status: 403, erro: 'Há um cliente bloqueado entre os pedidos selecionados.' };
   }

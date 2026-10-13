@@ -95,7 +95,7 @@ router.get('/contagens', async (req, res) => {
 
     const [fonadasResultado, aoVivoResultado, lembretesResultado] = await Promise.all([
       db.query(`
-        SELECT id, valor, p1_dia, p1_para, p1_horario, p1_resultado,
+        SELECT id, valor, creditos_usados, p1_dia, p1_para, p1_horario, p1_resultado,
                    p2_dia, p2_para, p2_horario, p2_resultado
         FROM fonadas
         WHERE excluido_em IS NULL
@@ -159,7 +159,7 @@ router.get('/hoje', async (req, res) => {
     const consultandoHoje = !dataConsultada || curto === curtoHoje || curto === longoHoje || longo === curtoHoje || longo === longoHoje;
 
     const fonadasResultado = await db.query(`
-      SELECT f.id, f.versao, f.valor, f.senha_os, f.nome_comprador, f.cliente_id, f.data_pedido, c.whatsapp AS cliente_whatsapp,
+      SELECT f.id, f.versao, f.valor, f.creditos_usados, f.senha_os, f.nome_comprador, f.cliente_id, f.data_pedido, c.whatsapp AS cliente_whatsapp,
              f.p1_dia, f.p1_para, f.p1_tema, f.p1_mensagem, f.p1_horario, f.p1_celular, f.p1_fixo, f.p1_quem_oferece, f.p1_resultado,
              f.p2_dia, f.p2_para, f.p2_tema, f.p2_mensagem, f.p2_horario, f.p2_celular, f.p2_fixo, f.p2_quem_oferece, f.p2_resultado
       FROM fonadas f

@@ -10,7 +10,7 @@ require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 const NOME_RESTORE = 'pombo_correio_qa_restore';
 const NOME_QA = 'pombo_correio_qa_auditoria';
 const TABELAS = [
-  'usuarios', 'clientes', 'fonadas', 'ao_vivo',
+  'usuarios', 'clientes', 'fonadas', 'ao_vivo', 'creditos_fonada',
   'tentativas_contato', 'tentativas_prazo_ao_vivo', 'lembretes',
   'recall_registros', 'duplicatas_descartadas', 'contadores_os', 'configuracoes_sistema',
 ];
@@ -31,7 +31,7 @@ restoreUrl.pathname = `/${NOME_RESTORE}`;
 function arquivosMaisRecentes() {
   const nomes = fs.readdirSync(pasta).filter((nome) => /^[a-z_]+-\d{8}-\d{4}\.json\.gz$/.test(nome));
   const timestamps = [...new Set(nomes.map((nome) => nome.match(/-(\d{8}-\d{4})\.json\.gz$/)[1]))].sort().reverse();
-  const timestamp = timestamps.find((ts) => TABELAS.filter((t) => t !== 'configuracoes_sistema').every((t) => nomes.includes(`${t}-${ts}.json.gz`)));
+  const timestamp = timestamps.find((ts) => TABELAS.filter((t) => !['configuracoes_sistema', 'creditos_fonada'].includes(t)).every((t) => nomes.includes(`${t}-${ts}.json.gz`)));
   if (!timestamp) throw new Error('Não há conjunto completo de arquivos QA para restaurar.');
   return Object.fromEntries(TABELAS.filter((t) => nomes.includes(`${t}-${timestamp}.json.gz`)).map((t) => [t, path.join(pasta, `${t}-${timestamp}.json.gz`)]));
 }
@@ -70,6 +70,9 @@ async function executar() {
     if (!esperados.configuracoes_sistema) {
       esperados.configuracoes_sistema = JSON.parse(JSON.stringify((await pool.query('SELECT * FROM configuracoes_sistema ORDER BY id')).rows));
     }
+    if (!esperados.creditos_fonada && esperados.fonadas.some(p => p.creditos_usados > 0)) throw new Error('O backup contém uso de créditos, mas falta o histórico da carteira.');
+    esperados.creditos_fonada ||= [];
+    esperados.fonadas = esperados.fonadas.map(p => ({ ...p, creditos_usados: p.creditos_usados ?? 0, credito_operacao: p.credito_operacao ?? null }));
     esperados.configuracoes_sistema = esperados.configuracoes_sistema.map((linha) => ({ ...linha, meses_mensagem_em_haver: linha.meses_mensagem_em_haver ?? 3 }));
     esperados.recall_registros = esperados.recall_registros.map((linha) => ({ ...linha, pedido_novo_ao_vivo_id: linha.pedido_novo_ao_vivo_id ?? null }));
     if (modo === 'restaurar') {

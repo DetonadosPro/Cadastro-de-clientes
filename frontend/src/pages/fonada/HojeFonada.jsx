@@ -87,9 +87,10 @@ export default function HojeFonada() {
   }
 
   function abrir(pedido) {
+    if (pedido.tipo_registro === 'CREDITOS') return;
     sessionStorage.setItem('ultimaVendaFonadaSelecionada', String(pedido.id));
     sessionStorage.setItem('ultimoFonadaSelecionado', String(pedido.id));
-    sessionStorage.setItem('fonadaListaNavegacao', JSON.stringify(filtrados.map((item) => item.id)));
+    sessionStorage.setItem('fonadaListaNavegacao', JSON.stringify(filtrados.filter(item => item.tipo_registro !== 'CREDITOS').map((item) => item.id)));
     sessionStorage.removeItem('fonadaNavegacaoContexto');
     setUltimoSelecionado(String(pedido.id));
   }
@@ -158,11 +159,13 @@ function Indicador({ label, valor, detalhe, destaque = false, tom = '' }) {
 function LinhaVenda({ pedido, selecionada, onAbrir }) {
   const quitada = vendaQuitada(pedido);
   const telefone = pedido.comprador_celular || pedido.comprador_whatsapp || pedido.comprador_fixo;
-  return <Link id={`venda-fonada-${pedido.id}`} className={`venda-fonada-item ${selecionada ? 'selecionada' : ''}`} to={`/fonada/${pedido.id}`} state={{ returnTo: '/fonada/hoje' }} onClick={onAbrir} aria-label={`Abrir venda O.S. ${pedido.senha_os || pedido.id} de ${pedido.nome_comprador || 'cliente não informado'}`}>
+  const navegavel = pedido.tipo_registro !== 'CREDITOS' || Boolean(pedido.rota);
+  const Tag = navegavel ? Link : 'div';
+  return <Tag {...(navegavel ? { to: pedido.rota || `/fonada/${pedido.id}`, state: { returnTo: '/fonada/hoje' }, onClick: onAbrir } : {})} id={`venda-fonada-${pedido.id}`} className={`venda-fonada-item ${selecionada ? 'selecionada' : ''}`} aria-label={`Abrir venda O.S. ${pedido.senha_os || pedido.id} de ${pedido.nome_comprador || 'cliente não informado'}`}>
     <span className="venda-fonada-registro"><strong>{pedido.horario_pedido || '—'}</strong><span>O.S. {pedido.senha_os || pedido.id}</span><small>Venda {pedido.data_pedido}</small></span>
     <span className="venda-fonada-cliente"><strong>{pedido.nome_comprador || 'Cliente não informado'}</strong>{telefone && <span>{telefone}</span>}<small>Venda por {pedido.vendedor_nome || pedido.vendedor_usuario || 'não informado'}</small></span>
-    <span className="venda-fonada-mensagem"><strong>{pedido.p1_para || 'Destinatário não informado'}</strong><span>{pedido.p1_tema || 'Tema não informado'}{pedido.p1_mensagem ? ` · Nº ${pedido.p1_mensagem}` : ''}</span>{pedido.p1_dia && <small>Envio {pedido.p1_dia}{pedido.p1_horario ? ` às ${pedido.p1_horario}` : ''}</small>}{pedido.p2_para && <small className="venda-fonada-segunda">2ª: {pedido.p2_para}{pedido.p2_dia ? ` · ${pedido.p2_dia}` : ''}</small>}</span>
+    <span className="venda-fonada-mensagem"><strong>{pedido.tipo_registro === 'CREDITOS' ? 'Pacote de créditos de Fonada' : pedido.p1_para || 'Destinatário não informado'}</strong><span>{pedido.tipo_registro === 'CREDITOS' ? 'Mensagens sem vencimento' : pedido.p1_tema || 'Tema não informado'}{pedido.p1_mensagem ? ` · Nº ${pedido.p1_mensagem}` : ''}</span>{pedido.p1_dia && <small>Envio {pedido.p1_dia}{pedido.p1_horario ? ` às ${pedido.p1_horario}` : ''}</small>}{pedido.p2_para && <small className="venda-fonada-segunda">2ª: {pedido.p2_para}{pedido.p2_dia ? ` · ${pedido.p2_dia}` : ''}</small>}</span>
     <span className="venda-fonada-pagamento"><span className={`venda-fonada-selo ${quitada ? 'quitada' : 'aberta'}`}>{quitada ? 'Quitada' : 'A receber'}</span><small>{quitada ? (pedido.data_pagamento ? `Pago em ${pedido.data_pagamento}` : 'Pagamento confirmado') : (pedido.cobranca ? `Cobrar ${pedido.cobranca}` : 'Cobrança sem data')}</small>{pedido.periodo && <small>{pedido.periodo}</small>}</span>
     <span className="venda-fonada-valor"><strong>{formatarReais(pedido.valor)}</strong>{vendaRecall(pedido) && <span className="venda-fonada-recall">Recall</span>}<span className="venda-fonada-abrir" aria-hidden="true">›</span></span>
-  </Link>;
+  </Tag>;
 }

@@ -12,7 +12,7 @@ async function anexarMensagensEmHaver(grupos, consultar, referencia) {
       const situacao = situacaoSegundaMensagem(pedido, referencia);
       if (!situacao.disponivel) continue;
       if (!porCliente.has(pedido.cliente_id)) porCliente.set(pedido.cliente_id, []);
-      porCliente.get(pedido.cliente_id).push({ pedidoId: pedido.id, os: pedido.senha_os, dataExpiracao: situacao.dataExpiracao });
+      porCliente.get(pedido.cliente_id).push({ pedidoId: pedido.id, os: pedido.senha_os, dataExpiracao: situacao.dataExpiracao, ...(situacao.semValidade ? { semValidade: true } : {}) });
     }
   }
   return grupos.map((grupo) => ({ ...grupo,

@@ -1,3 +1,4 @@
+import '../creditos-fonada.css';
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../api.js';
@@ -141,12 +142,13 @@ export default function ClienteDrawer({ clienteId, onFechar, onNavegar }) {
               <Metrica titulo="Última compra" valor={ultima?.data_pedido || '—'} detalhe={ultima ? `${ultima.tipo} · O.S. ${ultima.os || ultima.id}` : quantidade ? 'Data não informada' : 'Sem pedidos ainda'} onClick={ultima ? () => onNavegar(ultima.rota) : undefined} />
             </section>
             </div>
+            {Number(dados?.creditos?.saldo) > 0 && <button type="button" className="cr-carteira" onClick={() => onNavegar(`/fonada/novo?clienteId=${cliente.id}&usarCredito=1`)} disabled={bloqueado}><span><strong>{dados.creditos.saldo} crédito(s) de Fonada</strong><small>Sem vencimento · usar uma mensagem</small></span><Icone tipo="seta" /></button>}
             <span className="cr-copia-status" role="status">{avisoCopia}</span>
             <details className="cr-contatos-detalhes"><summary>Todos os contatos</summary><dl>{contatos.map(([label, valor]) => <div key={label}><dt>{label}</dt><dd>{numeroWhatsAppBrasil(valor) ? <a href={`tel:+${numeroWhatsAppBrasil(valor)}`}>{valor}</a> : textoInformado(valor) || 'Não informado'}</dd></div>)}</dl></details>
             <section className="cr-secao cr-haver" aria-labelledby="cr-haver-titulo">
               <div className="cr-secao-topo"><h3 id="cr-haver-titulo"><Icone tipo="mensagem" />Mensagens em haver<span className="cr-contagem">{haver.length}</span></h3></div>
               {haver.length ? <><p className="cr-secao-legenda">Use primeiro a que está mais perto de vencer.</p><div id="cr-haver-lista" className="cr-haver-lista">{(mostrarHaver ? haver : haver.slice(0, 3)).map((mensagem, index) => <button type="button" key={mensagem.id} className={index === 0 ? 'cr-haver-primeira' : ''} aria-label={`Abrir 2ª mensagem da O.S. ${mensagem.os || mensagem.id}`} onClick={() => onNavegar(mensagem.rota)}>
-                <div><span className="cr-haver-linha"><strong>O.S. {mensagem.os || mensagem.id}</strong><Prazo data={mensagem.dataExpiracao} hoje={hoje} /></span><small>2ª mensagem · Válida até {mensagem.dataExpiracao || 'data a confirmar'}</small>{(textoInformado(mensagem.tema) || textoInformado(mensagem.destinatario)) && <small>{[textoInformado(mensagem.tema), textoInformado(mensagem.destinatario)].filter(Boolean).join(' · ')}</small>}</div><Icone tipo="seta" />
+                <div><span className="cr-haver-linha"><strong>O.S. {mensagem.os || mensagem.id}</strong>{mensagem.semValidade ? <span className="cr-prazo">Sem vencimento</span> : <Prazo data={mensagem.dataExpiracao} hoje={hoje} />}</span><small>2ª mensagem · {mensagem.semValidade ? 'Sem vencimento' : `Válida até ${mensagem.dataExpiracao || 'data a confirmar'}`}</small>{(textoInformado(mensagem.tema) || textoInformado(mensagem.destinatario)) && <small>{[textoInformado(mensagem.tema), textoInformado(mensagem.destinatario)].filter(Boolean).join(' · ')}</small>}</div><Icone tipo="seta" />
               </button>)}</div>{haver.length > 3 && <button type="button" className="cr-ver-mais" aria-expanded={mostrarHaver} aria-controls="cr-haver-lista" onClick={() => setMostrarHaver(valor => !valor)}>{mostrarHaver ? 'Mostrar menos' : `Ver todas as ${haver.length} mensagens`}</button>}</> : <p className="cr-vazio">Nenhuma segunda mensagem disponível para agendar.</p>}
             </section>
             <section className="cr-secao" aria-labelledby="cr-compras-titulo"><div className="cr-secao-topo"><h3 id="cr-compras-titulo"><Icone tipo="tempo" />Últimas compras</h3><span>Até 5 mais recentes</span></div>

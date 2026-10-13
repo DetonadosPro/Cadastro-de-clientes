@@ -7,7 +7,8 @@ import CampoEnderecoAutocomplete from '../../components/CampoEnderecoAutocomplet
 import { enderecoComNumero, separarEnderecoNumero } from '../../enderecoAutocomplete.js';
 import { useListaIncremental } from '../../components/ListaIncremental.jsx';
 import { AvisoInline, Dialogo, EstadoCarregando } from '../../components/Interface.jsx';
-import { filtrarHistorico, resumoFicha } from '../../utils/fichaCliente.js';
+import { filtrarHistorico, resumoFicha, dataPedidoNumero } from '../../utils/fichaCliente.js';
+import CarteiraFonada from '../../components/CarteiraFonada.jsx';
 import FichaClienteVisao from './FichaClienteVisao.jsx';
 import { numeroWhatsAppBrasil } from '../../utils/telefoneWhatsApp.js';
 
@@ -39,6 +40,7 @@ export default function FichaCliente() {
   const { mostrarToast } = useToast();
 
   const [cliente, setCliente] = useState(null);
+  const [creditos, setCreditos] = useState({});
   const [pedidosFonada, setPedidosFonada] = useState([]);
   const [pedidosAoVivo, setPedidosAoVivo] = useState([]);
   const [aba, setAba] = useState(() => searchParams.get('aba') === 'aovivo' ? 'aovivo' : 'fonada');
@@ -89,6 +91,7 @@ export default function FichaCliente() {
     api.clientes.buscar(id)
       .then((resp) => {
         setCliente(resp.cliente);
+        setCreditos(resp.creditos || {});
         setPedidosFonada(resp.pedidosFonada || []);
         setPedidosAoVivo(resp.pedidosAoVivo || []);
       })
@@ -251,10 +254,17 @@ export default function FichaCliente() {
   if (!cliente) return null;
 
   const resumo = resumoFicha(pedidosFonada, pedidosAoVivo);
+  resumo.totalComprado += Number(creditos.valor_comprado || 0);
+  const vendas = pedidosFonada.filter(p => !p.creditos_usados).length + pedidosAoVivo.length + Number(creditos.compras || 0);
+  resumo.ticketMedio = vendas ? resumo.totalComprado / vendas : 0;
+  resumo.ultimoPedido = resumoFicha(pedidosFonada.filter(p => !p.creditos_usados), pedidosAoVivo).ultimoPedido;
+  const ultimaCompraCredito = creditos.ultima_compra || creditos.movimentos?.find(m => m.tipo === 'COMPRA');
+  if (ultimaCompraCredito && (dataPedidoNumero(ultimaCompraCredito.data_pedido) || 0) >= (dataPedidoNumero(resumo.ultimoPedido?.data_pedido) || 0)) resumo.ultimoPedido = { ...ultimaCompraCredito, modalidade: 'creditos', senha_os: `CRÉDITOS ×${ultimaCompraCredito.quantidade}` };
   const whatsappLink = [cliente.whatsapp, cliente.celular].map(linkWhatsApp).find(Boolean);
 
   return <>
     <FichaClienteVisao cliente={cliente} resumo={resumo} pedidosFonada={pedidosFonada} pedidosAoVivo={pedidosAoVivo}
+      carteira={<CarteiraFonada cliente={cliente} carteira={creditos} onAtualizar={setCreditos} />}
       nascimento={nascimentoValido(cliente.nascimento) ? cliente.nascimento : ''} whatsappLink={whatsappLink}
       historico={{ aba, filtros, atualizarFiltro, mudarAba, limpar: limparFiltros, abrirPedido,
         lista: aba === 'aovivo' ? listaAoVivo : listaFonada,

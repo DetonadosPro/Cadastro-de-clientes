@@ -14,6 +14,7 @@ const { hojeIsoBrasilia, registroPedidoBrasilia } = require('../utils/dataHora')
 const { situacaoSegundaMensagem, validarDataUsoSegundaMensagem, houveAlteracaoP2, temDireitoSegundaMensagem, CAMPOS_SEGUNDA_MENSAGEM } = require('../utils/mensagemEmHaver');
 
 const router = express.Router();
+const { consumirCreditos, uuidValido, falha } = require('../utils/creditosFonada');
 const { dataCurtaValida } = require('../utils/validarDataCurta');
 router.param('id', (req, res, next, id) => {
   if (!/^[1-9]\d*$/.test(id)) return res.status(400).json({ erro: 'ID de pedido inválido.' });
@@ -27,6 +28,7 @@ const CAMPOS = [
   'comprador_fixo', 'comprador_whatsapp', 'comprador_celular', 'comprador_endereco', 'comprador_complemento', 'comprador_bairro', 'comprador_referencia',
   'valor', 'cobranca', 'periodo', 'pagou', 'recebi',
   'vender', 'status', 'impresso', 'vendedor_usuario',
+  'creditos_usados', 'credito_operacao',
 ];
 
 const FILTROS_FONADA = {
@@ -150,7 +152,11 @@ router.get('/hoje', async (req, res) => {
         THEN f.horario_pedido END DESC NULLS LAST, f.id DESC
     `, [hojeStr, `${dia}/${mes}/${ano}`]);
 
-    res.json({ data: hojeStr, fonadas: resultado.rows });
+    const pacotes = await db.query(`SELECT m.*, COALESCE(NULLIF(u.nome, ''), m.vendedor_usuario) AS vendedor_nome
+      FROM financeiro_fonada m LEFT JOIN usuarios u ON u.usuario = m.vendedor_usuario
+      WHERE m.tipo_registro = 'CREDITOS' AND m.data_pedido IN ($1, $2)`, [hojeStr, `${dia}/${mes}/${ano}`]);
+    res.json({ data: hojeStr, fonadas: [...resultado.rows.filter(p => !p.creditos_usados), ...pacotes.rows]
+      .sort((a, b) => String(b.horario_pedido || '').localeCompare(String(a.horario_pedido || '')) || b.id - a.id) });
   } catch (erro) {
     console.error('Erro ao buscar vendas de Fonada de hoje:', erro);
     res.status(500).json({ erro: 'Não foi possível consultar as vendas de Fonada de hoje.' });
@@ -172,6 +178,12 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const dados = { ...req.body, ...registroPedidoBrasilia() };
+    if (dados.creditos_usados !== undefined && ![0, 1, 2].includes(dados.creditos_usados)) return res.status(400).json({ erro: 'Selecione uma ou duas mensagens para usar créditos.' });
+    dados.creditos_usados = dados.creditos_usados || 0;
+    if (dados.creditos_usados) {
+      if (!dados.cliente_id || !uuidValido(dados.credito_operacao)) return res.status(400).json({ erro: 'Cliente e identificação do uso de créditos são obrigatórios.' });
+      Object.assign(dados, { valor: 0, cobranca: '', periodo: 'CRÉDITOS', pagou: 'SIM', recebi: '' });
+    } else dados.credito_operacao = null;
 
     if (dados.cliente_id) {
       if (!/^[1-9]\d*$/.test(String(dados.cliente_id)) || Number(dados.cliente_id) > 2147483647) {
@@ -204,7 +216,7 @@ router.post('/', async (req, res) => {
     if (Number(dados.valor) >= 100) {
       return res.status(400).json({ erro:'O valor da Fonada deve ser menor que R$ 100,00.', campo:'valor' });
     }
-    if (dados.valor === undefined || dados.valor === null || !Number.isFinite(Number(dados.valor)) || Number(dados.valor) < 0 || !String(dados.cobranca || '').trim() || !String(dados.periodo || '').trim()) {
+    if (!dados.creditos_usados && (dados.valor === undefined || dados.valor === null || !Number.isFinite(Number(dados.valor)) || Number(dados.valor) < 0 || !String(dados.cobranca || '').trim() || !String(dados.periodo || '').trim())) {
       return res.status(400).json({ erro: 'Informe valor, dia de cobrança e período válidos.' });
     }
     for (const campo of ['p1_dia', 'p2_dia', 'cobranca']) {
@@ -251,12 +263,21 @@ router.post('/', async (req, res) => {
         dados.comprador_bairro = atual.bairro;
         dados.comprador_referencia = atual.referencia;
       }
+      if (dados.creditos_usados) {
+        const anterior = (await client.query('SELECT * FROM fonadas WHERE credito_operacao = $1', [dados.credito_operacao])).rows[0];
+        if (anterior) {
+          if (anterior.cliente_id !== Number(dados.cliente_id) || anterior.creditos_usados !== dados.creditos_usados || anterior.excluido_em) throw falha('Esta identificação já pertence a outro pedido.');
+          await client.query('COMMIT');
+          return res.status(200).json(anterior);
+        }
+      }
       const campos = CAMPOS.filter((c) => dados[c] !== undefined);
       const placeholders = campos.map((_, i) => `$${i + 1}`).join(', ');
       const valores = campos.map((c) => dados[c]);
       const resultado = await client.query(
         `INSERT INTO fonadas (${campos.join(', ')}) VALUES (${placeholders}) RETURNING *`, valores
       );
+      if (dados.creditos_usados) await consumirCreditos(client, resultado.rows[0], req.usuario.usuario);
       await client.query('COMMIT');
       res.status(201).json(resultado.rows[0]);
     } catch (erro) {
@@ -267,7 +288,7 @@ router.post('/', async (req, res) => {
     }
   } catch (erro) {
     console.error('Erro ao criar fonada:', erro);
-    res.status(500).json({ erro: 'Erro ao criar registro.' });
+    res.status(erro.status || (erro.code === '23505' ? 409 : 500)).json({ erro: erro.status ? erro.message : erro.code === '23505' ? 'Este pedido já foi salvo. Recarregue a página antes de tentar novamente.' : 'Erro ao criar registro.' });
   }
 });
 
@@ -286,6 +307,11 @@ router.put('/:id', async (req, res) => {
     }
 
     const dados = req.body;
+    if (dados.creditos_usados !== undefined && dados.creditos_usados !== existente.creditos_usados) return res.status(409).json({ erro: 'A quantidade de créditos de um pedido salvo não pode ser alterada. Crie outro pedido para usar novos créditos.' });
+    if (existente.creditos_usados > 0) {
+      if (dados.cliente_id !== undefined && Number(dados.cliente_id) !== existente.cliente_id) return res.status(409).json({ erro: 'Um pedido pago com créditos não pode mudar de cliente.' });
+      Object.assign(dados, { valor: 0, cobranca: '', periodo: 'CRÉDITOS', pagou: 'SIM', recebi: '' });
+    }
     if (dados.valor !== undefined && (!Number.isFinite(Number(dados.valor)) || Number(dados.valor) < 0 || Number(dados.valor) >= 100)) {
       return res.status(400).json({ erro:'O valor da Fonada deve estar entre R$ 0,00 e R$ 99,99.', campo:'valor' });
     }
@@ -311,7 +337,7 @@ router.put('/:id', async (req, res) => {
       }
     }
     // A edição da mensagem não muda quando a venda foi registrada.
-    const campos = CAMPOS.filter((c) => !['data_pedido', 'horario_pedido'].includes(c) && dados[c] !== undefined);
+    const campos = CAMPOS.filter((c) => !['data_pedido', 'horario_pedido', 'creditos_usados', 'credito_operacao'].includes(c) && dados[c] !== undefined);
     if (campos.length === 0) return res.status(400).json({ erro: 'Nenhum campo para atualizar.' });
     if (!Number.isSafeInteger(dados.versao) || dados.versao < 1) {
       return res.status(400).json({ erro: 'A versão do pedido é obrigatória para salvar.' });

@@ -34,6 +34,7 @@ function somarMesesCalendario(data, quantidade) {
 }
 
 function temDireitoSegundaMensagem(pedido) {
+  if (Number(pedido.creditos_usados) > 0) return Number(pedido.creditos_usados) === 2;
   const valor = Number(pedido.valor);
   return pedido.valor != null && String(pedido.valor).trim() !== '' && Number.isFinite(valor)
     && valor >= 0 && Math.round(valor * 100) <= Math.round(configuracoesAtuais().limite_segunda_mensagem * 100);
@@ -48,6 +49,10 @@ function hojeSemHora() {
 function situacaoSegundaMensagem(pedido, referencia = hojeSemHora()) {
   const concedida = temDireitoSegundaMensagem(pedido);
   const utilizada = Boolean(String(pedido.p2_resultado || '').trim());
+  if (Number(pedido.creditos_usados) > 0) return {
+    concedida, utilizada, status: utilizada ? 'UTILIZADA' : concedida ? 'DISPONIVEL' : 'NAO_CONCEDIDA',
+    disponivel: concedida && !utilizada, dataExpiracao: null, semValidade: concedida,
+  };
   const compra = dataBrParaDate(pedido.data_pedido);
   const expiracao = compra ? somarMesesCalendario(compra, configuracoesAtuais().meses_mensagem_em_haver) : null;
 
@@ -70,6 +75,7 @@ function validarDataUsoSegundaMensagem(pedido, dataUso, referencia = hojeSemHora
   const situacao = situacaoSegundaMensagem(pedido, referencia);
   if (!situacao.concedida) return { ok: false, erro: 'Este pedido não concede uma segunda mensagem.' };
   if (situacao.utilizada) return { ok: false, erro: 'A segunda mensagem deste pedido já foi utilizada.' };
+  if (situacao.semValidade) return { ok: true, situacao };
   if (!situacao.dataExpiracao) return { ok: false, erro: 'A data original da compra é inválida; não é possível utilizar a segunda mensagem.' };
   if (situacao.status === 'EXPIRADA') {
     return { ok: false, erro: `A segunda mensagem expirou em ${situacao.dataExpiracao}.` };

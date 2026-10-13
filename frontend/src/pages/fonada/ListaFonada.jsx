@@ -73,7 +73,7 @@ function LinhaMensagem({ numero, para, dia, horario, bloqueada, situacao }) {
       ? 'Verificar data da compra'
       : indisponivel
       ? 'Não disponível'
-      : para || (situacao?.status === 'DISPONIVEL' ? `Disponível até ${situacao.dataExpiracao}` : situacao?.status === 'UTILIZADA' ? 'Utilizada' : '');
+      : para || (situacao?.status === 'DISPONIVEL' ? situacao.semValidade ? 'Crédito sem vencimento' : `Disponível até ${situacao.dataExpiracao}` : situacao?.status === 'UTILIZADA' ? 'Utilizada' : '');
   return (
     <div className={`resumo-mensagem ${indisponivel ? 'bloqueada' : ''}`}>
       <span className={`ponto-msg ${indisponivel ? 'bloqueada' : (marcada ? 'usada' : 'livre')}`}>{numero}ª</span>
@@ -305,10 +305,10 @@ export default function ListaFonada() {
                         {p.recall === 'SIM' ? 'Sim' : 'Não'}
                       </span>
                     </td>
-                    <td data-label="Valor">{p.valor != null ? formatarReais(p.valor) : '—'}</td>
+                    <td data-label="Valor">{p.creditos_usados ? `${p.creditos_usados} CRÉDITO(S)` : p.valor != null ? formatarReais(p.valor) : '—'}</td>
                     <td data-label="Pagou">
                       <span className={`tag ${p.pagou === 'SIM' ? 'ok' : 'pendente'}`}>
-                        {p.pagou === 'SIM' ? 'Pago' : 'Pendente'}
+                        {p.creditos_usados ? 'Créditos' : p.pagou === 'SIM' ? 'Pago' : 'Pendente'}
                       </span>
                     </td>
                   </tr>

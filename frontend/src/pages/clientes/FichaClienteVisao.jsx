@@ -35,7 +35,7 @@ function Badge({ children, tom = 'neutro' }) { return <span className={`fc-badge
 
 function MensagemEmHaver({ pedido, bloqueado, onAbrir, primeira = false }) {
   return <button type="button" className={primeira ? 'fc-haver-primeira' : undefined} title={primeira ? 'Próxima a vencer · Abrir segunda mensagem' : 'Abrir segunda mensagem'} onClick={() => onAbrir('fonada', pedido.id)} disabled={Boolean(bloqueado)} aria-label={`Abrir 2ª mensagem da O.S. ${pedido.senha_os || pedido.id}`}>
-    <strong>O.S. {pedido.senha_os || pedido.id}</strong><small>Até {pedido.mensagemEmHaver.dataExpiracao || 'data a confirmar'}</small><Icone tipo="seta" />
+    <strong>O.S. {pedido.senha_os || pedido.id}</strong><small>{pedido.mensagemEmHaver.semValidade ? 'Sem vencimento' : `Até ${pedido.mensagemEmHaver.dataExpiracao || 'data a confirmar'}`}</small><Icone tipo="seta" />
   </button>;
 }
 
@@ -85,7 +85,7 @@ function Mensagem({ pedido, numero, mes }) {
   </div>;
 }
 
-export default function FichaClienteVisao({ cliente, resumo, pedidosFonada, pedidosAoVivo, historico, acoes, nascimento, whatsappLink }) {
+export default function FichaClienteVisao({ cliente, resumo, pedidosFonada, pedidosAoVivo, historico, acoes, nascimento, whatsappLink, carteira }) {
   const { aba, filtros, atualizarFiltro, mudarAba, lista, pedidos, selecionado, abrirPedido } = historico;
   const iniciais = cliente.nome?.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(p => p[0]).join('') || '?';
   const criado = new Date(cliente.criado_em);
@@ -107,7 +107,7 @@ export default function FichaClienteVisao({ cliente, resumo, pedidosFonada, pedi
       <Metrica label="Total comprado" valor={reais(resumo.totalComprado)} detalhe={`Ticket médio ${reais(resumo.ticketMedio)}`} icone="dinheiro" tom="principal" />
       <Metrica label="Pedidos registrados" valor={resumo.total} detalhe={`${pedidosFonada.length} fonada · ${pedidosAoVivo.length} ao vivo`} icone="pessoa" />
       <Metrica label="A receber" valor={reais(resumo.valorPendente)} detalhe={resumo.pendentes.length ? `${resumo.pendentes.length} pedido(s) sem baixa${resumo.atrasadas.length ? ` · ${resumo.atrasadas.length} em atraso` : ''}` : 'Todos os pedidos recebidos'} icone="dinheiro" tom={resumo.valorPendente > 0 ? 'atencao' : ''} acao={acoes.verCobranca} />
-      <Metrica label="Última compra" valor={resumo.ultimoPedido?.data_pedido || 'Sem pedidos'} detalhe={resumo.ultimoPedido ? `${resumo.ultimoPedido.modalidade === 'fonada' ? 'Fonada' : 'Ao vivo'} · O.S. ${resumo.ultimoPedido.senha_os || resumo.ultimoPedido.numero_os || resumo.ultimoPedido.id}` : 'Pronto para o primeiro atendimento'} icone="agenda" />
+      <Metrica label="Última compra" valor={resumo.ultimoPedido?.data_pedido || 'Sem pedidos'} detalhe={resumo.ultimoPedido ? `${resumo.ultimoPedido.modalidade === 'creditos' ? 'Pacote de créditos' : resumo.ultimoPedido.modalidade === 'fonada' ? 'Fonada' : 'Ao vivo'} · O.S. ${resumo.ultimoPedido.senha_os || resumo.ultimoPedido.numero_os || resumo.ultimoPedido.id}` : 'Pronto para o primeiro atendimento'} icone="agenda" />
     </section>
     <div className="fc-workspace">
       <div className="fc-conteudo">
@@ -123,11 +123,12 @@ export default function FichaClienteVisao({ cliente, resumo, pedidosFonada, pedi
           {pedidos.length ? <><div className="fc-tabela-scroll"><table className="fc-tabela"><caption className="sr-only">Pedidos de {aba === 'fonada' ? 'Fonada' : 'Ao vivo'} do cliente</caption><thead><tr><th>Pedido / compra</th><th>{aba === 'fonada' ? 'Mensagens' : 'Entrega'}</th><th>Pagamento</th><th>Valor</th></tr></thead><tbody>{lista.itensVisiveis.map(p => <tr key={p.id} data-pedido-id={p.id} className={String(selecionado) === String(p.id) ? 'selecionado' : ''}>
             <td className="fc-pedido"><button type="button" onClick={() => abrirPedido(aba, p.id)} aria-label={`Abrir pedido ${p.senha_os || p.numero_os || p.id}`}><strong>#{p.senha_os || p.numero_os || p.id}</strong><Icone tipo="seta" /></button><small>Compra · {p.data_pedido || 'Não informada'}</small></td>
             <td className="fc-mensagens">{aba === 'fonada' ? <><Mensagem pedido={p} numero={1} mes={filtros.mes} />{(textoInformado(p.p2_para) || textoInformado(p.p2_dia) || textoInformado(p.p2_resultado) || p.mensagemEmHaver?.concedida) && <Mensagem pedido={p} numero={2} mes={filtros.mes} />}</> : <div className="fc-entrega"><strong>{p.para || 'Não informado'}</strong><small>{p.dia_entrega || 'Data não informada'}{p.horario_entrega && ` · ${p.horario_entrega}`}</small><Badge tom={String(p.resultado_entrega || '').startsWith('ENTREGUE') ? 'ok' : 'azul'}>{p.resultado_entrega ? String(p.resultado_entrega).startsWith('ENTREGUE') ? 'Entregue' : 'Não entregue' : p.dia_entrega ? 'Agendado' : 'Sem data'}</Badge></div>}</td>
-            <td className="fc-pagamento"><Badge tom={p.pagou === 'SIM' ? 'ok' : 'aviso'}>{p.pagou === 'SIM' ? 'Recebido' : 'A receber'}</Badge>{aba === 'aovivo' && <><small>{textoInformado(p.pagamento) || 'Forma não informada'}</small>{p.pagou !== 'SIM' && dataPedidoNumero(dataCobrancaPedido(p, aba)) != null && <small>Cobrança · {dataCobrancaPedido(p, aba)}</small>}</>}</td><td className="fc-valor"><strong>{reais(valorPedido(p))}</strong></td>
+            <td className="fc-pagamento"><Badge tom={p.pagou === 'SIM' ? 'ok' : 'aviso'}>{p.creditos_usados ? 'Pago com créditos' : p.pagou === 'SIM' ? 'Recebido' : 'A receber'}</Badge>{aba === 'aovivo' && <><small>{textoInformado(p.pagamento) || 'Forma não informada'}</small>{p.pagou !== 'SIM' && dataPedidoNumero(dataCobrancaPedido(p, aba)) != null && <small>Cobrança · {dataCobrancaPedido(p, aba)}</small>}</>}</td><td className="fc-valor"><strong>{p.creditos_usados ? `${p.creditos_usados} CRÉDITO(S)` : reais(valorPedido(p))}</strong></td>
           </tr>)}</tbody></table></div><BotaoMostrarMais temMais={lista.temMais} restantes={lista.restantes} onClick={lista.mostrarMais} /></> : <div className="fc-estado-vazio"><Icone tipo="agenda" /><h3>{temFiltros ? 'Nenhum pedido com esses filtros' : 'O histórico começa aqui'}</h3><p>{temFiltros ? 'Tente outra busca ou veja todos os pedidos desta modalidade.' : `Este cliente ainda não tem pedidos de ${aba === 'fonada' ? 'Fonada' : 'Ao vivo'}.`}</p><button type="button" className="btn secundario" onClick={temFiltros ? historico.limpar : aba === 'fonada' ? acoes.novaFonada : acoes.novoAoVivo} disabled={!temFiltros && Boolean(cliente.bloqueado)}>{temFiltros ? 'Ver todos os pedidos' : 'Criar primeiro pedido'}</button></div>}
         </section>
       </div>
       <aside className="fc-lateral" aria-label="Dados e contatos do cliente">
+        {carteira}
         <section className="fc-painel fc-contatos" id="fc-dados-cliente"><div className="fc-titulo-painel"><h2>Dados do cliente</h2><button type="button" className="fc-link" onClick={acoes.editar}><Icone tipo="editar" />Editar</button></div>
           <h3><Icone tipo="telefone" />Contato</h3><dl className="fc-dados">{[['WhatsApp', cliente.whatsapp], ['Celular', cliente.celular], ['Telefone fixo', cliente.fixo]].map(([label, v]) => <div key={label}><dt>{label}</dt><dd>{numeroWhatsAppBrasil(v) ? <a href={`tel:+${numeroWhatsAppBrasil(v)}`}>{v}</a> : textoInformado(v) || <span className="fc-nao-informado">Não informado</span>}</dd></div>)}<div><dt>Nascimento</dt><dd>{nascimento || <span className="fc-nao-informado">Não informado</span>}</dd></div></dl>
           <div className="fc-contato-acoes">{whatsappLink && <a href={whatsappLink} target="_blank" rel="noreferrer" className="fc-whatsapp"><Icone tipo="telefone" />Abrir WhatsApp</a>}{numeroWhatsAppBrasil(telefone) && <button type="button" className="fc-copiar" onClick={() => acoes.copiarContato(telefone)}>Copiar telefone</button>}</div>

@@ -30,7 +30,7 @@ function timestamp() {
 }
 
 const TABELAS_BACKUP = [
-  'usuarios', 'clientes', 'fonadas', 'ao_vivo',
+  'usuarios', 'clientes', 'fonadas', 'ao_vivo', 'creditos_fonada',
   'tentativas_contato', 'tentativas_prazo_ao_vivo', 'lembretes',
   'recall_registros', 'duplicatas_descartadas', 'contadores_os', 'configuracoes_sistema',
 ];

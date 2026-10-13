@@ -1,0 +1,29 @@
+.carteira-fonada { padding: 16px; border: 1px solid #b8dfcf; background: #f3fbf7; color: #245947; }
+.carteira-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.carteira-topo span { font-size: 10px; font-weight: 800; letter-spacing: .04em; }
+.carteira-topo strong { display: block; font-size: 25px; line-height: 1.3; margin-top: 4px; }
+.carteira-topo strong small { font-size: 12px; font-weight: 600; }
+.carteira-validade { color: #26775b; white-space: nowrap; border-radius: 6px; padding: 5px 6px; background: #dff2e8; }
+.carteira-acoes { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.carteira-usar { background: #e2f3e9; border-color: #acd1bd; color: #1d674c; }
+.carteira-historico { margin-top: 12px; font-size: 11px; }
+.carteira-historico summary { cursor: pointer; font-weight: 700; }
+.carteira-historico ol { list-style: none; padding: 0; margin: 8px 0 0; max-height: 320px; overflow: auto; }
+.carteira-historico li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 0; border-top: 1px solid #d3e8de; }
+.carteira-historico small { display: block; font-size: 10px; line-height: 1.7; color: #526f62; }
+.credito-entrada { color: #1b7655; }
+.dialogo-creditos { max-width: 520px; }
+.credito-campos { display: grid; gap: 14px; }
+.credito-campos label { display: grid; gap: 6px; font-size: 12px; font-weight: 700; }
+.credito-campos input, .credito-campos select { width: 100%; min-height: 40px; padding: 10px 12px; border: 1px solid #d2def0; border-radius: 8px; background: #f7f9fc; color: var(--tinta); font: inherit; font-weight: 500; }
+.credito-campos input:focus-visible, .credito-campos select:focus-visible { outline: 2px solid #2763c1; outline-offset: 2px; }
+.credito-previa { display: grid; gap: 6px; padding: 14px; margin-top: 16px; background: #edf8f2; border-radius: 10px; font-size: 13px; color: #255942; }
+.credito-previa span, .credito-explicacao { font-size: 12px; line-height: 1.6; }
+.credito-explicacao { color: var(--tinta-suave); }
+.fonada-creditos { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 12px 16px; margin-bottom: 16px; border: 1px solid #b8dfcf; background: #f3fbf7; border-radius: 12px; color: #245947; }
+.fonada-creditos label { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 13px; }
+.fonada-creditos input[type=checkbox] { width: 16px; height: 16px; margin: 0; }
+.fonada-creditos small { font-size: 11px; }
+.fonada-creditos select { width: auto; }
+.cr-carteira { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 10px 12px; margin-top: 12px; border: 1px solid #b8dfcf; border-radius: 9px; background: #f0faf4; color: #245947; text-align: left; font-size: 12px; }
+.cr-carteira small { display: block; margin-top: 3px; font-size: 10px; }

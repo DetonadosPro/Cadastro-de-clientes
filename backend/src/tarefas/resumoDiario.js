@@ -88,12 +88,12 @@ async function montarResumoDoDia() {
   const hoje = hojeBr(); // Troque por 'DD/MM/AA' se for fazer testes
   const hojeChave = paraChaveComparavel(hoje);
 
-  const [fonadasResultado, aoVivoResultado] = await Promise.all([
+  const [fonadasResultado, aoVivoResultado, financeiroResultado] = await Promise.all([
     db.query(`
       SELECT id, senha_os, nome_comprador, data_pedido, comprador_whatsapp, comprador_celular,
              p1_dia, p1_horario, p1_para, p1_tema, p1_fixo, p1_celular, p1_quem_oferece, p1_resultado,
              p2_dia, p2_horario, p2_para, p2_tema, p2_fixo, p2_celular, p2_quem_oferece, p2_resultado,
-             valor, cobranca, periodo, pagou, recebi, data_pagamento
+             valor, creditos_usados, cobranca, periodo, pagou, recebi, data_pagamento
       FROM fonadas WHERE excluido_em IS NULL
     `),
     db.query(`
@@ -103,12 +103,13 @@ async function montarResumoDoDia() {
              forma_recebimento, resultado_entrega, entregue_por
       FROM ao_vivo WHERE excluido_em IS NULL
     `),
+    db.query(`SELECT * FROM financeiro_fonada WHERE excluido_em IS NULL`),
   ]);
 
   // --- FONADA ---
   const fonadas = fonadasResultado.rows;
-  const fonadasVendidasHoje = fonadas.filter((l) => paraChaveComparavel(l.data_pedido) === hojeChave);
-  const fonadasRecebidasHoje = fonadas.filter((l) => paraChaveComparavel(l.data_pagamento) === hojeChave && l.pagou === 'SIM');
+  const fonadasVendidasHoje = financeiroResultado.rows.filter((l) => paraChaveComparavel(l.data_pedido) === hojeChave);
+  const fonadasRecebidasHoje = financeiroResultado.rows.filter((l) => paraChaveComparavel(l.data_pagamento) === hojeChave && l.pagou === 'SIM');
   const fonadasPendentesHoje = fonadasVendidasHoje.filter((l) => l.pagou !== 'SIM');
 
   const resumoFonada = {

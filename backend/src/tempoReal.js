@@ -10,14 +10,16 @@ let conexoesDescartadasPorPressao = 0;
 const RELACIONADOS = {
   configuracoes: ['configuracoes', 'fonadas', 'clientes', 'agenda', 'recall'],
   'ao-vivo': ['ao-vivo', 'agenda', 'cobranca', 'relatorios', 'recall'],
-  fonadas: ['fonadas', 'agenda', 'cobranca', 'relatorios', 'recall'],
+  fonadas: ['fonadas', 'clientes', 'agenda', 'cobranca', 'relatorios', 'recall'],
   clientes: ['clientes', 'recall'],
+  creditos: ['clientes', 'fonadas', 'relatorios'],
   agenda: ['agenda', 'fonadas'],
   cobranca: ['cobranca', 'ao-vivo', 'fonadas', 'relatorios'],
   recall: ['recall'],
 };
 
 function topicoDaRota(caminho = '') {
+  if (/\/clientes\/\d+\/creditos(?:[/?]|$)/.test(caminho)) return 'creditos';
   return String(caminho).replace(/^\/api\//, '').split(/[/?]/)[0] || 'sistema';
 }
 

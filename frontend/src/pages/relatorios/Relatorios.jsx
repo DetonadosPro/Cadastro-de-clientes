@@ -137,7 +137,7 @@ function PedidosPeriodo({dados,tipo}) {
     </div>
     <div className="rel-table-scroll rel-orders-scroll" inert={carregando?'':undefined}><table className="rel-orders-table"><thead><tr><th>{tipo==='recebimentos'?'Data do recebimento':'Data da venda'}</th><th>O.S.</th><th>Cliente</th><th>Modalidade</th><th>Forma</th><th>{tipo==='recebimentos'?'Recebido':'Vendido'}</th><th>Pagamento</th></tr></thead><tbody>{itens.map(item=><tr key={`${item.sistema}-${item.id}`}>
       <td data-label="Data">{item.data}</td>
-      <td data-label="O.S."><button type="button" className="rel-order-link" title="Abrir pedido" onClick={()=>navegar(item.sistema==='FONADA'?`/fonada/${item.id}`:`/ao-vivo/${item.id}`,{state:{returnTo:`/relatorios${window.location.search}`}})}>{item.os}</button></td>
+      <td data-label="O.S."><button type="button" className="rel-order-link" title={item.tipoRegistro === 'CREDITOS' ? 'Abrir carteira do cliente' : 'Abrir pedido'} disabled={item.tipoRegistro === 'CREDITOS' && !item.rota} onClick={()=>navegar(item.rota || (item.sistema==='FONADA'?`/fonada/${item.id}`:`/ao-vivo/${item.id}`),{state:{returnTo:`/relatorios${window.location.search}`}})}>{item.os}</button></td>
       <td data-label="Cliente" className="rel-record-client"><strong>{item.nome||'Cliente não informado'}</strong></td>
       <td data-label="Modalidade"><span className={`rel-record-system ${item.sistema==='FONADA'?'fonada':'aovivo'}`}>{item.sistema==='FONADA'?'Fonada':'Ao Vivo'}</span></td>
       <td data-label="Forma">{item.forma||'Não informada'}</td>

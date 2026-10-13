@@ -15,6 +15,7 @@ const { db, pool, unaccentEstaDisponivel } = require('../db/database');
 const { formatarDataBrasilia } = require('../utils/dataHora');
 const { situacaoSegundaMensagem, dataBrParaDate } = require('../utils/mensagemEmHaver');
 const { DATA_PEDIDO_ORDENACAO_SQL } = require('../utils/dataPedidoSql');
+const { carteira, comprarCreditos } = require('../utils/creditosFonada');
 
 const router = express.Router();
 router.param('id', (req, res, next, id) => {
@@ -525,6 +526,9 @@ router.post('/mesclar-automatico', async (req, res) => {
     const perdedor = aVence ? clienteB : clienteA;
 
     await client.query('BEGIN');
+    const ativos = await client.query('SELECT id FROM clientes WHERE id IN ($1, $2) AND excluido_em IS NULL ORDER BY id FOR UPDATE', [vencedor.id, perdedor.id]);
+    if (ativos.rows.length !== 2) { await client.query('ROLLBACK'); return res.status(409).json({ erro: 'Um dos clientes foi alterado. Recarregue antes de mesclar.' }); }
+    await client.query('UPDATE creditos_fonada SET cliente_id = $1 WHERE cliente_id = $2', [vencedor.id, perdedor.id]);
     await client.query('UPDATE fonadas SET cliente_id = $1, versao = versao + 1 WHERE cliente_id = $2', [vencedor.id, perdedor.id]);
     await client.query('UPDATE ao_vivo SET cliente_id = $1, versao = versao + 1 WHERE cliente_id = $2', [vencedor.id, perdedor.id]);
 
@@ -593,19 +597,24 @@ router.get('/:id/resumo', async (req, res) => {
         SELECT id, 'Fonada' AS tipo, senha_os AS os, data_pedido, valor, pagou,
                '/fonada/' || id AS rota, criado_em,
                ${DATA_PEDIDO_ORDENACAO_SQL} AS data_compra_ordem
-        FROM fonadas WHERE cliente_id = $1 AND excluido_em IS NULL
+        FROM fonadas WHERE cliente_id = $1 AND excluido_em IS NULL AND creditos_usados = 0
         UNION ALL
         SELECT id, 'Ao vivo' AS tipo, numero_os AS os, data_pedido, valor, pagou,
                '/ao-vivo/' || id AS rota, criado_em,
                ${DATA_PEDIDO_ORDENACAO_SQL} AS data_compra_ordem
         FROM ao_vivo WHERE cliente_id = $1 AND excluido_em IS NULL
+        UNION ALL
+        SELECT id, 'Créditos Fonada' AS tipo, senha_os AS os, data_pedido, valor, pagou,
+               rota, NULL::timestamp AS criado_em,
+               ${DATA_PEDIDO_ORDENACAO_SQL} AS data_compra_ordem
+        FROM financeiro_fonada WHERE cliente_id = $1 AND tipo_registro = 'CREDITOS'
       ) compras
       ORDER BY data_compra_ordem DESC NULLS LAST, criado_em DESC, id DESC
       LIMIT 5
     `, [req.params.id]);
 
     const haverResultado = await db.query(`
-      SELECT id, valor, senha_os, data_pedido, p1_fixo, p1_celular,
+      SELECT id, valor, creditos_usados, senha_os, data_pedido, p1_fixo, p1_celular,
              p2_dia, p2_para, p2_tema, p2_mensagem, p2_fixo, p2_celular,
              p2_horario, p2_quem_oferece, p2_resultado
       FROM fonadas
@@ -623,14 +632,17 @@ router.get('/:id/resumo', async (req, res) => {
         tema: pedido.p2_tema || null,
         destinatario: pedido.p2_para || null,
         dataExpiracao: situacao.dataExpiracao,
+        semValidade: situacao.semValidade,
         status: situacao.status,
         rota: `/fonada/${pedido.id}`,
       }] : [];
     }).sort((a, b) => (dataBrParaDate(a.dataExpiracao)?.getTime() ?? Infinity) - (dataBrParaDate(b.dataExpiracao)?.getTime() ?? Infinity) || a.id - b.id);
 
+    const creditos = await carteira(db, cliente.id, false);
     res.json({
       cliente,
-      resumo: resumoResultado.rows[0],
+      creditos,
+      resumo: { ...resumoResultado.rows[0], total_comprado: Number(resumoResultado.rows[0].total_comprado) + creditos.valor_comprado },
       ultimasCompras: recentesResultado.rows,
       mensagensEmHaver,
     });
@@ -647,13 +659,14 @@ router.get('/:id', async (req, res) => {
     const cliente = clienteResultado.rows[0];
     if (!cliente) return res.status(404).json({ erro: 'Cliente não encontrado.' });
 
-    if (req.query.historico === 'nao') return res.json({ cliente });
+    const creditos = await carteira(db, cliente.id, req.query.historico !== 'nao');
+    if (req.query.historico === 'nao') return res.json({ cliente, creditos });
 
     const pedidosFonadaResultado = await db.query(`
       SELECT id, senha_os, data_pedido, p1_dia, p1_horario, p1_para, p1_fixo, p1_celular, p1_resultado, p1_passada_por,
              p2_dia, p2_para, p2_tema, p2_mensagem, p2_fixo, p2_celular, p2_horario,
              p2_quem_oferece, p2_resultado, p2_passada_por,
-             valor, pagou, cobranca, cobranca_reagendada, periodo, data_pagamento, status, criado_em
+             valor, creditos_usados, pagou, cobranca, cobranca_reagendada, periodo, data_pagamento, status, criado_em
       FROM fonadas WHERE cliente_id = $1 AND excluido_em IS NULL ORDER BY id DESC
     `, [req.params.id]);
 
@@ -670,11 +683,32 @@ router.get('/:id', async (req, res) => {
         mensagemEmHaver: situacaoSegundaMensagem(pedido),
       })),
       pedidosAoVivo: pedidosAoVivoResultado.rows,
+      creditos,
     });
   } catch (erro) {
     console.error('Erro ao buscar cliente:', erro);
     res.status(500).json({ erro: 'Erro ao buscar cliente.' });
   }
+});
+
+router.get('/:id/creditos', async (req, res) => {
+  try { res.json(await carteira(db, req.params.id)); }
+  catch (erro) { res.status(500).json({ erro: 'Não foi possível consultar os créditos.' }); }
+});
+
+router.post('/:id/creditos', async (req, res) => {
+  let client;
+  try {
+    client = await pool.connect();
+    await client.query('BEGIN');
+    const resultado = await comprarCreditos(client, req.params.id, req.body, req.usuario.usuario);
+    await client.query('COMMIT');
+    res.status(201).json(resultado);
+  } catch (erro) {
+    if (client) await client.query('ROLLBACK');
+    if (!erro.status) console.error('Erro ao adicionar créditos:', erro);
+    res.status(erro.status || (erro.code === '23505' ? 409 : 500)).json({ erro: erro.status ? erro.message : 'Não foi possível adicionar os créditos. Confira o histórico antes de tentar novamente.' });
+  } finally { client?.release(); }
 });
 
 // POST /api/clientes
@@ -896,6 +930,11 @@ router.delete('/:id/definitivo', async (req, res) => {
     }
 
     await client.query('BEGIN');
+    await client.query('SELECT id FROM clientes WHERE id = $1 FOR UPDATE', [req.params.id]);
+    if ((await carteira(client, req.params.id, false)).saldo > 0) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ erro: 'Este cliente possui créditos de Fonada. Restaure ou mescle o cadastro para preservar o saldo antes de excluir definitivamente.' });
+    }
     await client.query('DELETE FROM fonadas WHERE cliente_id = $1', [req.params.id]);
     await client.query('DELETE FROM ao_vivo WHERE cliente_id = $1', [req.params.id]);
     await client.query('DELETE FROM clientes WHERE id = $1', [req.params.id]);
@@ -963,6 +1002,7 @@ router.post('/:id/mesclar', async (req, res) => {
         [...camposFinais.map((campo) => dadosFinais[campo] || null), destinoId]
       );
     }
+    await client.query('UPDATE creditos_fonada SET cliente_id = $1 WHERE cliente_id = $2', [destinoId, origemId]);
     await client.query('UPDATE fonadas SET cliente_id = $1, versao = versao + 1 WHERE cliente_id = $2', [destinoId, origemId]);
     await client.query('UPDATE ao_vivo SET cliente_id = $1, versao = versao + 1 WHERE cliente_id = $2', [destinoId, origemId]);
 

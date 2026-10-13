@@ -391,6 +391,7 @@ async function iniciarBanco() {
   for (const { tabela, coluna, tipo } of colunasNovas) {
     await pool.query(`ALTER TABLE ${tabela} ADD COLUMN IF NOT EXISTS ${coluna} ${tipo}`);
   }
+  await require('../utils/creditosFonada').criarEstruturaCreditos(pool);
 
   // Antes da central financeira, os pedidos Ao Vivo à vista eram
   // considerados recebidos quando a entrega era marcada. Preserva esse

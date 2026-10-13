@@ -16,7 +16,7 @@ export function vendasFonadaDoDia(pedidos = [], data) {
   const dia = diaVenda(data);
   if (!dia) return [];
   // A data de envio (primeira ou segunda mensagem) não define uma venda.
-  return pedidos.filter(pedido => !pedido.excluido_em && diaVenda(pedido.data_pedido) === dia);
+  return pedidos.filter(pedido => !pedido.excluido_em && !pedido.creditos_usados && diaVenda(pedido.data_pedido) === dia);
 }
 
 function centavos(pedido) {

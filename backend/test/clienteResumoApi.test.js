@@ -20,6 +20,7 @@ const haver = [
 require.cache[caminhoBanco] = { id: caminhoBanco, filename: caminhoBanco, loaded: true, exports: { db: { query: async (sql, valores) => {
   consultas.push({ sql, valores });
   if (sql.startsWith('SELECT * FROM clientes')) return { rows: valores[0] === '1' ? [{ id: 1, nome: 'MARIA', bloqueado: false }] : [] };
+  if (sql.includes('FROM creditos_fonada')) return { rows: [{ saldo: 6, comprados: 6, usados: 0, valor_comprado: 72, compras: 1 }] };
   if (sql.includes('AS total_pedidos')) return { rows: [{ total_pedidos: 50, total_fonada: 40, total_aovivo: 10, pedidos_pendentes: 3, total_comprado: '700.00', valor_pendente: '60.00' }] };
   if (sql.includes('LIMIT 5')) return { rows: Array.from({ length: 5 }, (_, i) => ({ id: i + 20, tipo: 'Fonada', os: String(i + 120), data_pedido: '10/10/26', valor: 12, pagou: i ? '' : 'SIM' })) };
   return { rows: haver };
@@ -35,21 +36,22 @@ test('resumo entrega totais globais, pagamento e somente haver disponível em or
     assert.equal(resposta.status, 200);
     const dados = await resposta.json();
     assert.equal(dados.resumo.total_pedidos, 50);
-    assert.equal(dados.resumo.total_comprado, '700.00');
+    assert.equal(dados.resumo.total_comprado, 772);
+    assert.equal(dados.creditos.saldo, 6);
     assert.equal(dados.resumo.pedidos_pendentes, 3);
     assert.equal(dados.ultimasCompras.length, 5);
     assert.equal(dados.ultimasCompras[0].pagou, 'SIM');
     assert.deepEqual(dados.mensagensEmHaver.map(p => p.id), [1, 3, 4]);
     assert.equal(dados.mensagensEmHaver[0].dataExpiracao, '10/10/2026');
     assert.equal(dados.mensagensEmHaver[0].rota, '/fonada/1');
-    assert.equal(consultas.length, 4);
-    assert.ok(consultas.every(c => c.valores[0] === '1' && /^\s*SELECT\b/.test(c.sql)));
+    assert.equal(consultas.length, 5);
+    assert.ok(consultas.every(c => String(c.valores[0]) === '1' && /^\s*SELECT\b/.test(c.sql)));
     const agregacao = consultas.find(c => c.sql.includes('AS total_pedidos')).sql;
     assert.match(agregacao, /SUM\(valor\), 0\) AS total_comprado/);
     assert.match(agregacao, /COUNT\(\*\) FILTER \(WHERE COALESCE\(pagou, ''\) != 'SIM'\)::integer AS pedidos_pendentes/);
     assert.equal((agregacao.match(/excluido_em IS NULL/g) || []).length, 2);
     const recentes = consultas.find(c => c.sql.includes('LIMIT 5')).sql;
-    assert.equal((recentes.match(/valor, pagou/g) || []).length, 2);
+    assert.equal((recentes.match(/valor, pagou/g) || []).length, 3);
     assert.equal((await fetch(`${base}/clientes/2/resumo`)).status, 404);
     assert.equal((await fetch(`${base}/clientes/0/resumo`)).status, 400);
   } finally { await new Promise(resolve => server.close(resolve)); }

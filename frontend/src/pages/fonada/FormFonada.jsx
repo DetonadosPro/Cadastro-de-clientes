@@ -12,8 +12,10 @@ import { numeroWhatsAppBrasil } from '../../utils/telefoneWhatsApp.js';
 import { camposMensagemRecall } from '../../utils/pedidoRecall.js';
 import { useConfiguracoes } from '../../ConfiguracoesContext.jsx';
 import './pagamento-registro.css';
+import '../../creditos-fonada.css';
 
 const VAZIO = {
+  creditos_usados: 0, credito_operacao: '',
   senha_os: '', cliente_id: null, data_pedido: '', horario_pedido: '', nascimento: '', tipo: '', recall: 'NÃO', recall_codigo: '',
   p1_dia: '', p1_para: '', p1_tema: '', p1_mensagem: '', p1_fixo: '', p1_celular: '', p1_horario: '', p1_quem_oferece: '', p1_resultado: '',
   p2_dia: '', p2_para: '', p2_tema: '', p2_mensagem: '', p2_fixo: '', p2_celular: '', p2_horario: '', p2_quem_oferece: '', p2_resultado: '',
@@ -107,6 +109,7 @@ export default function FormFonada() {
   const { id } = useParams();
   const { configuracoes, erro: erroConfiguracoes, carregando: carregandoConfiguracoes, recarregar: recarregarConfiguracoes } = useConfiguracoes();
   function segundaMensagemLiberada(dados) {
+    if (dados.creditos_usados > 0) return dados.creditos_usados === 2;
     return !!configuracoes && String(dados.valor || '').trim() !== '' && Math.round(valorMonetarioParaNumero(dados.valor) * 100) <= Math.round(configuracoes.limite_segunda_mensagem * 100);
   }
   const [searchParams] = useSearchParams();
@@ -204,6 +207,23 @@ export default function FormFonada() {
   const [dados, setDados] = useState(VAZIO);
   const [mensagemEmHaver, setMensagemEmHaver] = useState(null);
   const [cliente, setCliente] = useState(null);
+  const [carteira, setCarteira] = useState(null);
+  const [erroCreditos, setErroCreditos] = useState('');
+  async function carregarCreditos(clienteId) {
+    try { setCarteira(await api.clientes.creditos(clienteId)); setErroCreditos(''); }
+    catch (err) { setErroCreditos(err.message); }
+  }
+  useEffect(() => {
+    let ativo = true; setCarteira(null); setErroCreditos('');
+    if (dados.cliente_id) api.clientes.creditos(dados.cliente_id)
+      .then(resp => { if (ativo) setCarteira(resp); })
+      .catch(err => { if (ativo) setErroCreditos(err.message); });
+    return () => { ativo = false; };
+  }, [dados.cliente_id, chaveRascunho]);
+  function selecionarCreditos(quantidade) {
+    const novo = { ...dados, creditos_usados: quantidade, credito_operacao: dados.credito_operacao || crypto.randomUUID() };
+    setDados(novo); salvarRascunhoFonada(chaveRascunho, novo, cliente);
+  }
   const [tentativas, setTentativas] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [salvando, setSalvando] = useState(false);
@@ -242,6 +262,7 @@ export default function FormFonada() {
         const normalizado = { ...VAZIO };
         Object.keys(VAZIO).forEach((campo) => { normalizado[campo] = pedido[campo] ?? ''; });
         normalizado.valor = numeroParaValorMonetario(pedido.valor);
+        normalizado.creditos_usados = Number(pedido.creditos_usados || 0);
         normalizado.versao = pedido.versao;
         setDados(normalizado);
         setMensagemEmHaver(pedido.mensagemEmHaver || null);
@@ -302,6 +323,8 @@ export default function FormFonada() {
           const { data, horario } = dataHoraAtual();
           const inicial = {
             ...VAZIO,
+            creditos_usados: searchParams.get('usarCredito') === '1' ? 1 : 0,
+            credito_operacao: crypto.randomUUID(),
             cliente_id: Number(clienteIdUrl),
             data_pedido: data,
             horario_pedido: horario,
@@ -326,6 +349,7 @@ export default function FormFonada() {
         const normalizado = { ...VAZIO };
         Object.keys(VAZIO).forEach((campo) => { normalizado[campo] = pedido[campo] ?? ''; });
         normalizado.valor = numeroParaValorMonetario(pedido.valor);
+        normalizado.creditos_usados = Number(pedido.creditos_usados || 0);
         normalizado.versao = pedido.versao;
         setDados(normalizado);
         setMensagemEmHaver(pedido.mensagemEmHaver || null);
@@ -473,7 +497,7 @@ export default function FormFonada() {
   }
 
   function limpar() {
-    const preservado = { ...VAZIO, cliente_id: dados.cliente_id, senha_os: dados.senha_os };
+    const preservado = { ...VAZIO, cliente_id: dados.cliente_id, senha_os: dados.senha_os, creditos_usados: dados.creditos_usados, credito_operacao: dados.credito_operacao };
     setDados(preservado);
     salvarRascunhoFonada(chaveRascunho, preservado, cliente);
   }
@@ -495,7 +519,8 @@ export default function FormFonada() {
     // desabilitado), mas ao clicar sem preencher, avisa e destaca
     // visualmente o primeiro campo faltando, em vez de deixar salvar
     // silenciosamente incompleto.
-    const camposObrigatorios = [
+    if (dados.creditos_usados && !editando && (!carteira || Number(carteira.saldo || 0) < dados.creditos_usados)) { setErro('Saldo de créditos insuficiente. Adicione créditos na ficha do cliente ou selecione venda normal.'); return; }
+    const camposObrigatorios = dados.creditos_usados ? [] : [
       { campo: 'valor', rotulo: 'Valor' },
       { campo: 'cobranca', rotulo: 'Cobrar dia' },
       { campo: 'periodo', rotulo: 'Período' },
@@ -508,7 +533,7 @@ export default function FormFonada() {
       }
     }
 
-    if (!Number.isFinite(valorMonetarioParaNumero(dados.valor)) || valorMonetarioParaNumero(dados.valor) < 0 || valorMonetarioParaNumero(dados.valor) >= 100) {
+    if (!dados.creditos_usados && (!Number.isFinite(valorMonetarioParaNumero(dados.valor)) || valorMonetarioParaNumero(dados.valor) < 0 || valorMonetarioParaNumero(dados.valor) >= 100)) {
       apontarCampo('valor', 'O valor da Fonada deve estar entre R$ 0,00 e R$ 99,99.');
       return;
     }
@@ -546,7 +571,7 @@ export default function FormFonada() {
         setConfirmacaoDatasPassadas(datasPassadas.map(({ rotulo, campo }) => ({ rotulo, data: dados[campo] })));
         return;
       }
-      const payload = { ...dados, valor: valorMonetarioParaNumero(dados.valor) };
+      const payload = { ...dados, valor: valorMonetarioParaNumero(dados.valor), ...(dados.creditos_usados ? { valor: 0, cobranca: '', periodo: 'CRÉDITOS', pagou: 'SIM' } : {}) };
       if (!segundaMensagemLiberada(dados)) {
         const original = editando ? await api.fonada.buscar(id) : {};
         for (const campo of Object.keys(VAZIO).filter((campo) => campo.startsWith('p2_'))) payload[campo] = original[campo] || '';
@@ -578,7 +603,7 @@ export default function FormFonada() {
         }
         limparRascunhoFonada(chaveRascunho);
         mostrarToast(recallAtualizado ? 'Pedido salvo com sucesso.' : 'Pedido salvo. O status do Recall precisa ser conferido.', recallAtualizado ? 'sucesso' : 'aviso');
-        navigate(`/fonada/${novo.id}`, { replace: true, state: recallRelacaoUrl ? { returnTo: `/recall?data=${recallDataUrl}` } : undefined });
+        navigate(`/fonada/${novo.id}`, { replace: true, state: recallRelacaoUrl ? { returnTo: `/recall?data=${recallDataUrl}` } : location.state?.returnTo ? { returnTo: location.state.returnTo } : undefined });
       }
     } catch (err) {
       const campo = err.campo || ['p1_dia','p2_dia','cobranca','periodo','valor'].find(c => err.message?.includes(c)) || (/segunda mensagem/i.test(err.message) ? 'p2_dia' : null);
@@ -592,7 +617,7 @@ export default function FormFonada() {
   }
 
   async function apagar() {
-    if (!confirm('Tem certeza que deseja excluir este pacote? Essa ação não pode ser desfeita.')) return;
+    if (!confirm(dados.creditos_usados ? 'Excluir este pedido? Os créditos foram descontados definitivamente ao salvar e não serão devolvidos.' : 'Tem certeza que deseja excluir este pacote? Essa ação não pode ser desfeita.')) return;
     try {
       await api.fonada.apagar(id);
       if (cliente) navigate(`/clientes/${cliente.id}`);
@@ -657,6 +682,15 @@ export default function FormFonada() {
           {cliente.bloqueio_motivo && <> Motivo: {cliente.bloqueio_motivo}</>}
         </div>
       )}
+      {(!editando || dados.creditos_usados > 0) && <div className="fonada-creditos">
+        {editando ? <strong>PAGO COM {dados.creditos_usados} CRÉDITO(S) · SEM VENCIMENTO</strong> : <>
+          <label><input type="checkbox" checked={dados.creditos_usados > 0} disabled={!carteira || estaBloqueado} onChange={e => selecionarCreditos(e.target.checked ? 1 : 0)} />Usar créditos de Fonada</label>
+          {dados.creditos_usados > 0 && <select aria-label="Mensagens com créditos" value={dados.creditos_usados} onChange={e => selecionarCreditos(Number(e.target.value))}><option value={1}>1 mensagem · 1 crédito</option><option value={2}>2 mensagens · 2 créditos</option></select>}
+          <strong>{carteira ? `${Number(carteira.saldo || 0)} disponíveis` : 'Consultando saldo…'}</strong><button type="button" className="btn-small" onClick={() => carregarCreditos(dados.cliente_id)}>Atualizar saldo</button>
+        </>}
+        <small>{editando ? 'Alterar ou reagendar não desconta novamente.' : dados.creditos_usados ? `Desconto definitivo ao salvar. Saldo restante: ${Math.max(0, Number(carteira?.saldo || 0) - dados.creditos_usados)}. Sem nova cobrança.` : 'Cada crédito vale uma mensagem, sem vencimento.'}</small>
+        {erroCreditos && <><span role="alert">{erroCreditos}</span><button type="button" className="btn-small" onClick={() => carregarCreditos(dados.cliente_id)}>Consultar novamente</button></>}
+      </div>}
       <div className={`form-layout ${estaBloqueado ? 'form-bloqueado' : ''}`}>
 
         <div>
@@ -672,7 +706,7 @@ export default function FormFonada() {
               <ColunaMensagem
                 numero={2} dados={dados} set={set} setComMascara={setComMascara} onCopiar={copiarEntreMensagens}
                 bloqueada={!segundaLiberada || segundaExpirada} editando={editando}
-                situacaoMensagem={!segundaLiberada ? { status: 'NAO_CONCEDIDA' } : mensagemEmHaver?.status === 'NAO_CONCEDIDA' ? null : mensagemEmHaver}
+                situacaoMensagem={dados.creditos_usados === 2 ? { status: dados.p2_resultado ? 'UTILIZADA' : 'DISPONIVEL', semValidade: true } : !segundaLiberada ? { status: 'NAO_CONCEDIDA' } : mensagemEmHaver?.status === 'NAO_CONCEDIDA' ? null : mensagemEmHaver}
                 salvandoBaixa={salvandoBaixa} onDarBaixa={darBaixaMensagem} onNaoAtendeu={abrirRemarcarMensagem}
               />
             </div>
@@ -681,14 +715,15 @@ export default function FormFonada() {
           <div className="grade grade-comprador-lateral">
             <div className="section-box">
               <div className="form-row">
-                <label>Valor R$:</label>
+                <label>{dados.creditos_usados ? 'Créditos:' : 'Valor R$:'}</label>
                 <input
                   aria-label="Valor do pedido Fonada"
                   ref={refValor}
                   type="text"
                   inputMode="numeric"
                   className="input-valor-destaque"
-                  value={dados.valor}
+                  value={dados.creditos_usados ? `${dados.creditos_usados} MSG` : dados.valor}
+                  readOnly={dados.creditos_usados > 0}
                   onChange={(e) => { set('valor', formatarValorMonetario(e.target.value)); setCampoObrigatorioFaltando(null); }}
                   placeholder="0,00"
                   style={{
@@ -697,7 +732,7 @@ export default function FormFonada() {
                   }}
                 />
               </div>
-              <div className="form-row">
+              {!dados.creditos_usados && <><div className="form-row">
                 <label style={{ minWidth: 'auto' }}>Cob. dia:</label>
                 <CampoData
                   aria-label="Dia da cobrança Fonada"
@@ -724,6 +759,7 @@ export default function FormFonada() {
                   }}
                 />
               </div>
+              </>}
               <div className="form-row" style={{ marginBottom: 0 }}>
                 <label style={{ minWidth: 'auto' }}>Recall:</label>
                 <select
@@ -897,7 +933,7 @@ export default function FormFonada() {
 
           <div className="section-box section-box-somente-leitura pf-resumo-pedido pf-pagamento">
             <div className="section-title">Pagamento</div>
-            <div className="pf-pagamento-status"><span className={`tag ${dados.pagou === 'SIM' ? 'ok' : 'pendente'}`}>{dados.pagou === 'SIM' ? 'Pago' : 'A receber'}</span></div>
+            <div className="pf-pagamento-status"><span className={`tag ${dados.creditos_usados || dados.pagou === 'SIM' ? 'ok' : 'pendente'}`}>{dados.creditos_usados ? 'Pago com créditos' : dados.pagou === 'SIM' ? 'Pago' : 'A receber'}</span></div>
             <InfoLinha label="Data do pagamento" valor={dados.data_pagamento} />
             <InfoLinha label="Status" valor={dados.recebi} />
           </div>
@@ -996,7 +1032,7 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
         <span className={`bolinha-status ${dados[`${p}_dia`] ? 'usada' : 'livre'}`} /> {numero}ª mensagem
         {numero === 2 && situacaoMensagem && (
           <span className={`tag ${situacaoMensagem.status === 'DISPONIVEL' ? 'ok' : situacaoMensagem.status === 'EXPIRADA' ? 'pendente' : 'neutro'}`} style={{ marginLeft: 'auto' }}>
-            {situacaoMensagem.status === 'DISPONIVEL' ? `Disponível até ${situacaoMensagem.dataExpiracao}` : situacaoMensagem.status === 'UTILIZADA' ? 'Utilizada' : situacaoMensagem.status === 'EXPIRADA' ? `Expirada em ${situacaoMensagem.dataExpiracao}` : situacaoMensagem.status === 'NAO_CONCEDIDA' ? 'Segunda mensagem indisponível' : 'Indisponível'}
+            {situacaoMensagem.status === 'DISPONIVEL' ? situacaoMensagem.semValidade ? 'Crédito sem vencimento' : `Disponível até ${situacaoMensagem.dataExpiracao}` : situacaoMensagem.status === 'UTILIZADA' ? 'Utilizada' : situacaoMensagem.status === 'EXPIRADA' ? `Expirada em ${situacaoMensagem.dataExpiracao}` : situacaoMensagem.status === 'NAO_CONCEDIDA' ? 'Segunda mensagem indisponível' : 'Indisponível'}
           </span>
         )}
       </div>
