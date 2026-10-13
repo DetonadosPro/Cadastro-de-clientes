@@ -1,4 +1,5 @@
 .novo-cliente-workspace { max-width: 1360px; margin-inline: auto; }
+.admin-workspace.novo-cliente-workspace { text-transform: uppercase; }
 .novo-cliente-header-actions { display: flex; align-items: center; gap: 18px; }
 .novo-cliente-draft { display: flex; align-items: center; gap: 7px; font-size: 11px; color: #4d6b60; }
 .novo-cliente-draft svg { width: 17px; height: 17px; }
@@ -27,7 +28,8 @@
 .novo-cliente-address-fields { padding: 0 24px 24px; }
 .novo-cliente-address-line { display: grid; grid-template-columns: minmax(0, 1fr) 105px; gap: 16px; }
 .novo-cliente-address-line.detalhes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.novo-cliente-workspace .campo textarea { width: 100%; min-height: 80px; padding: 12px 14px; font-size: 14px; line-height: 1.7; font-family: inherit; color: #243650; background: #fbfcff; border: 1px solid #bfcde0; border-radius: 10px; resize: vertical; text-transform: none !important; }
+.novo-cliente-workspace .campo textarea { width: 100%; min-height: 80px; padding: 12px 14px; font-size: 14px; line-height: 1.7; font-family: inherit; color: #243650; background: #fbfcff; border: 1px solid #bfcde0; border-radius: 10px; resize: vertical; text-transform: uppercase !important; }
+.novo-cliente-workspace .campo input, .novo-cliente-workspace .campo select { text-transform: uppercase !important; }
 .novo-cliente-address-help { color: #5c6c83; font-size: 11px; line-height: 1.7; }
 .novo-cliente-savebar { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 22px 0 5px; }
 .novo-cliente-savebar > div:first-child { display: grid; gap: 5px; font-size: 12px; line-height: 1.6; }
