@@ -40,28 +40,32 @@
 .cliente-rapido .cr-ativo { background: #e2f4ee; color: #216448; }
 .cliente-rapido .cr-bloqueado { background: #fee9e9; color: #9f2929; }
 .cliente-rapido .cr-alerta { display: grid; gap: 3px; font-size: 12px; padding: 12px 14px; margin-bottom: 16px; border-radius: 12px; border: 1px solid #efc8c8; background: #fff3f3; color: #8e3030; overflow-wrap: anywhere; }
-.cliente-rapido .cr-contato { padding: 15px 16px 0; background: #fff; border: 1px solid var(--cr-linha); border-radius: 14px; margin-bottom: 16px; }
-.cliente-rapido .cr-contato-principal { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.cliente-rapido .cr-contato-principal > div { min-width: 0; }
-.cliente-rapido .cr-contato-principal span { display: block; font-size: 11px; color: var(--cr-suave); font-weight: 600; }
-.cliente-rapido .cr-contato-principal a, .cliente-rapido .cr-contato-principal strong { font-size: 18px; font-weight: 750; overflow-wrap: anywhere; color: var(--cr-texto); }
-.cliente-rapido .cr-contato-acoes { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
+.cliente-rapido .cr-contato { padding: 10px 12px 0; background: #fff; border: 1px solid var(--cr-linha); border-radius: 10px; margin-bottom: 10px; }
+.cliente-rapido .cr-contato-linha { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 8px; padding-bottom: 8px; }
+.cliente-rapido .cr-contato-principal { flex: 1; min-width: 120px; }
+.cliente-rapido .cr-contato-principal span { display: block; font-size: 10px; color: var(--cr-suave); font-weight: 600; }
+.cliente-rapido .cr-contato-principal a, .cliente-rapido .cr-contato-principal strong { font-size: 15px; font-weight: 750; overflow-wrap: anywhere; color: var(--cr-texto); }
+.cliente-rapido .cr-contato-acoes { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
 .cliente-rapido .cr-botao { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; padding: 9px 15px; border: 1px solid #cfdbeb; border-radius: 9px; background: #fff; color: #284e7f; font-size: 13px; line-height: 1.4; font-weight: 700; text-align: center; text-decoration: none; }
 .cliente-rapido .cr-botao:hover:not(:disabled) { background: #edf3fc; text-decoration: none; }
 .cliente-rapido .cr-botao.cr-whatsapp { border-color: #c7e2d6; background: #eff8f3; color: #216448; }
+.cliente-rapido .cr-contato-acoes .cr-botao, .cliente-rapido .cr-contato-acoes .cr-icone-botao { width: 34px; height: 34px; min-height: 34px; padding: 0; border-radius: 7px; }
+.cliente-rapido .cr-contato-acoes .cr-completar-contato { width: auto; padding: 6px 9px; font-size: 11px; gap: 5px; }
 .cliente-rapido .cr-copia-status { display: block; color: #216448; font-size: 12px; }
 .cliente-rapido .cr-copia-status:not(:empty) { margin-bottom: 10px; }
 .cliente-rapido .cr-contatos-detalhes { border-top: 1px solid #e8edf4; }
+.cliente-rapido .cr-contatos-detalhes summary { min-height: 32px; padding: 6px 0; font-size: 11px; }
 .cliente-rapido summary { min-height: 42px; cursor: pointer; font-size: 12px; font-weight: 650; color: var(--cr-suave); padding: 11px 0; }
 .cliente-rapido dl { padding: 3px 0 12px; }
 .cliente-rapido dl > div { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 8px; margin: 7px 0; font-size: 12px; }
 .cliente-rapido dt { color: var(--cr-suave); }
 .cliente-rapido dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
-.cliente-rapido .cr-metricas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 22px; }
-.cliente-rapido .cr-metrica { min-width: 0; padding: 14px; text-align: left; border: 1px solid var(--cr-linha); border-radius: 12px; background: #fff; color: var(--cr-texto); }
-.cliente-rapido .cr-metrica > span { display: flex; justify-content: space-between; align-items: center; gap: 4px; font-size: 12px; color: var(--cr-suave); font-weight: 600; }
-.cliente-rapido .cr-metrica > strong { display: block; margin: 5px 0 4px; font-size: 22px; font-weight: 800; line-height: 1.3; letter-spacing: -.5px; overflow-wrap: anywhere; }
-.cliente-rapido .cr-metrica > small { display: block; font-size: 11px; line-height: 1.5; color: var(--cr-suave); }
+.cliente-rapido .cr-metricas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
+.cliente-rapido .cr-metrica { position: relative; min-width: 0; padding: 9px 11px; text-align: left; border: 1px solid var(--cr-linha); border-radius: 9px; background: #fff; color: var(--cr-texto); }
+.cliente-rapido .cr-metrica > span { display: flex; justify-content: space-between; align-items: center; gap: 4px; font-size: 11px; color: var(--cr-suave); font-weight: 600; }
+.cliente-rapido .cr-metrica > span svg { width: 14px; height: 14px; }
+.cliente-rapido .cr-metrica > strong { display: block; margin-top: 2px; font-size: 18px; font-weight: 800; line-height: 1.2; letter-spacing: -.3px; overflow-wrap: anywhere; }
+.cliente-rapido .cr-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 .cliente-rapido button.cr-metrica:hover { border-color: #92add1; background: #f4f8ff; }
 .cliente-rapido .cr-metrica-alerta { background: #fffbf3; border-color: #eedabd; }
 .cliente-rapido .cr-metrica-alerta > strong { color: #98601e; }
@@ -114,7 +118,8 @@
 .cliente-rapido .cr-carregando { color: var(--cr-suave); display: grid; gap: 14px; }
 .cliente-rapido .cr-carregando i { display: block; height: 90px; background: #e5ecf5; border-radius: 12px; animation: cr-pulso 1.5s ease-in-out infinite alternate; }
 .cliente-rapido .cr-carregando > i:first-of-type { height: 55px; width: 80%; }
-.cliente-rapido .cr-carregando > div { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cliente-rapido .cr-carregando > div { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cliente-rapido .cr-carregando > div i { height: 60px; }
 @keyframes cr-pulso { to { opacity: .5; } }
 @media (max-width: 600px) {
   .drawer-cliente.cliente-rapido { width: 100vw; border-left: 0; }
@@ -125,11 +130,15 @@
   .cliente-rapido .cr-identidade { gap: 12px; }
   .cliente-rapido .cr-avatar { width: 48px; height: 48px; border-radius: 14px; font-size: 18px; }
   .cliente-rapido .cr-identidade h2 { font-size: 21px; }
-  .cliente-rapido .cr-metrica { padding: 12px; }
-  .cliente-rapido .cr-metrica > strong { font-size: 20px; }
+  .cliente-rapido .cr-contato-principal a, .cliente-rapido .cr-contato-principal strong { font-size: 14px; }
+  .cliente-rapido .cr-contato-acoes .cr-botao, .cliente-rapido .cr-contato-acoes .cr-icone-botao { width: 40px; height: 40px; min-height: 40px; }
+  .cliente-rapido .cr-contato-acoes .cr-completar-contato { width: auto; }
   .cliente-rapido .cr-compras button { gap: 8px; padding: 12px 10px; }
   .cliente-rapido .cr-compras button > svg { display: none; }
   .cliente-rapido .cr-compra-tipo { display: none; }
   .cliente-rapido .cr-botao { min-height: 44px; padding-left: 10px; padding-right: 10px; }
+}
+@media (max-width: 360px) {
+  .cliente-rapido .cr-contato-principal a, .cliente-rapido .cr-contato-principal strong { font-size: 13px; }
 }
 @media (prefers-reduced-motion: reduce) { .cliente-rapido .cr-carregando i { animation: none; } }

@@ -24,8 +24,8 @@ function Icone({ tipo }) {
 
 function Metrica({ titulo, valor, detalhe, alerta, onClick }) {
   const Tag = onClick ? 'button' : 'div';
-  return <Tag className={`cr-metrica${alerta ? ' cr-metrica-alerta' : ''}`} {...(onClick ? { type: 'button', onClick } : {})}>
-    <span>{titulo}{onClick && <Icone tipo="seta" />}</span><strong>{valor}</strong><small>{detalhe}</small>
+  return <Tag className={`cr-metrica${alerta ? ' cr-metrica-alerta' : ''}`} title={detalhe} {...(onClick ? { type: 'button', onClick } : {})}>
+    <span>{titulo}{onClick && <Icone tipo="seta" />}</span><strong>{valor}</strong><small className="cr-sr-only">{detalhe}</small>
   </Tag>;
 }
 
@@ -90,7 +90,6 @@ export default function ClienteDrawer({ clienteId, onFechar, onNavegar }) {
   const hoje = dataPedidoNumero(dataHoraBrasilia().data);
   const pendente = Number(resumo.valor_pendente || 0);
   const quantidade = Number(resumo.total_pedidos || 0);
-  const total = resumo.total_comprado == null ? null : Number(resumo.total_comprado);
   const contatos = cliente ? [['WhatsApp', cliente.whatsapp], ['Celular', cliente.celular], ['Telefone fixo', cliente.fixo]] : [];
   const principal = contatos.find(([, valor]) => numeroWhatsAppBrasil(valor));
   const whatsapp = numeroWhatsAppBrasil(cliente?.whatsapp);
@@ -114,7 +113,7 @@ export default function ClienteDrawer({ clienteId, onFechar, onNavegar }) {
           <button ref={fecharRef} type="button" className="cr-fechar" onClick={onFechar} aria-label="Fechar painel"><Icone tipo="fechar" /></button>
         </header>
         <div className="cr-corpo">
-          {!dados && !erro && <div className="cr-carregando" role="status"><span>Carregando cliente…</span><i /><i /><div><i /><i /><i /><i /></div><i /><i /></div>}
+          {!dados && !erro && <div className="cr-carregando" role="status"><span>Carregando cliente…</span><i /><i /><div><i /><i /></div><i /><i /></div>}
           {erro && <div className="cr-erro" role="alert"><Icone tipo="tempo" /><h2>Não foi possível abrir o cliente</h2><p>{erro}</p><button type="button" className="cr-botao cr-primario" onClick={() => setTentativa(valor => valor + 1)}>Tentar novamente</button></div>}
           {cliente && <>
             <section className="cr-identidade">
@@ -125,20 +124,19 @@ export default function ClienteDrawer({ clienteId, onFechar, onNavegar }) {
             </section>
             {bloqueado && <div className="cr-alerta" role="status"><strong>Novos pedidos indisponíveis</strong><span>{textoInformado(cliente.bloqueio_motivo) || 'Consulte a ficha para revisar o bloqueio.'}</span></div>}
             <section className="cr-contato" aria-label="Contato do cliente">
-              <div className="cr-contato-principal"><div><span>{principal?.[0] || 'Contato'}</span>{principal ? <a href={`tel:+${numeroWhatsAppBrasil(principal[1])}`} aria-label={`Ligar para ${principal[1]}`}>{principal[1]}</a> : <strong>Nenhum telefone válido</strong>}</div>
-                {principal && <button type="button" className="cr-icone-botao" aria-label="Copiar telefone" onClick={copiar}><Icone tipo="copiar" /></button>}
-              </div>
-              <div className="cr-contato-acoes">
-                {whatsapp && <a className="cr-botao cr-whatsapp" href={`https://wa.me/${whatsapp}`} target="_blank" rel="noopener noreferrer" aria-label="Abrir WhatsApp"><Icone tipo="mensagem" />WhatsApp</a>}
-                {principal && <a className="cr-botao" href={`tel:+${numeroWhatsAppBrasil(principal[1])}`}><Icone tipo="telefone" />Ligar</a>}
-                {!principal && <button type="button" className="cr-botao" onClick={abrirFicha}>Completar contato<Icone tipo="seta" /></button>}
+              <div className="cr-contato-linha">
+                <div className="cr-contato-principal"><span>{principal?.[0] || 'Contato'}</span>{principal ? <a href={`tel:+${numeroWhatsAppBrasil(principal[1])}`} aria-label={`Ligar para ${principal[1]}`}>{principal[1]}</a> : <strong>Nenhum telefone válido</strong>}</div>
+                <div className="cr-contato-acoes">
+                  {whatsapp && <a className="cr-botao cr-whatsapp" href={`https://wa.me/${whatsapp}`} target="_blank" rel="noopener noreferrer" aria-label="Abrir WhatsApp" title="Abrir WhatsApp"><Icone tipo="mensagem" /></a>}
+                  {principal && <a className="cr-botao" href={`tel:+${numeroWhatsAppBrasil(principal[1])}`} aria-label="Ligar" title="Ligar"><Icone tipo="telefone" /></a>}
+                  {principal && <button type="button" className="cr-icone-botao" aria-label="Copiar telefone" title="Copiar telefone" onClick={copiar}><Icone tipo="copiar" /></button>}
+                  {!principal && <button type="button" className="cr-botao cr-completar-contato" onClick={abrirFicha}>Completar contato<Icone tipo="seta" /></button>}
+                </div>
               </div>
               <span className="cr-copia-status" role="status">{avisoCopia}</span>
               <details className="cr-contatos-detalhes"><summary>Todos os contatos</summary><dl>{contatos.map(([label, valor]) => <div key={label}><dt>{label}</dt><dd>{numeroWhatsAppBrasil(valor) ? <a href={`tel:+${numeroWhatsAppBrasil(valor)}`}>{valor}</a> : textoInformado(valor) || 'Não informado'}</dd></div>)}</dl></details>
             </section>
             <section className="cr-metricas" aria-label="Resumo de todo o histórico">
-              <Metrica titulo="Total comprado" valor={total == null ? '—' : reais(total)} detalhe={total == null ? 'Total indisponível' : `Média por pedido: ${reais(quantidade ? total / quantidade : 0)}`} />
-              <Metrica titulo="Pedidos" valor={quantidade} detalhe={`${resumo.total_fonada || 0} fonada · ${resumo.total_aovivo || 0} ao vivo`} />
               <Metrica titulo="Saldo pendente" valor={reais(pendente)} alerta={pendente > 0} detalhe={Number(resumo.pedidos_pendentes) > 0 ? `${resumo.pedidos_pendentes} pedido(s) · Ver cobrança` : pendente > 0 ? 'Ver cobrança' : 'Tudo em dia'} onClick={pendente > 0 || Number(resumo.pedidos_pendentes) > 0 ? () => onNavegar(`/cobranca?nome=${encodeURIComponent(cliente.nome)}&avNome=${encodeURIComponent(cliente.nome)}`) : undefined} />
               <Metrica titulo="Última compra" valor={ultima?.data_pedido || '—'} detalhe={ultima ? `${ultima.tipo} · O.S. ${ultima.os || ultima.id}` : quantidade ? 'Data não informada' : 'Sem pedidos ainda'} onClick={ultima ? () => onNavegar(ultima.rota) : undefined} />
             </section>

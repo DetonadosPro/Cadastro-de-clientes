@@ -36,15 +36,13 @@ async function preparar(page, opcoes = {}) {
   return { estado, dialogo };
 }
 
-test('totais são do histórico completo; contatos, prazo e senha existente ficam acessíveis', async ({ page }) => {
+test('saldo e última compra permanecem; contatos, prazo e senha existente ficam acessíveis', async ({ page }) => {
   const { estado, dialogo } = await preparar(page);
   await expect(dialogo.getByRole('heading', { name: cliente.nome })).toBeVisible();
   const metricas = dialogo.locator('.cr-metrica');
-  await expect(metricas.nth(0)).toContainText('R$ 700,00');
-  await expect(metricas.nth(0)).toContainText('R$ 14,00');
-  await expect(metricas.nth(1)).toContainText('40 fonada · 10 ao vivo');
-  await expect(metricas.nth(2)).toContainText('R$ 60,00');
-  await expect(metricas.nth(3)).toContainText('10/10/26');
+  await expect(metricas).toHaveCount(2);
+  await expect(metricas.nth(0)).toContainText('R$ 60,00');
+  await expect(metricas.nth(1)).toContainText('10/10/26');
   await expect(dialogo.getByText('No sistema desde 19/08/2026')).toBeVisible();
   await expect(dialogo.getByRole('link', { name: 'Abrir WhatsApp', exact: true })).toHaveAttribute('href', 'https://wa.me/5534999991111');
   await expect(dialogo.getByRole('link', { name: 'Ligar', exact: true })).toHaveAttribute('href', 'tel:+5534999991111');
@@ -76,7 +74,7 @@ test('histórico compacto preserva pagamento, detalhes e acesso à ficha', async
   await dialogo.locator('.cr-cadastro summary').click();
   await expect(dialogo.getByText(cliente.referencia, { exact: true })).toBeVisible();
   await expect(dialogo.getByText(cliente.complemento, { exact: true })).toBeVisible();
-  await dialogo.locator('.cr-metrica').nth(2).click();
+  await dialogo.locator('.cr-metrica').first().click();
   await expect(page).toHaveURL(/\/cobranca\?/);
   expect(new URL(page.url()).searchParams.get('nome')).toBe(cliente.nome);
   expect(new URL(page.url()).searchParams.get('avNome')).toBe(cliente.nome);
@@ -128,7 +126,7 @@ test('teclado e fechamento preservam foco e filtros da lista', async ({ page }) 
 test('desktop e celular mantêm ações fixas, leitura, contraste e largura adequada', async ({ page }, testInfo) => {
   const erros = []; page.on('pageerror', erro => erros.push(erro.message));
   const { dialogo } = await preparar(page);
-  await expect(dialogo.locator('.cr-metricas')).toContainText('R$ 700,00');
+  await expect(dialogo.locator('.cr-metricas')).toContainText('R$ 60,00');
   for (const width of [1920, 1600, 1280, 1024, 768, 390, 320]) {
     await page.setViewportSize({ width, height: width < 600 ? 780 : 1000 });
     expect(await dialogo.evaluate(el => el.scrollWidth > el.clientWidth + 1), `Transbordamento em ${width}px`).toBe(false);
