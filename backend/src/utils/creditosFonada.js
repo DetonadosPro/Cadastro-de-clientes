@@ -16,9 +16,19 @@ async function criarEstruturaCreditos(banco) {
   await banco.query(`ALTER TABLE creditos_fonada
     DROP CONSTRAINT IF EXISTS creditos_fonada_tipo_check,
     DROP CONSTRAINT IF EXISTS creditos_fonada_check,
-    ADD CONSTRAINT creditos_fonada_tipo_check CHECK (tipo IN ('COMPRA', 'USO', 'ESTORNO')),
-    ADD CONSTRAINT creditos_fonada_check CHECK ((tipo IN ('COMPRA', 'ESTORNO') AND quantidade > 0) OR (tipo = 'USO' AND quantidade < 0))`);
+    ADD CONSTRAINT creditos_fonada_tipo_check CHECK (tipo IN ('COMPRA', 'USO', 'ESTORNO', 'AJUSTE')),
+    ADD CONSTRAINT creditos_fonada_check CHECK ((tipo IN ('COMPRA', 'ESTORNO') AND quantidade > 0) OR (tipo = 'USO' AND quantidade < 0) OR (tipo = 'AJUSTE' AND quantidade <= 0 AND (quantidade < 0 OR valor > 0)))`);
   await banco.query('ALTER TABLE creditos_fonada ADD COLUMN IF NOT EXISTS uso_estornado_id INTEGER UNIQUE REFERENCES creditos_fonada(id)');
+  await banco.query('ALTER TABLE creditos_fonada ADD COLUMN IF NOT EXISTS compra_ajustada_id INTEGER REFERENCES creditos_fonada(id)');
+  await banco.query('ALTER TABLE creditos_fonada ADD COLUMN IF NOT EXISTS motivo TEXT');
+  await banco.query('CREATE INDEX IF NOT EXISTS idx_creditos_compra_ajustada ON creditos_fonada(compra_ajustada_id) WHERE compra_ajustada_id IS NOT NULL');
+  await banco.query(`CREATE OR REPLACE VIEW compras_creditos_fonada AS
+    SELECT m.id, m.cliente_id, m.nome_cliente, m.quantidade, m.valor, m.forma, m.data_pedido, m.horario_pedido, m.usuario, m.criado_em, (m.quantidade + COALESCE(a.quantidade, 0))::integer AS quantidade_atual,
+      m.valor - COALESCE(a.valor, 0) AS valor_atual
+    FROM creditos_fonada m LEFT JOIN (
+      SELECT compra_ajustada_id, SUM(quantidade) AS quantidade, SUM(valor) AS valor
+      FROM creditos_fonada WHERE tipo = 'AJUSTE' GROUP BY compra_ajustada_id
+    ) a ON a.compra_ajustada_id = m.id WHERE m.tipo = 'COMPRA'`);
   // A venda é o pacote pago. A mensagem custeada por crédito não vende novamente.
   await banco.query(`CREATE OR REPLACE VIEW financeiro_fonada AS
     SELECT f.id, f.cliente_id, f.nome_comprador, f.senha_os, f.valor::numeric AS valor,
@@ -26,10 +36,11 @@ async function criarEstruturaCreditos(banco) {
       f.vendedor_usuario, f.excluido_em, '/fonada/' || f.id AS rota, 'PEDIDO'::text AS tipo_registro
     FROM fonadas f WHERE f.creditos_usados = 0
     UNION ALL
-    SELECT -m.id, m.cliente_id, COALESCE(c.nome, m.nome_cliente), 'CRÉDITOS ×' || m.quantidade,
-      m.valor, m.forma, m.data_pedido, m.horario_pedido, m.data_pedido, 'SIM', 'NÃO',
+    SELECT -m.id, m.cliente_id, COALESCE(c.nome, m.nome_cliente), 'CRÉDITOS ×' || m.quantidade_atual,
+      m.valor_atual, m.forma, m.data_pedido, m.horario_pedido, m.data_pedido, 'SIM', 'NÃO',
       m.usuario, NULL::timestamp, CASE WHEN m.cliente_id IS NOT NULL THEN '/clientes/' || m.cliente_id END, 'CREDITOS'
-    FROM creditos_fonada m LEFT JOIN clientes c ON c.id = m.cliente_id WHERE m.tipo = 'COMPRA'`);
+    FROM compras_creditos_fonada m LEFT JOIN clientes c ON c.id = m.cliente_id
+    WHERE m.quantidade_atual > 0 OR m.valor_atual > 0`);
 }
 
 function falha(erro, status = 409) { return Object.assign(new Error(erro), { status }); }
@@ -37,17 +48,19 @@ function uuidValido(valor) { return typeof valor === 'string' && /^[0-9a-f]{8}-[
 
 async function carteira(banco, clienteId, historico = true) {
   const resumo = (await banco.query(`SELECT COALESCE(SUM(quantidade), 0)::integer AS saldo,
-    COALESCE(SUM(quantidade) FILTER (WHERE tipo = 'COMPRA'), 0)::integer AS comprados,
+    COALESCE(SUM(quantidade) FILTER (WHERE tipo IN ('COMPRA', 'AJUSTE')), 0)::integer AS comprados,
     COALESCE(-SUM(quantidade) FILTER (WHERE tipo IN ('USO', 'ESTORNO')), 0)::integer AS usados,
-    COALESCE(SUM(valor) FILTER (WHERE tipo = 'COMPRA'), 0)::float AS valor_comprado,
-    COUNT(*) FILTER (WHERE tipo = 'COMPRA')::integer AS compras,
-    (SELECT row_to_json(compra) FROM (SELECT id, quantidade, data_pedido, horario_pedido
-      FROM creditos_fonada WHERE cliente_id = $1 AND tipo = 'COMPRA' ORDER BY id DESC LIMIT 1) compra) AS ultima_compra
+    COALESCE(SUM(CASE WHEN tipo = 'COMPRA' THEN valor WHEN tipo = 'AJUSTE' THEN -valor ELSE 0 END), 0)::float AS valor_comprado,
+    (SELECT COUNT(*)::integer FROM compras_creditos_fonada WHERE cliente_id = $1 AND (quantidade_atual > 0 OR valor_atual > 0)) AS compras,
+    (SELECT row_to_json(compra) FROM (SELECT id, quantidade_atual AS quantidade, data_pedido, horario_pedido
+      FROM compras_creditos_fonada WHERE cliente_id = $1 AND (quantidade_atual > 0 OR valor_atual > 0) ORDER BY id DESC LIMIT 1) compra) AS ultima_compra
     FROM creditos_fonada WHERE cliente_id = $1`, [clienteId])).rows[0];
   const movimentos = historico ? (await banco.query(`SELECT id, tipo, quantidade, valor, forma,
-    data_pedido, horario_pedido, usuario, pedido_id, senha_os FROM creditos_fonada
+    data_pedido, horario_pedido, usuario, pedido_id, senha_os, compra_ajustada_id, motivo FROM creditos_fonada
     WHERE cliente_id = $1 ORDER BY id DESC LIMIT 100`, [clienteId])).rows : [];
-  return { ...resumo, movimentos };
+  const comprasCorrigiveis = historico ? (await banco.query(`SELECT id, quantidade, valor, quantidade_atual, valor_atual, forma, data_pedido, horario_pedido
+    FROM compras_creditos_fonada WHERE cliente_id = $1 AND (quantidade_atual > 0 OR valor_atual > 0) ORDER BY id DESC`, [clienteId])).rows : [];
+  return { ...resumo, movimentos, comprasCorrigiveis };
 }
 
 async function comprarCreditos(banco, clienteId, dados, usuario) {
@@ -90,4 +103,33 @@ async function devolverCreditos(banco, pedido, usuario) {
     [pedido.id, registro.data_pedido, registro.horario_pedido, usuario, require('node:crypto').randomUUID()]);
 }
 
-module.exports = { criarEstruturaCreditos, carteira, comprarCreditos, consumirCreditos, devolverCreditos, uuidValido, falha };
+async function corrigirCompra(banco, clienteId, compraId, dados, usuario) {
+  if (!Number.isInteger(dados.quantidade) || dados.quantidade < 0 || dados.quantidade > 10000) throw falha('Informe uma quantidade inteira de créditos para remover.', 400);
+  if (typeof dados.valor !== 'number' || !Number.isFinite(dados.valor) || dados.valor < 0 || dados.valor > 9999999.99 || Math.abs(dados.valor * 100 - Math.round(dados.valor * 100)) > 0.000001) throw falha('Informe um valor válido para reduzir, com até duas casas decimais.', 400);
+  if (!dados.quantidade && !dados.valor) throw falha('Informe créditos ou valor para remover.', 400);
+  const motivo = typeof dados.motivo === 'string' ? dados.motivo.trim() : '';
+  if (!motivo || motivo.length > 300) throw falha('Informe o motivo da correção em até 300 caracteres.', 400);
+  if (!uuidValido(dados.operacao)) throw falha('Identificação da correção inválida. Reabra o formulário.', 400);
+  const cliente = (await banco.query('SELECT * FROM clientes WHERE id = $1 FOR UPDATE', [clienteId])).rows[0];
+  if (!cliente || cliente.excluido_em) throw falha('Cliente não disponível.', 404);
+  if (cliente.bloqueado) throw falha('Desbloqueie o cliente antes de corrigir a compra.', 403);
+  const anterior = (await banco.query('SELECT * FROM creditos_fonada WHERE operacao = $1', [dados.operacao])).rows[0];
+  if (anterior) {
+    if (anterior.tipo !== 'AJUSTE' || anterior.cliente_id !== Number(clienteId) || anterior.compra_ajustada_id !== Number(compraId) || anterior.quantidade !== -dados.quantidade || Number(anterior.valor) !== dados.valor || anterior.motivo !== motivo) throw falha('Esta identificação já pertence a outra operação.');
+    return carteira(banco, clienteId);
+  }
+  const compra = (await banco.query('SELECT * FROM compras_creditos_fonada WHERE id = $1 AND cliente_id = $2', [compraId, clienteId])).rows[0];
+  if (!compra) throw falha('Compra de créditos não encontrada para este cliente.', 404);
+  const saldo = (await carteira(banco, clienteId, false)).saldo;
+  if (dados.quantidade > saldo) throw falha(`Há apenas ${saldo} crédito(s) disponíveis. Não é possível remover créditos já utilizados.`);
+  if (dados.quantidade > compra.quantidade_atual) throw falha('A quantidade excede os créditos restantes desta compra.');
+  if (Math.round(dados.valor * 100) > Math.round(Number(compra.valor_atual) * 100)) throw falha('O valor excede o total restante desta compra.');
+  const registro = registroPedidoBrasilia();
+  await banco.query(`INSERT INTO creditos_fonada (cliente_id, nome_cliente, tipo, quantidade, valor, forma,
+    data_pedido, horario_pedido, usuario, operacao, compra_ajustada_id, motivo)
+    VALUES ($1, $2, 'AJUSTE', $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+    [clienteId, cliente.nome, -dados.quantidade, dados.valor, compra.forma, registro.data_pedido, registro.horario_pedido, usuario, dados.operacao, compraId, motivo]);
+  return carteira(banco, clienteId);
+}
+
+module.exports = { criarEstruturaCreditos, carteira, comprarCreditos, consumirCreditos, devolverCreditos, corrigirCompra, uuidValido, falha };

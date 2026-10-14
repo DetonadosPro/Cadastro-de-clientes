@@ -15,7 +15,7 @@ const { db, pool, unaccentEstaDisponivel } = require('../db/database');
 const { formatarDataBrasilia } = require('../utils/dataHora');
 const { situacaoSegundaMensagem, dataBrParaDate } = require('../utils/mensagemEmHaver');
 const { DATA_PEDIDO_ORDENACAO_SQL } = require('../utils/dataPedidoSql');
-const { carteira, comprarCreditos } = require('../utils/creditosFonada');
+const { carteira, comprarCreditos, corrigirCompra } = require('../utils/creditosFonada');
 
 const router = express.Router();
 router.param('id', (req, res, next, id) => {
@@ -708,6 +708,22 @@ router.post('/:id/creditos', async (req, res) => {
     if (client) await client.query('ROLLBACK');
     if (!erro.status) console.error('Erro ao adicionar créditos:', erro);
     res.status(erro.status || (erro.code === '23505' ? 409 : 500)).json({ erro: erro.status ? erro.message : 'Não foi possível adicionar os créditos. Confira o histórico antes de tentar novamente.' });
+  } finally { client?.release(); }
+});
+
+router.post('/:id/creditos/:compraId/corrigir', async (req, res) => {
+  if (!/^[1-9]\d*$/.test(req.params.compraId) || Number(req.params.compraId) > 2147483647) return res.status(400).json({ erro: 'Compra inválida.' });
+  let client;
+  try {
+    client = await pool.connect();
+    await client.query('BEGIN');
+    const resultado = await corrigirCompra(client, req.params.id, req.params.compraId, req.body, req.usuario.usuario);
+    await client.query('COMMIT');
+    res.json(resultado);
+  } catch (erro) {
+    if (client) await client.query('ROLLBACK');
+    if (!erro.status) console.error('Erro ao corrigir compra de créditos:', erro);
+    res.status(erro.status || (erro.code === '23505' ? 409 : 500)).json({ erro: erro.status ? erro.message : 'Não foi possível concluir a correção. Confira o histórico antes de tentar novamente.' });
   } finally { client?.release(); }
 });
 

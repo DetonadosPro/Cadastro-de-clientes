@@ -137,6 +137,54 @@ test('PostgreSQL e APIs: compra, consumo por pedido e devolução, concorrência
     assert.equal(tentativaBonus.status, 200);
     assert.equal(tentativaBonus.dados.mensagemEmHaver.semValidade, true);
     assert.equal((await carteira(banco.pool, destino.id)).saldo, 3);
+
+    // Uma correção reduz a compra original sem criar uma devolução financeira no dia do ajuste.
+    const corrigivel = (await banco.pool.query("INSERT INTO clientes (nome) VALUES ('CLIENTE DA CORREÇÃO') RETURNING id")).rows[0].id;
+    const pacote = await enviar(`/clientes/${corrigivel}/creditos`, 'POST', { quantidade: 2, valor: 24, forma: 'PIX', operacao: randomUUID() });
+    assert.equal(pacote.status, 201);
+    const compraId = pacote.dados.comprasCorrigiveis[0].id;
+    await banco.pool.query("UPDATE creditos_fonada SET data_pedido = '01/09/26' WHERE id = $1", [compraId]);
+    const corrigir = `/clientes/${corrigivel}/creditos/${compraId}/corrigir`;
+    const ajuste = { quantidade: 1, valor: 7, motivo: 'VALOR E QUANTIDADE DIGITADOS ERRADOS', operacao: randomUUID() };
+    for (const invalido of [{ ...ajuste, quantidade: -1 }, { ...ajuste, quantidade: 0, valor: 0 }, { ...ajuste, valor: 1.005 }, { ...ajuste, motivo: '' }]) {
+      assert.equal((await enviar(corrigir, 'POST', invalido)).status, 400);
+    }
+    assert.equal((await enviar(corrigir, 'POST', { ...ajuste, quantidade: 3 })).status, 409);
+    assert.equal((await enviar(corrigir, 'POST', { ...ajuste, valor: 25 })).status, 409);
+    assert.equal((await enviar(`/clientes/${destino.id}/creditos/${compraId}/corrigir`, 'POST', ajuste)).status, 404);
+    const ajustes = await Promise.all([enviar(corrigir, 'POST', ajuste), enviar(corrigir, 'POST', ajuste)]);
+    assert.ok(ajustes.every(r => r.status === 200));
+    assert.equal(ajustes[0].dados.saldo, 1); assert.equal(ajustes[0].dados.valor_comprado, 17);
+    assert.equal((await enviar(corrigir, 'POST', { ...ajuste, valor: 8 })).status, 409);
+    for (const rota of ['vendas', 'recebimentos']) {
+      const relatorio = await enviar(`/relatorios/${rota}?inicio=01/09/26&fim=01/09/26&sistema=FONADA`, 'GET');
+      assert.equal(relatorio.status, 200); assert.equal(relatorio.dados.fonada.valorTotal, 17);
+      assert.equal(relatorio.dados.itens[0].os, 'CRÉDITOS ×1');
+    }
+    assert.ok((await enviar('/fonadas/hoje', 'GET')).dados.fonadas.every(p => p.cliente_id !== corrigivel));
+    const uso = await enviar('/fonadas', 'POST', { ...payload, cliente_id: corrigivel, senha_os: 'CORRIGIDO', credito_operacao: randomUUID() });
+    assert.equal(uso.status, 201);
+    assert.equal((await enviar(corrigir, 'POST', { ...ajuste, valor: 0, operacao: randomUUID() })).status, 409);
+    const soValor = await enviar(corrigir, 'POST', { ...ajuste, quantidade: 0, valor: 3, operacao: randomUUID() });
+    assert.equal(soValor.status, 200); assert.equal(soValor.dados.saldo, 0); assert.equal(soValor.dados.valor_comprado, 14);
+    assert.equal((await enviar(`/fonadas/${uso.dados.id}`, 'DELETE')).status, 200);
+    const cancelar = await enviar(corrigir, 'POST', { ...ajuste, quantidade: 1, valor: 14, operacao: randomUUID() });
+    assert.equal(cancelar.status, 200); assert.equal(cancelar.dados.saldo, 0); assert.equal(cancelar.dados.valor_comprado, 0);
+    assert.equal(cancelar.dados.compras, 0); assert.equal(cancelar.dados.comprasCorrigiveis.length, 0);
+    const cancelado = await enviar('/relatorios/vendas?inicio=01/09/26&fim=01/09/26&sistema=FONADA', 'GET');
+    assert.equal(cancelado.dados.fonada.quantidade, 0); assert.equal(cancelado.dados.fonada.valorTotal, 0);
+    const auditoria = (await banco.pool.query('SELECT * FROM creditos_fonada WHERE id = $1', [compraId])).rows[0];
+    assert.equal(auditoria.quantidade, 2); assert.equal(Number(auditoria.valor), 24);
+    assert.equal((await banco.pool.query("SELECT COUNT(*)::int AS n FROM creditos_fonada WHERE compra_ajustada_id = $1", [compraId])).rows[0].n, 3);
+    const ultimoPacote = await enviar(`/clientes/${corrigivel}/creditos`, 'POST', { quantidade: 1, valor: 12, forma: 'PIX', operacao: randomUUID() });
+    const ultimoId = ultimoPacote.dados.comprasCorrigiveis[0].id;
+    const corrida = await Promise.all(Array.from({ length: 2 }, () => enviar(`/clientes/${corrigivel}/creditos/${ultimoId}/corrigir`, 'POST', {
+      quantidade: 1, valor: 12, motivo: 'CORREÇÃO SIMULTÂNEA', operacao: randomUUID(),
+    })));
+    assert.deepEqual(corrida.map(r => r.status).sort(), [200, 409]);
+    assert.equal((await carteira(banco.pool, corrigivel)).valor_comprado, 0);
+    await banco.iniciarBanco(); // Correções persistem após reinicialização e migração repetida.
+    assert.equal((await carteira(banco.pool, corrigivel)).saldo, 0);
   } finally {
     if (servidor) await new Promise(resolve => servidor.close(resolve));
     if (banco) await banco.pool.end();

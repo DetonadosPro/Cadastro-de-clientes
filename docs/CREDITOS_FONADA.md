@@ -9,6 +9,7 @@ Na ficha do cliente, **Adicionar créditos** registra a quantidade de créditos 
 - O pacote entra uma vez em vendas, recebimentos, desempenho da equipe e resumo diário, na data do registro em Brasília. As mensagens custeadas pelo pacote não entram como novas vendas.
 - Compras e usos conservam data, horário, operador e referência do pedido. O histórico de uso sobrevive à exclusão do pedido.
 - A lixeira preserva a carteira. A mesclagem transfere saldo e histórico ao cadastro que permanece. A exclusão definitiva de um cliente com saldo disponível é impedida para evitar perda dos créditos pagos.
+- **Corrigir compra** permite remover créditos disponíveis e reduzir um valor escolhido do pacote, juntos ou separadamente. A compra original permanece no histórico, com o motivo, o operador e a data de cada correção. A redução de valor corrige vendas e recebimentos na data da compra original; não registra devolução de dinheiro. A correção não pode tornar o saldo negativo nem ultrapassar a quantidade ou o valor ainda existentes na compra.
 - O backup semanal inclui o livro de movimentações `creditos_fonada`.
 
 O saldo é a soma das movimentações, sem rotina de expiração. Compra e uso travam a linha do cliente em transação. A identificação única da operação impede duplicação após resposta perdida; saldo insuficiente desfaz a criação do pedido e o débito juntos.

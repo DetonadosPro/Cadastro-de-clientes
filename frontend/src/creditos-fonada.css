@@ -17,6 +17,12 @@
 .credito-campos label { display: grid; gap: 6px; font-size: 12px; font-weight: 700; }
 .credito-campos input, .credito-campos select { width: 100%; min-height: 40px; padding: 10px 12px; border: 1px solid #d2def0; border-radius: 8px; background: #f7f9fc; color: var(--tinta); font: inherit; font-weight: 500; }
 .credito-campos input:focus-visible, .credito-campos select:focus-visible { outline: 2px solid #2763c1; outline-offset: 2px; }
+.dialogo-corrigir-creditos .credito-campos { gap: 10px; }
+.dialogo-corrigir-creditos .credito-campos label { gap: 4px; }
+.dialogo-corrigir-creditos .credito-campos small { color: var(--tinta-suave); font-size: 10px; font-weight: 500; }
+.dialogo-corrigir-creditos .credito-campos input, .dialogo-corrigir-creditos .credito-campos select { min-height: 36px; padding: 8px 12px; }
+.dialogo-corrigir-creditos .credito-previa { margin-top: 12px; padding: 10px 12px; gap: 4px; }
+.dialogo-corrigir-creditos .credito-explicacao { margin: 10px 0; }
 .credito-previa { display: grid; gap: 6px; padding: 14px; margin-top: 16px; background: #edf8f2; border-radius: 10px; font-size: 13px; color: #255942; }
 .credito-previa span, .credito-explicacao { font-size: 12px; line-height: 1.6; }
 .credito-explicacao { color: var(--tinta-suave); }

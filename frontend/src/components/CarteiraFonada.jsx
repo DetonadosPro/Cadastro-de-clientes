@@ -4,12 +4,14 @@ import { api } from '../api.js';
 import { Dialogo, AvisoInline } from './Interface.jsx';
 import { formatarValorMonetario, valorMonetarioParaNumero } from '../mascaras.js';
 import '../creditos-fonada.css';
+import CorrecaoCompraCreditos from './CorrecaoCompraCreditos.jsx';
 
 const reais = v => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 export default function CarteiraFonada({ cliente, carteira = {}, onAtualizar }) {
   const navigate = useNavigate();
   const [aberto, setAberto] = useState(false);
+  const [corrigindo, setCorrigindo] = useState(false);
   const [quantidade, setQuantidade] = useState('6');
   const [valor, setValor] = useState('');
   const [forma, setForma] = useState('PIX');
@@ -40,8 +42,10 @@ export default function CarteiraFonada({ cliente, carteira = {}, onAtualizar }) 
   return <section className="carteira-fonada fc-painel" aria-label="Créditos de Fonada">
     <div className="carteira-topo"><div><span>CRÉDITOS DE FONADA</span><strong>{saldo}<small> {saldo === 1 ? 'pedido disponível' : 'pedidos disponíveis'}</small></strong></div><span className="carteira-validade">SEM VENCIMENTO</span></div>
     <div className="carteira-acoes"><button type="button" className="btn-small" disabled={Boolean(cliente.bloqueado || cliente.excluido_em)} onClick={() => { if (!operacao.current) { operacao.current = crypto.randomUUID(); setQuantidade('6'); setValor(''); setForma('PIX'); setErro(''); } setAberto(true); }}>Adicionar créditos</button>
-      {saldo > 0 && <button type="button" className="btn-small carteira-usar" disabled={Boolean(cliente.bloqueado || cliente.excluido_em)} onClick={() => navigate(`/fonada/novo?clienteId=${cliente.id}&usarCredito=1`, { state: { returnTo: `/clientes/${cliente.id}` } })}>Usar crédito →</button>}</div>
-    {!!carteira.movimentos?.length && <details className="carteira-historico"><summary>Histórico de créditos · {carteira.comprados} comprados / {carteira.usados} usados</summary><ol>{carteira.movimentos.map(m => <li key={m.id}><div><strong>{m.tipo === 'COMPRA' ? `Compra de ${m.quantidade} crédito(s)` : m.tipo === 'ESTORNO' ? `Devolução de ${m.quantidade} crédito(s) · O.S. ${m.senha_os}` : `Uso de ${-m.quantidade} crédito(s) · O.S. ${m.senha_os}`}</strong><small>{m.data_pedido} · {m.horario_pedido} · {m.usuario}</small>{m.tipo === 'COMPRA' && <small>{reais(m.valor)} · {m.forma}</small>}</div>{m.tipo === 'USO' && m.pedido_id ? <button type="button" className="fc-link" onClick={() => navigate(`/fonada/${m.pedido_id}`, { state: { returnTo: `/clientes/${cliente.id}` } })}>Ver pedido</button> : <b className={m.tipo === 'COMPRA' ? 'credito-entrada' : ''}>{m.quantidade > 0 ? '+' : ''}{m.quantidade}</b>}</li>)}</ol>{carteira.movimentos.length === 100 && <small>Exibindo as 100 movimentações mais recentes.</small>}</details>}
+      {saldo > 0 && <button type="button" className="btn-small carteira-usar" disabled={Boolean(cliente.bloqueado || cliente.excluido_em)} onClick={() => navigate(`/fonada/novo?clienteId=${cliente.id}&usarCredito=1`, { state: { returnTo: `/clientes/${cliente.id}` } })}>Usar crédito →</button>}
+      {!!carteira.comprasCorrigiveis?.length && <button type="button" className="btn-small" disabled={Boolean(cliente.bloqueado || cliente.excluido_em)} onClick={() => setCorrigindo(true)}>Corrigir compra</button>}</div>
+    <CorrecaoCompraCreditos aberto={corrigindo} cliente={cliente} carteira={carteira} onAtualizar={onAtualizar} onClose={() => setCorrigindo(false)} />
+    {!!carteira.movimentos?.length && <details className="carteira-historico"><summary>Histórico de créditos · {carteira.comprados} comprados / {carteira.usados} usados</summary><ol>{carteira.movimentos.map(m => <li key={m.id}><div><strong>{m.tipo === 'COMPRA' ? `Compra de ${m.quantidade} crédito(s)` : m.tipo === 'AJUSTE' ? `Correção da compra #${m.compra_ajustada_id} · ${-m.quantidade} crédito(s) removido(s)` : m.tipo === 'ESTORNO' ? `Devolução de ${m.quantidade} crédito(s) · O.S. ${m.senha_os}` : `Uso de ${-m.quantidade} crédito(s) · O.S. ${m.senha_os}`}</strong><small>{m.data_pedido} · {m.horario_pedido} · {m.usuario}</small>{m.tipo === 'COMPRA' && <small>Valor original: {reais(m.valor)} · {m.forma}</small>}{m.tipo === 'AJUSTE' && <><small>Redução de {reais(m.valor)}</small><small>{m.motivo}</small></>}</div>{m.tipo === 'USO' && m.pedido_id ? <button type="button" className="fc-link" onClick={() => navigate(`/fonada/${m.pedido_id}`, { state: { returnTo: `/clientes/${cliente.id}` } })}>Ver pedido</button> : <b className={m.tipo === 'COMPRA' ? 'credito-entrada' : ''}>{m.quantidade > 0 ? '+' : ''}{m.quantidade}</b>}</li>)}</ol>{carteira.movimentos.length === 100 && <small>Exibindo as 100 movimentações mais recentes.</small>}</details>}
     {aberto && <Dialogo titulo="Adicionar créditos de Fonada" descricao="Registre o pacote que o cliente pagou. Cada crédito vale um pedido com a segunda mensagem incluída, sem vencimento." onClose={() => { if (!emEnvio.current) setAberto(false); }} className="dialogo-creditos">
       <form onSubmit={comprar}>
         {erro && <AvisoInline titulo="Não foi possível concluir">{erro}</AvisoInline>}
