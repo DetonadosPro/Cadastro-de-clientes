@@ -1,62 +1,36 @@
-.novo-cliente-workspace { max-width: 1360px; margin-inline: auto; }
-.admin-workspace.novo-cliente-workspace { text-transform: uppercase; }
-.novo-cliente-header-actions { display: flex; align-items: center; gap: 18px; }
-.novo-cliente-draft { display: flex; align-items: center; gap: 7px; font-size: 11px; color: #4d6b60; }
-.novo-cliente-draft svg { width: 17px; height: 17px; }
-.novo-cliente-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(290px, .48fr); gap: 24px; align-items: start; }
-.novo-cliente-main, .novo-cliente-aside { display: grid; gap: 18px; min-width: 0; }
-.novo-cliente-aside { position: sticky; top: 20px; }
-.novo-cliente-workspace .novo-cliente-section { padding: 18px; }
-.novo-cliente-workspace .admin-card-title { margin-bottom: 14px; }
-.novo-cliente-step { margin-left: auto; color: #4b6485; font-size: 10px; font-weight: 800; background: #f1f5fb; padding: 7px 8px; border-radius: 7px; }
-.novo-cliente-fields { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 14px; }
+.admin-workspace.novo-cliente-workspace { max-width: 1120px; margin-inline: auto; text-transform: uppercase; }
+.novo-cliente-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.novo-cliente-header h1 { font-size: 24px; line-height: 1.3; letter-spacing: -.5px; margin: 0; }
+.novo-cliente-header-actions { display: flex; align-items: center; gap: 16px; }
+.novo-cliente-draft { display: flex; align-items: center; gap: 6px; font-size: 10px; color: #4d6b60; }
+.novo-cliente-draft svg { width: 15px; height: 15px; }
+.novo-cliente-main { display: grid; gap: 12px; min-width: 0; }
+.novo-cliente-formulario { padding: 20px 24px 16px; border: 1px solid #d3deed; border-radius: 14px; background: #fff; box-shadow: 0 2px 4px #16304d04; }
+.novo-cliente-grupo + .novo-cliente-grupo { border-top: 1px solid #e5ebf3; margin-top: 12px; padding-top: 10px; }
+.novo-cliente-grupo h2 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 14px; font-size: 11px; color: #43618a; letter-spacing: .04em; line-height: 1.5; margin: 0 0 8px; }
+.novo-cliente-grupo h2 small { color: #61738d; font-size: 10px; font-weight: 500; letter-spacing: 0; }
+.novo-cliente-fields { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 10px 14px; }
 .novo-cliente-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
-.novo-cliente-workspace .campo { min-width: 0; width: auto; }
-.novo-cliente-identity { grid-template-columns: minmax(0, 1fr) 165px; }
-.novo-cliente-contacts { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; }
-.novo-cliente-workspace .campo small { display: block; font-size: 11px; line-height: 1.6; color: #5c6c83; margin-top: 8px; }
-.novo-cliente-workspace .campo input { font-size: 14px; font-weight: 500; }
-.novo-cliente-workspace #novo-nome { font-size: 16px; font-weight: 600; }
-.novo-cliente-contact-note { display: flex; align-items: center; justify-content: space-between; gap: 14px; border-top: 1px solid #e5ebf3; margin-top: 21px; padding-top: 16px; color: #5c6c83; font-size: 11px; line-height: 1.7; }
-.novo-cliente-address-line { display: grid; grid-template-columns: minmax(0, 1fr) 105px; gap: 16px; }
-.novo-cliente-address-line.detalhes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.novo-cliente-workspace .campo textarea { width: 100%; min-height: 80px; padding: 12px 14px; font-size: 14px; line-height: 1.7; font-family: inherit; color: #243650; background: #fbfcff; border: 1px solid #bfcde0; border-radius: 10px; resize: vertical; text-transform: uppercase !important; }
-.novo-cliente-workspace .campo input, .novo-cliente-workspace .campo select { text-transform: uppercase !important; }
-.novo-cliente-address-help { color: #5c6c83; font-size: 11px; line-height: 1.7; }
-.novo-cliente-savebar { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 22px 0 5px; }
-.novo-cliente-savebar > div:first-child { display: grid; gap: 5px; font-size: 12px; line-height: 1.6; }
-.novo-cliente-savebar span { color: #5c6c83; font-size: 11px; }
-.novo-cliente-savebar > div:last-child { display: flex; gap: 10px; }
-.novo-cliente-savebar .btn { min-height: 44px; }
-.novo-cliente-preview { background: linear-gradient(145deg, #14365e, #244c7a); padding: 24px; border-radius: 18px; color: #fff; border: 1px solid #204979; }
-.novo-cliente-preview-top { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 28px; }
-.novo-cliente-preview-top h2 { font-size: 12px; font-weight: 700; color: #e7effb; }
-.novo-cliente-preview-top > span { font-size: 9px; line-height: 1.6; background: #ffffff13; border: 1px solid #ffffff30; color: #e2edfd; border-radius: 20px; padding: 5px 9px; }
-.novo-cliente-preview-person { display: flex; align-items: center; gap: 13px; margin-bottom: 26px; }
-.novo-cliente-avatar { display: grid; place-items: center; width: 48px; height: 48px; flex-shrink: 0; border-radius: 15px; background: #cbe0ff; color: #214e85; font-size: 16px; font-weight: 800; }
-.novo-cliente-preview-person h3 { color: #fff; font-size: 17px; line-height: 1.5; overflow-wrap: anywhere; }
-.novo-cliente-preview-person p { color: #c8dcf6; font-size: 10px; line-height: 1.7; margin-top: 5px; }
-.novo-cliente-preview-info { margin: 0; }
-.novo-cliente-preview-info > div { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 5px 12px; padding: 12px 0; border-bottom: 1px solid #ffffff24; font-size: 11px; line-height: 1.7; }
-.novo-cliente-preview-info dt { color: #c9dcf5; }
-.novo-cliente-preview-info dd { margin: 0; color: #fff; font-weight: 600; overflow-wrap: anywhere; }
-.novo-cliente-preview-info dd.vazio { color: #c8dcf6; font-weight: 400; }
-.novo-cliente-preview-address { display: flex; align-items: flex-start; gap: 12px; margin-top: 23px; font-size: 12px; line-height: 1.8; }
-.novo-cliente-preview-address > svg { flex-shrink: 0; color: #bed6f4; margin-top: 2px; }
-.novo-cliente-preview-address strong { display: block; font-size: 12px; overflow-wrap: anywhere; }
-.novo-cliente-preview-address span, .novo-cliente-preview-address p { display: block; color: #cfdef2; font-size: 11px; overflow-wrap: anywhere; }
-.novo-cliente-preview-address p { border-top: 1px solid #ffffff25; padding-top: 10px; margin-top: 10px; white-space: pre-wrap; }
-.novo-cliente-checklist { padding: 23px; border: 1px solid #d7e1ee; background: #fff; border-radius: 16px; }
-.novo-cliente-checklist h2 { font-size: 13px; margin-bottom: 20px; }
-.novo-cliente-checklist ul { display: grid; gap: 19px; list-style: none; margin: 0; padding: 0; }
-.novo-cliente-checklist li { display: flex; align-items: flex-start; gap: 11px; color: #566e8c; }
-.novo-cliente-checklist li > svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
-.novo-cliente-checklist li.completo > svg { color: #287255; }
-.novo-cliente-checklist strong { display: block; color: #3e536d; font-size: 11px; line-height: 1.6; }
-.novo-cliente-checklist small { display: block; color: #5c6c83; font-size: 10px; line-height: 1.7; margin-top: 3px; }
-.novo-cliente-draft-note { display: flex; align-items: flex-start; gap: 10px; color: #5c6c83; padding: 2px 9px; }
-.novo-cliente-draft-note svg { flex-shrink: 0; width: 18px; height: 18px; margin-top: 2px; }
-.novo-cliente-draft-note p { font-size: 11px; line-height: 1.8; }
+.novo-cliente-workspace .campo { min-width: 0; width: auto; margin: 0; gap: 0; }
+.novo-cliente-workspace .campo > label, .novo-cliente-campo-topo { display: flex; align-items: center; min-height: 24px; margin: 0 0 4px; }
+.novo-cliente-workspace .campo label { color: #4f6381; font-size: 11px; font-weight: 700; }
+.novo-cliente-workspace .campo input, .novo-cliente-workspace .campo textarea { width: 100%; min-width: 0; font-family: inherit; font-size: 13px; font-weight: 500; color: #243650; background: #f8faff; border: 1px solid #c9d7e9; border-radius: 8px; padding: 8px 11px; text-transform: uppercase !important; }
+.novo-cliente-workspace .campo input { min-height: 36px; height: 36px; line-height: 1.4; }
+.novo-cliente-workspace #novo-nome { font-size: 14px; font-weight: 600; }
+.novo-cliente-workspace .campo textarea { min-height: 56px; line-height: 1.5; resize: vertical; }
+.novo-cliente-workspace .campo input:focus-visible, .novo-cliente-workspace .campo textarea:focus-visible { outline: 2px solid #2867c8; outline-offset: 2px; }
+.novo-cliente-identity { grid-template-columns: minmax(0, 1fr) 180px; }
+.novo-cliente-contacts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.novo-cliente-campo-topo { justify-content: space-between; gap: 8px; }
+.novo-cliente-campo-topo label { margin: 0; }
+.novo-cliente-copy { padding: 3px 6px; min-height: 24px; border: 0; border-radius: 5px; background: #eaf1fd; color: #245bb0; font: inherit; font-size: 10px; font-weight: 700; cursor: pointer; }
+.novo-cliente-copy:disabled { background: #f1f4f8; color: #66778f; cursor: default; }
+.novo-cliente-address-fields { grid-template-columns: minmax(0, 1.6fr) 92px minmax(0, 1fr) minmax(0, 1fr); }
+.novo-cliente-referencia { grid-column: 1 / -1; }
+.novo-cliente-savebar { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid #e5ebf3; padding-top: 14px; margin-top: 16px; }
+.novo-cliente-savebar > span { font-size: 11px; color: #61738d; }
+.novo-cliente-savebar > div { display: flex; gap: 8px; }
+.novo-cliente-savebar .btn, .novo-cliente-header .btn { min-height: 36px; }
 .novo-cliente-duplicates { padding: 22px; border: 1px solid #e8d2a7; border-left: 4px solid #c48a2c; border-radius: 14px; background: #fff9ec; outline-offset: 3px; }
 .novo-cliente-duplicates:focus-visible { outline: 3px solid #779bd0; }
 .novo-cliente-duplicates-heading { display: flex; align-items: flex-start; gap: 13px; }
@@ -68,41 +42,28 @@
 .novo-cliente-candidates strong { font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
 .novo-cliente-candidates span { display: block; margin-top: 4px; color: #5c6c83; font-size: 11px; line-height: 1.8; }
 .novo-cliente-duplicate-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
-@media (max-width: 1180px) {
-  .novo-cliente-layout { grid-template-columns: minmax(0, 1fr) 290px; gap: 18px; }
-  .novo-cliente-contacts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .novo-cliente-contacts > .campo:last-child { grid-column: 1 / -1; }
-  .novo-cliente-preview { padding: 20px; }
-  .novo-cliente-identity { grid-template-columns: 1fr; }
-  .novo-cliente-contact-note { align-items: flex-start; flex-direction: column; gap: 9px; }
-  .novo-cliente-savebar { align-items: stretch; flex-direction: column; }
-  .novo-cliente-savebar > div:last-child { justify-content: flex-end; }
+@media (max-width: 1100px) {
+  .novo-cliente-address-fields { grid-template-columns: minmax(0, 1fr) 92px minmax(0, 1fr); }
+  .novo-cliente-complemento { grid-column: 1 / -1; }
 }
-@media (max-width: 950px) {
-  .novo-cliente-layout { grid-template-columns: 1fr; }
-  .novo-cliente-aside { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
-  .novo-cliente-draft-note { grid-column: 1 / -1; }
-  .novo-cliente-identity { grid-template-columns: minmax(0, 1fr) 165px; }
-  .novo-cliente-contacts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .novo-cliente-contacts > .campo:last-child { grid-column: auto; }
+@media (max-width: 800px) {
+  .novo-cliente-formulario { padding: 16px; }
+  .novo-cliente-address-fields { grid-template-columns: minmax(0, 1fr) 86px; }
+  .novo-cliente-bairro, .novo-cliente-complemento { grid-column: 1 / -1; }
 }
-@media (max-width: 700px) {
-  .novo-cliente-workspace .novo-cliente-section { padding: 18px; }
-  .novo-cliente-workspace .novo-cliente-address { padding: 0; }
-  .novo-cliente-header-actions { width: 100%; justify-content: space-between; }
-  .novo-cliente-identity, .novo-cliente-contacts, .novo-cliente-aside { grid-template-columns: 1fr; }
-  .novo-cliente-workspace .campo input, .novo-cliente-workspace .campo textarea { font-size: 16px; }
-  .novo-cliente-fields { gap: 18px; }
-  .novo-cliente-workspace .admin-card-title h2 { font-size: 15px; }
-  .novo-cliente-workspace .admin-card-title p { font-size: 11px; }
-  .novo-cliente-address-line { grid-template-columns: minmax(0, 1fr) 86px; gap: 11px; }
-  .novo-cliente-address-line.detalhes { grid-template-columns: 1fr; gap: 18px; }
-  .novo-cliente-savebar { padding: 8px 0 3px; }
-  .novo-cliente-savebar .btn { flex: 1; padding-inline: 13px; }
-  .novo-cliente-aside { gap: 15px; }
-  .novo-cliente-preview { padding: 23px; }
-  .novo-cliente-duplicates { padding: 18px; }
+@media (max-width: 600px) {
+  .novo-cliente-header { align-items: flex-start; flex-wrap: wrap; gap: 10px; }
+  .novo-cliente-header h1 { font-size: 22px; }
+  .novo-cliente-header-actions { margin-left: auto; gap: 10px; }
+  .novo-cliente-draft { max-width: 90px; font-size: 9px; }
+  .novo-cliente-identity, .novo-cliente-contacts { grid-template-columns: 1fr; }
+  .novo-cliente-fields { gap: 8px; }
+  .novo-cliente-workspace .campo input, .novo-cliente-workspace .campo textarea, .novo-cliente-workspace #novo-nome { font-size: 16px; }
+  .novo-cliente-grupo + .novo-cliente-grupo { margin-top: 14px; padding-top: 12px; }
+  .novo-cliente-savebar { flex-wrap: wrap; }
+  .novo-cliente-savebar > span:empty { display: none; }
+  .novo-cliente-savebar > div { width: 100%; }
+  .novo-cliente-savebar .btn { flex: 1; padding-inline: 10px; }
   .novo-cliente-candidates article { flex-wrap: wrap; }
-  .novo-cliente-candidates article .btn { width: 100%; }
-  .novo-cliente-duplicate-actions .btn { width: 100%; }
+  .novo-cliente-candidates article .btn, .novo-cliente-duplicate-actions .btn { width: 100%; }
 }

@@ -48,12 +48,14 @@ async function preencher(page) {
   await page.getByLabel('Referência', { exact: true }).fill('PORTÃO AZUL\nAO LADO DA PRAÇA');
 }
 
-test('cadastro completo mantém campos, prévia, autocomplete e cria apenas uma ficha', async ({ page }) => {
+test('cadastro compacto mantém campos, autocomplete e cria apenas uma ficha', async ({ page }) => {
   const estado = await preparar(page);
   await preencher(page);
-  await expect(page.locator('.novo-cliente-preview')).toContainText('MARIA APARECIDA DE OLIVEIRA');
-  await expect(page.locator('.novo-cliente-preview')).toContainText('Rua das Flores, 120');
-  await expect(page.locator('.novo-cliente-preview')).toContainText('PORTÃO AZUL');
+  await expect(page.locator('.novo-cliente-formulario')).toHaveCount(1);
+  await expect(page.locator('.novo-cliente-aside, .novo-cliente-preview, .novo-cliente-checklist, .novo-cliente-step, .admin-card')).toHaveCount(0);
+  await expect(page.getByLabel('Nome *', { exact: true })).toHaveCSS('text-transform', 'uppercase');
+  await expect(page.getByLabel('Endereço', { exact: true })).toHaveValue('Rua das Flores');
+  await expect(page.getByLabel('Referência', { exact: true })).toHaveValue('PORTÃO AZUL\nAO LADO DA PRAÇA');
   await expect(page.getByLabel('Celular', { exact: true })).toHaveValue('(34) 9 9999-1111');
   await expect(page.getByLabel('Complemento', { exact: true })).toHaveValue('CASA 2');
   await page.getByRole('button', { name: 'Salvar cliente', exact: true }).evaluate(botao => { botao.click(); botao.click(); });
@@ -132,14 +134,20 @@ test('rascunho retorna com contatos e endereço aberto, sem gravar ao sair', asy
   expect(estado.escritas).toHaveLength(0);
 });
 
-test('prévia e campos adaptam-se às telas sem cortes e com contraste legível', async ({ page }, info) => {
+test('painel único adapta os campos sem cortes e mantém as ações visíveis no computador', async ({ page }, info) => {
   test.setTimeout(60000);
   const erros = []; page.on('pageerror', erro => erros.push(erro.message));
   const estado = await preparar(page);
   await preencher(page);
   for (const width of [1600, 1280, 1024, 768, 390, 320]) {
-    await page.setViewportSize({ width, height: 1000 });
+    await page.setViewportSize({ width, height: width >= 1280 ? 800 : 1000 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    if (width >= 1280) {
+      await page.locator('.novo-cliente-workspace').evaluate(form => form.closest('.layout-conteudo').scrollTop = 0);
+      await expect(page.getByRole('button', { name: 'Salvar cliente', exact: true })).toBeInViewport();
+      const painel = await page.locator('.novo-cliente-formulario').boundingBox();
+      expect(painel.height).toBeLessThan(540);
+    }
     if ([1600, 390].includes(width)) {
       await page.locator('.novo-cliente-workspace').evaluate(form => {
         form.closest('.layout-conteudo').scrollTop = 0;
