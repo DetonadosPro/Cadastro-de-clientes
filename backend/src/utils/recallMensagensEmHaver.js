@@ -7,8 +7,10 @@ async function anexarMensagensEmHaver(grupos, consultar, referencia) {
     const resultado = await consultar(`SELECT f.* FROM fonadas f
       JOIN clientes c ON c.id=f.cliente_id AND c.excluido_em IS NULL
       WHERE f.excluido_em IS NULL AND f.cliente_id=ANY($1::int[])
-        AND COALESCE(TRIM(f.p2_resultado),'')=''`, [ids]);
+        AND COALESCE(TRIM(f.p2_resultado),'')=''
+        AND COALESCE(TRIM(f.p2_dia),'')=''`, [ids]);
     for (const pedido of resultado.rows) {
+      if (String(pedido.p2_dia || '').trim() || String(pedido.p2_resultado || '').trim()) continue;
       const situacao = situacaoSegundaMensagem(pedido, referencia);
       if (!situacao.disponivel) continue;
       if (!porCliente.has(pedido.cliente_id)) porCliente.set(pedido.cliente_id, []);

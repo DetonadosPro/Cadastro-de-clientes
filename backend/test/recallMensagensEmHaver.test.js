@@ -16,6 +16,8 @@ test('Recall conta somente mensagens disponíveis em todos os pedidos do cliente
       { ...pedido, id: 12, p2_resultado: 'MENSAGEM PASSADA' },
       { ...pedido, id: 13, valor: 12.01 },
       { ...pedido, id: 14, data_pedido: 'inválida' },
+      { ...pedido, id: 15, p2_dia: '10/10/26' },
+      { ...pedido, id: 16, p2_dia: '10/10/26', creditos_usados: 1 },
     ] };
   }, referencia);
   assert.equal(consultas, 1);
@@ -23,6 +25,17 @@ test('Recall conta somente mensagens disponíveis em todos os pedidos do cliente
   assert.deepEqual(resultado[1].mensagensEmHaver, []);
   assert.equal(resultado[2].mensagensEmHaver, null);
   assert.deepEqual(resultado[3].mensagensEmHaver, resultado[0].mensagensEmHaver);
+});
+
+test('mensagem sem data e resultado continua em haver, inclusive por crédito sem validade', async () => {
+  const resultado = await anexarMensagensEmHaver([{ clienteId: 1 }], async () => ({ rows: [
+    { id: 20, cliente_id: 1, senha_os: '0020', creditos_usados: 1, p2_dia: '  ', p2_resultado: '  ' },
+    { id: 21, cliente_id: 1, senha_os: '0021', creditos_usados: 1, p2_dia: null, p2_resultado: null },
+    { id: 22, cliente_id: 1, creditos_usados: 1, p2_dia: null, p2_resultado: 'OK' },
+  ] }));
+  assert.deepEqual(resultado[0].mensagensEmHaver, [20, 21].map(id => ({
+    pedidoId: id, os: `00${id}`, dataExpiracao: null, semValidade: true,
+  })));
 });
 
 test('pessoa sem cadastro não recebe saldo de outra pessoa e não exige consulta', async () => {

@@ -167,7 +167,7 @@ export default function FormFonada() {
     // empilha uma entrada, e o botão "Fechar" (que usa navigate(-1))
     // passa a voltar pedido por pedido em vez de ir direto para a
     // lista de onde a navegação começou.
-    navigate(`/fonada/${idAlvo}`, { replace: true });
+    navigate(`/fonada/${idAlvo}`, { replace: true, state: location.state });
   }
 
   // Busca a página vizinha (anterior ou seguinte) na API, atualiza o
@@ -192,7 +192,7 @@ export default function FormFonada() {
       // de "continuar andando" na mesma direção do clique.
       const idAlvo = direcao > 0 ? novosIds[0] : novosIds[novosIds.length - 1];
       sessionStorage.setItem('ultimoFonadaSelecionado', String(idAlvo));
-      navigate(`/fonada/${idAlvo}`, { replace: true });
+      navigate(`/fonada/${idAlvo}`, { replace: true, state: location.state });
     } catch (err) {
       mostrarToast('Não foi possível carregar a próxima página de resultados.', 'erro');
     } finally {

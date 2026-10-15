@@ -224,6 +224,11 @@ export default function FichaCliente() {
   }
 
   function voltar() {
+    const retorno = location.state?.returnTo;
+    if (typeof retorno === 'string' && /^\/cobranca(?:[?#]|$)/.test(retorno)) {
+      navigate(retorno, { replace: true });
+      return;
+    }
     const origem = location.state?.origemListaClientes;
     if (origem?.url === '/clientes' || origem?.url?.startsWith('/clientes?')) {
       const parametros = new URLSearchParams(origem.url.split('?')[1]);
