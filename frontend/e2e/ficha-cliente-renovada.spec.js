@@ -137,6 +137,9 @@ test('edição preserva campos e versão; cancelamento e consulta não escrevem'
   await page.getByRole('button', { name: 'Editar', exact: true }).click();
   const dialogo = page.getByRole('dialog', { name: 'Editar cliente' });
   await expect(dialogo.getByLabel('Nome', { exact: true })).toHaveValue(cliente.nome);
+  for (const campo of ['Nome', 'Nº', 'Complemento', 'Bairro', 'Referência']) {
+    await expect(dialogo.getByLabel(campo, { exact: true })).toHaveCSS('text-transform', 'uppercase');
+  }
   await expect(dialogo.getByLabel('Nº', { exact: true })).toHaveValue('120');
   await dialogo.getByRole('button', { name: 'Cancelar', exact: true }).click();
   expect(estado.escritas).toEqual([]);
