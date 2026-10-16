@@ -97,7 +97,8 @@ test('resumo, horários e mensagens agrupadas representam o dia completo',async(
   await expect(linha(page,'José')).not.toContainText('Duas mensagens nesta ligação');
   await expect(linha(page,'Antônio')).not.toContainText('Renata');
   await expect(linha(page,'Antônio').locator('.linha-agenda-detalhes')).toContainText('Centro');
-  await expect(linha(page,'Antônio').locator('.linha-agenda-detalhes')).toContainText('Brinde: Flores');
+  await expect(linha(page,'Antônio').locator('.linha-agenda-detalhes')).toContainText('Flores');
+  await expect(linha(page,'Antônio').locator('.linha-agenda-detalhes')).not.toContainText('Brinde:');
   await expect(page.locator('.ag-type-marker svg')).toHaveCount(7);
   const os=await linha(page,'Marília').locator('.linha-agenda-os').boundingBox();
   const tags=await linha(page,'Marília').locator('.linha-agenda-tags').boundingBox();

@@ -690,7 +690,7 @@ export default function Agenda() {
           horario={item.horario_entrega}
           tipo="aovivo"
           titulo={item.para || item.comprador}
-          detalhes={[item.bairro, String(item.brinde || '').trim() ? `Brinde: ${item.brinde.trim()}` : null].filter(Boolean)}
+          detalhes={[item.bairro, String(item.brinde || '').trim()].filter(Boolean)}
           tagExtra="Ao vivo"
           prazo={pagamentoEhPrazo(item.pagamento)}
           status={jaPassada ? 'Entregue' : (item.pagou === 'SIM' ? 'Pago' : null)}
