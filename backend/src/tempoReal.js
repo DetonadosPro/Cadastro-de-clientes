@@ -14,7 +14,7 @@ const RELACIONADOS = {
   clientes: ['clientes', 'recall'],
   creditos: ['clientes', 'fonadas', 'relatorios'],
   agenda: ['agenda', 'fonadas'],
-  cobranca: ['cobranca', 'ao-vivo', 'fonadas', 'relatorios'],
+  cobranca: ['cobranca', 'ao-vivo', 'fonadas', 'agenda', 'relatorios'],
   recall: ['recall'],
 };
 

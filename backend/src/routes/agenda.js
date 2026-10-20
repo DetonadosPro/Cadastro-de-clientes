@@ -14,6 +14,7 @@ const { db, pool } = require('../db/database');
 const { agoraBrasilia } = require('../utils/dataHora');
 const { situacaoSegundaMensagem, validarDataUsoSegundaMensagem, temDireitoSegundaMensagem } = require('../utils/mensagemEmHaver');
 const { dataCurtaValida } = require('../utils/validarDataCurta');
+const { recebimentosAgenda } = require('../utils/recebimentosAgenda');
 
 const router = express.Router();
 router.param('id', (req, res, next, id) => {
@@ -93,7 +94,7 @@ router.get('/contagens', async (req, res) => {
       contagens[item.curto] = 0;
     });
 
-    const [fonadasResultado, aoVivoResultado, lembretesResultado] = await Promise.all([
+    const [fonadasResultado, aoVivoResultado, lembretesResultado, recebimentos] = await Promise.all([
       db.query(`
         SELECT id, valor, creditos_usados, p1_dia, p1_para, p1_horario, p1_resultado,
                    p2_dia, p2_para, p2_horario, p2_resultado
@@ -113,6 +114,7 @@ router.get('/contagens', async (req, res) => {
         WHERE data = ANY($1::date[])
         GROUP BY data
       `, [datasIso]),
+      recebimentosAgenda(db, datasTexto),
     ]);
 
     for (const pedido of fonadasResultado.rows) {
@@ -139,6 +141,7 @@ router.get('/contagens', async (req, res) => {
     lembretesResultado.rows.forEach((item) => {
       if (contagens[item.dia] !== undefined) contagens[item.dia] += item.total;
     });
+    recebimentos.forEach(item => { contagens[chavePorFormato.get(item.dia_recebimento)] += 1; });
 
     res.json({ contagens });
   } catch (erro) {
@@ -221,8 +224,8 @@ router.get('/hoje', async (req, res) => {
       ORDER BY concluido ASC, horario ASC NULLS FIRST, id ASC
     `, [dataIso]) : { rows: [] };
 
-    // A Agenda mostra somente compromissos. Cobranças previstas e ações
-    // financeiras ficam concentradas na central de Cobrança.
+    // Recebimentos são recados vinculados ao pedido, sem duplicar lembretes.
+    itensAoVivo.push(...await recebimentosAgenda(db, [curto, longo]));
     res.json({ data: curto, consultandoHoje, fonada: itensFonada, aoVivo: itensAoVivo, lembretes: lembretesResultado.rows });
   } catch (erro) {
     console.error('Erro ao buscar agenda:', erro);

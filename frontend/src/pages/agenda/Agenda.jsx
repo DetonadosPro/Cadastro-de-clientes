@@ -579,7 +579,7 @@ export default function Agenda() {
   });
   const todosItens = [
     ...fonadaExibida.map((item) => ({ ...item, _tipo: 'fonada', _chave: `${item.pedidoId}-${item.mensagem}`, _horario: item.horario || '' })),
-    ...aoVivoExibido.map((item) => ({ ...item, _tipo: 'aovivo', _chave: `aovivo-${item.id}`, _horario: item.horario_entrega || '' })),
+    ...aoVivoExibido.map((item) => ({ ...item, _tipo: 'aovivo', _chave: `${item.ehCobranca ? 'recebimento' : 'aovivo'}-${item.id}`, _horario: item.horario_entrega || '' })),
     ...lembretesExibidos.map((item) => ({ ...item, _tipo: 'lembrete', _chave: `lembrete-${item.id}`, _horario: item.horario || '' })),
   ].sort((a, b) => a._horario.localeCompare(b._horario));
   const listasPorAba = {
@@ -689,9 +689,9 @@ export default function Agenda() {
           senhaOs={item.numero_os}
           horario={item.horario_entrega}
           tipo="aovivo"
-          titulo={item.para || item.comprador}
-          detalhes={[item.bairro, String(item.brinde || '').trim()].filter(Boolean)}
-          tagExtra="Ao vivo"
+          titulo={item.ehCobranca ? `Receber de ${item.comprador || 'cliente'}` : item.para || item.comprador}
+          detalhes={item.ehCobranca ? [Number(item.valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })] : [item.bairro, String(item.brinde || '').trim()].filter(Boolean)}
+          tagExtra={item.ehCobranca ? 'Recebimento · Ao vivo' : 'Ao vivo'}
           prazo={pagamentoEhPrazo(item.pagamento)}
           status={jaPassada ? 'Entregue' : (item.pagou === 'SIM' ? 'Pago' : null)}
           statusOk={jaPassada || item.pagou === 'SIM'}
@@ -1253,6 +1253,19 @@ function CardRemarcacoesPrazo({ pedidoId }) {
 }
 
 function DetalhesAoVivo({ item, ehHoje, navigate }) {
+  if (item.ehCobranca) return (
+    <div className="agenda-detalhe agenda-detalhe-recebimento">
+      <div className="agenda-detalhe-status"><span className="carimbo-os">{item.numero_os || item.id}</span><span className="tag aviso">Recebimento · Ao vivo</span></div>
+      <h2>{item.comprador || 'Cliente não informado'}</h2>
+      <Info label="Valor a receber" valor={Number(item.valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} />
+      <Info label="Receber em" valor={item.dia_recebimento} />
+      <p className="fs-sm texto-suave">Recebimento do Ao Vivo vendido a prazo. Registre o pagamento na cobrança para encerrar este recado.</p>
+      <div className="agenda-acoes-secundarias">
+        <button type="button" className="btn-action" onClick={() => navigate(`/cobranca?sistema=AOVIVO&avOs=${encodeURIComponent(item.numero_os || '')}`)}>Abrir cobrança</button>
+        <button type="button" className="btn-action" onClick={() => navigate(`/ao-vivo/${item.id}`)}>Abrir pedido</button>
+      </div>
+    </div>
+  );
   const urgencia = urgenciaAgenda(item, ehHoje);
   const mensagens = [1, 2, 3, 4]
     .map((numero) => ({ numero, tema: item[`tema_${numero}`], codigo: item[`mensagem_codigo_${numero}`] }))

@@ -54,6 +54,21 @@ async function preparar(page,opcoes={}) {
 }
 const linha=(page,texto)=>page.locator('.linha-agenda').filter({hasText:texto});
 
+test('recebimento a prazo aparece separado da entrega e abre a cobrança correta', async ({ page }) => {
+  const { estado } = await preparar(page);
+  estado.aoVivo.push({ ...estado.aoVivo[0], ehCobranca: true, dia_recebimento: HOJE,
+    horario_entrega: '', passada: false, pagou: '', valor: 120, pagamento: 'PRAZO - DIA 05/10/26' });
+  await page.reload();
+  const recado = linha(page, 'Receber de Renata');
+  await expect(recado).toContainText('Recebimento · Ao vivo');
+  await expect(recado).toContainText('120,00');
+  await expect(linha(page, 'Antônio')).toHaveCount(1);
+  await recado.click();
+  await expect(page.locator('.agenda-detalhe-recebimento')).toContainText(HOJE);
+  await page.getByRole('button', { name: 'Abrir cobrança', exact: true }).click();
+  await expect(page).toHaveURL(/\/cobranca\?sistema=AOVIVO&avOs=AV020$/);
+});
+
 for(const width of [1440,390]) {
   for(const cenario of [{nome:'troca para o primeiro após adiar no mesmo dia',dia:HOJE,hora:'11:20',primeiro:'José'}, {nome:'mantém o pedido quando continua em primeiro',dia:HOJE,hora:'08:50',primeiro:'Marília'}, {nome:'seleciona o primeiro após mudar para outro dia',dia:'06/10/26',hora:'11:20',primeiro:'José'}]) {
     test(`reagendamento ${cenario.nome} em ${width}px`,async({page})=>{
