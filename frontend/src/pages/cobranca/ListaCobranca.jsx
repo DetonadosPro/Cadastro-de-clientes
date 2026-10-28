@@ -10,6 +10,7 @@ import { AvisoInline, Dialogo, EstadoCarregando, EstadoVazio } from '../../compo
 import { linkWhatsAppCobranca } from '../../utils/mensagemCobranca.js';
 import { ResumoCobranca, CabecalhoPesquisa, CabecalhoResultados } from './InterfaceCobranca.jsx';
 import { useRetornoCobranca } from './useRetornoCobranca.js';
+import WhatsAppCobranca from './WhatsAppCobranca.jsx';
 
 function dataLocalFormatada(deslocamento = 0) {
   const data = new Date();
@@ -536,7 +537,7 @@ function ListaGrupos({ grupos, pedidosVisiveis, expandidos, selecionados, altern
               <div className="grupo-cobranca-status-impressao">{grupo.pedidos.length > 0 && quantidadeImpressos === grupo.pedidos.length ? 'Impresso' : ''}</div>
               <div className="grupo-cobranca-valor"><strong>{formatarReais(grupo.valorTotal)}</strong><span>{[...new Set(grupo.pedidos.map((p) => p.formaPagamento))].join(' · ')}</span></div>
               <div className="grupo-cobranca-acoes">
-                {whatsapp && <a className="btn-small cobranca-whatsapp" href={whatsapp} target="_blank" rel="noreferrer" aria-label={`Abrir WhatsApp de ${grupo.nome}`} title="Abrir WhatsApp"><IconeWhatsApp /></a>}
+                {whatsapp && <WhatsAppCobranca tipo="fonada" pedidos={grupo.pedidos} href={whatsapp} nome={grupo.nome}><IconeWhatsApp /></WhatsAppCobranca>}
                 <button type="button" className="btn-small cobranca-recibo-icone" onClick={() => imprimir(grupo.pedidos)} title={`Imprimir recibo — ${quantidadeImpressos} de ${grupo.pedidos.length} impresso(s)`} aria-label={`Imprimir recibo de ${grupo.nome}`}>
                   <IconeImpressora />
                 </button>

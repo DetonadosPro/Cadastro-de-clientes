@@ -9,6 +9,7 @@ import { AvisoInline, Dialogo, EstadoCarregando, EstadoVazio } from '../../compo
 import { linkWhatsAppCobranca } from '../../utils/mensagemCobranca.js';
 import { ResumoCobranca, CabecalhoPesquisa, CabecalhoResultados } from './InterfaceCobranca.jsx';
 import { useRetornoCobranca } from './useRetornoCobranca.js';
+import WhatsAppCobranca from './WhatsAppCobranca.jsx';
 
 function hojeBr() {
   const data = new Date();
@@ -281,7 +282,7 @@ export default function CobrancaAoVivo({ mostrarCabecalho = true }) {
               <div className="cobranca-aovivo-data"><strong>{rotuloData(pedido)}</strong><span>{pedido.pagou === 'SIM' ? `Pago em ${pedido.dataPagamento || '—'}${pedido.recebidoPor ? ` · ${pedido.recebidoPor}` : ''}` : `Cobrança: ${pedido.dataCobranca || '—'}`}</span></div>
               <div className="cobranca-aovivo-valor"><strong>{reais(pedido.pagou === 'SIM' ? (pedido.valorRecebido ?? pedido.valor) : pedido.valor)}</strong><span>{pedido.pagou === 'SIM' ? (pedido.formaRecebimento || 'Recebido') : (pedido.pagamentoPrevisto || 'Forma não informada')}</span></div>
               <div className="cobranca-aovivo-acoes">
-                {whatsapp && <a className="btn-small cobranca-whatsapp" href={whatsapp} target="_blank" rel="noreferrer" aria-label="Abrir WhatsApp" title="Abrir WhatsApp"><IconeWhatsAppReferencia /></a>}
+                {whatsapp && <WhatsAppCobranca tipo="aovivo" pedidos={[pedido]} href={whatsapp} nome={pedido.nome}><IconeWhatsAppReferencia /></WhatsAppCobranca>}
                 <button type="button" className="btn-small" onClick={() => navegarComPesquisa(`/ao-vivo/${pedido.id}`, pedido.id)}>Abrir pedido</button>
                 {pedido.pagou === 'SIM' ? <button type="button" className="btn-small" onClick={() => desfazer(pedido)}>Desfazer baixa</button> : <><button type="button" className="btn-small" onClick={() => { setReagendar(pedido); setNovaData((diasAte(pedido.dataCobranca) ?? -1) >= 0 ? pedido.dataCobranca : hojeBr()); }}>Reagendar</button><button type="button" className="btn-small primario" onClick={() => abrirBaixa(pedido)}>Dar baixa</button></>}
               </div>

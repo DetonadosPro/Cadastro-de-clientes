@@ -39,6 +39,48 @@ async function preparar(page) {
   return gravacoes;
 }
 
+test('marcação do WhatsApp persiste por pedido e pode ser desfeita', async ({ page, context }) => {
+  await preparar(page);
+  await context.route('https://wa.me/**', route => route.fulfill({ body: 'WhatsApp simulado' }));
+  const grupo = page.locator('.grupo-cobranca').first();
+  await expect(grupo.getByText('Ainda não aberto', { exact: true })).toBeVisible();
+  const popup = page.waitForEvent('popup');
+  await grupo.getByRole('link', { name: 'Abrir WhatsApp de Ana Maria' }).click();
+  await (await popup).close();
+  await expect(grupo.getByText('✓ WhatsApp aberto', { exact: true })).toBeVisible();
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 1000 });
+    expect(await grupo.locator('.cb-whatsapp-controle').evaluate(el => {
+      const r = el.getBoundingClientRect();
+      return r.left >= 0 && r.right <= innerWidth;
+    })).toBe(true);
+  }
+  expect(await page.evaluate(() => Object.keys(localStorage).filter(k => k.includes('cobranca_whatsapp:QA:fonada:')).length)).toBe(2);
+  await page.reload();
+  await expect(grupo.getByText('✓ WhatsApp aberto', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Ao Vivo', exact: true }).click();
+  const card = page.locator('.cobranca-aovivo-card').first();
+  await expect(card.getByText('Ainda não aberto', { exact: true })).toBeVisible();
+  const popupAoVivo = page.waitForEvent('popup');
+  await card.getByRole('link', { name: 'Abrir WhatsApp de Ana Maria' }).click();
+  await (await popupAoVivo).close();
+  await expect(card.getByText('✓ WhatsApp aberto', { exact: true })).toBeVisible();
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 1000 });
+    expect(await card.locator('.cb-whatsapp-controle').evaluate(el => {
+      const r = el.getBoundingClientRect();
+      return r.left >= 0 && r.right <= innerWidth;
+    })).toBe(true);
+  }
+  await card.getByRole('button', { name: 'Desfazer marcação do WhatsApp de Ana Maria' }).click();
+  await expect(card.getByText('Ainda não aberto', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Fonada', exact: true }).click();
+  await expect(grupo.getByText('✓ WhatsApp aberto', { exact: true })).toBeVisible();
+  await grupo.getByRole('button', { name: 'Desfazer marcação do WhatsApp de Ana Maria' }).click();
+  await page.reload();
+  await expect(grupo.getByText('Ainda não aberto', { exact: true })).toBeVisible();
+});
+
 for (const largura of [320, 390, 768, 1024, 1440]) {
   test(`Fonada e Ao Vivo cabem em ${largura}px, inclusive pedidos expandidos`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width: largura, height: 1000 });

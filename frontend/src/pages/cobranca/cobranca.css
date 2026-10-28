@@ -181,3 +181,9 @@
 }
 @media(prefers-reduced-motion:reduce) { .cobranca-moderna * { transition:none; } }
 .cobranca-moderna .cb-retorno-marcado { background:#f1f5ff; border-color:#afc4f7; box-shadow:0 0 0 2px #3861ed14; }
+.cobranca-moderna .cb-whatsapp-controle { display:flex; flex-direction:column; align-items:center; gap:3px; max-width:145px; }
+.cobranca-moderna .cb-whatsapp-linha { display:flex; align-items:center; gap:5px; }
+.cobranca-moderna .cb-whatsapp-controle .cb-whatsapp-status { font-size:10px; color:#596579; line-height:1.3; }
+.cobranca-moderna .cb-whatsapp-controle.marcado .cb-whatsapp-status { color:#216447; font-weight:700; }
+.cobranca-moderna .cb-whatsapp-controle.marcado .cobranca-whatsapp { background:#ccebdc; border-color:#32805b; color:#155335; }
+.cobranca-moderna .cb-whatsapp-desfazer { border:0; background:transparent; color:#485c73; font-size:10px; padding:4px; text-decoration:underline; cursor:pointer; }
