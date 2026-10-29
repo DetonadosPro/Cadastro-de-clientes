@@ -7,6 +7,10 @@ const router=require('../src/routes/recall');
 test('fila Ao Vivo separa pesquisas e vincula destinatário sem usar telefone do comprador',async()=>{
   const original=db.query;
   db.query=async(sql,params)=>{
+    if(sql.includes('recall_financeiro')) {
+      assert.deepEqual(params[0],[7,3]);
+      return {rows:[{id:90,cliente_id:7,os:'900',tipo:'FONADA',valor:60,data:'10/10/26',mensagens:2}]};
+    }
     if(sql.includes('FROM ao_vivo a')){
       assert.match(sql,/a.celular_local/);
       assert.match(sql,/c.nascimento cliente_nascimento/);
@@ -31,5 +35,8 @@ test('fila Ao Vivo separa pesquisas e vincula destinatário sem usar telefone do
     assert.equal(dados.porAniversario[0].telefone,'34988887777');
     assert.equal(dados.porAniversario[0].aniversariante,'KATIA');
     assert.equal(dados.porDiaMensagem[0].telefone,'34999999999');
+    assert.equal(dados.porDiaMensagem[0].financeiro.valorTotal,60);
+    assert.equal(dados.porDiaMensagem[0].financeiro.quantidadeMensagens,2);
+    assert.equal(dados.porAniversario[0].financeiro.valorTotal,0);
   }finally{db.query=original;await new Promise(resolve=>servidor.close(resolve));}
 });

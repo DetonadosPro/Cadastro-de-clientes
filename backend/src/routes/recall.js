@@ -3,6 +3,7 @@ const { db } = require('../db/database');
 const { formatarNome, normalizarBusca, sqlBuscaNome, ehTemaAniversario, chavePessoa, nomePessoaValido, dataBrParaIso } = require('../utils/recall');
 const { hojeIsoBrasilia } = require('../utils/dataHora');
 const { anexarMensagensEmHaver } = require('../utils/recallMensagensEmHaver');
+const { anexarFinanceiroRecall } = require('../utils/recallFinanceiro');
 const { agruparAoVivo, agruparAoVivoAniversario, telefoneDoComprador } = require('../utils/recallAoVivo');
 
 const router = express.Router();
@@ -147,10 +148,13 @@ router.get('/ao-vivo/fila', async (req, res) => {
     const semFicha = resultado.rows.filter((p) => !p.cliente_id).map((p) => ({ ...p, cliente_nome: p.comprador, telefone: telefoneDoComprador(p) }));
     const vinculados = new Map((await vincularClientesPorTelefone(semFicha)).map((p) => [p.id, p]));
     const linhas = resultado.rows.map((p) => vinculados.get(p.id) || p);
-    const itens = await anexarStatus(agruparAoVivo(linhas, data), data);
+    let itens = await anexarStatus(agruparAoVivo(linhas, data), data);
     const gruposAniversario = agruparAoVivoAniversario(resultado.rows, data);
     const contatos = await vincularClientesPorTelefone(gruposAniversario.map(g=>({...g,cliente_nome:g.clienteNome,telefone:g.telefone})));
-    const porAniversario = await anexarStatus(contatos.map(g=>({...g,clienteId:g.cliente_id||null,clienteBloqueado:Boolean(g.cliente_bloqueado)})),data);
+    let porAniversario = await anexarStatus(contatos.map(g=>({...g,clienteId:g.cliente_id||null,clienteBloqueado:Boolean(g.cliente_bloqueado)})),data);
+    const comFinanceiro = await anexarFinanceiroRecall([...itens, ...porAniversario], (sql, valores) => db.query(sql, valores));
+    porAniversario = comFinanceiro.slice(itens.length);
+    itens = comFinanceiro.slice(0, itens.length);
     res.json({ data, itens, porDiaMensagem:itens, porAniversario });
   } catch (erro) {
     console.error('Erro fila Recall Ao Vivo:', erro);
@@ -174,7 +178,9 @@ router.get('/fila', async (req, res) => {
     // dele para descobrir os destinatários 1 e 2 a contatar. Não limita pela
     // data/tema da mensagem: o histórico inteiro comprova a relação.
     let porAniversario = ordenar(await anexarStatus(agrupar(linhasNascimento, null, false), data));
-    const comMensagens = await anexarMensagensEmHaver([...porDia, ...porAniversario], (sql, valores) => db.query(sql, valores));
+    const comMensagens = await anexarFinanceiroRecall(
+      await anexarMensagensEmHaver([...porDia, ...porAniversario], (sql, valores) => db.query(sql, valores)),
+      (sql, valores) => db.query(sql, valores));
     porAniversario = comMensagens.slice(porDia.length);
     porDia = comMensagens.slice(0, porDia.length);
     // Mantém "itens" por compatibilidade, mas a interface usa as duas

@@ -4,7 +4,12 @@ async function preparar(page,{erro=false,vazio=false}={}){
   await page.addInitScript(()=>{localStorage.setItem('pombo_token','token-simulado');localStorage.setItem('pombo_usuario','QA');});
   const historico=[{pedidoId:123,os:'2688',mensagem:1,data:'07/10/25',tema:'ANIVERSÁRIO ESPECIAL',texto:'F203'},{pedidoId:122,os:'2000',mensagem:2,data:'07/10/24',tema:'ANIV GERAL',texto:'F100'}];
   const item={relacaoChave:'relacao-1',clienteId:7,clienteNome:'KATIA EMILLY SILVA DE OLIVEIRA',aniversariante:'MÁRCIA HELENA (NÃO É MAIS - NÃO LIGAR)',telefone:'(34) 9 9999-9999',ocasiao:'ANIVERSARIO',historico,ultimoPedido:historico[0],quantidade:2,mensagensEmHaver:[{pedidoId:130,os:'2800',dataExpiracao:'07/01/27'}]};
+  item.financeiro={valorTotal:135.5,quantidadeMensagens:3,proximaData:'29/10/26',pedidos:[
+    {pedidoId:400,os:'3400',tipo:'FONADA',valor:55.5,mensagens:2,data:'29/10/26'},
+    {pedidoId:401,os:'3401',tipo:'AOVIVO',valor:80,mensagens:1,data:'05/11/26'},
+  ]};
   const invertido={...item,relacaoChave:'relacao-2',clienteId:3,clienteNome:'MÁRCIA HELENA',aniversariante:'KATIA EMILLY SILVA',modoFila:'ANIVERSARIO',mensagensEmHaver:[]};
+  invertido.financeiro={valorTotal:0,quantidadeMensagens:0,proximaData:null,pedidos:[]};
   await page.route('**/api/**',async route=>{
     const caminho=new URL(route.request().url()).pathname;
     if(caminho==='/api/recall/fila'||caminho==='/api/recall/ao-vivo/fila'){
@@ -26,8 +31,18 @@ for(const sistema of ['FONADA','AOVIVO'])for(const modo of ['dia-mensagem','aniv
     await expect(page.getByRole('tab',{name:/Pesquisa 2/})).toHaveAttribute('aria-selected',String(modo==='aniversario'));
     await expect(page.locator('.recall-linha')).toHaveCount(modo==='aniversario'?1:2);
     if(modo==='dia-mensagem'){
+      await expect(page.locator('.recall-linha').first().locator('.recall-tag-divida')).toHaveText('● 3 mensagens em aberto');
+      const financeiro=page.getByRole('region',{name:'Valores em aberto de KATIA EMILLY SILVA DE OLIVEIRA'});
+      await expect(financeiro).toContainText('R$ 135,50');
+      await expect(financeiro).toContainText('29/10/26');
+      await financeiro.locator('summary').click();
+      await expect(financeiro.getByRole('button')).toHaveCount(2);
+      await expect(financeiro).toContainText('05/11/26');
       await expect(page.locator('.recall-linha').first()).toContainText('KATIA EMILLY SILVA DE OLIVEIRA');
       await expect(page.locator('.recall-linha').first()).toContainText('MÁRCIA HELENA (NÃO É MAIS - NÃO LIGAR)');
+    }else{
+      await expect(page.locator('.recall-financeiro-quitado')).toHaveText('✓ Nenhum valor em aberto');
+      await expect(page.locator('.recall-tag-divida')).toHaveCount(0);
     }
     await page.locator('.recall-historico-relacao > summary').click();
     await expect(page.locator('.recall-historico-itens button')).toHaveCount(2);

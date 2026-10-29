@@ -7,6 +7,7 @@ const linha = { pedido_id: 1, cliente_id: 1, senha_os: '123', cliente_nome: 'kat
 const banco = require.resolve('../src/db/database');
 require.cache[banco] = { id: banco, filename: banco, loaded: true, exports: { db: { query: async (sql, valores) => {
   consultas.push({ sql, valores });
+  if (sql.includes('recall_financeiro')) return { rows: [{id:9,cliente_id:1,os:'900',tipo:'AOVIVO',valor:90,data:'29/10/26',mensagens:1}] };
   return { rows: sql.includes('SELECT f.id pedido_id, f.cliente_id') ? [{ ...linha }] : [] };
 } } } };
 const router = require('../src/routes/recall');
@@ -20,6 +21,9 @@ test('fila de 05/10/26 e busca devolvem nomes uniformes e preservam relação e 
     assert.equal(fila.porDiaMensagem[0].clienteNome, 'KATIA EMILLY');
     assert.equal(fila.porDiaMensagem[0].aniversariante, 'MÁRCIA');
     assert.equal(fila.porDiaMensagem[0].ultimoPedido.os, '123');
+    assert.equal(fila.porDiaMensagem[0].financeiro.valorTotal, 90);
+    assert.equal(fila.porDiaMensagem[0].financeiro.proximaData, '29/10/26');
+    assert.equal(fila.porDiaMensagem[0].financeiro.quantidadeMensagens, 1);
     for (const termo of ['márcia', 'MARCIA', 'Ma\u0301rcia']) {
       consultas.length = 0;
       const resultado = await (await fetch(`${base}/buscar?termo=${encodeURIComponent(termo)}`)).json();
