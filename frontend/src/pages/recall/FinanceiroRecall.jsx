@@ -1,26 +1,44 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 
 const reais = valor => Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const rotuloMensagens = quantidade => `${quantidade} ${quantidade === 1 ? 'mensagem em aberto' : 'mensagens em aberto'}`;
 
 export function TagDividaRecall({ financeiro }) {
   if (!financeiro?.pedidos?.length) return null;
-  return <span className="recall-tag-divida" title={`${rotuloMensagens(financeiro.quantidadeMensagens)} · ${reais(financeiro.valorTotal)}`}>
-    <span aria-hidden="true">●</span> {rotuloMensagens(financeiro.quantidadeMensagens)}
+  return <span className="recall-tag-divida" aria-label={rotuloMensagens(financeiro.quantidadeMensagens)} title={`${rotuloMensagens(financeiro.quantidadeMensagens)} · ${reais(financeiro.valorTotal)}`}>
+    {financeiro.quantidadeMensagens} {financeiro.quantidadeMensagens === 1 ? 'msg' : 'msgs'} em aberto
   </span>;
 }
 
 export default function FinanceiroRecall({ financeiro, nome, navigate, returnTo }) {
-  if (!financeiro) return null;
-  if (!financeiro.pedidos.length) return <div className="recall-financeiro-quitado"><span aria-hidden="true">✓</span> Nenhum valor em aberto</div>;
+  const referencia = useRef(null);
+  useEffect(() => {
+    const fechar = evento => {
+      if (evento.type === 'keydown' ? evento.key === 'Escape' : !referencia.current?.contains(evento.target)) {
+        referencia.current?.removeAttribute('open');
+      }
+    };
+    document.addEventListener('pointerdown', fechar);
+    document.addEventListener('keydown', fechar);
+    return () => {
+      document.removeEventListener('pointerdown', fechar);
+      document.removeEventListener('keydown', fechar);
+    };
+  }, []);
+  useEffect(() => { referencia.current?.removeAttribute('open'); }, [nome, financeiro]);
+  if (!financeiro?.pedidos?.length) return null;
   const datas = new Set(financeiro.pedidos.map(p => p.data).filter(Boolean));
   const temSemData = financeiro.pedidos.some(p => !p.data);
   const variasDatas = datas.size > 1 || (datas.size > 0 && temSemData);
-  return <section className="recall-financeiro" aria-label={`Valores em aberto de ${nome}`}>
-    <div className="recall-financeiro-topo"><span className="recall-financeiro-titulo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h4"/></svg>Valores em aberto</span><TagDividaRecall financeiro={financeiro}/></div>
-    <div className="recall-financeiro-resumo"><div><small>Total do cliente</small><strong>{reais(financeiro.valorTotal)}</strong></div><div className="recall-financeiro-data"><small>{variasDatas ? 'Primeiro vencimento' : 'Pagamento previsto'}</small><strong>{financeiro.proximaData || 'Sem data informada'}</strong>{variasDatas && <span>Há outras datas nos pedidos</span>}</div></div>
-    <details className="recall-financeiro-pedidos"><summary>Ver {financeiro.pedidos.length === 1 ? 'pedido em aberto' : `${financeiro.pedidos.length} pedidos em aberto`}<span aria-hidden="true">⌄</span></summary><div>{financeiro.pedidos.map(pedido => <button type="button" key={`${pedido.tipo}-${pedido.pedidoId}`} onClick={() => navigate(`/${pedido.tipo === 'AOVIVO' ? 'ao-vivo' : 'fonada'}/${pedido.pedidoId}`, { state: { returnTo } })}>
+  return <details ref={referencia} className="recall-financeiro" aria-label={`Valores em aberto de ${nome}`}>
+    <summary title={`${rotuloMensagens(financeiro.quantidadeMensagens)}. ${variasDatas ? 'Primeiro vencimento' : 'Pagamento previsto'}: ${financeiro.proximaData || 'sem data'}. Clique para ver os pedidos.`}>
+      <span className="recall-financeiro-valor">{reais(financeiro.valorTotal)} <span>em aberto</span></span>
+      <span className="recall-financeiro-data">{financeiro.proximaData || 'Sem data'}{variasDatas ? ' +' : ''}</span>
+      <span className="recall-financeiro-quantidade" aria-label={rotuloMensagens(financeiro.quantidadeMensagens)}>{financeiro.quantidadeMensagens} {financeiro.quantidadeMensagens === 1 ? 'msg' : 'msgs'}</span>
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="m4 6 4 4 4-4"/></svg>
+    </summary>
+    <div className="recall-financeiro-pedidos"><span className="recall-financeiro-legenda">Pedidos em aberto{variasDatas ? ' · datas de pagamento' : ''}</span>{financeiro.pedidos.map(pedido => <button type="button" key={`${pedido.tipo}-${pedido.pedidoId}`} onClick={() => navigate(`/${pedido.tipo === 'AOVIVO' ? 'ao-vivo' : 'fonada'}/${pedido.pedidoId}`, { state: { returnTo } })}>
       <span><strong>{pedido.tipo === 'AOVIVO' ? 'Ao Vivo' : 'Fonada'} · O.S. {pedido.os || pedido.pedidoId}</strong><small>{pedido.data ? `Pagamento previsto: ${pedido.data}` : 'Pagamento sem data informada'}</small></span><b>{reais(pedido.valor)} <span aria-hidden="true">↗</span></b>
-    </button>)}</div></details>
-  </section>;
+    </button>)}</div>
+  </details>;
 }

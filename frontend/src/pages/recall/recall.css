@@ -1,30 +1,27 @@
 /* Recall usa a mesma paleta e densidade da Agenda, Relatórios e Cobrança. */
-.recall-moderna .recall-tag-divida { display:inline-flex; align-items:center; gap:5px; width:fit-content; max-width:100%; margin:7px 5px 0 0; padding:4px 7px; border:1px solid #edd9b9; border-radius:6px; background:#fff7eb; color:#80571d; font-size:10px; font-weight:600; line-height:1.4; white-space:normal; }
-.recall-moderna .recall-tag-divida > span { font-size:7px; }
-.recall-moderna .recall-financeiro { margin:19px 0 14px; overflow:hidden; border:1px solid #ecdcc4; border-radius:12px; background:linear-gradient(115deg,#fffaf2,#fff); color:var(--rc-text); }
-.recall-moderna .recall-financeiro-topo { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; padding:14px 16px 0; }
-.recall-moderna .recall-financeiro-titulo { display:inline-flex; gap:7px; align-items:center; color:#795624; font-size:11px; font-weight:650; }
-.recall-moderna .recall-financeiro-titulo svg { width:16px; height:16px; }
-.recall-moderna .recall-financeiro-topo .recall-tag-divida { margin:0; }
-.recall-moderna .recall-financeiro-resumo { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:16px; }
-.recall-moderna .recall-financeiro-resumo small { display:block; color:#74654f; font-size:10px; margin-bottom:5px; }
-.recall-moderna .recall-financeiro-resumo strong { display:block; color:#493d2c; font-size:24px; letter-spacing:-.04em; font-weight:700; font-variant-numeric:tabular-nums; }
-.recall-moderna .recall-financeiro-data { border-left:1px solid #ede1d0; padding-left:16px; }
-.recall-moderna .recall-financeiro-data strong { font-size:15px; letter-spacing:-.01em; line-height:1.7; }
-.recall-moderna .recall-financeiro-data > span { display:block; color:#74654f; font-size:10px; margin-top:3px; }
-.recall-moderna .recall-financeiro-pedidos { border-top:1px solid #ede1d0; }
-.recall-moderna .recall-financeiro-pedidos summary { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 16px; font-size:11px; color:#795624; cursor:pointer; list-style:none; }
-.recall-moderna .recall-financeiro-pedidos summary::-webkit-details-marker { display:none; }
-.recall-moderna .recall-financeiro-pedidos[open] summary > span { transform:rotate(180deg); }
-.recall-moderna .recall-financeiro-pedidos button { display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; text-align:left; padding:12px 16px; border:0; border-top:1px solid #f0e7da; background:#ffffffa6; color:var(--rc-text); }
-.recall-moderna .recall-financeiro-pedidos button:hover { background:#fff3e0; }
+.recall-moderna .recall-tag-divida { display:inline-block; margin:6px 7px 0 0; color:#647086; font-size:10px; font-weight:500; line-height:1.4; }
+.recall-moderna .recall-contato-faixa { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; margin:17px 0 20px; }
+.recall-moderna .recall-contato-faixa .recall-contato { margin:0; }
+.recall-moderna .recall-financeiro { position:relative; min-width:0; max-width:100%; margin:0; padding:0; border:0; background:transparent; }
+.recall-moderna .recall-financeiro span:first-child { text-transform:none; }
+.recall-moderna .recall-financeiro > summary { display:flex; flex-wrap:wrap; align-items:center; gap:5px 7px; min-height:30px; padding:4px 0; cursor:pointer; list-style:none; color:#65748b; font-size:11px; line-height:1.5; }
+.recall-moderna .recall-financeiro > summary::-webkit-details-marker { display:none; }
+.recall-moderna .recall-financeiro > summary .recall-financeiro-valor { color:#46556c; font-size:11px; font-weight:600; text-transform:none; }
+.recall-moderna .recall-financeiro-valor > span { color:#65748b; font-weight:400; }
+.recall-moderna .recall-financeiro-data { padding-left:7px; border-left:1px solid #dfe5ee; font-variant-numeric:tabular-nums; }
+.recall-moderna .recall-financeiro-quantidade { padding:1px 5px; border-radius:4px; background:#f0f3f8; color:#65748b; font-size:10px; white-space:nowrap; }
+.recall-moderna .recall-financeiro > summary svg { width:12px; height:12px; }
+.recall-moderna .recall-financeiro[open] > summary svg { transform:rotate(180deg); }
+.recall-moderna .recall-financeiro-pedidos { position:absolute; top:calc(100% + 6px); right:0; z-index:10; width:330px; max-width:calc(100vw - 78px); padding:5px 0; border:1px solid #e2e8f2; border-radius:10px; background:white; box-shadow:0 8px 28px #2535501a; }
+.recall-moderna .recall-financeiro-legenda { display:block; padding:7px 12px; color:#65748b; font-size:10px; }
+.recall-moderna .recall-financeiro-pedidos button { display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; padding:10px 12px; border:0; background:transparent; text-align:left; color:var(--rc-text); }
+.recall-moderna .recall-financeiro-pedidos button:hover { background:#f6f8fc; }
 .recall-moderna .recall-financeiro-pedidos button > span { min-width:0; overflow-wrap:anywhere; }
 .recall-moderna .recall-financeiro-pedidos button strong { display:block; font-size:11px; font-weight:600; }
-.recall-moderna .recall-financeiro-pedidos button small { display:block; font-size:10px; color:#74654f; margin-top:4px; }
-.recall-moderna .recall-financeiro-pedidos button b { flex-shrink:0; font-size:12px; font-weight:650; font-variant-numeric:tabular-nums; }
-.recall-moderna .recall-financeiro-pedidos button b span { color:#947342; padding-left:4px; }
-.recall-moderna .recall-financeiro-quitado { display:flex; gap:6px; align-items:center; margin:17px 0 12px; color:#506c62; font-size:11px; }
-@media(max-width:380px) { .recall-moderna .recall-financeiro-resumo { grid-template-columns:1fr; } .recall-moderna .recall-financeiro-data { padding:10px 0 0; border-left:0; border-top:1px solid #ede1d0; } .recall-moderna .recall-financeiro-pedidos button { flex-wrap:wrap; } }
+.recall-moderna .recall-financeiro-pedidos button small { display:block; margin-top:3px; color:#65748b; font-size:10px; }
+.recall-moderna .recall-financeiro-pedidos button b { flex-shrink:0; font-size:11px; font-weight:600; font-variant-numeric:tabular-nums; }
+.recall-moderna .recall-financeiro-pedidos button b span { padding-left:3px; color:#65748b; }
+@media(max-width:600px) { .recall-moderna .recall-financeiro-pedidos { left:0; right:auto; } }
 .recall-moderna .recall-linha > span:nth-child(2) { min-width:0; }
 .recall-moderna .recall-linha .recall-lista-relacao > span { max-width:100%; overflow:visible; text-overflow:clip; }
 .recall-moderna .recall-historico-conteudo strong,.recall-moderna .recall-historico-conteudo small { overflow:visible; text-overflow:clip; white-space:normal; overflow-wrap:anywhere; }

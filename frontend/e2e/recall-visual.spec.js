@@ -31,17 +31,21 @@ for(const sistema of ['FONADA','AOVIVO'])for(const modo of ['dia-mensagem','aniv
     await expect(page.getByRole('tab',{name:/Pesquisa 2/})).toHaveAttribute('aria-selected',String(modo==='aniversario'));
     await expect(page.locator('.recall-linha')).toHaveCount(modo==='aniversario'?1:2);
     if(modo==='dia-mensagem'){
-      await expect(page.locator('.recall-linha').first().locator('.recall-tag-divida')).toHaveText('● 3 mensagens em aberto');
-      const financeiro=page.getByRole('region',{name:'Valores em aberto de KATIA EMILLY SILVA DE OLIVEIRA'});
+      await expect(page.locator('.recall-linha').first().locator('.recall-tag-divida')).toHaveText('3 msgs em aberto');
+      const financeiro=page.locator('.recall-contato-faixa .recall-financeiro');
       await expect(financeiro).toContainText('R$ 135,50');
       await expect(financeiro).toContainText('29/10/26');
+      await expect(financeiro).not.toHaveAttribute('open','');
+      expect(await financeiro.evaluate(el=>el.getBoundingClientRect().height)).toBeLessThan(44);
       await financeiro.locator('summary').click();
       await expect(financeiro.getByRole('button')).toHaveCount(2);
       await expect(financeiro).toContainText('05/11/26');
+      await page.keyboard.press('Escape');
+      await expect(financeiro).not.toHaveAttribute('open','');
       await expect(page.locator('.recall-linha').first()).toContainText('KATIA EMILLY SILVA DE OLIVEIRA');
       await expect(page.locator('.recall-linha').first()).toContainText('MÁRCIA HELENA (NÃO É MAIS - NÃO LIGAR)');
     }else{
-      await expect(page.locator('.recall-financeiro-quitado')).toHaveText('✓ Nenhum valor em aberto');
+      await expect(page.locator('.recall-financeiro')).toHaveCount(0);
       await expect(page.locator('.recall-tag-divida')).toHaveCount(0);
     }
     await page.locator('.recall-historico-relacao > summary').click();
@@ -56,6 +60,16 @@ for(const sistema of ['FONADA','AOVIVO'])for(const modo of ['dia-mensagem','aniv
       await page.setViewportSize({width,height:1000});
       await page.evaluate(()=>{ window.scrollTo(0,0); document.querySelectorAll('*').forEach(el=>el.scrollTop=0); });
       expect(await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1),`Transbordamento em ${width}px`).toBe(false);
+      if(modo==='dia-mensagem'){
+        const financeiro=page.locator('.recall-financeiro');
+        await financeiro.locator('summary').click();
+        const painel=financeiro.locator('.recall-financeiro-pedidos');
+        await expect(painel).toBeVisible();
+        expect(await painel.evaluate(el=>{const r=el.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth;}),`Detalhes financeiros em ${width}px`).toBe(true);
+        await page.locator('.recall-relacao-titulo').click();
+        await expect(financeiro).not.toHaveAttribute('open','');
+        await page.evaluate(()=>{window.scrollTo(0,0);document.querySelectorAll('*').forEach(el=>el.scrollTop=0);});
+      }
       if(width===1720||width===390)await page.screenshot({path:testInfo.outputPath(`recall-${sistema}-${modo}-${width}.png`),fullPage:true});
     }
     await page.getByRole('searchbox').fill('Nome inexistente');
