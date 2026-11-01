@@ -87,6 +87,9 @@ function agendaAoVivoDoDia(pedidos, hojeChave) {
 async function montarResumoDoDia() {
   const hoje = hojeBr(); // Troque por 'DD/MM/AA' se for fazer testes
   const hojeChave = paraChaveComparavel(hoje);
+  // Pré-filtro conservador: a comparação exata abaixo continua validando o
+  // ano e os espaços dos formatos legados, sem carregar o histórico inteiro.
+  const diaMes = `%${hoje.slice(0, 5)}/%`;
 
   const [fonadasResultado, aoVivoResultado, financeiroResultado] = await Promise.all([
     db.query(`
@@ -94,16 +97,18 @@ async function montarResumoDoDia() {
              p1_dia, p1_horario, p1_para, p1_tema, p1_fixo, p1_celular, p1_quem_oferece, p1_resultado,
              p2_dia, p2_horario, p2_para, p2_tema, p2_fixo, p2_celular, p2_quem_oferece, p2_resultado,
              valor, creditos_usados, cobranca, periodo, pagou, recebi, data_pagamento
-      FROM fonadas WHERE excluido_em IS NULL
-    `),
+      FROM fonadas WHERE excluido_em IS NULL AND (p1_dia LIKE $1 OR p2_dia LIKE $1)
+    `, [diaMes]),
     db.query(`
       SELECT id, numero_os, comprador, para, oferecimento, data_pedido, dia_entrega, horario_entrega,
              celular, celular2, celular_local, fixo_local, tema_1, tema_2, tema_3, tema_4, observacoes,
              valor, pagamento, pagou, data_pagou, data_cobranca, valor_recebido,
              forma_recebimento, resultado_entrega, entregue_por
       FROM ao_vivo WHERE excluido_em IS NULL
-    `),
-    db.query(`SELECT * FROM financeiro_fonada WHERE excluido_em IS NULL`),
+        AND (data_pedido LIKE $1 OR data_pagou LIKE $1 OR dia_entrega LIKE $1)
+    `, [diaMes]),
+    db.query(`SELECT valor, data_pedido, data_pagamento, pagou FROM financeiro_fonada
+      WHERE excluido_em IS NULL AND (data_pedido LIKE $1 OR data_pagamento LIKE $1)`, [diaMes]),
   ]);
 
   // --- FONADA ---

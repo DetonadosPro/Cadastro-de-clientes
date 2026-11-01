@@ -1,0 +1,44 @@
+{
+  "registradoEm": "2026-11-01T04:44:50.9988974Z",
+  "projectId": "46844939-468b-43a5-91a5-e513bb609682",
+  "environmentId": "620b4030-2eb1-486b-83ff-de9e657935da",
+  "name": "go-live-qa-20260928",
+  "services": [
+    {
+      "serviceName": "insightful-heart",
+      "serviceId": "45784f38-d39f-4960-9aa9-8978eff3e43f",
+      "source": {
+        "image": null,
+        "repo": "DetonadosPro/Cadastro-de-clientes"
+      },
+      "deployment": "df8b9aaa-c5f2-4c66-8cca-63acea509171",
+      "commit": "79107743d40dfcf638b2cfa219cbcda278787453",
+      "branch": "codex/revisao-produto-clientes",
+      "rootDirectory": "/backend"
+    },
+    {
+      "serviceName": "Postgres-mQEz",
+      "serviceId": "2bff73c1-91dd-46a2-85e7-881e180d6998",
+      "source": {
+        "image": "ghcr.io/railwayapp-templates/postgres-ssl:18",
+        "repo": null
+      },
+      "deployment": "e483ef21-4038-4658-ae05-daf9a43c5993",
+      "commit": null,
+      "branch": null,
+      "rootDirectory": null
+    }
+  ],
+  "volume": [
+    {
+      "serviceId": "2bff73c1-91dd-46a2-85e7-881e180d6998",
+      "mountPath": "/var/lib/postgresql/data",
+      "sizeMB": 5000,
+      "state": "READY",
+      "volume": {
+        "id": "9ab3f51b-f572-4683-80e6-5db56f67f16c",
+        "name": "postgres-volume-ewN4"
+      }
+    }
+  ]
+}

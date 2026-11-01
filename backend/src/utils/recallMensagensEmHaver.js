@@ -4,7 +4,8 @@ async function anexarMensagensEmHaver(grupos, consultar, referencia) {
   const ids = [...new Set(grupos.map((grupo) => grupo.clienteId).filter(Boolean))];
   const porCliente = new Map();
   if (ids.length) {
-    const resultado = await consultar(`SELECT f.* FROM fonadas f
+    const resultado = await consultar(`SELECT f.id, f.cliente_id, f.senha_os, f.valor, f.creditos_usados,
+        f.data_pedido, f.p2_dia, f.p2_resultado FROM fonadas f
       JOIN clientes c ON c.id=f.cliente_id AND c.excluido_em IS NULL
       WHERE f.excluido_em IS NULL AND f.cliente_id=ANY($1::int[])
         AND COALESCE(TRIM(f.p2_resultado),'')=''

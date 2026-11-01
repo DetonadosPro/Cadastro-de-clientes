@@ -11,17 +11,14 @@
 // comprime muito bem). Para abrir depois: extrai o .json.gz com
 // qualquer descompactador (7-Zip, WinRAR, etc. reconhecem .gz).
 
-const zlib = require('zlib');
 const fs = require('node:fs/promises');
 const path = require('node:path');
-const { promisify } = require('node:util');
 const { performance } = require('node:perf_hooks');
 const { pool } = require('../db/database');
 const { enviarEmail } = require('../servicos/email');
 const { registrarOperacao } = require('../observabilidade');
 const { pastaArtefatosQa } = require('./qaArtefatos');
-
-const gzip = promisify(zlib.gzip);
+const { comprimirTabela, TABELAS_BACKUP } = require('./backupTabela');
 
 function timestamp() {
   const agora = new Date();
@@ -29,42 +26,18 @@ function timestamp() {
   return `${agora.getFullYear()}${pad(agora.getMonth() + 1)}${pad(agora.getDate())}-${pad(agora.getHours())}${pad(agora.getMinutes())}`;
 }
 
-const TABELAS_BACKUP = [
-  'usuarios', 'clientes', 'fonadas', 'ao_vivo', 'creditos_fonada',
-  'tentativas_contato', 'tentativas_prazo_ao_vivo', 'lembretes',
-  'recall_registros', 'duplicatas_descartadas', 'contadores_os', 'configuracoes_sistema',
-];
-const ORDENACAO = { duplicatas_descartadas: 'cliente_menor_id, cliente_maior_id', contadores_os: 'sistema' };
-
-async function gerarBackupTabela(client, nomeTabela) {
-  const resultado = await client.query(`SELECT * FROM ${nomeTabela} ORDER BY ${ORDENACAO[nomeTabela] || 'id'}`);
-  // Serializa em blocos e devolve o event loop entre eles. Com mais de
-  // 20 mil pedidos, um JSON.stringify único congelava todas as requests.
-  const partes = ['['];
-  for (let inicio = 0; inicio < resultado.rows.length; inicio += 500) {
-    if (inicio > 0) partes.push(',');
-    partes.push(resultado.rows.slice(inicio, inicio + 500).map((linha) => JSON.stringify(linha)).join(','));
-    await new Promise((resolve) => setImmediate(resolve));
-  }
-  partes.push(']');
-  return partes.join('');
-}
-
-async function comprimir(textoJson) {
-  const compactado = await gzip(Buffer.from(textoJson, 'utf-8'));
-  return compactado.toString('base64');
-}
-
-async function rodarBackupSemanal() {
+async function executarBackup() {
   console.log('📦 Iniciando backup semanal automático...');
   const inicio = performance.now();
   try {
     const client = await pool.connect();
-    let tabelas;
+    const anexos = [];
+    const ts = timestamp();
     try {
       await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
-      tabelas = {};
-      for (const tabela of TABELAS_BACKUP) tabelas[tabela] = await gerarBackupTabela(client, tabela);
+      for (const tabela of TABELAS_BACKUP) {
+        anexos.push({ filename: `${tabela}-${ts}.json.gz`, content: await comprimirTabela(client, tabela), jaComprimido: true });
+      }
       await client.query('COMMIT');
     } catch (erro) {
       await client.query('ROLLBACK');
@@ -72,11 +45,6 @@ async function rodarBackupSemanal() {
     } finally {
       client.release();
     }
-
-    const ts = timestamp();
-    const anexos = await Promise.all(TABELAS_BACKUP.map(async (tabela) => ({
-      filename: `${tabela}-${ts}.json.gz`, content: await comprimir(tabelas[tabela]), jaComprimido: true,
-    })));
 
     const pastaQa = await pastaArtefatosQa();
     if (pastaQa) {
@@ -106,6 +74,13 @@ async function rodarBackupSemanal() {
     console.error('❌ Erro ao gerar backup semanal:', erro);
     return { ok: false, motivo: erro.message };
   }
+}
+
+// Cron e solicitação manual simultâneos compartilham a mesma execução.
+let emAndamento = null;
+function rodarBackupSemanal() {
+  if (!emAndamento) emAndamento = executarBackup().finally(() => { emAndamento = null; });
+  return emAndamento;
 }
 
 module.exports = { rodarBackupSemanal, TABELAS_BACKUP };

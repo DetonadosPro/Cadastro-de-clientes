@@ -135,7 +135,7 @@ export function TempoRealProvider({ children }) {
     let verificando = false;
 
     async function verificar() {
-      if (cancelado || verificando) return;
+      if (cancelado || verificando || document.visibilityState === 'hidden') return;
       verificando = true;
       try {
         const url = new URL('/version.json', window.location.origin);
@@ -160,7 +160,7 @@ export function TempoRealProvider({ children }) {
     }
 
     verificar();
-    const intervalo = setInterval(verificar, 15000);
+    const intervalo = setInterval(verificar, 120000);
     window.addEventListener('focus', verificar);
     window.addEventListener('online', verificar);
     document.addEventListener('visibilitychange', verificarAoRetomar);
