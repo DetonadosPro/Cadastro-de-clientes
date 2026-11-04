@@ -28,7 +28,7 @@ const CAMPOS = [
   'comprador_fixo', 'comprador_whatsapp', 'comprador_celular', 'comprador_endereco', 'comprador_complemento', 'comprador_bairro', 'comprador_referencia',
   'valor', 'cobranca', 'periodo', 'pagou', 'recebi',
   'vender', 'status', 'impresso', 'vendedor_usuario',
-  'creditos_usados', 'credito_operacao',
+  'creditos_usados', 'credito_operacao', 'segunda_mensagem_liberada',
 ];
 
 const FILTROS_FONADA = {
@@ -178,6 +178,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const dados = { ...req.body, ...registroPedidoBrasilia() };
+    if (dados.segunda_mensagem_liberada !== undefined && typeof dados.segunda_mensagem_liberada !== 'boolean') return res.status(400).json({ erro: 'Liberação da segunda mensagem inválida.' });
     if (dados.creditos_usados !== undefined && ![0, 1].includes(dados.creditos_usados)) return res.status(400).json({ erro: 'Cada novo pedido utiliza um crédito, incluindo a segunda mensagem.' });
     dados.creditos_usados = dados.creditos_usados || 0;
     if (dados.creditos_usados) {
@@ -307,6 +308,7 @@ router.put('/:id', async (req, res) => {
     }
 
     const dados = req.body;
+    if (dados.segunda_mensagem_liberada !== undefined && typeof dados.segunda_mensagem_liberada !== 'boolean') return res.status(400).json({ erro: 'Liberação da segunda mensagem inválida.' });
     if (dados.creditos_usados !== undefined && dados.creditos_usados !== existente.creditos_usados) return res.status(409).json({ erro: 'A quantidade de créditos de um pedido salvo não pode ser alterada. Crie outro pedido para usar novos créditos.' });
     if (existente.creditos_usados > 0) {
       if (dados.cliente_id !== undefined && Number(dados.cliente_id) !== existente.cliente_id) return res.status(409).json({ erro: 'Um pedido pago com créditos não pode mudar de cliente.' });

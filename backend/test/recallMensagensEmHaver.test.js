@@ -42,3 +42,11 @@ test('pessoa sem cadastro não recebe saldo de outra pessoa e não exige consult
   const resultado = await anexarMensagensEmHaver([{ clienteId: null }], async () => { throw new Error('Consulta inesperada'); });
   assert.equal(resultado[0].mensagensEmHaver, null);
 });
+
+test('exceção individual aparece em haver mesmo acima do limite configurado', async () => {
+  const resultado=await anexarMensagensEmHaver([{clienteId:9}],async(sql)=>{
+    assert.match(sql,/f\.segunda_mensagem_liberada/);
+    return {rows:[{id:90,cliente_id:9,senha_os:'0090',valor:25,segunda_mensagem_liberada:true,data_pedido:'04/11/26'}]};
+  },new Date(2026,10,4));
+  assert.equal(resultado[0].mensagensEmHaver[0].pedidoId,90);
+});

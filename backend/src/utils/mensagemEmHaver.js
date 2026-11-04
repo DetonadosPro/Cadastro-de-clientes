@@ -34,6 +34,7 @@ function somarMesesCalendario(data, quantidade) {
 }
 
 function temDireitoSegundaMensagem(pedido) {
+  if (pedido.segunda_mensagem_liberada === true) return true;
   if (Number(pedido.creditos_usados) > 0) return true;
   const valor = Number(pedido.valor);
   return pedido.valor != null && String(pedido.valor).trim() !== '' && Number.isFinite(valor)

@@ -614,7 +614,7 @@ router.get('/:id/resumo', async (req, res) => {
     `, [req.params.id]);
 
     const haverResultado = await db.query(`
-      SELECT id, valor, creditos_usados, senha_os, data_pedido, p1_fixo, p1_celular,
+      SELECT id, valor, creditos_usados, segunda_mensagem_liberada, senha_os, data_pedido, p1_fixo, p1_celular,
              p2_dia, p2_para, p2_tema, p2_mensagem, p2_fixo, p2_celular,
              p2_horario, p2_quem_oferece, p2_resultado
       FROM fonadas
@@ -666,7 +666,7 @@ router.get('/:id', async (req, res) => {
       SELECT id, senha_os, data_pedido, p1_dia, p1_horario, p1_para, p1_fixo, p1_celular, p1_resultado, p1_passada_por,
              p2_dia, p2_para, p2_tema, p2_mensagem, p2_fixo, p2_celular, p2_horario,
              p2_quem_oferece, p2_resultado, p2_passada_por,
-             valor, creditos_usados, pagou, cobranca, cobranca_reagendada, periodo, data_pagamento, status, criado_em
+             valor, creditos_usados, segunda_mensagem_liberada, pagou, cobranca, cobranca_reagendada, periodo, data_pagamento, status, criado_em
       FROM fonadas WHERE cliente_id = $1 AND excluido_em IS NULL ORDER BY id DESC
     `, [req.params.id]);
 

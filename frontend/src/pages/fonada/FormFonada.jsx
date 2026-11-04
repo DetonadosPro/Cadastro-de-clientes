@@ -15,7 +15,7 @@ import './pagamento-registro.css';
 import '../../creditos-fonada.css';
 
 const VAZIO = {
-  creditos_usados: 0, credito_operacao: '',
+  creditos_usados: 0, credito_operacao: '', segunda_mensagem_liberada: false,
   senha_os: '', cliente_id: null, data_pedido: '', horario_pedido: '', nascimento: '', tipo: '', recall: 'NÃO', recall_codigo: '',
   p1_dia: '', p1_para: '', p1_tema: '', p1_mensagem: '', p1_fixo: '', p1_celular: '', p1_horario: '', p1_quem_oferece: '', p1_resultado: '',
   p2_dia: '', p2_para: '', p2_tema: '', p2_mensagem: '', p2_fixo: '', p2_celular: '', p2_horario: '', p2_quem_oferece: '', p2_resultado: '',
@@ -109,6 +109,7 @@ export default function FormFonada() {
   const { id } = useParams();
   const { configuracoes, erro: erroConfiguracoes, carregando: carregandoConfiguracoes, recarregar: recarregarConfiguracoes } = useConfiguracoes();
   function segundaMensagemLiberada(dados) {
+    if (dados.segunda_mensagem_liberada === true) return true;
     if (dados.creditos_usados > 0) return true;
     return !!configuracoes && String(dados.valor || '').trim() !== '' && Math.round(valorMonetarioParaNumero(dados.valor) * 100) <= Math.round(configuracoes.limite_segunda_mensagem * 100);
   }
@@ -232,6 +233,28 @@ export default function FormFonada() {
   const [erro, setErro] = useState('');
   // Identifica o campo que deve ser corrigido e limpa o destaque ao editar.
   const [campoObrigatorioFaltando, setCampoObrigatorioFaltando] = useState(null);
+  function liberarSegundaMensagem() {
+    if (carregando || salvando || cliente?.bloqueado || segundaMensagemLiberada(dados)) return;
+    if (editando && mensagemEmHaver?.status === 'EXPIRADA') {
+      mostrarToast('A validade desta segunda mensagem já terminou.', 'erro');
+      return;
+    }
+    const novo = { ...dados, segunda_mensagem_liberada: true };
+    setDados(novo);
+    salvarRascunhoFonada(chaveRascunho, novo, cliente);
+    mostrarToast('Segunda mensagem liberada neste pedido. Clique em Salvar para registrar.');
+    requestAnimationFrame(() => document.querySelector('[aria-label="Para da 2ª mensagem"]')?.focus());
+  }
+  useEffect(() => {
+    function atalho(evento) {
+      if (!evento.ctrlKey || evento.altKey || evento.shiftKey || evento.metaKey || evento.key.toLowerCase() !== 'q' || evento.repeat || evento.isComposing) return;
+      if (document.querySelector('[role="dialog"]')) return;
+      evento.preventDefault();
+      liberarSegundaMensagem();
+    }
+    window.addEventListener('keydown', atalho);
+    return () => window.removeEventListener('keydown', atalho);
+  }, [dados, cliente, carregando, salvando, mensagemEmHaver, chaveRascunho]);
   const formularioRef = useRef(null);
   function apontarCampo(campo, mensagem) {
     setErro(mensagem);
@@ -704,6 +727,7 @@ export default function FormFonada() {
               />
               <ColunaMensagem
                 numero={2} dados={dados} set={set} setComMascara={setComMascara} onCopiar={copiarEntreMensagens}
+                onLiberar={!segundaLiberada && !segundaExpirada && !estaBloqueado ? liberarSegundaMensagem : null}
                 bloqueada={!segundaLiberada || segundaExpirada} editando={editando}
                 situacaoMensagem={dados.creditos_usados > 0 ? { status: dados.p2_resultado ? 'UTILIZADA' : 'DISPONIVEL', semValidade: true } : !segundaLiberada ? { status: 'NAO_CONCEDIDA' } : mensagemEmHaver?.status === 'NAO_CONCEDIDA' ? null : mensagemEmHaver}
                 salvandoBaixa={salvandoBaixa} onDarBaixa={darBaixaMensagem} onNaoAtendeu={abrirRemarcarMensagem}
@@ -1019,7 +1043,7 @@ export default function FormFonada() {
 // a 1ª e copiar dali para a 2ª, não o contrário. Reúne o que antes
 // eram duas seções separadas ("Ordem de serviço" e "Transmissão") —
 // na prática é a mesma ordem de serviço, só com campos diferentes.
-function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada, copiarBloqueado, editando, salvandoBaixa, onDarBaixa, onNaoAtendeu, situacaoMensagem }) {
+function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada, copiarBloqueado, editando, salvandoBaixa, onDarBaixa, onNaoAtendeu, situacaoMensagem, onLiberar }) {
   const p = numero === 1 ? 'p1' : 'p2';
   const mostrarBotaoP = numero === 1;
   const diaPreenchido = Boolean(dados[`${p}_dia`]);
@@ -1029,6 +1053,8 @@ function ColunaMensagem({ numero, dados, set, setComMascara, onCopiar, bloqueada
     <div className="coluna-mensagem">
       <div className="coluna-mensagem-titulo">
         <span className={`bolinha-status ${dados[`${p}_dia`] ? 'usada' : 'livre'}`} /> {numero}ª mensagem
+        {numero === 2 && onLiberar && <button type="button" className="segunda-liberar-atalho" onClick={onLiberar} aria-keyshortcuts="Control+Q" title="Liberar a segunda mensagem somente neste pedido">Liberar <kbd>Ctrl + Q</kbd></button>}
+        {numero === 2 && dados.segunda_mensagem_liberada === true && <small className="segunda-liberada-manual">Liberada neste pedido</small>}
         {numero === 2 && situacaoMensagem && (
           <span className={`tag ${situacaoMensagem.status === 'DISPONIVEL' ? 'ok' : situacaoMensagem.status === 'EXPIRADA' ? 'pendente' : 'neutro'}`} style={{ marginLeft: 'auto' }}>
             {situacaoMensagem.status === 'DISPONIVEL' ? situacaoMensagem.semValidade ? 'Crédito sem vencimento' : `Disponível até ${situacaoMensagem.dataExpiracao}` : situacaoMensagem.status === 'UTILIZADA' ? 'Utilizada' : situacaoMensagem.status === 'EXPIRADA' ? `Expirada em ${situacaoMensagem.dataExpiracao}` : situacaoMensagem.status === 'NAO_CONCEDIDA' ? 'Segunda mensagem indisponível' : 'Indisponível'}

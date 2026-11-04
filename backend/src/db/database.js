@@ -352,6 +352,7 @@ async function iniciarBanco() {
   await sincronizarContadorComMaximoExistente(pool, 'ao_vivo', 'ao_vivo', 'numero_os');
 
   const colunasNovas = [
+    { tabela: 'fonadas', coluna: 'segunda_mensagem_liberada', tipo: 'BOOLEAN NOT NULL DEFAULT FALSE' },
     { tabela: 'ao_vivo', coluna: 'tema_4', tipo: 'TEXT' },
     { tabela: 'ao_vivo', coluna: 'mensagem_codigo_4', tipo: 'TEXT' },
     { tabela: 'fonadas', coluna: 'cliente_id', tipo: 'INTEGER REFERENCES clientes(id)' },
